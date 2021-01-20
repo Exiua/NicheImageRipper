@@ -278,8 +278,8 @@ def read_config(header, child):
     config.read('config.ini')
     if not path.isfile('config.ini'):
         config['DEFAULT'] = {}
-        config['DEFAULT']['SavePath'] = 'Rips\\'
-        config['DEFAULT']['Theme'] = 'Black'
+        config['DEFAULT']['SavePath'] = 'Rips/'
+        config['DEFAULT']['Theme'] = 'Dark'
         config['DEFAULT']['AskToReRip'] = 'True'
         with open('config.ini', 'w') as configfile:    # save
             config.write(configfile)
