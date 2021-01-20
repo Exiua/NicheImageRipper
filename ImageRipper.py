@@ -44,7 +44,6 @@ class ImageRipper():
                 except PIL.UnidentifiedImageError:
                     try:
                         os.remove(full_path + "/pic1.jpg")
-                        #download_imhentai(trimmed_url, file_num + "t", full_path, ".jpg")
                         #Check if .gif
                         download_imhentai(trimmed_url, file_num, full_path, ".gif")
                     except PIL.UnidentifiedImageError:
