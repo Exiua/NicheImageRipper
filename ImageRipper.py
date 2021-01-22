@@ -60,7 +60,7 @@ class ImageRipper():
                                 pass
                 except OSError:
                     pass
-        elif self.site_name in ("hotgirl", "cup-e"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_hotgirl(self.folder_info[0][index], full_path)
@@ -93,6 +93,10 @@ class ImageRipper():
             site_info = cupe_parse(soup, driver)
             driver.quit()
             return site_info
+        if self.site_name == "girlsreleased":
+            site_info = girlsreleased_parse(soup, driver)
+            driver.quit()
+            return site_info
         raise RipperError("Not a supported site")
 
     def site_check(self):
@@ -106,6 +110,8 @@ class ImageRipper():
                 return "hentaicafe"
             if "cup-e.club" in self.given_url:
                 return "cup-e"
+            if "girlsreleased" in self.given_url:
+                return "girlsreleased"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -211,6 +217,24 @@ def cupe_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def girlsreleased_parse(soup, driver):
+    """Read the html for girlsreleased.com"""
+    dir_name = soup.find("div", class_="unknown small").text.replace("_", " ").split()[0]
+    images_source = soup.find_all("a", target="imageView")
+    images_url = []
+    images = []
+    for image in images_source:
+        images_url.append(image.get("href"))
+    for url in images_url:
+        response = requests.get(url, stream=True)
+        html = response.text
+        soup = BeautifulSoup(html, "html.parser")
+        image = soup.find("img", class_="pic img img-responsive").get("src")
+        images.append(image)
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     options = Options()
@@ -220,7 +244,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return cupe_parse(soup, driver)
+    return girlsreleased_parse(soup, driver)
 
 def download_imhentai(url_name, file_name, full_path, ext):
     """"Download specific image from imhentai"""
@@ -295,7 +319,7 @@ def write_config(header, child, change):
 
 def url_check(given_url):
     """Check the url to make sure it is from valid site"""
-    sites = ["imhentai.com", "hotgirl.asia", "hentai.cafe", "cup-e.club"]
+    sites = ["imhentai.com", "hotgirl.asia", "hentai.cafe", "cup-e.club", "girlsreleased.com"]
     return any(x in given_url for x in sites)
 
 def sorted_nicely(l):
@@ -305,6 +329,10 @@ def sorted_nicely(l):
     return sorted(l, key = alphanum_key)
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        album_url = sys.argv[1]
+    else:
+        raise Exception("Script requires a link as an argument")
     #image_ripper = ImageRipper(sys.argv[1])
     #image_ripper.image_getter()
     print(test_parse(sys.argv[1]))
