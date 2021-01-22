@@ -4,3 +4,4 @@ env
 __pycache__
 config.ini
 RipHistory.json
+geckodriver.log
