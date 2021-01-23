@@ -231,7 +231,8 @@ def girlsreleased_parse(soup, driver):
     for image in images_source:
         images_url.append(image.get("href"))
     for url in images_url:
-        response = requests.get(url, stream=True)
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36'}
+        response = requests.get(url, stream=True, headers=headers)
         html = response.text
         soup = BeautifulSoup(html, "html.parser")
         image = soup.find("img", class_="pic img img-responsive").get("src")
