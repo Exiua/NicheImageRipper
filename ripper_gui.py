@@ -3,6 +3,7 @@ from datetime import datetime
 import threading
 import json
 import os
+import time
 import PySimpleGUI as sg
 from ImageRipper import ImageRipper, read_config, write_config, url_check # pylint: disable=no-name-in-module
 
@@ -78,6 +79,7 @@ class RipperGui():
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
+            time.sleep(0.2)
 
         window.close()
 
