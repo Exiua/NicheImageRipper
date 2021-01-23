@@ -220,7 +220,8 @@ def cupe_parse(soup, driver):
 def girlsreleased_parse(soup, driver):
     """Read the html for girlsreleased.com"""
     set_name = soup.find("a", id="set_name").text
-    model_name = soup.find_all("a", class_="button link")[1].find("span", recursive=False).text
+    model_name = soup.find_all("a", class_="button link")[1]
+    model_name = model_name.find("span", recursive=False).text
     dir_name = "" + set_name + " [" + model_name + "]"
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
