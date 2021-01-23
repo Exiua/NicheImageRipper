@@ -219,7 +219,9 @@ def cupe_parse(soup, driver):
 
 def girlsreleased_parse(soup, driver):
     """Read the html for girlsreleased.com"""
-    dir_name = soup.find("div", class_="unknown small").text.replace("_", " ").split()[0]
+    set_name = soup.find("a", id="set_name").text
+    model_name = soup.find("a", class_="button link").find("span", recursive=False).text
+    dir_name = "" + set_name + " [" + model_name + "]"
     images_source = soup.find_all("a", target="imageView")
     images_url = []
     images = []
