@@ -222,6 +222,8 @@ def girlsreleased_parse(soup, driver):
     set_name = soup.find("a", id="set_name").text
     model_name = soup.find("a", class_="button link").find("span", recursive=False).text
     dir_name = "" + set_name + " [" + model_name + "]"
+    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
+    dir_name = dir_name.translate(translation_table)
     images_source = soup.find_all("a", target="imageView")
     images_url = []
     images = []
