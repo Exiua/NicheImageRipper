@@ -186,6 +186,14 @@ def cupe_parse(soup, driver):
     images = []
     for image in image_list:
         images.append(image.get("src"))
+    if len(images) == 0:
+        image_list = soup.find_all("a", class_="ngg-fancybox")
+    for image in image_list:
+        images.append(image.get("data-src"))
+    if len(images) == 0:
+        soup.find_all("img", class_="attachment-full size-full wp-post-image")
+    for image in image_list:
+        images.append(image.get("src"))
     num_files = len(images)
     album_title = soup.find("h1", class_="entry-title").text
     album_info = soup.find_all("p")[2].text
@@ -193,7 +201,7 @@ def cupe_parse(soup, driver):
     shoot_theme = ""
     model_index = 0
     theme_found = False
-    for index in range(2, len(album_info)):
+    for index in range(len(album_info)):
         if theme_found:
             if not album_info[index] == "Model":
                 shoot_theme += " " + album_info[index]
@@ -253,7 +261,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return girlsreleased_parse(soup, driver)
+    return cupe_parse(soup, driver)
 
 def download_imhentai(url_name, file_name, full_path, ext):
     """"Download specific image from imhentai"""
