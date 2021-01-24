@@ -57,7 +57,7 @@ class ImageRipper():
                                 #If all fails, download thumbnail
                                 download_from_url(trimmed_url, file_num + "t", full_path, ".jpg")
                             except PIL.UnidentifiedImageError:
-                                pass
+                                pass #No image exists, probably
                 except OSError:
                     pass
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased"):
