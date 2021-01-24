@@ -40,22 +40,22 @@ class ImageRipper():
                     file_num = str(index)
                 try:
                     #Most images will be .jpg
-                    download_imhentai(trimmed_url, file_num, full_path, ".jpg")
+                    download_from_url(trimmed_url, file_num, full_path, ".jpg")
                 except PIL.UnidentifiedImageError:
                     try:
                         os.remove(full_path + "/pic1.jpg")
                         #Check if .gif
-                        download_imhentai(trimmed_url, file_num, full_path, ".gif")
+                        download_from_url(trimmed_url, file_num, full_path, ".gif")
                     except PIL.UnidentifiedImageError:
                         try:
                             os.remove(full_path + "/pic1.gif")
                             #Check if .png
-                            download_imhentai(trimmed_url, file_num, full_path, ".png")
+                            download_from_url(trimmed_url, file_num, full_path, ".png")
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove(full_path + "/pic1.png")
                                 #If all fails, download thumbnail
-                                download_imhentai(trimmed_url, file_num + "t", full_path, ".jpg")
+                                download_from_url(trimmed_url, file_num + "t", full_path, ".jpg")
                             except PIL.UnidentifiedImageError:
                                 pass
                 except OSError:
@@ -63,7 +63,7 @@ class ImageRipper():
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased"):
             for index in range(int(self.folder_info[1])):
                 try:
-                    download_hotgirl(self.folder_info[0][index], full_path)
+                    download_from_list(self.folder_info[0][index], full_path)
                 except PIL.UnidentifiedImageError:
                     pass
         print("Download Complete")
@@ -264,7 +264,7 @@ def test_parse(given_url):
     soup = BeautifulSoup(html, "html.parser")
     return cupe_parse(soup, driver)
 
-def download_imhentai(url_name, file_name, full_path, ext):
+def download_from_url(url_name, file_name, full_path, ext):
     """"Download specific image from imhentai"""
     #Completes the specific image URL from the general URL
     rip_url = url_name + str(file_name) + ext
@@ -289,7 +289,7 @@ def download_imhentai(url_name, file_name, full_path, ext):
         #Otherwise, rename the image with the md5 hash
         os.rename(full_path + "/pic1" + ext, full_path + "/" + hash5 + ext)
 
-def download_hotgirl(given_url, full_path):
+def download_from_list(given_url, full_path):
     """Download images from hotgirl.asia"""
     rip_url = given_url
     rip_url = rip_url.strip('\n')
