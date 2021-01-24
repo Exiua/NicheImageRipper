@@ -7,3 +7,4 @@ Sites Currently Supported:
 - https://hentai.cafe
 - https://hotgirl.asia/
 - https://www.cup-e.club/
+- https://girlsreleased.com/
