@@ -194,6 +194,7 @@ def cupe_parse(soup, driver):
         soup.find_all("img", class_="attachment-full size-full wp-post-image")
     for image in image_list:
         images.append(image.get("src"))
+    images = [x for x in images if x is not None]
     num_files = len(images)
     album_title = soup.find("h1", class_="entry-title").text
     album_info = soup.find_all("p")[2].text
