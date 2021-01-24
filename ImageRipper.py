@@ -235,8 +235,11 @@ def girlsreleased_parse(soup, driver):
         response = requests.get(url, stream=True, headers=headers)
         html = response.text
         soup = BeautifulSoup(html, "html.parser")
-        image = soup.find("img", class_="pic img img-responsive").get("src")
-        images.append(image)
+        try:
+            image = soup.find("img", class_="pic img img-responsive").get("src")
+            images.append(image)
+        except AttributeError:
+            pass #Image may have been deleted from ImageTwist servers
     num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
