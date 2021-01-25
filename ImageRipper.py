@@ -180,17 +180,13 @@ def cupe_parse(soup, driver):
     """Read the html for hentai.cafe"""
     image_list = soup.find_all("img", ["alignnone", "size-full"])
     del image_list[0]
-    images = []
-    for image in image_list:
-        images.append(image.get("src"))
+    images = [image.get("src") for image in image_list]
     if len(images) == 0:
         image_list = soup.find_all("a", class_="ngg-fancybox")
-    for image in image_list:
-        images.append(image.get("data-src"))
+        images = [image.get("data-src") for image in image_list]
     if len(images) == 0:
         soup.find_all("img", class_="attachment-full size-full wp-post-image")
-    for image in image_list:
-        images.append(image.get("src"))
+        images = [image.get("src") for image in image_list]
     images = [x for x in images if x is not None]
     num_files = len(images)
     album_title = soup.find("h1", class_="entry-title").text
@@ -211,12 +207,12 @@ def cupe_parse(soup, driver):
             theme_found = True
     model_name = []
     for index in range(model_index, len(album_info)):
-        if not album_info[index] == "Photographer":
-            model_name.append(album_info[index])
-        else:
+        if album_info[index] == "Photographer" or album_info[index] == "Photo":
             model_name = " ".join(model_name)
             model_name = "".join(["[", model_name, "]"])
             break
+        else:
+            model_name.append(album_info[index])
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
@@ -259,7 +255,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return hotgirl_parse(soup, driver, given_url)
+    return cupe_parse(soup, driver)
 
 def download_from_url(url_name, file_name, full_path, ext):
     """"Download specific image from imhentai"""
