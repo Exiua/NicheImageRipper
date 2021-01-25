@@ -146,15 +146,13 @@ def hotgirl_parse(soup, driver, url):
     del images_html[0]
     if int(num_pages) > 1:
         for index in range(2, int(num_pages) + 1):
-            page_url = url + str(index) + '/'
+            page_url = "".join([url, str(index), '/'])
             driver.get(page_url)
             soup = BeautifulSoup(driver.page_source, "html.parser")
             images_list = soup.find_all("img", itemprop="image")
             del images_list[0]
             images_html.extend(images_list)
-    images = []
-    for image in images_html: # pylint: disable=consider-using-enumerate
-        images.append(image.get("src"))
+    images = [image.get("src") for image in images_html]
     num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
