@@ -199,28 +199,28 @@ def cupe_parse(soup, driver):
     album_title = soup.find("h1", class_="entry-title").text
     album_info = soup.find_all("p")[2].text
     album_info = album_info.split()
-    shoot_theme = ""
+    shoot_theme = []
     model_index = 0
     theme_found = False
     for index in range(len(album_info)):
         if theme_found:
             if not album_info[index] == "Model":
-                shoot_theme += " " + album_info[index]
+                shoot_theme.append(album_info[index])
             else:
                 model_index = index + 2
+                shoot_theme = " ".join(shoot_theme).replace(":", "").strip()
                 break
         elif album_info[index] == "Concept":
-            index += 2
             theme_found = True
-    model_name = ""
+    model_name = []
     for index in range(model_index, len(album_info)):
         if not album_info[index] == "Photographer":
-            if index != model_index:
-                model_name += " "
-            model_name += album_info[index]
+            model_name.append(album_info[index])
         else:
+            model_name = " ".join(model_name)
+            model_name = "".join(["[", model_name, "]"])
             break
-    dir_name = "(Cup E) " + album_title + " -" + shoot_theme + " [" + model_name + "]"
+    dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
     driver.quit()
