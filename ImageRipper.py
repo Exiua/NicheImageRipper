@@ -36,7 +36,7 @@ class ImageRipper():
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 if self.site_name == "hentaicafe" and index < 10:
-                    file_num = "0" + str(index)
+                    file_num = "".join(["0", str(index)])
                 else:
                     file_num = str(index)
                 try:
