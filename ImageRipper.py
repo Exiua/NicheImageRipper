@@ -3,6 +3,7 @@ import hashlib
 import os
 from os import path
 import sys
+import string
 import configparser
 import re
 from pathlib import Path
@@ -155,8 +156,8 @@ def hotgirl_parse(soup, driver, url):
             del images_list[0]
             images_html.extend(images_list)
     images = []
-    for index in range(len(images_html)): # pylint: disable=consider-using-enumerate
-        images.append(images_html[index].get("src"))
+    for image in images_html: # pylint: disable=consider-using-enumerate
+        images.append(image.get("src"))
     num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
@@ -174,7 +175,8 @@ def hentaicafe_parse(soup, driver, url):
     else:
         start = url.find('/read/') + 6
         end = url.find('/en/', start)
-        dir_name = url[start:end].replace("-", " ")
+        dir_name = url[start:end].replace("-", " ")   
+        dir_name = string.capwords(dir_name)
     images = soup.find("img", class_="open").get("src")
     num_files = soup.find("div", class_="text").string.split()[0]
     return [images, num_files, dir_name]
@@ -262,7 +264,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return cupe_parse(soup, driver)
+    return hotgirl_parse(soup, driver, given_url)
 
 def download_from_url(url_name, file_name, full_path, ext):
     """"Download specific image from imhentai"""
