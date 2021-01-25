@@ -285,11 +285,10 @@ def download_from_url(url_name, file_name, full_path, ext):
 
 def download_from_list(given_url, full_path):
     """Download images from hotgirl.asia"""
-    rip_url = given_url
-    rip_url = rip_url.strip('\n')
+    rip_url = given_url.strip('\n')
     print(rip_url)
     file_name = os.path.basename(urlparse(rip_url).path)
-    with open(full_path + '/' + file_name, "wb") as handle:
+    with open("".join([full_path, '/', file_name]), "wb") as handle:
         response = requests.get(rip_url, stream=True)
         if not response.ok:
             print(response)
