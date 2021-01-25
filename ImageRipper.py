@@ -299,12 +299,9 @@ def download_from_list(given_url, full_path):
 
 def trim_url(given_url):
     """Return the URL without the filename attached."""
-    if ".jpg" in given_url:
-        given_url = str("/".join(given_url.split("/")[0:-1])) + "/"
-    elif ".jpeg" in given_url:
-        given_url = str("/".join(given_url.split("/")[0:-1])) + "/"
-    elif ".png" in given_url:
-        given_url = str("/".join(given_url.split("/")[0:-1])) + "/"
+    file_ext = [".jpg", ".png", ".jpeg", ".gif"]
+    if any(x in given_url for x in file_ext):
+        given_url = "".join([str("/".join(given_url.split("/")[0:-1])), "/"])
     return given_url
 
 def read_config(header, child):
@@ -346,4 +343,5 @@ if __name__ == "__main__":
         raise Exception("Script requires a link as an argument")
     #image_ripper = ImageRipper(sys.argv[1])
     #image_ripper.image_getter()
-    print(test_parse(sys.argv[1]))
+    #print(test_parse(sys.argv[1]))
+    print(trim_url(sys.argv[1]))
