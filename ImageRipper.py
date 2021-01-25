@@ -257,11 +257,12 @@ def test_parse(given_url):
     return girlsreleased_parse(soup, driver)
 
 def download_from_url(url_name, file_name, full_path, ext):
-    """"Download specific image from imhentai"""
+    """"Download image from image url"""
     #Completes the specific image URL from the general URL
-    rip_url = url_name + str(file_name) + ext
+    rip_url = "".join([url_name, str(file_name), ext])
     print(rip_url)
-    with open(full_path + "/pic1" + ext, "wb") as handle:
+    image_url = "".join([full_path, "/pic1", ext])
+    with open(image_url, "wb") as handle:
         response = requests.get(rip_url, stream=True)
         if not response.ok:
             print(response)
@@ -273,13 +274,14 @@ def download_from_url(url_name, file_name, full_path, ext):
         elif ext == ".gif":
             handle.write(response.content)
     #md5 hash is used as image name to avoid duplicate names
-    md5hash = hashlib.md5(Image.open(full_path + "/pic1" + ext).tobytes())
+    md5hash = hashlib.md5(Image.open(image_url).tobytes())
     hash5 = md5hash.hexdigest()
-    if os.path.exists(full_path + "/" + hash5 + ext): #If duplicate exists, remove the duplicate
-        os.remove(full_path + "/pic1" + ext)
+    image_hash_name = "".join([full_path, "/", hash5, ext])
+    if os.path.exists(image_hash_name): #If duplicate exists, remove the duplicate
+        os.remove(image_url)
     else:
         #Otherwise, rename the image with the md5 hash
-        os.rename(full_path + "/pic1" + ext, full_path + "/" + hash5 + ext)
+        os.rename(image_url, image_hash_name)
 
 def download_from_list(given_url, full_path):
     """Download images from hotgirl.asia"""
