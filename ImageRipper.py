@@ -224,16 +224,15 @@ def girlsreleased_parse(soup, driver):
     set_name = soup.find("a", id="set_name").text
     model_name = soup.find_all("a", class_="button link")[1]
     model_name = model_name.find("span", recursive=False).text
-    dir_name = "" + set_name + " [" + model_name + "]"
+    model_name = "".join(["[", model_name, "]"])
+    dir_name = " ".join([set_name, model_name])
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
     images_source = soup.find_all("a", target="imageView")
-    images_url = []
+    images_url = [image.get("href") for image in images_source]
     images = []
-    for image in images_source:
-        images_url.append(image.get("href"))
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36'}
     for url in images_url:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36'}
         response = requests.get(url, stream=True, headers=headers)
         html = response.text
         soup = BeautifulSoup(html, "html.parser")
@@ -255,7 +254,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return cupe_parse(soup, driver)
+    return girlsreleased_parse(soup, driver)
 
 def download_from_url(url_name, file_name, full_path, ext):
     """"Download specific image from imhentai"""
