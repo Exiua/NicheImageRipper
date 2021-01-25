@@ -44,17 +44,17 @@ class ImageRipper():
                     download_from_url(trimmed_url, file_num, full_path, ".jpg")
                 except PIL.UnidentifiedImageError:
                     try:
-                        os.remove(full_path + "/pic1.jpg")
+                        os.remove("".join([full_path, "/pic1.jpg"]))
                         #Check if .gif
                         download_from_url(trimmed_url, file_num, full_path, ".gif")
                     except PIL.UnidentifiedImageError:
                         try:
-                            os.remove(full_path + "/pic1.gif")
+                            os.remove("".join([full_path, "/pic1.gif"]))
                             #Check if .png
                             download_from_url(trimmed_url, file_num, full_path, ".png")
                         except PIL.UnidentifiedImageError:
                             try:
-                                os.remove(full_path + "/pic1.png")
+                                os.remove("".join([full_path, "/pic1.png"]))
                                 #If all fails, download thumbnail
                                 download_from_url(trimmed_url, file_num + "t", full_path, ".jpg")
                             except PIL.UnidentifiedImageError:
