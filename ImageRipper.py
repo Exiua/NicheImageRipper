@@ -30,7 +30,7 @@ class ImageRipper():
     def image_getter(self):
         """Download images from URL."""
         self.folder_info = self.html_parse() #Gets image url, number of images, and name of album
-        full_path = self.save_path + self.folder_info[2] #Save location of this album
+        full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         if self.site_name in ("imhentai", "hentaicafe"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
