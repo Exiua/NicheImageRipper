@@ -343,5 +343,4 @@ if __name__ == "__main__":
         raise Exception("Script requires a link as an argument")
     #image_ripper = ImageRipper(sys.argv[1])
     #image_ripper.image_getter()
-    #print(test_parse(sys.argv[1]))
-    print(trim_url(sys.argv[1]))
+    print(test_parse(sys.argv[1]))
