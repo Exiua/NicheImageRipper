@@ -122,13 +122,10 @@ def imhentai_parse(soup, driver):
     #Gets the number of pages (images) in the album
     num_pages = soup.find("li", class_="pages")
     num_pages = num_pages.string.split()[1]
-    #print(num_pages)
     dir_name = soup.find("h1").string
     #Removes illegal characters from folder name
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
-    #print(images)
-    #print(dir_name)
     driver.quit()
     return [images, num_pages, dir_name]
 
