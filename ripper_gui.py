@@ -25,7 +25,7 @@ class RipperGui():
         """Run the GUI for the Image Ripper"""
         sg.theme(self.theme_color)   # Add a touch of color
         # All the stuff inside your window.
-        logger_layout =  [[sg.Multiline(size=(90,20), key = '-OUTPUT-', echo_stdout_stderr=True, disabled=True, write_only=True, reroute_stdout=True)]]
+        logger_layout =  [[sg.Multiline(size=(90,20), key = '-OUTPUT-', echo_stdout_stderr=True, disabled=True, write_only=True, reroute_stdout=True, autoscroll=True)]]
         headings = ["Name                       ", " URL                      ", "Date        ", "  #  "]
         queue_layout = [[sg.Multiline(size=(90,20), disabled=True, autoscroll=False, key='-QUEUE-', write_only=True)]]
         history_layout = [[sg.Table(size=(90, 20), values=self.table_data, headings=headings, max_col_width=25,
@@ -36,8 +36,8 @@ class RipperGui():
                         key='-TABLE-',
                         row_height=35)]]
         settings_layout = [[sg.Text('Save Location: '), sg.Text(text=str(self.save_folder), size=(65, 1),key='-FOLDER-')],
-                [sg.Text('Select Save Folder'), sg.Input(default_text=self.save_folder, key='-SAVEFOLDER-', visible=False, enable_events=True), sg.FolderBrowse(initial_folder=self.save_folder, change_submits=True)],
-                [sg.Text('Change Theme'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
+                [sg.Text('Select Save Folder:'), sg.Input(default_text=self.save_folder, key='-SAVEFOLDER-', visible=False, enable_events=True), sg.FolderBrowse(initial_folder=self.save_folder, change_submits=True)],
+                [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=bool(self.rerip_ask), enable_events=True)],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
         layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', change_submits=True, enable_events=True, bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
