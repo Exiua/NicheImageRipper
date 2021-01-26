@@ -5,7 +5,7 @@ import json
 import os
 import time
 import PySimpleGUI as sg
-from ImageRipper import ImageRipper, read_config, write_config, url_check # pylint: disable=no-name-in-module
+from ImageRipper import ImageRipper, read_config, write_config, url_check 
 
 # pylint: disable=line-too-long
 class RipperGui():
@@ -44,9 +44,9 @@ class RipperGui():
 
         # Create the Window
         window = sg.Window('Image Ripper v1.0.0', layout)
-        # Event Loop to process "events" and get the "values" of the inputs
+        #Seperate thread so the queue display can be updated
         checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
-
+        # Event Loop to process "events" and get the "values" of the inputs
         while True:
             event, values = window.read()
             if event in (sg.WIN_CLOSED, 'Cancel'): #Save files when gui is closed
@@ -106,7 +106,7 @@ class RipperGui():
         """Update the displayed queue"""
         if len(self.url_list) != self.url_list_size: #If the url queue changes size
             window['MLINE_KEY']('') #Clears the queue
-            for index in range(len(self.url_list)): #Re-prints the queue
+            for index in range(len(self.url_list)): #Re-prints the queue #Change this to not use range(len())
                 window.find_element('MLINE_KEY').print(self.url_list[index])
             self.url_list_size = len(self.url_list)
 
@@ -115,7 +115,7 @@ class RipperGui():
         if self.table_data[0][0] == " ": #If the first value in the table empty
             del self.table_data[0] #Replace with real table value
         duplicate_entry = False
-        for index in range(len(self.table_data)): # pylint: disable=consider-using-enumerate
+        for index in range(len(self.table_data)): # pylint: disable=consider-using-enumerate #use something else
             if self.table_data[index][0] == ripper.folder_info[2]:
                 duplicate_entry = True
                 self.table_data[index][2] = str(datetime.today().strftime('%Y-%m-%d'))
