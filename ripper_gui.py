@@ -27,7 +27,7 @@ class RipperGui():
         # All the stuff inside your window.
         logger_layout =  [[sg.Multiline(size=(90,20), key = '-OUTPUT-', echo_stdout_stderr=True, disabled=True, write_only=True, reroute_stdout=True)]]
         headings = ["Name                       ", " URL                      ", "Date        ", "  #  "]
-        queue_layout = [[sg.Multiline(size=(90,20), disabled=True, autoscroll=False, key='MLINE_KEY')]]
+        queue_layout = [[sg.Multiline(size=(90,20), disabled=True, autoscroll=False, key='-QUEUE-')]]
         history_layout = [[sg.Table(size=(90, 20), values=self.table_data, headings=headings, max_col_width=25,
                         auto_size_columns=True,
                         display_row_numbers=False,
@@ -109,9 +109,9 @@ class RipperGui():
     def print_queue(self, window):
         """Update the displayed queue"""
         if len(self.url_queue) != self.url_queue_size: #If the url queue changes size
-            window['MLINE_KEY']('') #Clears the queue
+            window['-QUEUE-']('') #Clears the queue
             for url in self.url_queue: #Re-prints the queue #Change this to not use range(len())
-                window.find_element('MLINE_KEY').print(url)
+                window.find_element('-QUEUE-').print(url)
             self.url_queue_size = len(self.url_queue)
 
     def update_table(self, ripper, window):
