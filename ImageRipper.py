@@ -41,22 +41,22 @@ class ImageRipper():
                     file_num = str(index)
                 try:
                     #Most images will be .jpg
-                    download_from_url(trimmed_url, file_num, full_path, ".jpg")
+                    download_from_url(trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
                 except PIL.UnidentifiedImageError:
                     try:
                         os.remove("".join([full_path, "/pic1.jpg"]))
                         #Check if .gif
-                        download_from_url(trimmed_url, file_num, full_path, ".gif")
+                        download_from_url(trimmed_url, file_num, full_path, self.folder_info[1], ".gif")
                     except PIL.UnidentifiedImageError:
                         try:
                             os.remove("".join([full_path, "/pic1.gif"]))
                             #Check if .png
-                            download_from_url(trimmed_url, file_num, full_path, ".png")
+                            download_from_url(trimmed_url, file_num, full_path, self.folder_info[1], ".png")
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove("".join([full_path, "/pic1.png"]))
                                 #If all fails, download thumbnail
-                                download_from_url(trimmed_url, file_num + "t", full_path, ".jpg")
+                                download_from_url(trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
                             except PIL.UnidentifiedImageError:
                                 pass #No image exists, probably
                 except OSError:
@@ -256,11 +256,12 @@ def test_parse(given_url):
     soup = BeautifulSoup(html, "html.parser")
     return girlsreleased_parse(soup, driver)
 
-def download_from_url(url_name, file_name, full_path, ext):
+def download_from_url(url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
     #Completes the specific image URL from the general URL
     rip_url = "".join([url_name, str(file_name), ext])
-    print(rip_url)
+    num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
+    print(" ".join([rip_url, "   ", num_progress]))
     image_url = "".join([full_path, "/pic1", ext])
     with open(image_url, "wb") as handle:
         response = requests.get(rip_url, stream=True)
