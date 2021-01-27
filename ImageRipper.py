@@ -6,6 +6,7 @@ import sys
 import string
 import configparser
 import re
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 import PIL
@@ -32,6 +33,7 @@ class ImageRipper():
         self.folder_info = self.html_parse() #Gets image url, number of images, and name of album
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
+        session = requests.Session()
         if self.site_name in ("imhentai", "hentaicafe"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
@@ -41,22 +43,22 @@ class ImageRipper():
                     file_num = str(index)
                 try:
                     #Most images will be .jpg
-                    download_from_url(trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
+                    download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
                 except PIL.UnidentifiedImageError:
                     try:
                         os.remove("".join([full_path, "/pic1.jpg"]))
                         #Check if .gif
-                        download_from_url(trimmed_url, file_num, full_path, self.folder_info[1], ".gif")
+                        download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".gif")
                     except PIL.UnidentifiedImageError:
                         try:
                             os.remove("".join([full_path, "/pic1.gif"]))
                             #Check if .png
-                            download_from_url(trimmed_url, file_num, full_path, self.folder_info[1], ".png")
+                            download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".png")
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove("".join([full_path, "/pic1.png"]))
                                 #If all fails, download thumbnail
-                                download_from_url(trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
+                                download_from_url(session, trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
                             except PIL.UnidentifiedImageError:
                                 pass #No image exists, probably
                 except OSError:
@@ -64,7 +66,7 @@ class ImageRipper():
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased"):
             for index in range(int(self.folder_info[1])):
                 try:
-                    download_from_list(self.folder_info[0][index], full_path, index, self.folder_info[1])
+                    download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
                 except PIL.UnidentifiedImageError:
                     pass
         print("Download Complete")
@@ -232,8 +234,9 @@ def girlsreleased_parse(soup, driver):
     images_url = [image.get("href") for image in images_source]
     images = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36'}
+    session = requests.Session()
     for url in images_url:
-        response = requests.get(url, stream=True, headers=headers)
+        response = session.get(url, stream=True, headers=headers)
         html = response.text
         soup = BeautifulSoup(html, "html.parser")
         try:
@@ -256,7 +259,7 @@ def test_parse(given_url):
     soup = BeautifulSoup(html, "html.parser")
     return girlsreleased_parse(soup, driver)
 
-def download_from_url(url_name, file_name, full_path, num_files, ext):
+def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
     #Completes the specific image URL from the general URL
     rip_url = "".join([url_name, str(file_name), ext])
@@ -264,7 +267,7 @@ def download_from_url(url_name, file_name, full_path, num_files, ext):
     print(" ".join([rip_url, "   ", num_progress]))
     image_url = "".join([full_path, "/pic1", ext])
     with open(image_url, "wb") as handle:
-        response = requests.get(rip_url, stream=True)
+        response = session.get(rip_url, stream=True)
         if not response.ok:
             print(response)
         if ext == ".jpg":
@@ -283,21 +286,23 @@ def download_from_url(url_name, file_name, full_path, num_files, ext):
     else:
         #Otherwise, rename the image with the md5 hash
         os.rename(image_url, image_hash_name)
+    time.sleep(0.05)
 
-def download_from_list(given_url, full_path, current_file_num, num_files):
+def download_from_list(session, given_url, full_path, current_file_num, num_files):
     """Download images from hotgirl.asia"""
     rip_url = given_url.strip('\n')
     num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
     print(" ".join([rip_url, "   ", num_progress]))
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
-        response = requests.get(rip_url, stream=True)
+        response = session.get(rip_url, stream=True)
         if not response.ok:
             print(response)
         for block in response.iter_content(1024):
             if not block:
                 break
             handle.write(block)
+    time.sleep(0.05)
 
 def trim_url(given_url):
     """Return the URL without the filename attached."""
