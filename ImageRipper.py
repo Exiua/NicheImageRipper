@@ -287,7 +287,7 @@ def download_from_url(url_name, file_name, full_path, num_files, ext):
 def download_from_list(given_url, full_path, current_file_num, num_files):
     """Download images from hotgirl.asia"""
     rip_url = given_url.strip('\n')
-    num_progress = "".join(["(", current_file_num, "/", num_files, ")"])
+    num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
     print(" ".join([rip_url, "   ", num_progress]))
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
