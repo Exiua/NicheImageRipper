@@ -44,7 +44,7 @@ class RipperGui():
                 [sg.TabGroup([[sg.Tab('Log', logger_layout), sg.Tab('Queue', queue_layout), sg.Tab('History', history_layout), sg.Tab('Settings', settings_layout)]])]]
 
         # Create the Window
-        window = sg.Window('Image Ripper v1.0.0', layout)
+        window = sg.Window('NicheRipper v1.0.0', layout)
         #Seperate thread so the queue display can be updated
         checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
         # Event Loop to process "events" and get the "values" of the inputs
