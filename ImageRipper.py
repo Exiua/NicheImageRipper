@@ -64,7 +64,7 @@ class ImageRipper():
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased"):
             for index in range(int(self.folder_info[1])):
                 try:
-                    download_from_list(self.folder_info[0][index], full_path)
+                    download_from_list(self.folder_info[0][index], full_path, index, self.folder_info[1])
                 except PIL.UnidentifiedImageError:
                     pass
         print("Download Complete")
@@ -284,10 +284,11 @@ def download_from_url(url_name, file_name, full_path, num_files, ext):
         #Otherwise, rename the image with the md5 hash
         os.rename(image_url, image_hash_name)
 
-def download_from_list(given_url, full_path):
+def download_from_list(given_url, full_path, current_file_num, num_files):
     """Download images from hotgirl.asia"""
     rip_url = given_url.strip('\n')
-    print(rip_url)
+    num_progress = "".join(["(", current_file_num, "/", num_files, ")"])
+    print(" ".join([rip_url, "   ", num_progress]))
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
         response = requests.get(rip_url, stream=True)
