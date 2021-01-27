@@ -3,7 +3,7 @@
 
 # About
 
-An image ripper written in python to download albums from various sites
+NicheImageRipper is an image ripper written in python 3 to download albums from various sites.
 
 ## Downloads
 
