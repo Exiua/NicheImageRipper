@@ -68,7 +68,7 @@ class ImageRipper():
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
                 except PIL.UnidentifiedImageError:
-                    pass
+                    pass #No image exists, probably
         print("Download Complete")
 
     def html_parse(self):
