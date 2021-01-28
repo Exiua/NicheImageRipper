@@ -21,6 +21,7 @@ class RipperGui():
             self.table_data = self.read_from_file('RipHistory.json')
         self.url_queue = collections.deque()
         self.url_queue_size = len(self.url_queue)
+        self.loaded_file = False
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
@@ -38,6 +39,7 @@ class RipperGui():
                         row_height=35)]]
         settings_layout = [[sg.Text('Save Location: '), sg.Text(text=str(self.save_folder), size=(65, 1),key='-FOLDER-')],
                 [sg.Text('Select Save Folder:'), sg.Input(default_text=self.save_folder, key='-SAVEFOLDER-', visible=False, enable_events=True), sg.FolderBrowse(initial_folder=self.save_folder, change_submits=True)],
+                [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', 'UnfinishedRips.json'), ), change_submits=True)],
                 [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=bool(self.rerip_ask), enable_events=True)],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
@@ -71,6 +73,13 @@ class RipperGui():
                     checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
                     checker_thread.start()
                 self.print_queue(window)
+            if values['-LOADFILE-'] and not self.loaded_file:
+                unfinished_list = self.read_from_file(values['-LOADFILE-'])
+                for url in unfinished_list:
+                    if url_check(url):
+                        self.url_queue.append(url)
+                self.loaded_file = True
+                os.remove(values['-LOADFILE-'])
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
@@ -144,9 +153,12 @@ class RipperGui():
     @staticmethod
     def read_from_file(file_name):
         """Read data from file"""
-        with open(file_name, 'r') as load_file:
-            data = json.load(load_file)
-            return data
+        try:
+            with open(file_name, 'r') as load_file:
+                data = json.load(load_file)
+                return data
+        except FileNotFoundError:
+            pass
 
 if __name__ == "__main__":
     rip_gui = RipperGui()
