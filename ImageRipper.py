@@ -337,12 +337,6 @@ def url_check(given_url):
     sites = ["imhentai.com", "hotgirl.asia", "hentai.cafe", "cup-e.club", "girlsreleased.com"]
     return any(x in given_url for x in sites)
 
-def sorted_nicely(l):
-    """Sort the given iterable in the way that humans expect."""
-    convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
-    return sorted(l, key = alphanum_key)
-
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         album_url = sys.argv[1]
