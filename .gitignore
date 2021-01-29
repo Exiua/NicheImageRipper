@@ -8,3 +8,6 @@ UnfinishedRips.json
 geckodriver.log
 Unfinish1edRips.json
 test_code.py
+build
+dist
+NicheRipper.spec
