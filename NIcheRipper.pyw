@@ -59,7 +59,6 @@ class RipperGui():
                 break
             if event == 'Rip': #Image rip behavior
                 if url_check(values['-URL-']) and not values['-URL-'] in self.url_queue: #If url is for a supported site and not already queued
-                    window['-STATUS-']('')
                     if bool(self.rerip_ask) and any(values['-URL-'] in sublist for sublist in self.table_data): #If user wants to be prompted and if url is in the history
                         if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes': #Ask user to re-rip
                             self.url_queue.append(values['-URL-'])
@@ -67,6 +66,10 @@ class RipperGui():
                         self.url_queue.append(values['-URL-'])
                 elif values['-URL-'] in self.url_queue: #If url is already queued
                     window['-STATUS-']('Already queued', text_color='green')
+                elif values['-URL-'] == "" and self.url_queue:
+                    window['-STATUS-']('Starting rip', text_color='green')
+                elif values['-URL-'] == "":
+                    window['-STATUS-']('')
                 else: #If the url is not supported
                     window['-STATUS-']('Not a supported site', text_color='red')
                 if not checker_thread.is_alive() and self.url_queue: #If thread is not running and there are queued urls
@@ -85,6 +88,7 @@ class RipperGui():
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
+            window['-STATUS-']('')
             time.sleep(0.2)
 
         window.close()
