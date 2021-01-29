@@ -320,6 +320,7 @@ def read_config(header, child):
         config['DEFAULT']['SavePath'] = 'Rips/'
         config['DEFAULT']['Theme'] = 'Dark'
         config['DEFAULT']['AskToReRip'] = 'True'
+        config['DEFAULT']['NumberOfThreads'] = 1
         with open('config.ini', 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
