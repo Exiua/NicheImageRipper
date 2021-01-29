@@ -5,9 +5,9 @@
 
 NicheImageRipper is an image ripper written in python 3 to download albums from various sites.
 
-## Downloads
+## How To Use
 
-Download `nicheripper.exe` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases).
+Run `NicheRipper.pyw` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases).
 
 ## Sites Currently Supported:
 
