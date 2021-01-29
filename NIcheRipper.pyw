@@ -4,7 +4,6 @@ import threading
 import json
 import os
 import time
-import logging #Remove this later
 import collections
 import PySimpleGUI as sg
 from rippers import ImageRipper, read_config, write_config, url_check 
@@ -46,7 +45,6 @@ class RipperGui():
         layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', change_submits=True, enable_events=True, bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
                 [sg.TabGroup([[sg.Tab('Log', logger_layout), sg.Tab('Queue', queue_layout), sg.Tab('History', history_layout), sg.Tab('Settings', settings_layout)]])]]
 
-        logging.basicConfig(level=logging.DEBUG, format="%(message)s") #Remove this later
         # Create the Window
         window = sg.Window('NicheRipper v1.0.0', layout)
         #Seperate thread so the queue display can be updated
