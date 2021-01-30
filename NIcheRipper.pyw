@@ -14,13 +14,15 @@ class RipperGui():
     def __init__(self):
         self.theme_color = read_config('DEFAULT', 'Theme')
         self.save_folder = read_config('DEFAULT', 'SavePath')
-        self.rerip_ask = read_config('DEFAULT', 'AskToReRip')
+        self.rerip_ask = bool(read_config('DEFAULT', 'AskToReRip'))
+        self.max_threads = int(read_config('DEFAULT', 'NumberOfThreads'))
         self.table_data = [[" ", " ", " ", " "]]
         if os.path.isfile('RipHistory.json'):
             self.table_data = self.read_from_file('RipHistory.json')
-        self.url_queue = collections.deque()
+        self.url_queue = []
         self.url_queue_size = len(self.url_queue)
         self.loaded_file = False
+        self.next_index = 0
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
@@ -41,6 +43,7 @@ class RipperGui():
                 [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', 'UnfinishedRips.json'), ), change_submits=True)],
                 [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=bool(self.rerip_ask), enable_events=True)],
+                [sg.Text('Max Number of Threads: '), sg.Spin([i for i in range(1,11)], initial_value=int(self.max_threads), key='-MAXTHREADS-', enable_events=True, size=(3, 1))],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
         layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', change_submits=True, enable_events=True, bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
                 [sg.TabGroup([[sg.Tab('Log', logger_layout), sg.Tab('Queue', queue_layout), sg.Tab('History', history_layout), sg.Tab('Settings', settings_layout)]])]]
@@ -83,6 +86,7 @@ class RipperGui():
                 os.remove(values['-LOADFILE-'])
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
+            self.max_threads = int(values['-MAXTHREADS-'])
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
@@ -99,6 +103,7 @@ class RipperGui():
         write_config('DEFAULT', 'SavePath', self.save_folder) #Update the config
         write_config('DEFAULT', 'Theme', self.theme_color)
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
+        write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
     def list_checker(self, window):
         """Run the ripper thread if the url list is not empty"""
@@ -112,11 +117,14 @@ class RipperGui():
     def rip_images(self, window):
         """Rips files from url"""
         if self.url_queue:
-            print(self.url_queue[0])
-            img_ripper = ImageRipper(self.url_queue[0]) # pylint: disable=not-callable
+            url = self.url_queue[self.next_index]
+            self.next_index += 1
+            print(url)
+            img_ripper = ImageRipper(url) # pylint: disable=not-callable
             img_ripper.image_getter()
             self.update_table(img_ripper, window)
-            self.url_queue.popleft()
+            self.url_queue.pop(url)
+            self.next_index -= 1
             self.print_queue(window)
 
     def print_queue(self, window):
