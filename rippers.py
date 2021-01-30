@@ -224,6 +224,8 @@ def cupe_parse(soup, driver):
             break
         else:
             model_name.append(album_info[index])
+    if len(model_name) > 50:
+        model_name = "".join([model_name[:51], "]"])
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
