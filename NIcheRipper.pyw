@@ -19,6 +19,7 @@ class RipperGui():
         self.table_data = [[" ", " ", " ", " "]]
         if os.path.isfile('RipHistory.json'):
             self.table_data = self.read_from_file('RipHistory.json')
+        self.ripper_list = []
         self.url_queue = []
         self.url_queue_size = len(self.url_queue)
         self.loaded_file = False
@@ -110,14 +111,18 @@ class RipperGui():
         ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
         window['-THREADS-'].update(threading.active_count())
         while self.url_queue:
-            if not ripper.is_alive():
+            if threading.active_count - 1 <= self.max_threads:
+                #Store the rippers in a list to prevent overwriting
                 ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
-                ripper.start()
+                self.ripper_list.append(ripper)
+                self.ripper_list[self.next_index].start()
+                time.sleep(0.5)
 
     def rip_images(self, window):
         """Rips files from url"""
         if self.url_queue:
             url = self.url_queue[self.next_index]
+            index = self.next_index
             self.next_index += 1
             print(url)
             img_ripper = ImageRipper(url) # pylint: disable=not-callable
@@ -126,6 +131,7 @@ class RipperGui():
             self.url_queue.pop(url)
             self.next_index -= 1
             self.print_queue(window)
+            self.ripper_list.pop(index)
 
     def print_queue(self, window):
         """Update the displayed queue"""
