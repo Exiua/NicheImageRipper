@@ -220,7 +220,7 @@ def cupe_parse(soup, driver):
     for index in range(model_index, len(album_info)):
         if album_info[index] in ("Photographer", "Photo") or index == len(album_info) - 1:
             model_name = " ".join(model_name)
-            #model_name = "".join(["[", model_name, "]"])
+            model_name = "".join(["[", model_name, "]"])
             break
         else:
             model_name.append(album_info[index])
