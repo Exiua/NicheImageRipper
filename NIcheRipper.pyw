@@ -20,8 +20,8 @@ class RipperGui():
         if os.path.isfile('RipHistory.json'):
             self.table_data = self.read_from_file('RipHistory.json')
         self.ripper_list = []
-        self.url_queue = []
-        self.url_queue_size = len(self.url_queue)
+        self.url_list = []
+        self.url_list_size = len(self.url_list)
         self.loaded_file = False
         self.next_index = 0
 
@@ -60,21 +60,21 @@ class RipperGui():
                 self.close_program()
                 break
             if event == 'Rip': #Image rip behavior
-                if url_check(values['-URL-']) and not values['-URL-'] in self.url_queue: #If url is for a supported site and not already queued
+                if url_check(values['-URL-']) and not values['-URL-'] in self.url_list: #If url is for a supported site and not already queued
                     if bool(self.rerip_ask) and any(values['-URL-'] in sublist for sublist in self.table_data): #If user wants to be prompted and if url is in the history
                         if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes': #Ask user to re-rip
-                            self.url_queue.append(values['-URL-'])
+                            self.url_list.append(values['-URL-'])
                     else: #If user always wants to re-rip
-                        self.url_queue.append(values['-URL-'])
-                elif values['-URL-'] in self.url_queue: #If url is already queued
+                        self.url_list.append(values['-URL-'])
+                elif values['-URL-'] in self.url_list: #If url is already queued
                     window['-STATUS-']('Already queued', text_color='green')
-                elif values['-URL-'] == "" and self.url_queue:
+                elif values['-URL-'] == "" and self.url_list:
                     window['-STATUS-']('Starting rip', text_color='green')
                 elif values['-URL-'] == "":
                     window['-STATUS-']('')
                 else: #If the url is not supported
                     window['-STATUS-']('Not a supported site', text_color='red')
-                if not checker_thread.is_alive() and self.url_queue: #If thread is not running and there are queued urls
+                if not checker_thread.is_alive() and self.url_list: #If thread is not running and there are queued urls
                     checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
                     checker_thread.start()
                 self.print_queue(window)
@@ -82,7 +82,7 @@ class RipperGui():
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
                 for url in unfinished_list:
                     if url_check(url):
-                        self.url_queue.append(url)
+                        self.url_list.append(url)
                 self.loaded_file = True
                 os.remove(values['-LOADFILE-'])
             self.rerip_ask = values['-RERIP-']
@@ -92,6 +92,7 @@ class RipperGui():
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
             window['-STATUS-']('')
+            window['-THREADS-'].update(threading.active_count())
             time.sleep(0.2)
 
         window.close()
@@ -99,49 +100,65 @@ class RipperGui():
     def close_program(self):
         """Saves all the necessary information"""
         RipperGui.save_to_file('RipHistory.json', self.table_data) #Save history data
-        if self.url_queue:
-            RipperGui.save_to_file('UnfinishedRips.json', self.url_queue) #Save queued urls
+        if self.url_list:
+            RipperGui.save_to_file('UnfinishedRips.json', self.url_list) #Save queued urls
         write_config('DEFAULT', 'SavePath', self.save_folder) #Update the config
         write_config('DEFAULT', 'Theme', self.theme_color)
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
+    def does_exist(self):
+        try:
+            if self.url_list[self.next_index]:
+                return True
+        except IndexError:
+            return False
+
     def list_checker(self, window):
         """Run the ripper thread if the url list is not empty"""
         ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
-        window['-THREADS-'].update(threading.active_count())
-        while self.url_queue:
-            if threading.active_count - 1 <= self.max_threads:
+        while self.url_list:
+            if threading.active_count() - 2 <= self.max_threads:
                 #Store the rippers in a list to prevent overwriting
-                ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
-                self.ripper_list.append(ripper)
-                self.ripper_list[self.next_index].start()
-                time.sleep(0.5)
+                try:
+                    if self.does_exist():
+                        ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
+                        self.ripper_list.append(ripper)
+                        self.ripper_list[self.next_index].start()
+                except RuntimeError:
+                    pass
+                time.sleep(2)
 
     def rip_images(self, window):
         """Rips files from url"""
-        if self.url_queue:
-            url = self.url_queue[self.next_index]
+        if self.url_list:
             index = self.next_index
-            self.next_index += 1
-            print(url)
-            img_ripper = ImageRipper(url) # pylint: disable=not-callable
-            img_ripper.image_getter()
-            self.update_table(img_ripper, window)
-            self.url_queue.pop(url)
-            self.next_index -= 1
-            self.print_queue(window)
-            self.ripper_list.pop(index)
+            print(index)
+            try:
+                if self.next_index < self.max_threads - 1:
+                    self.next_index += 1
+                url = self.url_list[index]
+                print(url)
+                img_ripper = ImageRipper(url) # pylint: disable=not-callable
+                img_ripper.image_getter()
+                self.update_table(img_ripper, url, window)
+                self.url_list.remove(url)
+                self.next_index -= 1
+                self.print_queue(window)
+                self.ripper_list[index] = None
+            except IndexError:
+                pass
+            
 
     def print_queue(self, window):
         """Update the displayed queue"""
-        if len(self.url_queue) != self.url_queue_size: #If the url queue changes size
+        if len(self.url_list) != self.url_list_size: #If the url queue changes size
             window['-QUEUE-']('') #Clears the queue
-            for url in self.url_queue: #Re-prints the queue #Change this to not use range(len())
+            for url in self.url_list: #Re-prints the queue #Change this to not use range(len())
                 window.find_element('-QUEUE-').print(url)
-            self.url_queue_size = len(self.url_queue)
+            self.url_list_size = len(self.url_list)
 
-    def update_table(self, ripper, window):
+    def update_table(self, ripper, url, window):
         """Update the table with new values"""
         if self.table_data[0][0] == " ": #If the first value in the table empty
             del self.table_data[0] #Replace with real table value
@@ -154,7 +171,7 @@ class RipperGui():
                 del self.table_data[index]
                 return
         if not duplicate_entry:
-            self.table_data.append([ripper.folder_info[2], self.url_queue[0], str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
+            self.table_data.append([ripper.folder_info[2], url, str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
         ripper.folder_info = []
         window['-TABLE-'].update(values=self.table_data)
 
