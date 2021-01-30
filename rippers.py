@@ -197,21 +197,30 @@ def cupe_parse(soup, driver):
     shoot_theme = []
     model_index = 0
     theme_found = False
-    for index in range(len(album_info)):
-        if theme_found:
+    if "Concept" in album_info:
+        for index in range(len(album_info)):
+            if theme_found:
+                if not album_info[index] == "Model":
+                    shoot_theme.append(album_info[index])
+                else:
+                    model_index = index + 2
+                    shoot_theme = " ".join(shoot_theme).replace(":", "").strip()
+                    break
+            elif album_info[index] == "Concept":
+                theme_found = True
+    else:
+        for index in range(len(album_info)):
             if not album_info[index] == "Model":
                 shoot_theme.append(album_info[index])
             else:
                 model_index = index + 2
                 shoot_theme = " ".join(shoot_theme).replace(":", "").strip()
                 break
-        elif album_info[index] == "Concept":
-            theme_found = True
     model_name = []
     for index in range(model_index, len(album_info)):
-        if album_info[index] == "Photographer" or album_info[index] == "Photo":
+        if album_info[index] in ("Photographer", "Photo") or index == len(album_info) - 1:
             model_name = " ".join(model_name)
-            model_name = "".join(["[", model_name, "]"])
+            #model_name = "".join(["[", model_name, "]"])
             break
         else:
             model_name.append(album_info[index])
@@ -257,14 +266,14 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return girlsreleased_parse(soup, driver)
+    return cupe_parse(soup, driver)
 
 def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
     #Completes the specific image URL from the general URL
     rip_url = "".join([url_name, str(file_name), ext])
     num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
-    print(" ".join([rip_url, "   ", num_progress]))
+    print(" ".join([rip_url, "   ", num_progress, "\n"]))
     image_url = "".join([full_path, "/pic1", ext])
     with open(image_url, "wb") as handle:
         response = session.get(rip_url, stream=True)
@@ -292,7 +301,7 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
     """Download images from hotgirl.asia"""
     rip_url = given_url.strip('\n')
     num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
-    print(" ".join([rip_url, "   ", num_progress]))
+    print(" ".join([rip_url, "   ", num_progress, "\n"]))
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
         response = session.get(rip_url, stream=True)
