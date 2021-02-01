@@ -83,7 +83,7 @@ class RipperGui():
                     checker_thread.start()
                 self.print_queue(window)
             if event == 'Check':
-                if self.version == self.latest_version:
+                if self.version >= self.latest_version:
                     window['-UPDATE-'](' '.join([self.version, 'is the latest version']), text_color='green')
                 else:
                     window['-UPDATE-']('Update available', text_color='red')
@@ -127,7 +127,7 @@ class RipperGui():
         """Run the ripper thread if the url list is not empty"""
         ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
         while self.url_list:
-            if threading.active_count() - 1 <= self.max_threads:
+            if threading.active_count() - 2 <= self.max_threads:
                 #Store the rippers in a list to prevent overwriting
                 try:
                     if self.does_exist():
