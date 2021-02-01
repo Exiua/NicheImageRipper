@@ -5,7 +5,6 @@ from os import path
 import sys
 import string
 import configparser
-import re
 import time
 from pathlib import Path
 from urllib.parse import urlparse
@@ -275,7 +274,7 @@ def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     #Completes the specific image URL from the general URL
     rip_url = "".join([url_name, str(file_name), ext])
     num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
-    print(" ".join([rip_url, "   ", num_progress, "\n"]))
+    print(" ".join([rip_url, "   ", num_progress]))
     image_url = "".join([full_path, "/pic1", ext])
     with open(image_url, "wb") as handle:
         response = session.get(rip_url, stream=True)
@@ -303,7 +302,7 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
     """Download images from hotgirl.asia"""
     rip_url = given_url.strip('\n')
     num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
-    print(" ".join([rip_url, "   ", num_progress, "\n"]))
+    print(" ".join([rip_url, "   ", num_progress]))
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
         response = session.get(rip_url, stream=True)

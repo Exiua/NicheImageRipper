@@ -145,10 +145,8 @@ class RipperGui():
                 self.url_list.remove(url)
                 self.next_index -= 1
                 self.print_queue(window)
-                self.ripper_list[index] = None
             except IndexError:
                 pass
-            
 
     def print_queue(self, window):
         """Update the displayed queue"""
