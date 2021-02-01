@@ -137,6 +137,7 @@ class RipperGui():
                 except RuntimeError:
                     pass
                 time.sleep(2)
+        self.ripper_list = []
 
     def rip_images(self, window):
         """Rips files from url"""
