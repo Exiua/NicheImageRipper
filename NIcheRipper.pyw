@@ -5,6 +5,7 @@ import json
 import os
 import time
 import collections
+import subprocess
 import PySimpleGUI as sg
 from rippers import ImageRipper, read_config, write_config, url_check 
 
@@ -24,6 +25,8 @@ class RipperGui():
         self.url_list_size = len(self.url_list)
         self.loaded_file = False
         self.next_index = 0
+        self.latest_version = self.get_git_version()
+        self.version = 'v1.0.1'
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
@@ -42,15 +45,16 @@ class RipperGui():
         settings_layout = [[sg.Text('Save Location: '), sg.Text(text=str(self.save_folder), size=(65, 1),key='-FOLDER-')],
                 [sg.Text('Select Save Folder:'), sg.Input(default_text=self.save_folder, key='-SAVEFOLDER-', visible=False, enable_events=True), sg.FolderBrowse(initial_folder=self.save_folder, change_submits=True)],
                 [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', 'UnfinishedRips.json'), ), change_submits=True)],
+                [sg.Text('Check for updates: '), sg.Button('Check', enable_events=True), sg.Text(key='-UPDATE-', size=(50, 1))],
                 [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=bool(self.rerip_ask), enable_events=True)],
                 [sg.Text('Max Number of Threads: '), sg.Spin([i for i in range(1,11)], initial_value=int(self.max_threads), key='-MAXTHREADS-', enable_events=True, size=(3, 1))],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
-        layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', change_submits=True, enable_events=True, bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
+        layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', enable_events=True, bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
                 [sg.TabGroup([[sg.Tab('Log', logger_layout), sg.Tab('Queue', queue_layout), sg.Tab('History', history_layout), sg.Tab('Settings', settings_layout)]])]]
 
         # Create the Window
-        window = sg.Window('NicheRipper v1.0.0', layout)
+        window = sg.Window(' '.join(['NicheRipper', self.version]), layout)
         #Seperate thread so the queue display can be updated
         checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
         # Event Loop to process "events" and get the "values" of the inputs
@@ -78,6 +82,11 @@ class RipperGui():
                     checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
                     checker_thread.start()
                 self.print_queue(window)
+            if event == 'Check':
+                if self.version == self.latest_version:
+                    window['-UPDATE-'](' '.join([self.version, 'is the latest version']), text_color='green')
+                else:
+                    window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file:
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
                 for url in unfinished_list:
@@ -118,7 +127,7 @@ class RipperGui():
         """Run the ripper thread if the url list is not empty"""
         ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
         while self.url_list:
-            if threading.active_count() - 2 <= self.max_threads:
+            if threading.active_count() - 1 <= self.max_threads:
                 #Store the rippers in a list to prevent overwriting
                 try:
                     if self.does_exist():
@@ -190,6 +199,14 @@ class RipperGui():
                 return data
         except FileNotFoundError:
             pass
+
+    @staticmethod
+    def get_git_version():
+        version = subprocess.check_output(['git', 'describe', '--tags'])
+        version = version.decode("utf-8").strip('\n')
+        end = version.find('-', 0)
+        version = version[0:end]
+        return version
 
 if __name__ == "__main__":
     rip_gui = RipperGui()
