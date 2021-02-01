@@ -5,7 +5,6 @@ from os import path
 import sys
 import string
 import configparser
-import re
 import time
 from pathlib import Path
 from urllib.parse import urlparse
@@ -197,24 +196,35 @@ def cupe_parse(soup, driver):
     shoot_theme = []
     model_index = 0
     theme_found = False
-    for index in range(len(album_info)):
-        if theme_found:
+    if "Concept" in album_info:
+        for index in range(len(album_info)):
+            if theme_found:
+                if not album_info[index] == "Model":
+                    shoot_theme.append(album_info[index])
+                else:
+                    model_index = index + 2
+                    shoot_theme = " ".join(shoot_theme).replace(":", "").strip()
+                    break
+            elif album_info[index] == "Concept":
+                theme_found = True
+    else:
+        for index in range(len(album_info)):
             if not album_info[index] == "Model":
                 shoot_theme.append(album_info[index])
             else:
                 model_index = index + 2
                 shoot_theme = " ".join(shoot_theme).replace(":", "").strip()
                 break
-        elif album_info[index] == "Concept":
-            theme_found = True
     model_name = []
     for index in range(model_index, len(album_info)):
-        if album_info[index] == "Photographer" or album_info[index] == "Photo":
+        if album_info[index] in ("Photographer", "Photo") or index == len(album_info) - 1:
             model_name = " ".join(model_name)
             model_name = "".join(["[", model_name, "]"])
             break
         else:
             model_name.append(album_info[index])
+    if len(model_name) > 50:
+        model_name = "".join([model_name[:51], "]"])
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = dir_name.translate(translation_table)
@@ -257,7 +267,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return girlsreleased_parse(soup, driver)
+    return cupe_parse(soup, driver)
 
 def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
@@ -320,6 +330,7 @@ def read_config(header, child):
         config['DEFAULT']['SavePath'] = 'Rips/'
         config['DEFAULT']['Theme'] = 'Dark'
         config['DEFAULT']['AskToReRip'] = 'True'
+        config['DEFAULT']['NumberOfThreads'] = 1
         with open('config.ini', 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
