@@ -50,7 +50,7 @@ class RipperGui():
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=bool(self.rerip_ask), enable_events=True)],
                 [sg.Text('Max Number of Threads: '), sg.Spin([i for i in range(1,11)], initial_value=int(self.max_threads), key='-MAXTHREADS-', enable_events=True, size=(3, 1))],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
-        layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', enable_events=True, bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
+        layout = [[sg.T('Enter URL: '), sg.InputText(key='-URL-', do_not_clear=False), sg.Button('Rip', bind_return_key=True), sg.Button('Cancel'), sg.T(key='-STATUS-', size=(20, 1))],
                 [sg.TabGroup([[sg.Tab('Log', logger_layout), sg.Tab('Queue', queue_layout), sg.Tab('History', history_layout), sg.Tab('Settings', settings_layout)]])]]
 
         # Create the Window
@@ -152,8 +152,8 @@ class RipperGui():
                 img_ripper = ImageRipper(url) # pylint: disable=not-callable
                 img_ripper.image_getter()
                 self.update_table(img_ripper, url, window)
-                self.url_list.remove(url)
                 self.next_index -= 1
+                self.url_list.remove(url)
                 self.print_queue(window)
             except IndexError:
                 pass
