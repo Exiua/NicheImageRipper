@@ -95,7 +95,7 @@ class RipperGui():
                 os.remove(values['-LOADFILE-'])
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
-            self.max_threads = int(values['-MAXTHREADS-'])
+            #self.max_threads = int(values['-MAXTHREADS-'])
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
