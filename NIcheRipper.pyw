@@ -24,9 +24,8 @@ class RipperGui():
         self.url_list = []
         self.url_list_size = len(self.url_list)
         self.loaded_file = False
-        self.next_index = 0
         self.latest_version = self.get_git_version()
-        self.version = 'v1.1.0'
+        self.version = 'v1.2.0'
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
@@ -116,47 +115,24 @@ class RipperGui():
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
-    def does_exist(self):
-        try:
-            if self.url_list[self.next_index]:
-                return True
-        except IndexError:
-            return False
-
     def list_checker(self, window):
         """Run the ripper thread if the url list is not empty"""
         ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
         while self.url_list:
-            if threading.active_count() - 2 <= self.max_threads:
-                #Store the rippers in a list to prevent overwriting
-                try:
-                    if self.does_exist():
-                        ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
-                        self.ripper_list.append(ripper)
-                        self.ripper_list[self.next_index].start()
-                except RuntimeError:
-                    pass
+            if not ripper.is_alive():
+                ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
+                ripper.start()
                 time.sleep(2)
-        self.ripper_list = []
 
     def rip_images(self, window):
         """Rips files from url"""
-        if self.url_list:
-            index = self.next_index
-            print(index)
-            try:
-                if self.next_index < self.max_threads - 1:
-                    self.next_index += 1
-                url = self.url_list[index]
-                print(url)
-                img_ripper = ImageRipper(url) # pylint: disable=not-callable
-                img_ripper.image_getter()
-                self.update_table(img_ripper, url, window)
-                self.next_index -= 1
-                self.url_list.remove(url)
-                self.print_queue(window)
-            except IndexError:
-                pass
+        url = self.url_list[0]
+        print(url)
+        img_ripper = ImageRipper(url) # pylint: disable=not-callable
+        img_ripper.image_getter()
+        self.update_table(img_ripper, url, window)
+        self.url_list.remove(url)
+        self.print_queue(window)
 
     def print_queue(self, window):
         """Update the displayed queue"""
@@ -171,7 +147,7 @@ class RipperGui():
         if self.table_data[0][0] == " ": #If the first value in the table empty
             del self.table_data[0] #Replace with real table value
         duplicate_entry = False
-        for index in range(len(self.table_data)): # pylint: disable=consider-using-enumerate #use something else
+        for index in range(len(self.table_data)):
             if self.table_data[index][0] == ripper.folder_info[2]:
                 duplicate_entry = True
                 self.table_data[index][2] = str(datetime.today().strftime('%Y-%m-%d'))
