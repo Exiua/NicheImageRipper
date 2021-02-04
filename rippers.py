@@ -104,15 +104,15 @@ class ImageRipper():
     def site_check(self):
         """Check which site the url is from"""
         if url_check(self.given_url):
-            if "imhentai.com" in self.given_url:
+            if "https://imhentai.com/" in self.given_url:
                 return "imhentai"
-            if "hotgirl.asia" in self.given_url:
+            if "https://hotgirl.asia/" in self.given_url:
                 return "hotgirl"
-            if "hentai.cafe" in self.given_url:
+            if "https://hentai.cafe/" in self.given_url:
                 return "hentaicafe"
-            if "cup-e.club" in self.given_url:
+            if "https://www.cup-e.club/" in self.given_url:
                 return "cup-e"
-            if "girlsreleased" in self.given_url:
+            if "https://girlsreleased.com/" in self.given_url:
                 return "girlsreleased"
         raise RipperError("Not a support site")
 
@@ -345,7 +345,7 @@ def write_config(header, child, change):
 
 def url_check(given_url):
     """Check the url to make sure it is from valid site"""
-    sites = ["imhentai.com", "hotgirl.asia", "hentai.cafe", "cup-e.club", "girlsreleased.com"]
+    sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", "https://www.cup-e.club/", "https://girlsreleased.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
