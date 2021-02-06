@@ -6,6 +6,8 @@ import sys
 import string
 import configparser
 import time
+import functools
+import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 import PIL
@@ -26,6 +28,9 @@ class ImageRipper():
         self.given_url = given_url
         self.save_path = read_config('DEFAULT', 'SavePath')
         self.site_name = self.site_check()
+        flag = 0x08000000  # No-Window flag
+        webdriver.common.service.subprocess.Popen = functools.partial(
+        subprocess.Popen, creationflags=flag)
 
     def image_getter(self):
         """Download images from URL."""
@@ -74,7 +79,7 @@ class ImageRipper():
         """Return image URL, number of images, and folder name."""
         options = Options()
         options.headless = True
-        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36") # pylint: disable=line-too-long
+        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url)
         html = driver.page_source
