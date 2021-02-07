@@ -73,7 +73,7 @@ class ImageRipper():
                 except OSError:
                     pass
         #Easier to put all image url in a list and then download for these sites
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -90,51 +90,35 @@ class ImageRipper():
         driver.get(self.given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        if self.site_name == "imhentai":
-            site_info = imhentai_parse(soup, driver)
+        try:
+            if self.site_name == "imhentai":
+                site_info = imhentai_parse(soup, driver)
+            elif self.site_name == "hotgirl":
+                site_info = hotgirl_parse(soup, driver, self.given_url)
+            elif self.site_name == "hentaicafe":
+                site_info = hentaicafe_parse(soup, driver, self.given_url)
+            elif self.site_name == "cup-e":
+                site_info = cupe_parse(soup, driver)
+            elif self.site_name == "girlsreleased":
+                site_info = girlsreleased_parse(soup, driver)
+            elif self.site_name == "bustybloom":
+                site_info = bustybloom_parse(soup, driver)
+            elif self.site_name == "morazzia":
+                site_info = morazzia_parse(soup, driver)
+            elif self.site_name == "novojoy":
+                site_info = novojoy_parse(soup, driver)
+            elif self.site_name == "hqbabes":
+                site_info = hqbabes_parse(soup, driver)
+            elif self.site_name == "silkengirl":
+                site_info = silkengirl_parse(soup, driver)
+            elif self.site_name == "babesandgirls":
+                site_info = babesandgirls_parse(soup, driver)
+            elif self.site_name == "babeimpact":
+                site_info = babeimpact_parse(soup, driver)
             driver.quit()
-            return site_info
-        if self.site_name == "hotgirl":
-            site_info = hotgirl_parse(soup, driver, self.given_url)
-            driver.quit()
-            return site_info
-        if self.site_name == "hentaicafe":
-            site_info = hentaicafe_parse(soup, driver, self.given_url)
-            driver.quit()
-            return site_info
-        if self.site_name == "cup-e":
-            site_info = cupe_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "girlsreleased":
-            site_info = girlsreleased_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "bustybloom":
-            site_info = bustybloom_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "morazzia":
-            site_info = morazzia_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "novojoy":
-            site_info = novojoy_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "hqbabes":
-            site_info = hqbabes_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "silkengirl":
-            site_info = silkengirl_parse(soup, driver)
-            driver.quit()
-            return site_info
-        if self.site_name == "babesandgirls":
-            site_info = babesandgirls_parse(soup, driver)
-            driver.quit()
-            return site_info
-        raise RipperError("Not a supported site")
+            return site_info # pyright: reportUnboundVariable=false
+        except UnboundLocalError:
+            raise RipperError("Not a supported site")
 
     def site_check(self):
         """Check which site the url is from"""
@@ -161,6 +145,8 @@ class ImageRipper():
                 return "silkengirl"
             if "https://www.babesandgirls.com/" in self.given_url:
                 return "babesandgirls"
+            if "https://www.babeimpact.com/" in self.given_url:
+                return "babeimpact"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -409,6 +395,29 @@ def babesandgirls_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def babeimpact_parse(soup, driver):
+    """Read the html for babeimpact.com"""
+    title = soup.find("h1", class_="blockheader pink center lowercase").text
+    sponsor = soup.find("div", class_="c").find_all("a")[1].text
+    sponsor = "".join(["(", sponsor.strip(), ")"])
+    dir_name = " ".join([sponsor, title])
+    dir_name = clean_dir_name(dir_name)
+    dir_name = dir_name.strip()
+    tags = soup.find_all("div", class_="list gallery")
+    tag_list = []
+    for tag in tags:
+        tag_list.extend(tag.find_all("div", class_="item"))
+    num_files = len(tag_list)
+    image_list = ["".join(["https://babeimpact.com", tag.find("a").get("href")]) for tag in tag_list]
+    images = []
+    for image in image_list:
+        driver.get(image)
+        html = driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+        images.append("".join(["https:", soup.find("div", class_="image-wrapper").find("img").get("src")]))
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -420,7 +429,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return babesandgirls_parse(soup, driver)
+        return babeimpact_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -460,13 +469,26 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
     print(" ".join([rip_url, "   ", num_progress]))
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
-        response = session.get(rip_url, stream=True)
-        if not response.ok:
-            print(response)
-        for block in response.iter_content(1024):
-            if not block:
-                break
-            handle.write(block)
+        try: 
+            response = session.get(rip_url, stream=True)
+            if not response.ok:
+                print(response)
+            for block in response.iter_content(1024):
+                if not block:
+                    break
+                handle.write(block)
+        except requests.exceptions.ConnectionError:
+            options = Options()
+            options.headless = True
+            options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+            driver = webdriver.Firefox(options=options)
+            response = driver.get(rip_url)
+            if not response.ok:
+                print(response)
+            for block in response.iter_content(1024):
+                if not block:
+                    break
+                handle.write(block)
     time.sleep(0.05)
 
 def clean_dir_name(given_name):
@@ -508,7 +530,7 @@ def url_check(given_url):
     sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
-            "https://www.silkengirl.com/", "https://www.babesandgirls.com/"]
+            "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
@@ -519,3 +541,4 @@ if __name__ == "__main__":
     #image_ripper = ImageRipper(sys.argv[1])
     #image_ripper.image_getter()
     print(test_parse(sys.argv[1]))
+    #print(trim_url(sys.argv[1], True))
