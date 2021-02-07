@@ -38,13 +38,13 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         session = requests.Session()
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
-                if self.site_name == "bustybloom":
+                if self.site_name in ("bustybloom", "morazzia"): #These sites start from 00
                     num -= 1
-                if self.site_name in ("hentaicafe", "bustybloom") and num < 10:
+                if self.site_name != "imhentai" and num < 10: #All other sites use 00 styling for single digit urls
                     file_num = "".join(["0", str(num)]) #Appends a 0 to numbers less than 10
                 else:
                     file_num = str(num)
@@ -67,6 +67,7 @@ class ImageRipper():
                                 #If all fails, download thumbnail
                                 download_from_url(session, trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
                             except PIL.UnidentifiedImageError:
+                                os.remove("".join([full_path, "/pic1.jpg"]))
                                 pass #No image exists, probably
                 except OSError:
                     pass
@@ -111,6 +112,10 @@ class ImageRipper():
             site_info = bustybloom_parse(soup, driver)
             driver.quit()
             return site_info
+        if self.site_name == "morazzia":
+            site_info = morazzia_parse(soup, driver)
+            driver.quit()
+            return site_info
         raise RipperError("Not a supported site")
 
     def site_check(self):
@@ -128,6 +133,8 @@ class ImageRipper():
                 return "girlsreleased"
             if "https://www.bustybloom.com/" in self.given_url:
                 return "bustybloom"
+            if "https://www.morazzia.com/" in self.given_url:
+                return "morazzia"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -290,6 +297,22 @@ def bustybloom_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def morazzia_parse(soup, driver):
+    """Read the html for morazzia.com"""
+    dir_name = soup.find("h1", class_="title").text
+    num_files = soup.find("div", class_="block-post album-item").find_all("a")
+    num_files = len(num_files)
+    images = soup.find("div", class_="block-post album-item").find("a").get("href")
+    driver.get("".join(["https://www.morazzia.com", images]))
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    try:
+        images = soup.find("p", align="center").find("img").get("src")
+    except AttributeError:
+        images = soup.find("a", class_="main-post item-post w-100").find("img").get("src")
+    images = "".join(["https:", images])
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     options = Options()
@@ -299,7 +322,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return bustybloom_parse(soup, driver)
+    return morazzia_parse(soup, driver)
 
 def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
@@ -377,7 +400,9 @@ def write_config(header, child, change):
 
 def url_check(given_url):
     """Check the url to make sure it is from valid site"""
-    sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/"]
+    sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
+            "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
+            "https://www.morazzia.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
