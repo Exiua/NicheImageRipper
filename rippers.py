@@ -315,14 +315,18 @@ def morazzia_parse(soup, driver):
 
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
-    options = Options()
-    options.headless = True
-    options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36") # pylint: disable=line-too-long
-    driver = webdriver.Firefox(options=options)
-    driver.get(given_url)
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-    return morazzia_parse(soup, driver)
+    driver = None
+    try:
+        options = Options()
+        options.headless = True
+        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36") # pylint: disable=line-too-long
+        driver = webdriver.Firefox(options=options)
+        driver.get(given_url)
+        html = driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+        return morazzia_parse(soup, driver)
+    finally:
+        driver.quit()
 
 def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
