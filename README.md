@@ -16,3 +16,6 @@ Run `NicheRipper.pyw` from the [latest release](https://github.com/Exiua/NicheIm
 - [hotgirl.asia](https://hotgirl.asia/)
 - [cup-e.club](https://www.cup-e.club/)
 - [girlsreleased.com](https://girlsreleased.com/)
+- [bustybloom.com](https://bustybloom.com/)
+- [morazzia.com](https://morazzia.com/)
+- [novojoy.com](https://novojoy.com/)
