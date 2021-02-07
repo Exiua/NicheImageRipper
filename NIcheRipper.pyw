@@ -130,7 +130,7 @@ class RipperGui():
         print(url)
         img_ripper = ImageRipper(url) # pylint: disable=not-callable
         img_ripper.image_getter()
-        self.update_table(img_ripper, url, window)
+        self.update_table(img_ripper, url, window) #TODO: Speed up function
         self.url_list.remove(url)
         self.print_queue(window)
 

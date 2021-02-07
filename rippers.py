@@ -38,13 +38,16 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         session = requests.Session()
-        if self.site_name in ("imhentai", "hentaicafe"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
-                if self.site_name == "hentaicafe" and index < 10:
-                    file_num = "".join(["0", str(index)])
+                num = index
+                if self.site_name == "bustybloom":
+                    num -= 1
+                if self.site_name in ("hentaicafe", "bustybloom") and num < 10:
+                    file_num = "".join(["0", str(num)]) #Appends a 0 to numbers less than 10
                 else:
-                    file_num = str(index)
+                    file_num = str(num)
                 try:
                     #Most images will be .jpg
                     download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
@@ -104,6 +107,10 @@ class ImageRipper():
             site_info = girlsreleased_parse(soup, driver)
             driver.quit()
             return site_info
+        if self.site_name == "bustybloom":
+            site_info = bustybloom_parse(soup, driver)
+            driver.quit()
+            return site_info
         raise RipperError("Not a supported site")
 
     def site_check(self):
@@ -119,6 +126,8 @@ class ImageRipper():
                 return "cup-e"
             if "https://girlsreleased.com/" in self.given_url:
                 return "girlsreleased"
+            if "https://www.bustybloom.com/" in self.given_url:
+                return "bustybloom"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -263,6 +272,24 @@ def girlsreleased_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def bustybloom_parse(soup, driver):
+    """Read the html for bustybloom.com"""
+    num_files = len(soup.find_all("div", class_="gallery_thumb"))
+    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+    for i in range(len(dir_name)):
+        if dir_name[i] == '-':
+            del dir_name[i::]
+            break
+    dir_name = " ".join(dir_name)
+    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
+    driver.get("".join(["https://www.bustybloom.com", images]))
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    images = soup.find("div", class_="picture_thumb").find("img").get("src")
+    images = "".join(["https:", images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     options = Options()
@@ -272,7 +299,7 @@ def test_parse(given_url):
     driver.get(given_url)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
-    return cupe_parse(soup, driver)
+    return bustybloom_parse(soup, driver)
 
 def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     """"Download image from image url"""
@@ -350,7 +377,7 @@ def write_config(header, child, change):
 
 def url_check(given_url):
     """Check the url to make sure it is from valid site"""
-    sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", "https://www.cup-e.club/", "https://girlsreleased.com/"]
+    sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
