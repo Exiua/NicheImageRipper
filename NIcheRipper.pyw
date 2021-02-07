@@ -71,9 +71,9 @@ class RipperGui():
                         self.url_list.append(values['-URL-'])
                 elif values['-URL-'] in self.url_list: #If url is already queued
                     window['-STATUS-']('Already queued', text_color='green')
-                elif values['-URL-'] == "" and self.url_list:
+                elif values['-URL-'] == "" and self.url_list: #If not url is entered but there are queued urls (loading from UnfinishedRips.json)
                     window['-STATUS-']('Starting rip', text_color='green')
-                elif values['-URL-'] == "":
+                elif values['-URL-'] == "" and not self.url_list: #If no input and no queue 
                     window['-STATUS-']('')
                 else: #If the url is not supported
                     window['-STATUS-']('Not a supported site', text_color='red')
@@ -81,12 +81,12 @@ class RipperGui():
                     checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
                     checker_thread.start()
                 self.print_queue(window)
-            if event == 'Check':
+            if event == 'Check': #Check if there is an update available
                 if self.version >= self.latest_version:
                     window['-UPDATE-'](' '.join([self.version, 'is the latest version']), text_color='green')
                 else:
                     window['-UPDATE-']('Update available', text_color='red')
-            if values['-LOADFILE-'] and not self.loaded_file:
+            if values['-LOADFILE-'] and not self.loaded_file: #Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
                 for url in unfinished_list:
                     if url_check(url):
