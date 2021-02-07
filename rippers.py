@@ -38,11 +38,11 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         session = requests.Session()
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
-                if self.site_name in ("bustybloom", "morazzia"): #These sites start from 00
+                if self.site_name in ("bustybloom", "morazzia", "novojoy"): #These sites start from 00
                     num -= 1
                 if self.site_name != "imhentai" and num < 10: #All other sites use 00 styling for single digit urls
                     file_num = "".join(["0", str(num)]) #Appends a 0 to numbers less than 10
@@ -116,6 +116,10 @@ class ImageRipper():
             site_info = morazzia_parse(soup, driver)
             driver.quit()
             return site_info
+        if self.site_name == "novojoy":
+            site_info = novojoy_parse(soup, driver)
+            driver.quit()
+            return site_info
         raise RipperError("Not a supported site")
 
     def site_check(self):
@@ -135,6 +139,8 @@ class ImageRipper():
                 return "bustybloom"
             if "https://www.morazzia.com/" in self.given_url:
                 return "morazzia"
+            if "https://www.novojoy.com/" in self.given_url:
+                return "novojoy"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -146,8 +152,7 @@ def imhentai_parse(soup, driver):
     num_pages = num_pages.string.split()[1]
     dir_name = soup.find("h1").string
     #Removes illegal characters from folder name
-    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    dir_name = dir_name.translate(translation_table)
+    dir_name = clean_dir_name(dir_name)
     driver.quit()
     return [images, num_pages, dir_name]
 
@@ -162,8 +167,7 @@ def hotgirl_parse(soup, driver, url):
     #Gets the folder name
     dir_name = soup.find("h3").text
     #Removes illegal characters from folder name
-    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    dir_name = dir_name.translate(translation_table)
+    dir_name = clean_dir_name(dir_name)
     images_html = soup.find_all('img', itemprop="image")
     del images_html[0]
     if int(num_pages) > 1:
@@ -183,8 +187,7 @@ def hentaicafe_parse(soup, driver, url):
     """Read the html for hentai.cafe"""
     if "hc.fyi" in url:
         dir_name = soup.find("h3").text
-        translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-        dir_name = dir_name.translate(translation_table)
+        dir_name = clean_dir_name(dir_name)
         images = soup.find("a", class_="x-btn x-btn-flat x-btn-rounded x-btn-large").get("href")
         driver.get(images)
         html = driver.page_source
@@ -194,6 +197,7 @@ def hentaicafe_parse(soup, driver, url):
         end = url.find('/en/', start)
         dir_name = url[start:end].replace("-", " ")   
         dir_name = string.capwords(dir_name)
+        dir_name = clean_dir_name(dir_name)
     images = soup.find("img", class_="open").get("src")
     num_files = soup.find("div", class_="text").string.split()[0]
     return [images, num_files, dir_name]
@@ -247,8 +251,7 @@ def cupe_parse(soup, driver):
     if len(model_name) > 50:
         model_name = "".join([model_name[:51], "]"])
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
-    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    dir_name = dir_name.translate(translation_table)
+    dir_name = clean_dir_name(dir_name)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -259,8 +262,7 @@ def girlsreleased_parse(soup, driver):
     model_name = model_name.find("span", recursive=False).text
     model_name = "".join(["[", model_name, "]"])
     dir_name = " ".join([set_name, model_name])
-    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    dir_name = dir_name.translate(translation_table)
+    dir_name = clean_dir_name(dir_name)
     images_source = soup.find_all("a", target="imageView")
     images_url = [image.get("href") for image in images_source]
     images = []
@@ -288,6 +290,7 @@ def bustybloom_parse(soup, driver):
             del dir_name[i::]
             break
     dir_name = " ".join(dir_name)
+    dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="gallery_thumb").find("a").get("href")
     driver.get("".join(["https://www.bustybloom.com", images]))
     html = driver.page_source
@@ -300,6 +303,7 @@ def bustybloom_parse(soup, driver):
 def morazzia_parse(soup, driver):
     """Read the html for morazzia.com"""
     dir_name = soup.find("h1", class_="title").text
+    dir_name = clean_dir_name(dir_name)
     num_files = soup.find("div", class_="block-post album-item").find_all("a")
     num_files = len(num_files)
     images = soup.find("div", class_="block-post album-item").find("a").get("href")
@@ -311,6 +315,23 @@ def morazzia_parse(soup, driver):
     except AttributeError:
         images = soup.find("a", class_="main-post item-post w-100").find("img").get("src")
     images = "".join(["https:", images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def novojoy_parse(soup, driver):
+    """Read the html for novojoy.com"""
+    dir_name = soup.find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find_all("a", class_="gallery-thumb")
+    num_files = len(num_files)
+    images = soup.find("a", class_="gallery-thumb").get("href")
+    images = "".join(["https://novojoy.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    images = soup.find("div", class_="bigpic").find("img").get("src")
+    images = "".join(["https:", images])
+    driver.quit()
     return [images, num_files, dir_name]
 
 def test_parse(given_url):
@@ -324,7 +345,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return morazzia_parse(soup, driver)
+        return novojoy_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -373,6 +394,11 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
             handle.write(block)
     time.sleep(0.05)
 
+def clean_dir_name(given_name):
+    """Remove illeage characters from name"""
+    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
+    return given_name.translate(translation_table)
+
 def trim_url(given_url):
     """Return the URL without the filename attached."""
     file_ext = [".jpg", ".png", ".jpeg", ".gif"]
@@ -406,7 +432,7 @@ def url_check(given_url):
     """Check the url to make sure it is from valid site"""
     sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
-            "https://www.morazzia.com/"]
+            "https://www.morazzia.com/", "https://www.novojoy.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
