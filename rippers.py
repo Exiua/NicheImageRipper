@@ -71,7 +71,7 @@ class ImageRipper():
                                 pass #No image exists, probably
                 except OSError:
                     pass
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -120,6 +120,10 @@ class ImageRipper():
             site_info = novojoy_parse(soup, driver)
             driver.quit()
             return site_info
+        if self.site_name == "hqbabes":
+            site_info = hqbabes_parse(soup, driver)
+            driver.quit()
+            return site_info
         raise RipperError("Not a supported site")
 
     def site_check(self):
@@ -141,6 +145,8 @@ class ImageRipper():
                 return "morazzia"
             if "https://www.novojoy.com/" in self.given_url:
                 return "novojoy"
+            if "https://www.hqbabes.com/" in self.given_url:
+                return "hqbabes"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -334,6 +340,29 @@ def novojoy_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def hqbabes_parse(soup, driver):
+    """Read the html for hqbabes.com"""
+    model = soup.find("p", class_="desc").find("a").text
+    model = "".join(["[", model, "]"])
+    try:
+        shoot = soup.find("p", class_="desc").find("span").text
+    except AttributeError:
+        shoot = "-"
+    producer = soup.find("p", class_="details").find_all("a")[1].text
+    producer = "".join(["(", producer, ")"])
+    dir_name = " ".join([producer, shoot, model])
+    dir_name = clean_dir_name(dir_name)
+    ext = [".png", ".jpg", ".jpeg"]
+    images = []
+    image_list = soup.find_all("li", class_="item i p")
+    for image in image_list:
+        image_url = image.find("a").get("href")
+        if any(x in image_url for x in ext):
+            images.append("".join(["https:", image_url]))
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -345,7 +374,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return novojoy_parse(soup, driver)
+        return hqbabes_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -432,7 +461,7 @@ def url_check(given_url):
     """Check the url to make sure it is from valid site"""
     sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
-            "https://www.morazzia.com/", "https://www.novojoy.com/"]
+            "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
