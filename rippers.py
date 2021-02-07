@@ -38,11 +38,12 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         session = requests.Session()
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl"):
+        #Can get the image through numerically acending url for these sites
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
-                if self.site_name in ("bustybloom", "morazzia", "novojoy", "silkengirl"): #These sites start from 00
+                if self.site_name in ("bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls"): #These sites start from 00
                     num -= 1
                 if self.site_name != "imhentai" and num < 10: #All other sites use 00 styling for single digit urls
                     file_num = "".join(["0", str(num)]) #Appends a 0 to numbers less than 10
@@ -71,6 +72,7 @@ class ImageRipper():
                                 pass #No image exists, probably
                 except OSError:
                     pass
+        #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes"):
             for index in range(int(self.folder_info[1])):
                 try:
@@ -128,6 +130,10 @@ class ImageRipper():
             site_info = silkengirl_parse(soup, driver)
             driver.quit()
             return site_info
+        if self.site_name == "babesandgirls":
+            site_info = babesandgirls_parse(soup, driver)
+            driver.quit()
+            return site_info
         raise RipperError("Not a supported site")
 
     def site_check(self):
@@ -153,6 +159,8 @@ class ImageRipper():
                 return "hqbabes"
             if "https://www.silkengirl.com/" in self.given_url:
                 return "silkengirl"
+            if "https://www.babesandgirls.com/" in self.given_url:
+                return "babesandgirls"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -385,6 +393,22 @@ def silkengirl_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def babesandgirls_parse(soup, driver):
+    """Read the html for babesandgirls.com"""
+    dir_name = soup.find("h1", class_="title").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find("div", class_="block-post album-item").find_all("a", class_="item-post")
+    num_files = len(num_files)
+    images = soup.find("div", class_="block-post album-item").find("a", class_="item-post").get("href")
+    images = "".join(["https://www.babesandgirls.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    images = soup.find("div", class_="main-post item-post w-100").find("img").get("src")
+    images = "".join(["https:", images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -396,7 +420,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return silkengirl_parse(soup, driver)
+        return babesandgirls_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -484,7 +508,7 @@ def url_check(given_url):
     sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
-            "https://www.silkengirl.com/"]
+            "https://www.silkengirl.com/", "https://www.babesandgirls.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
