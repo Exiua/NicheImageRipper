@@ -130,7 +130,7 @@ class RipperGui():
         print(url)
         img_ripper = ImageRipper(url) # pylint: disable=not-callable
         img_ripper.image_getter()
-        self.update_table(img_ripper, url, window) #TODO: Speed up function
+        self.update_table(img_ripper, url, window)
         self.url_list.remove(url)
         self.print_queue(window)
 
@@ -151,9 +151,7 @@ class RipperGui():
             if self.table_data[index][0] == ripper.folder_info[2]:
                 duplicate_entry = True
                 self.table_data[index][2] = str(datetime.today().strftime('%Y-%m-%d'))
-                self.table_data.append(self.table_data[index])
-                del self.table_data[index]
-                return
+                break
         if not duplicate_entry:
             self.table_data.append([ripper.folder_info[2], url, str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
         ripper.folder_info = []
