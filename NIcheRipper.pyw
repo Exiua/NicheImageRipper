@@ -25,13 +25,13 @@ class RipperGui():
         self.url_list_size = len(self.url_list)
         self.loaded_file = False
         self.latest_version = self.get_git_version()
-        self.version = 'v1.2.0'
+        self.version = 'v1.2.1'
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
         sg.theme(self.theme_color)   # Add a touch of color
         # All the stuff inside your window.
-        logger_layout =  [[sg.Multiline(size=(90,20), key = '-OUTPUT-', echo_stdout_stderr=True, disabled=True, write_only=True, reroute_stdout=True, autoscroll=True)]]
+        logger_layout =  [[sg.Multiline(size=(90,20), key = '-OUTPUT-', echo_stdout_stderr=True, disabled=True, write_only=True, reroute_stderr=True, reroute_stdout=True, autoscroll=True)]]
         headings = ["Name                       ", " URL                      ", "Date        ", "  #  "]
         queue_layout = [[sg.Multiline(size=(90,20), disabled=True, autoscroll=False, key='-QUEUE-', write_only=True)]]
         history_layout = [[sg.Table(size=(90, 20), values=self.table_data, headings=headings, max_col_width=25,
