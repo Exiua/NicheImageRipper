@@ -1,4 +1,4 @@
-"""This module downloads images from given URL""" # pylint: disable=invalid-name
+"""This module downloads images from given URL"""
 import hashlib
 import os
 from os import path
@@ -17,7 +17,6 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-# pylint: disable=line-too-long
 class RipperError(Exception):
     """General Ripper Exceptions"""
 
@@ -37,7 +36,12 @@ class ImageRipper():
         self.folder_info = self.html_parse() #Gets image url, number of images, and name of album
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
+        headers = {
+        "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
+        }
         session = requests.Session()
+        session.headers.update(headers)
         #Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
@@ -117,6 +121,8 @@ class ImageRipper():
                 site_info = babeimpact_parse(soup, driver)
             elif self.site_name == "100bucksbabes":
                 site_info = hundredbucksbabes_parse(soup, driver)
+            elif self.site_name == "girlsofdesire":
+                site_info = girlsofdesire_parse(soup, driver)
             driver.quit()
             return site_info # pyright: reportUnboundVariable=false
         except UnboundLocalError:
@@ -151,6 +157,8 @@ class ImageRipper():
                 return "babeimpact"
             if "https://www.100bucksbabes.com/" in self.given_url:
                 return "100bucksbabes"
+            if "https://www.girlsofdesire.org/" in self.given_url:
+                return "girlsofdesire"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -444,7 +452,7 @@ def test_parse(given_url):
     try:
         options = Options()
         options.headless = True
-        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36") # pylint: disable=line-too-long
+        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
         html = driver.page_source
@@ -551,7 +559,7 @@ def url_check(given_url):
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
-            "https://www.100bucksbabes.com/"]
+            "https://www.100bucksbabes.com/", "https://www.girlsofdesire.org/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
@@ -559,7 +567,7 @@ if __name__ == "__main__":
         album_url = sys.argv[1]
     else:
         raise Exception("Script requires a link as an argument")
-    #image_ripper = ImageRipper(sys.argv[1])
-    #image_ripper.image_getter()
-    print(test_parse(sys.argv[1]))
+    image_ripper = ImageRipper(sys.argv[1])
+    image_ripper.image_getter()
+    #print(test_parse(sys.argv[1]))
     #print(trim_url(sys.argv[1], True))
