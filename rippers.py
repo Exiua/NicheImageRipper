@@ -121,8 +121,6 @@ class ImageRipper():
                 site_info = babeimpact_parse(soup, driver)
             elif self.site_name == "100bucksbabes":
                 site_info = hundredbucksbabes_parse(soup, driver)
-            elif self.site_name == "girlsofdesire":
-                site_info = girlsofdesire_parse(soup, driver)
             driver.quit()
             return site_info # pyright: reportUnboundVariable=false
         except UnboundLocalError:
@@ -157,8 +155,6 @@ class ImageRipper():
                 return "babeimpact"
             if "https://www.100bucksbabes.com/" in self.given_url:
                 return "100bucksbabes"
-            if "https://www.girlsofdesire.org/" in self.given_url:
-                return "girlsofdesire"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -559,7 +555,7 @@ def url_check(given_url):
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
-            "https://www.100bucksbabes.com/", "https://www.girlsofdesire.org/"]
+            "https://www.100bucksbabes.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
