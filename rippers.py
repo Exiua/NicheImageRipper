@@ -39,11 +39,11 @@ class ImageRipper():
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         session = requests.Session()
         #Can get the image through numerically acending url for these sites
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
-                if self.site_name in ("bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls"): #These sites start from 00
+                if not self.site_name in ("imhentai", "hentaicafe"): #All other sites start from 00
                     num -= 1
                 if self.site_name != "imhentai" and num < 10: #All other sites use 00 styling for single digit urls
                     file_num = "".join(["0", str(num)]) #Appends a 0 to numbers less than 10
@@ -115,6 +115,8 @@ class ImageRipper():
                 site_info = babesandgirls_parse(soup, driver)
             elif self.site_name == "babeimpact":
                 site_info = babeimpact_parse(soup, driver)
+            elif self.site_name == "100bucksbabes":
+                site_info = hundredbucksbabes_parse(soup, driver)
             driver.quit()
             return site_info # pyright: reportUnboundVariable=false
         except UnboundLocalError:
@@ -147,6 +149,8 @@ class ImageRipper():
                 return "babesandgirls"
             if "https://www.babeimpact.com/" in self.given_url:
                 return "babeimpact"
+            if "https://www.100bucksbabes.com/" in self.given_url:
+                return "100bucksbabes"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -418,6 +422,22 @@ def babeimpact_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def hundredbucksbabes_parse(soup, driver):
+    """Read the html for 100bucksbabes.com"""
+    dir_name = soup.find("div", class_="fl").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find("div", class_="galleryblock").find_all("a")
+    num_files = len(num_files)
+    images = soup.find("div", class_="galleryblock").find("a").get("href")
+    images = "".join(["https://www.100bucksbabes.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    images = soup.find("div", class_="imageblock").find("img").get("src")
+    images = "".join(["https:", images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -429,7 +449,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return babeimpact_parse(soup, driver)
+        return hundredbucksbabes_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -530,7 +550,8 @@ def url_check(given_url):
     sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
-            "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/"]
+            "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
+            "https://www.100bucksbabes.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
