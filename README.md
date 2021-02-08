@@ -19,3 +19,8 @@ Run `NicheRipper.pyw` from the [latest release](https://github.com/Exiua/NicheIm
 - [bustybloom.com](https://bustybloom.com/)
 - [morazzia.com](https://morazzia.com/)
 - [novojoy.com](https://novojoy.com/)
+- [hqbabes.com](https://www.hqbabes.com/)
+- [silkengirl.com](https://www.silkengirl.com/
+- [babesandgirls.com](https://www.babesandgirls.com/)
+- [babeimpact.com](https://www.babeimpact.com/)
+- [100bucksbabes.com](https://www.100bucksbabes.com/)
