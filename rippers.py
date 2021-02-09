@@ -77,7 +77,7 @@ class ImageRipper():
                 except OSError:
                     pass
         #Easier to put all image url in a list and then download for these sites
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -121,6 +121,8 @@ class ImageRipper():
                 site_info = babeimpact_parse(soup, driver)
             elif self.site_name == "100bucksbabes":
                 site_info = hundredbucksbabes_parse(soup, driver)
+            elif self.site_name == "sexykittenporn":
+                site_info = sexykittenporn_parse(soup, driver)
             driver.quit()
             return site_info # pyright: reportUnboundVariable=false
         except UnboundLocalError:
@@ -155,6 +157,8 @@ class ImageRipper():
                 return "babeimpact"
             if "https://www.100bucksbabes.com/" in self.given_url:
                 return "100bucksbabes"
+            if "https://www.sexykittenporn.com/" in self.given_url:
+                return "sexykittenporn"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -410,7 +414,6 @@ def babeimpact_parse(soup, driver):
     sponsor = "".join(["(", sponsor.strip(), ")"])
     dir_name = " ".join([sponsor, title])
     dir_name = clean_dir_name(dir_name)
-    dir_name = dir_name.strip()
     tags = soup.find_all("div", class_="list gallery")
     tag_list = []
     for tag in tags:
@@ -442,6 +445,25 @@ def hundredbucksbabes_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def sexykittenporn_parse(soup, driver):
+    """Read the html for sexykittenporn.com"""
+    dir_name = soup.find("h1", class_="blockheader").text
+    dir_name = clean_dir_name(dir_name)
+    tag_list = soup.find_all("div", class_="list gallery col3")
+    image_list = []
+    for tag in tag_list:
+        image_list.extend(tag.find_all("div", class_="item"))
+    num_files = len(image_list)
+    image_link = ["".join(["https://www.sexykittenporn.com", image.find("a").get("href")]) for image in image_list]
+    images = []
+    for link in image_link:
+        driver.get(link)
+        html = driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+        images.append("".join(["https:", soup.find("div", class_="image-wrapper").find("img").get("src")]))
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -453,7 +475,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return hundredbucksbabes_parse(soup, driver)
+        return sexykittenporn_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -518,7 +540,7 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
 def clean_dir_name(given_name):
     """Remove illeage characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    return given_name.translate(translation_table)
+    return given_name.translate(translation_table).strip()
 
 def trim_url(given_url):
     """Return the URL without the filename attached."""
@@ -555,7 +577,7 @@ def url_check(given_url):
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
-            "https://www.100bucksbabes.com/"]
+            "https://www.100bucksbabes.com/", "https://www.sexykittenporn.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
