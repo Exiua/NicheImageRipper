@@ -37,8 +37,8 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]]) #Save location of this album
         Path(full_path).mkdir(parents=True, exist_ok=True) #Checks if the dir path of this album exists
         headers = {
-        "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
+            "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
         }
         session = requests.Session()
         session.headers.update(headers)
@@ -78,7 +78,7 @@ class ImageRipper():
                 except OSError:
                     pass
         #Easier to put all image url in a list and then download for these sites
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -130,10 +130,13 @@ class ImageRipper():
                 site_info = exgirlfriendmarket_parse(soup, driver)
             elif self.site_name == "novoporn":
                 site_info = novoporn_parse(soup, driver)
-            driver.quit()
-            return site_info # pyright: reportUnboundVariable=false
+            elif self.site_name == "hottystop":
+                site_info = hottystop_parse(soup, driver, self.given_url)
         except UnboundLocalError:
             raise RipperError("Not a supported site")
+        finally:
+            driver.quit()
+            return site_info # pyright: reportUnboundVariable=false
 
     def site_check(self):
         """Check which site the url is from"""
@@ -172,6 +175,8 @@ class ImageRipper():
                 return "exgirlfriendmarket"
             if "https://www.novoporn.com/" in self.given_url:
                 return "novoporn"
+            if "https://www.hottystop.com/" in self.given_url:
+                return "hottystop"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -533,6 +538,19 @@ def novoporn_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def hottystop_parse(soup, driver, url):
+    """Read the html for hottystop.com"""
+    try:
+        dir_name = soup.find("div", class_="Box_Large_Content").find("h1").text
+    except AttributeError:
+        dir_name = soup.find("div", class_="Box_Large_Content").find("u").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find("table").find_all("a")
+    images = ["".join([url, image.get("href")]) for image in image_list]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -544,7 +562,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return novoporn_parse(soup, driver)
+        return hottystop_parse(soup, driver, given_url)
     finally:
         driver.quit()
 
@@ -647,7 +665,7 @@ def url_check(given_url):
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
             "https://www.100bucksbabes.com/", "https://www.sexykittenporn.com/", "https://www.babesbang.com/",
-            "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/"]
+            "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
