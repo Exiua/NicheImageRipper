@@ -1,7 +1,7 @@
 """This module downloads images from given URL"""
 import hashlib
 import os
-from os import path
+from os import SEEK_END, path
 import sys
 import string
 import configparser
@@ -43,7 +43,8 @@ class ImageRipper():
         session = requests.Session()
         session.headers.update(headers)
         #Can get the image through numerically acending url for these sites
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes", "babesbang", "exgirlfriendmarket"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
+                            "babesbang", "exgirlfriendmarket", "novoporn"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
@@ -127,6 +128,8 @@ class ImageRipper():
                 site_info = babesbang_parse(soup, driver)
             elif self.site_name == "exgirlfriendmarket":
                 site_info = exgirlfriendmarket_parse(soup, driver)
+            elif self.site_name == "novoporn":
+                site_info = novoporn_parse(soup, driver)
             driver.quit()
             return site_info # pyright: reportUnboundVariable=false
         except UnboundLocalError:
@@ -167,6 +170,8 @@ class ImageRipper():
                 return "babesbang"
             if "https://www.exgirlfriendmarket.com/" in self.given_url:
                 return "exgirlfriendmarket"
+            if "https://www.novoporn.com/" in self.given_url:
+                return "novoporn"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -509,6 +514,25 @@ def exgirlfriendmarket_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def novoporn_parse(soup, driver):
+    """Read the html for novoporn.com"""
+    dir_name = soup.find("div", class_="gallery").find("h1").text.split()
+    for i, word in enumerate(dir_name):
+        if word == "porn":
+            del dir_name[i::]
+            break
+    dir_name = clean_dir_name(" ".join(dir_name))
+    num_files = len(soup.find_all("img", class_="gallerythumbs"))
+    images = soup.find("div", class_="gallery").find("a", rel="nofollow").get("href")
+    images = "".join(["https://novoporn.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    images = soup.find("div", id="picture-holder").find("img").get("src")
+    images = "".join(["https:", images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -520,7 +544,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return exgirlfriendmarket_parse(soup, driver)
+        return novoporn_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -623,7 +647,7 @@ def url_check(given_url):
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
             "https://www.100bucksbabes.com/", "https://www.sexykittenporn.com/", "https://www.babesbang.com/",
-            "https://www.exgirlfriendmarket.com/"]
+            "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
