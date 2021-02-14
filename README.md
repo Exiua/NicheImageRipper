@@ -7,7 +7,7 @@ NicheImageRipper is an image ripper written in python 3 to download albums from 
 
 ## How To Use
 
-Run `NicheRipper.pyw` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases).
+Download the source code from the [latest release](https://github.com/Exiua/NicheImageRipper/releases) and run `NicheRipper.pyw`.
 
 ## Sites Currently Supported:
 
@@ -24,3 +24,12 @@ Run `NicheRipper.pyw` from the [latest release](https://github.com/Exiua/NicheIm
 - [babesandgirls.com](https://www.babesandgirls.com/)
 - [babeimpact.com](https://www.babeimpact.com/)
 - [100bucksbabes.com](https://www.100bucksbabes.com/)
+- [sexykittenporn.com](https://www.sexykittenporn.com/)
+- [babesbang.com](hhttps://www.babesbang.com/)
+- [exgirlfriendmarket.com](https://www.exgirlfriendmarket.com/)
+- [novoporn.com](https://www.novoporn.com/)
+- [hottystop.com](https://www.hottystop.com/)
+- [babeuniversum.com](https://www.babeuniversum.com/)
+- [babesandbitches.net](https://www.babesandbitches.net/)
+- [chickteases.com](https://www.chickteases.com/)
+- [wantedbabes.com](https://www.wantedbabes.com/)
