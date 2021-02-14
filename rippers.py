@@ -44,7 +44,7 @@ class ImageRipper():
         session.headers.update(headers)
         #Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
-                            "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases"):
+                            "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
@@ -138,6 +138,8 @@ class ImageRipper():
                 site_info = babesandbitches_parse(soup, driver)
             elif self.site_name == "chickteases":
                 site_info = chickteases_parse(soup, driver)
+            elif self.site_name == "wantedbabes":
+                site_info = wantedbabes_parse(soup, driver)
         except UnboundLocalError:
             raise RipperError("Not a supported site")
         finally:
@@ -189,6 +191,8 @@ class ImageRipper():
                 return "babesandbitches"
             if "https://www.chickteases.com/" in self.given_url:
                 return "chickteases"
+            if "https://www.wantedbabes.com/" in self.given_url:
+                return "wantedbabes"
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver):
@@ -615,6 +619,25 @@ def chickteases_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
+def wantedbabes_parse(soup, driver):
+    """Read the html for wantedbabes.com"""
+    dir_name = soup.find("div", id="main-content").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find_all("div", class_="gallery")
+    num_files = []
+    for image in image_list:
+        num_files.extend(image.find_all("a"))
+    images = num_files[0].get("href")
+    images = "".join(["https://www.wantedbabes.com", images])
+    num_files = len(num_files)
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    images = soup.find("img", class_="img-responsive").get("src")
+    images = "".join(["https:", images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url):
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -626,7 +649,7 @@ def test_parse(given_url):
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        return chickteases_parse(soup, driver)
+        return wantedbabes_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -730,7 +753,8 @@ def url_check(given_url):
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
             "https://www.100bucksbabes.com/", "https://www.sexykittenporn.com/", "https://www.babesbang.com/",
             "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/",
-            "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/"]
+            "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
+            "https://www.wantedbabes.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
