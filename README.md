@@ -25,7 +25,7 @@ Download the source code from the [latest release](https://github.com/Exiua/Nich
 - [babeimpact.com](https://www.babeimpact.com/)
 - [100bucksbabes.com](https://www.100bucksbabes.com/)
 - [sexykittenporn.com](https://www.sexykittenporn.com/)
-- [babesbang.com](hhttps://www.babesbang.com/)
+- [babesbang.com](https://www.babesbang.com/)
 - [exgirlfriendmarket.com](https://www.exgirlfriendmarket.com/)
 - [novoporn.com](https://www.novoporn.com/)
 - [hottystop.com](https://www.hottystop.com/)
