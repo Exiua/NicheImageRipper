@@ -20,6 +20,9 @@ from selenium.webdriver.firefox.options import Options
 class RipperError(Exception):
     """General Ripper Exceptions"""
 
+PROTOCOL = "https:"
+CONFIG = 'config.ini'
+
 class ImageRipper():
     """Image Ripper Class"""
     def __init__(self, given_url):
@@ -73,8 +76,7 @@ class ImageRipper():
                                 #If all fails, download thumbnail
                                 download_from_url(session, trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
                             except PIL.UnidentifiedImageError:
-                                os.remove("".join([full_path, "/pic1.jpg"]))
-                                pass #No image exists, probably
+                                os.remove("".join([full_path, "/pic1.jpg"])) #No image exists, probably
                 except OSError:
                     pass
         #Easier to put all image url in a list and then download for these sites
@@ -348,7 +350,7 @@ def bustybloom_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", class_="picture_thumb").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -366,7 +368,7 @@ def morazzia_parse(soup, driver):
         images = soup.find("p", align="center").find("img").get("src")
     except AttributeError:
         images = soup.find("a", class_="main-post item-post w-100").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -382,7 +384,7 @@ def novojoy_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", class_="bigpic").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -404,7 +406,7 @@ def hqbabes_parse(soup, driver):
     for image in image_list:
         image_url = image.find("a").get("href")
         if any(x in image_url for x in ext):
-            images.append("".join(["https:", image_url]))
+            images.append("".join([PROTOCOL, image_url]))
     num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
@@ -421,7 +423,7 @@ def silkengirl_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", class_="wrap").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -437,7 +439,7 @@ def babesandgirls_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", class_="main-post item-post w-100").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -459,7 +461,7 @@ def babeimpact_parse(soup, driver):
         driver.get(image)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        images.append("".join(["https:", soup.find("div", class_="image-wrapper").find("img").get("src")]))
+        images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -475,7 +477,7 @@ def hundredbucksbabes_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", class_="imageblock").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -494,7 +496,7 @@ def sexykittenporn_parse(soup, driver):
         driver.get(link)
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
-        images.append("".join(["https:", soup.find("div", class_="image-wrapper").find("img").get("src")]))
+        images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -512,7 +514,7 @@ def babesbang_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("img", style="max-width:620px").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -531,7 +533,7 @@ def exgirlfriendmarket_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", class_="gallery_thumb").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -550,7 +552,7 @@ def novoporn_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", id="picture-holder").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -579,7 +581,7 @@ def babeuniversum_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find_all("div", class_="one-column")[1].find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -599,7 +601,7 @@ def babesandbitches_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("img", id="gallery-picture").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -615,7 +617,7 @@ def chickteases_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("div", id="imageView").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -634,7 +636,7 @@ def wantedbabes_parse(soup, driver):
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
     images = soup.find("img", class_="img-responsive").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -712,7 +714,7 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
     time.sleep(0.05)
 
 def clean_dir_name(given_name):
-    """Remove illeage characters from name"""
+    """Remove forbidden characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     return given_name.translate(translation_table).strip()
 
@@ -726,23 +728,23 @@ def trim_url(given_url):
 def read_config(header, child):
     """Read from config.ini"""
     config = configparser.ConfigParser()
-    config.read('config.ini')
-    if not path.isfile('config.ini'):
+    config.read(CONFIG)
+    if not path.isfile(CONFIG):
         config['DEFAULT'] = {}
         config['DEFAULT']['SavePath'] = 'Rips/'
         config['DEFAULT']['Theme'] = 'Dark'
         config['DEFAULT']['AskToReRip'] = 'True'
         config['DEFAULT']['NumberOfThreads'] = 1
-        with open('config.ini', 'w') as configfile:    # save
+        with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
 
 def write_config(header, child, change):
     """Write to config.ini"""
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read(CONFIG)
     config[header][child] = change
-    with open('config.ini', 'w') as configfile:    # save
+    with open(CONFIG, 'w') as configfile:    # save
         config.write(configfile)
 
 def url_check(given_url):
@@ -761,7 +763,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         album_url = sys.argv[1]
     else:
-        raise Exception("Script requires a link as an argument")
+        raise RipperError("Script requires a link as an argument")
     #image_ripper = ImageRipper(sys.argv[1])
     #image_ripper.image_getter()
     print(test_parse(sys.argv[1]))
