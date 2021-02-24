@@ -22,6 +22,8 @@ class RipperError(Exception):
 
 PROTOCOL = "https:"
 CONFIG = 'config.ini'
+PARSER = "html.parser"
+DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 
 class ImageRipper():
     """Image Ripper Class"""
@@ -92,11 +94,11 @@ class ImageRipper():
         """Return image URL, number of images, and folder name."""
         options = Options()
         options.headless = True
-        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+        options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url)
         html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, PARSER)
         try:
             if self.site_name == "imhentai":
                 site_info = imhentai_parse(soup, driver)
@@ -146,7 +148,7 @@ class ImageRipper():
             raise RipperError("Not a supported site")
         finally:
             driver.quit()
-            return site_info # pyright: reportUnboundVariable=false
+        return site_info # pyright: reportUnboundVariable=false
 
     def site_check(self):
         """Check which site the url is from"""
@@ -228,7 +230,7 @@ def hotgirl_parse(soup, driver, url):
         for index in range(2, int(num_pages) + 1):
             page_url = "".join([url, str(index), '/'])
             driver.get(page_url)
-            soup = BeautifulSoup(driver.page_source, "html.parser")
+            soup = BeautifulSoup(driver.page_source, PARSER)
             images_list = soup.find_all("img", itemprop="image")
             del images_list[0]
             images_html.extend(images_list)
@@ -245,7 +247,7 @@ def hentaicafe_parse(soup, driver, url):
         images = soup.find("a", class_="x-btn x-btn-flat x-btn-rounded x-btn-large").get("href")
         driver.get(images)
         html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, PARSER)
     else:
         start = url.find('/read/') + 6
         end = url.find('/en/', start)
@@ -325,7 +327,7 @@ def girlsreleased_parse(soup, driver):
     for url in images_url:
         response = session.get(url, stream=True, headers=headers)
         html = response.text
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, PARSER)
         try:
             image = soup.find("img", class_="pic img img-responsive").get("src")
             images.append(image)
@@ -348,7 +350,7 @@ def bustybloom_parse(soup, driver):
     images = soup.find("div", class_="gallery_thumb").find("a").get("href")
     driver.get("".join(["https://www.bustybloom.com", images]))
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="picture_thumb").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -363,7 +365,7 @@ def morazzia_parse(soup, driver):
     images = soup.find("div", class_="block-post album-item").find("a").get("href")
     driver.get("".join(["https://www.morazzia.com", images]))
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     try:
         images = soup.find("p", align="center").find("img").get("src")
     except AttributeError:
@@ -382,7 +384,7 @@ def novojoy_parse(soup, driver):
     images = "".join(["https://novojoy.com", images])
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="bigpic").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -421,7 +423,7 @@ def silkengirl_parse(soup, driver):
     images = "".join(["https://silkengirl.com", images])
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="wrap").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -437,7 +439,7 @@ def babesandgirls_parse(soup, driver):
     images = "".join(["https://www.babesandgirls.com", images])
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="main-post item-post w-100").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -460,7 +462,7 @@ def babeimpact_parse(soup, driver):
     for image in image_list:
         driver.get(image)
         html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, PARSER)
         images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
     return [images, num_files, dir_name]
@@ -475,7 +477,7 @@ def hundredbucksbabes_parse(soup, driver):
     images = "".join(["https://www.100bucksbabes.com", images])
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="imageblock").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -495,7 +497,7 @@ def sexykittenporn_parse(soup, driver):
     for link in image_link:
         driver.get(link)
         html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, PARSER)
         images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
     return [images, num_files, dir_name]
@@ -512,7 +514,7 @@ def babesbang_parse(soup, driver):
     images = "".join(["https://www.babesbang.com", image_list[0].get("href")])
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("img", style="max-width:620px").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -531,7 +533,7 @@ def exgirlfriendmarket_parse(soup, driver):
     images = soup.find("div", class_="gallery_thumb").find("a").get("href")
     driver.get("".join(["https://www.exgirlfriendmarket.com", images]))
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="gallery_thumb").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -550,7 +552,7 @@ def novoporn_parse(soup, driver):
     images = "".join(["https://novoporn.com", images])
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", id="picture-holder").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -579,7 +581,7 @@ def babeuniversum_parse(soup, driver):
     num_files = len(num_files)
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find_all("div", class_="one-column")[1].find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -599,7 +601,7 @@ def babesandbitches_parse(soup, driver):
     num_files = len(num_files)
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("img", id="gallery-picture").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -615,7 +617,7 @@ def chickteases_parse(soup, driver):
     num_files = len(num_files)
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", id="imageView").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -634,7 +636,7 @@ def wantedbabes_parse(soup, driver):
     num_files = len(num_files)
     driver.get(images)
     html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, PARSER)
     images = soup.find("img", class_="img-responsive").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
@@ -646,11 +648,11 @@ def test_parse(given_url):
     try:
         options = Options()
         options.headless = True
-        options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+        options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
         html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(html, PARSER)
         return wantedbabes_parse(soup, driver)
     finally:
         driver.quit()
@@ -702,7 +704,7 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
         except requests.exceptions.ConnectionError:
             options = Options()
             options.headless = True
-            options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+            options.add_argument = DRIVER_HEADER
             driver = webdriver.Firefox(options=options)
             response = driver.get(rip_url)
             if not response.ok:
