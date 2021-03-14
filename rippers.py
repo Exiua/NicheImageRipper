@@ -24,6 +24,8 @@ PROTOCOL = "https:"
 CONFIG = 'config.ini'
 PARSER = "html.parser"
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+REQUESTS_HEADER = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+                    'referer': 'https://imhentai.xxx/'}
 
 class ImageRipper():
     """Image Ripper Class"""
@@ -646,7 +648,7 @@ def download_from_url(session, url_name, file_name, full_path, num_files, ext):
     print(" ".join([rip_url, "   ", num_progress]))
     image_url = "".join([full_path, "/pic1", ext])
     with open(image_url, "wb") as handle:
-        response = session.get(rip_url, stream=True)
+        response = session.get(rip_url, headers=REQUESTS_HEADER, stream=True)
         if not response.ok:
             print(response)
         if ext == ".jpg":
@@ -675,7 +677,7 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
         try: 
-            response = session.get(rip_url, stream=True)
+            response = session.get(rip_url, headers=REQUESTS_HEADER, stream=True)
             if not response.ok:
                 print(response)
             for block in response.iter_content(1024):
