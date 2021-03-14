@@ -99,61 +99,42 @@ class ImageRipper():
         driver.get(self.given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, PARSER)
-        try:
-            if self.site_name == "imhentai":
-                site_info = imhentai_parse(soup, driver)
-            elif self.site_name == "hotgirl":
-                site_info = hotgirl_parse(soup, driver, self.given_url)
-            elif self.site_name == "hentaicafe":
-                site_info = hentaicafe_parse(soup, driver, self.given_url)
-            elif self.site_name == "cup-e":
-                site_info = cupe_parse(soup, driver)
-            elif self.site_name == "girlsreleased":
-                site_info = girlsreleased_parse(soup, driver)
-            elif self.site_name == "bustybloom":
-                site_info = bustybloom_parse(soup, driver)
-            elif self.site_name == "morazzia":
-                site_info = morazzia_parse(soup, driver)
-            elif self.site_name == "novojoy":
-                site_info = novojoy_parse(soup, driver)
-            elif self.site_name == "hqbabes":
-                site_info = hqbabes_parse(soup, driver)
-            elif self.site_name == "silkengirl":
-                site_info = silkengirl_parse(soup, driver)
-            elif self.site_name == "babesandgirls":
-                site_info = babesandgirls_parse(soup, driver)
-            elif self.site_name == "babeimpact":
-                site_info = babeimpact_parse(soup, driver)
-            elif self.site_name == "100bucksbabes":
-                site_info = hundredbucksbabes_parse(soup, driver)
-            elif self.site_name == "sexykittenporn":
-                site_info = sexykittenporn_parse(soup, driver)
-            elif self.site_name == "babesbang":
-                site_info = babesbang_parse(soup, driver)
-            elif self.site_name == "exgirlfriendmarket":
-                site_info = exgirlfriendmarket_parse(soup, driver)
-            elif self.site_name == "novoporn":
-                site_info = novoporn_parse(soup, driver)
-            elif self.site_name == "hottystop":
-                site_info = hottystop_parse(soup, driver, self.given_url)
-            elif self.site_name == "babeuniversum":
-                site_info = babeuniversum_parse(soup, driver)
-            elif self.site_name == "babesandbitches":
-                site_info = babesandbitches_parse(soup, driver)
-            elif self.site_name == "chickteases":
-                site_info = chickteases_parse(soup, driver)
-            elif self.site_name == "wantedbabes":
-                site_info = wantedbabes_parse(soup, driver)
-        except UnboundLocalError:
-            raise RipperError("Not a supported site")
-        finally:
-            driver.quit()
+        parser_switch = {
+            "imhentai": imhentai_parse,
+            "hotgirl": hotgirl_parse,
+            "hentaicafe": hentaicafe_parse,
+            "cup-e": cupe_parse,
+            "girlsreleased": girlsreleased_parse,
+            "bustybloom": bustybloom_parse,
+            "morazzia": morazzia_parse,
+            "novojoy": novojoy_parse,
+            "hqbabes": hqbabes_parse,
+            "silkengirl": silkengirl_parse,
+            "babesandgirls": babesandgirls_parse,
+            "babeimpact": babeimpact_parse,
+            "100bucksbabes": hundredbucksbabes_parse,
+            "sexykittenporn": sexykittenporn_parse,
+            "babesbang": babesbang_parse,
+            "exgirlfriendmarket": exgirlfriendmarket_parse,
+            "novoporn": novoporn_parse,
+            "hottystop": hottystop_parse,
+            "babeuniversum": babeuniversum_parse,
+            "babesandbitches": babesandbitches_parse,
+            "chickteases": chickteases_parse,
+            "wantedbabes": wantedbabes_parse
+        }
+        site_parser = parser_switch.get(self.site_name)
+        if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
+            site_info = site_parser(soup, driver, self.given_url)
+        else:
+            site_info = site_parser(soup, driver)
+        driver.quit()
         return site_info # pyright: reportUnboundVariable=false
 
     def site_check(self):
         """Check which site the url is from"""
         if url_check(self.given_url):
-            if "https://imhentai.com/" in self.given_url:
+            if "https://imhentai.xxx/" in self.given_url:
                 return "imhentai"
             if "https://hotgirl.asia/" in self.given_url:
                 return "hotgirl"
@@ -751,7 +732,7 @@ def write_config(header, child, change):
 
 def url_check(given_url):
     """Check the url to make sure it is from valid site"""
-    sites = ["https://imhentai.com/", "https://hotgirl.asia/", "https://hentai.cafe/", 
+    sites = ["https://imhentai.xxx/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
             "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
             "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
