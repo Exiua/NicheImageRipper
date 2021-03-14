@@ -651,7 +651,7 @@ def download_from_url(session: requests.Session, url_name: str, file_name: str, 
         response = session.get(rip_url, headers=REQUESTS_HEADER, stream=True)
         if not response.ok:
             print(response)
-        if ext == ".jpg":
+        if ext in (".jpg", ".png"):
             for block in response.iter_content(1024):
                 if not block:
                     break
