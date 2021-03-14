@@ -1,7 +1,7 @@
 """This module downloads images from given URL"""
 import hashlib
 import os
-from os import SEEK_END, path
+from os import path
 import sys
 import string
 import configparser
@@ -29,7 +29,7 @@ REQUESTS_HEADER = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url):
+    def __init__(self, given_url: str):
         self.folder_info = []
         self.given_url = given_url
         self.save_path = read_config('DEFAULT', 'SavePath')
@@ -92,7 +92,7 @@ class ImageRipper():
                     pass #No image exists, probably
         print("Download Complete")
 
-    def html_parse(self):
+    def html_parse(self) -> list:
         """Return image URL, number of images, and folder name."""
         options = Options()
         options.headless = True
@@ -133,7 +133,7 @@ class ImageRipper():
         driver.quit()
         return site_info # pyright: reportUnboundVariable=false
 
-    def site_check(self):
+    def site_check(self) -> str:
         """Check which site the url is from"""
         if url_check(self.given_url):
             if "https://imhentai.xxx/" in self.given_url:
@@ -182,7 +182,7 @@ class ImageRipper():
                 return "wantedbabes"
         raise RipperError("Not a support site")
 
-def imhentai_parse(soup, driver):
+def imhentai_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for imhentai.com"""
     #Gets the image URL to be turned into the general image URL
     images = soup.find("img", class_="lazy preloader").get("data-src")
@@ -195,7 +195,7 @@ def imhentai_parse(soup, driver):
     driver.quit()
     return [images, num_pages, dir_name]
 
-def hotgirl_parse(soup, driver, url):
+def hotgirl_parse(soup, driver: webdriver.Firefox, url: str) -> list:
     """Read the html for hotgirl.asia"""
     #Gets the number of pages
     num_pages = soup.findAll("a", class_="page larger")
@@ -222,7 +222,7 @@ def hotgirl_parse(soup, driver, url):
     driver.quit()
     return [images, num_files, dir_name]
 
-def hentaicafe_parse(soup, driver, url):
+def hentaicafe_parse(soup, driver: webdriver.Firefox, url: str) -> list:
     """Read the html for hentai.cafe"""
     if "hc.fyi" in url:
         dir_name = soup.find("h3").text
@@ -241,7 +241,7 @@ def hentaicafe_parse(soup, driver, url):
     num_files = soup.find("div", class_="text").string.split()[0]
     return [images, num_files, dir_name]
 
-def cupe_parse(soup, driver):
+def cupe_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for hentai.cafe"""
     image_list = soup.find_all("img", ["alignnone", "size-full"])
     del image_list[0]
@@ -294,7 +294,7 @@ def cupe_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def girlsreleased_parse(soup, driver):
+def girlsreleased_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for girlsreleased.com"""
     set_name = soup.find("a", id="set_name").text
     model_name = soup.find_all("a", class_="button link")[1]
@@ -320,7 +320,7 @@ def girlsreleased_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def bustybloom_parse(soup, driver):
+def bustybloom_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for bustybloom.com"""
     num_files = len(soup.find_all("div", class_="gallery_thumb"))
     dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
@@ -339,7 +339,7 @@ def bustybloom_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def morazzia_parse(soup, driver):
+def morazzia_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for morazzia.com"""
     dir_name = soup.find("h1", class_="title").text
     dir_name = clean_dir_name(dir_name)
@@ -357,7 +357,7 @@ def morazzia_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def novojoy_parse(soup, driver):
+def novojoy_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for novojoy.com"""
     dir_name = soup.find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -373,7 +373,7 @@ def novojoy_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def hqbabes_parse(soup, driver):
+def hqbabes_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for hqbabes.com"""
     model = soup.find("p", class_="desc").find("a").text
     model = "".join(["[", model, "]"])
@@ -396,7 +396,7 @@ def hqbabes_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def silkengirl_parse(soup, driver):
+def silkengirl_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for silkengirl.com"""
     dir_name = soup.find("h1", class_="title").text
     dir_name = clean_dir_name(dir_name)
@@ -412,7 +412,7 @@ def silkengirl_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def babesandgirls_parse(soup, driver):
+def babesandgirls_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for babesandgirls.com"""
     dir_name = soup.find("h1", class_="title").text
     dir_name = clean_dir_name(dir_name)
@@ -428,7 +428,7 @@ def babesandgirls_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def babeimpact_parse(soup, driver):
+def babeimpact_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for babeimpact.com"""
     title = soup.find("h1", class_="blockheader pink center lowercase").text
     sponsor = soup.find("div", class_="c").find_all("a")[1].text
@@ -450,7 +450,7 @@ def babeimpact_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def hundredbucksbabes_parse(soup, driver):
+def hundredbucksbabes_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for 100bucksbabes.com"""
     dir_name = soup.find("div", class_="fl").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -466,7 +466,7 @@ def hundredbucksbabes_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def sexykittenporn_parse(soup, driver):
+def sexykittenporn_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for sexykittenporn.com"""
     dir_name = soup.find("h1", class_="blockheader").text
     dir_name = clean_dir_name(dir_name)
@@ -485,7 +485,7 @@ def sexykittenporn_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def babesbang_parse(soup, driver):
+def babesbang_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for babesbang.com"""
     dir_name = soup.find("div", class_="main-title").text
     dir_name = clean_dir_name(dir_name)
@@ -503,7 +503,7 @@ def babesbang_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def exgirlfriendmarket_parse(soup, driver):
+def exgirlfriendmarket_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for exgirlfriendmarket.com"""
     num_files = len(soup.find_all("div", class_="gallery_thumb"))
     dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
@@ -522,7 +522,7 @@ def exgirlfriendmarket_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def novoporn_parse(soup, driver):
+def novoporn_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for novoporn.com"""
     dir_name = soup.find("div", class_="gallery").find("h1").text.split()
     for i, word in enumerate(dir_name):
@@ -541,7 +541,7 @@ def novoporn_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def hottystop_parse(soup, driver, url):
+def hottystop_parse(soup, driver: webdriver.Firefox, url: str) -> list:
     """Read the html for hottystop.com"""
     try:
         dir_name = soup.find("div", class_="Box_Large_Content").find("h1").text
@@ -554,7 +554,7 @@ def hottystop_parse(soup, driver, url):
     driver.quit()
     return [images, num_files, dir_name]
 
-def babeuniversum_parse(soup, driver):
+def babeuniversum_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for babeuniversum.com"""
     dir_name = soup.find("div", class_="title").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -570,7 +570,7 @@ def babeuniversum_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def babesandbitches_parse(soup, driver):
+def babesandbitches_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for babesandbitches.net"""
     dir_name = soup.find("h1", id="title").text.split()
     for i, word in enumerate(dir_name):
@@ -590,7 +590,7 @@ def babesandbitches_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def chickteases_parse(soup, driver):
+def chickteases_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for chickteases.com"""
     dir_name = soup.find("h1", id="galleryModelName").text
     dir_name = clean_dir_name(dir_name)
@@ -606,7 +606,7 @@ def chickteases_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def wantedbabes_parse(soup, driver):
+def wantedbabes_parse(soup, driver: webdriver.Firefox) -> list:
     """Read the html for wantedbabes.com"""
     dir_name = soup.find("div", id="main-content").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -625,7 +625,7 @@ def wantedbabes_parse(soup, driver):
     driver.quit()
     return [images, num_files, dir_name]
 
-def test_parse(given_url):
+def test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
     driver = None
     try:
@@ -640,7 +640,7 @@ def test_parse(given_url):
     finally:
         driver.quit()
 
-def download_from_url(session, url_name, file_name, full_path, num_files, ext):
+def download_from_url(session: requests.Session, url_name: str, file_name: str, full_path: str, num_files: int, ext: str):
     """"Download image from image url"""
     #Completes the specific image URL from the general URL
     rip_url = "".join([url_name, str(file_name), ext])
@@ -669,7 +669,7 @@ def download_from_url(session, url_name, file_name, full_path, num_files, ext):
         os.rename(image_url, image_hash_name)
     time.sleep(0.05)
 
-def download_from_list(session, given_url, full_path, current_file_num, num_files):
+def download_from_list(session: requests.Session, given_url: str, full_path: str, current_file_num: int, num_files: int):
     """Download images from hotgirl.asia"""
     rip_url = given_url.strip('\n')
     num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
@@ -698,19 +698,19 @@ def download_from_list(session, given_url, full_path, current_file_num, num_file
                 handle.write(block)
     time.sleep(0.05)
 
-def clean_dir_name(given_name):
+def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     return given_name.translate(translation_table).strip()
 
-def trim_url(given_url):
+def trim_url(given_url:str) -> str:
     """Return the URL without the filename attached."""
     file_ext = [".jpg", ".png", ".jpeg", ".gif"]
     if any(x in given_url for x in file_ext):
         given_url = "".join([str("/".join(given_url.split("/")[0:-1])), "/"])
     return given_url
 
-def read_config(header, child):
+def read_config(header: str, child: str) -> str:
     """Read from config.ini"""
     config = configparser.ConfigParser()
     config.read(CONFIG)
@@ -719,12 +719,13 @@ def read_config(header, child):
         config['DEFAULT']['SavePath'] = 'Rips/'
         config['DEFAULT']['Theme'] = 'Dark'
         config['DEFAULT']['AskToReRip'] = 'True'
+        config['DEFAULT']['LiveHistoryUpdate'] = 'False'
         config['DEFAULT']['NumberOfThreads'] = 1
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
 
-def write_config(header, child, change):
+def write_config(header: str, child: str, change: str):
     """Write to config.ini"""
     config = configparser.ConfigParser()
     config.read(CONFIG)
@@ -732,7 +733,7 @@ def write_config(header, child, change):
     with open(CONFIG, 'w') as configfile:    # save
         config.write(configfile)
 
-def url_check(given_url):
+def url_check(given_url: str) -> bool:
     """Check the url to make sure it is from valid site"""
     sites = ["https://imhentai.xxx/", "https://hotgirl.asia/", "https://hentai.cafe/", 
             "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/", 
