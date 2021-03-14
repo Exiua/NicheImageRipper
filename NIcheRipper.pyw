@@ -86,9 +86,6 @@ class RipperGui():
                     window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file: #Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
-                #for url in unfinished_list:
-                 #   if url_check(url):
-                  #      self.url_list.append(url)
                 self.url_list.extend(unfinished_list)
                 self.loaded_file = True
                 os.remove(values['-LOADFILE-'])
