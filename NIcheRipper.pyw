@@ -88,7 +88,9 @@ class RipperGui():
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
                 self.url_list.extend(unfinished_list)
                 self.loaded_file = True
-                os.remove(values['-LOADFILE-'])
+                window['-STATUS-']('Urls loaded', text_color='green')
+                if sg.popup_yes_no('Do you want to delete the file?', no_titlebar=True) == 'Yes':
+                    os.remove(values['-LOADFILE-'])
             self.live_history_update = values['-LIVEUPDATE-']
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
