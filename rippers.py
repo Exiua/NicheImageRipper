@@ -136,50 +136,12 @@ class ImageRipper():
     def site_check(self) -> str:
         """Check which site the url is from"""
         if url_check(self.given_url):
-            if "https://imhentai.xxx/" in self.given_url:
-                return "imhentai"
-            if "https://hotgirl.asia/" in self.given_url:
-                return "hotgirl"
             if "https://hentai.cafe/" in self.given_url:
                 return "hentaicafe"
-            if "https://www.cup-e.club/" in self.given_url:
-                return "cup-e"
-            if "https://girlsreleased.com/" in self.given_url:
-                return "girlsreleased"
-            if "https://www.bustybloom.com/" in self.given_url:
-                return "bustybloom"
-            if "https://www.morazzia.com/" in self.given_url:
-                return "morazzia"
-            if "https://www.novojoy.com/" in self.given_url:
-                return "novojoy"
-            if "https://www.hqbabes.com/" in self.given_url:
-                return "hqbabes"
-            if "https://www.silkengirl.com/" in self.given_url:
-                return "silkengirl"
-            if "https://www.babesandgirls.com/" in self.given_url:
-                return "babesandgirls"
-            if "https://www.babeimpact.com/" in self.given_url:
-                return "babeimpact"
-            if "https://www.100bucksbabes.com/" in self.given_url:
-                return "100bucksbabes"
-            if "https://www.sexykittenporn.com/" in self.given_url:
-                return "sexykittenporn"
-            if "https://www.babesbang.com/" in self.given_url:
-                return "babesbang"
-            if "https://www.exgirlfriendmarket.com/" in self.given_url:
-                return "exgirlfriendmarket"
-            if "https://www.novoporn.com/" in self.given_url:
-                return "novoporn"
-            if "https://www.hottystop.com/" in self.given_url:
-                return "hottystop"
-            if "https://www.babeuniversum.com/" in self.given_url:
-                return "babeuniversum"
-            if "https://www.babesandbitches.net/" in self.given_url:
-                return "babesandbitches"
-            if "https://www.chickteases.com/" in self.given_url:
-                return "chickteases"
-            if "https://www.wantedbabes.com/" in self.given_url:
-                return "wantedbabes"
+            else:
+                domain = urlparse(self.given_url).netloc
+                domain = domain.split(".")[-2]
+                return domain
         raise RipperError("Not a support site")
 
 def imhentai_parse(soup, driver: webdriver.Firefox) -> list:
