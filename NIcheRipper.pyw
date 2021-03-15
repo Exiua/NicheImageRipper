@@ -119,6 +119,7 @@ class RipperGui():
         ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
         while self.url_list:
             if not ripper.is_alive():
+                window['-STATUS-'].update(value='')
                 ripper = threading.Thread(target=self.rip_images, args=(window,), daemon=True)
                 ripper.start()
                 time.sleep(2)
