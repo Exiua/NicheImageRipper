@@ -61,7 +61,28 @@ class RipperGui():
                 self.close_program()
                 break
             if event == 'Rip': #Image rip behavior
-                if url_check(values['-URL-']) and not values['-URL-'] in self.url_list: #If url is for a supported site and not already queued
+                if values['-URL-'].count("https://") > 1: #If multiple urls are entered at once
+                    url_list = values['-URL-'].split() #Split by whitespace if present
+                    for url in url_list:
+                        if url.count("https://") > 1: #Split by protocol
+                            partial_list = url.split("https://")
+                            partial_list.pop(0) #Delete first element as it is just an empty string
+                            for v in partial_list:
+                                v = "".join(["https://", v])
+                                if url_check(v) and not v in self.url_list: #If url is for a supported site and not already queued
+                                    if self.rerip_ask and any(v in sublist for sublist in self.table_data): #If user wants to be prompted and if url is in the history
+                                        if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes': #Ask user to re-rip
+                                            self.url_list.append(v)
+                                    else: #If user always wants to re-rip
+                                        self.url_list.append(v)
+                        else: #If string was properly split
+                            if url_check(url) and not url in self.url_list: #If url is for a supported site and not already queued
+                                    if self.rerip_ask and any(url in sublist for sublist in self.table_data): #If user wants to be prompted and if url is in the history
+                                        if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes': #Ask user to re-rip
+                                            self.url_list.append(url)
+                                    else: #If user always wants to re-rip
+                                        self.url_list.append(url)
+                elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list: #If url is for a supported site and not already queued
                     if self.rerip_ask and any(values['-URL-'] in sublist for sublist in self.table_data): #If user wants to be prompted and if url is in the history
                         if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes': #Ask user to re-rip
                             self.url_list.append(values['-URL-'])
