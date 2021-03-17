@@ -24,7 +24,7 @@ PROTOCOL = "https:"
 CONFIG = 'config.ini'
 PARSER = "html.parser"
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
-REQUESTS_HEADER = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
                     'referer': 'https://imhentai.xxx/'}
 
 class ImageRipper():
@@ -140,6 +140,7 @@ class ImageRipper():
                 return "hentaicafe"
             else:
                 domain = urlparse(self.given_url).netloc
+                requests_header['referer'] = "".join(["https://", domain, "/"])
                 domain = domain.split(".")[-2]
                 return domain
         raise RipperError("Not a support site")
@@ -217,7 +218,7 @@ def cupe_parse(soup: BeautifulSoup, driver: webdriver.Firefox) -> list:
     images = [x for x in images if x is not None]
     num_files = len(images)
     album_title = soup.find("h1", class_="entry-title").text
-    album_info = soup.find_all("p")[2].text
+    album_info = soup.find("div", class_="entry-content").find("p").text
     album_info = album_info.split()
     shoot_theme = []
     model_index = 0
@@ -225,7 +226,7 @@ def cupe_parse(soup: BeautifulSoup, driver: webdriver.Firefox) -> list:
     if "Concept" in album_info:
         for index in range(len(album_info)):
             if theme_found:
-                if not album_info[index] == "Model":
+                if not album_info[index].replace(":", "") == "Model":
                     shoot_theme.append(album_info[index])
                 else:
                     model_index = index + 2
@@ -598,7 +599,7 @@ def test_parse(given_url: str) -> list:
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, PARSER)
-        return wantedbabes_parse(soup, driver)
+        return cupe_parse(soup, driver)
     finally:
         driver.quit()
 
@@ -610,7 +611,7 @@ def download_from_url(session: requests.Session, url_name: str, file_name: str, 
     print(" ".join([rip_url, "   ", num_progress]))
     image_url = "".join([full_path, "/pic1", ext])
     with open(image_url, "wb") as handle:
-        response = session.get(rip_url, headers=REQUESTS_HEADER, stream=True)
+        response = session.get(rip_url, headers=requests_header, stream=True)
         if not response.ok:
             print(response)
         if ext in (".jpg", ".png"):
@@ -639,7 +640,7 @@ def download_from_list(session: requests.Session, given_url: str, full_path: str
     file_name = os.path.basename(urlparse(rip_url).path)
     with open("".join([full_path, '/', file_name]), "wb") as handle:
         try: 
-            response = session.get(rip_url, headers=REQUESTS_HEADER, stream=True)
+            response = session.get(rip_url, headers=requests_header, stream=True)
             if not response.ok:
                 print(response)
             for block in response.iter_content(1024):
