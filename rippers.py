@@ -84,7 +84,7 @@ class ImageRipper():
                 except OSError:
                     pass
         #Easier to put all image url in a list and then download for these sites
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -121,7 +121,8 @@ class ImageRipper():
             "babeuniversum": babeuniversum_parse,
             "babesandbitches": babesandbitches_parse,
             "chickteases": chickteases_parse,
-            "wantedbabes": wantedbabes_parse
+            "wantedbabes": wantedbabes_parse,
+            "cyberdrop": cyberdrop_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -652,7 +653,18 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
-
+def cyberdrop_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for cyberdrop.me"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", id="title").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find_all("div", class_="image-container column")
+    images = [image.find("a", class_="image").get("href") for image in image_list]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
 
 def test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
@@ -665,7 +677,7 @@ def test_parse(given_url: str) -> list:
         driver.get(given_url)
         html = driver.page_source
         soup = BeautifulSoup(html, PARSER)
-        return cupe_parse(soup, driver)
+        return cyberdrop_parse(driver)
     finally:
         driver.quit()
 
@@ -771,7 +783,7 @@ def url_check(given_url: str) -> bool:
             "https://www.100bucksbabes.com/", "https://www.sexykittenporn.com/", "https://www.babesbang.com/",
             "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/",
             "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
-            "https://www.wantedbabes.com/"]
+            "https://www.wantedbabes.com/", "https://cyberdrop.me/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
