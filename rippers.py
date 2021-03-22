@@ -35,8 +35,7 @@ class ImageRipper():
         self.save_path = read_config('DEFAULT', 'SavePath')
         self.site_name = self.site_check()
         flag = 0x08000000  # No-Window flag
-        webdriver.common.service.subprocess.Popen = functools.partial(
-        subprocess.Popen, creationflags=flag)
+        webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
     def image_getter(self):
         """Download images from URL."""
@@ -84,12 +83,15 @@ class ImageRipper():
                 except OSError:
                     pass
         #Easier to put all image url in a list and then download for these sites
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop"):
+        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
                 except PIL.UnidentifiedImageError:
                     pass #No image exists, probably
+                except requests.exceptions.ChunkedEncodingError:
+                    time.sleep(10)
+                    download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
         print("Download Complete")
 
     def html_parse(self) -> list:
@@ -122,7 +124,8 @@ class ImageRipper():
             "babesandbitches": babesandbitches_parse,
             "chickteases": chickteases_parse,
             "wantedbabes": wantedbabes_parse,
-            "cyberdrop": cyberdrop_parse
+            "cyberdrop": cyberdrop_parse,
+            "sexy-egirls": sexyegirls_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -666,6 +669,26 @@ def cyberdrop_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def sexyegirls_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for sexy-egirls.com"""
+    #Parses the html of the site
+    time.sleep(1) #Wait so images can load
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
+    split = 0
+    for i, word in enumerate(dir_name):
+        if "Pictures" in word or "Video" in word:
+            split = i
+            break
+    dir_name = dir_name[:split-1]
+    dir_name = clean_dir_name(" ".join(dir_name))
+    image_list = soup.find_all("div", class_="album-item")
+    images = [image.find("a").get("href") for image in image_list]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -675,9 +698,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        html = driver.page_source
-        soup = BeautifulSoup(html, PARSER)
-        return cyberdrop_parse(driver)
+        return sexyegirls_parse(driver)
     finally:
         driver.quit()
 
@@ -783,7 +804,7 @@ def url_check(given_url: str) -> bool:
             "https://www.100bucksbabes.com/", "https://www.sexykittenporn.com/", "https://www.babesbang.com/",
             "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/",
             "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
-            "https://www.wantedbabes.com/", "https://cyberdrop.me/"]
+            "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/"]
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
