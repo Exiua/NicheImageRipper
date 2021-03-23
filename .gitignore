@@ -2,6 +2,7 @@
 venv
 env
 __pycache__
+.vscode
 config.ini
 RipHistory.json
 UnfinishedRips.json
