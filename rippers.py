@@ -52,13 +52,13 @@ class ImageRipper():
         #Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                             "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                            "pleasuregirl"):
+                            "pleasuregirl", "sexyaporno"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
                 if not self.site_name in ("imhentai", "hentaicafe"): #All other sites start from 00
                     num -= 1
-                if self.site_name != "imhentai" and num < 10: #All other sites use 00 styling for single digit urls
+                if self.site_name != "imhentai" and num < 10: #All other sites use 00 styling for single digit numers in url
                     file_num = "".join(["0", str(num)]) #Appends a 0 to numbers less than 10
                 else:
                     file_num = str(num)
@@ -128,7 +128,8 @@ class ImageRipper():
             "wantedbabes": wantedbabes_parse,
             "cyberdrop": cyberdrop_parse,
             "sexy-egirls": sexyegirls_parse,
-            "pleasuregirl": pleasuregirl_parse
+            "pleasuregirl": pleasuregirl_parse,
+            "sexyaporno": sexyaporno_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -695,7 +696,6 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> list:
 def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     """Read the html for pleasuregirl.net"""
     #Parses the html of the site
-    time.sleep(1) #Wait so images can load
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
     dir_name = soup.find("h2", class_="title").text
@@ -707,8 +707,30 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="swiper-container swiper-container-initialized swiper-container-horizontal").find("img").get("src")
-    images = "".join(["https:", images])
+    images = "".join([PROTOCOL, images])
     num_files = len(image_list)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def sexyaporno_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    num_files = len(soup.find_all("div", class_="gallery_thumb"))
+    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+    for i in range(len(dir_name)):
+        if dir_name[i] == '-':
+            del dir_name[i::]
+            break
+    dir_name = " ".join(dir_name)
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
+    driver.get("".join(["https://www.sexyaporno.com", images]))
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="picture_thumb").find("img").get("src")
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -721,7 +743,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return pleasuregirl_parse(driver)
+        return sexyaporno_parse(driver)
     finally:
         driver.quit()
 
@@ -828,7 +850,7 @@ def url_check(given_url: str) -> bool:
             "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/",
             "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
             "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/",
-            "https://www.pleasuregirl.net/")
+            "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
