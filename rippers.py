@@ -52,7 +52,7 @@ class ImageRipper():
         #Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                             "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                            "pleasuregirl", "sexyaporno", "theomegaproject"):
+                            "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
@@ -130,7 +130,8 @@ class ImageRipper():
             "sexy-egirls": sexyegirls_parse,
             "pleasuregirl": pleasuregirl_parse,
             "sexyaporno": sexyaporno_parse,
-            "theomegaproject": theomegaproject_parse
+            "theomegaproject": theomegaproject_parse,
+            "babesmachine": babesmachine_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -236,6 +237,25 @@ def babesbang_parse(driver: webdriver.Firefox) -> list:
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("img", style="max-width:620px").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def babesmachine_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for babesmachine.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", id="gallery").find("h2").find("a").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find("div", id="gallery").find("table").find_all("tr")
+    num_files = len(image_list)
+    images = image_list[0].find("a").get("href")
+    images = "".join(["https://babesmachine.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", id="picture").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
@@ -763,7 +783,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return theomegaproject_parse(driver)
+        return babesmachine_parse(driver)
     finally:
         driver.quit()
 
@@ -870,7 +890,8 @@ def url_check(given_url: str) -> bool:
             "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/",
             "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
             "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/",
-            "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/")
+            "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/",
+            "https://www.babesmachine.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
