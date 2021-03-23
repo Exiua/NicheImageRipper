@@ -152,72 +152,152 @@ class ImageRipper():
                 return domain
         raise RipperError("Not a support site")
 
-def imhentai_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for imhentai.com"""
+def babeimpact_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for babeimpact.com"""
     #Parses the html of the site
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
-    #Gets the image URL to be turned into the general image URL
-    images = soup.find("img", class_="lazy preloader").get("data-src")
-    #Gets the number of pages (images) in the album
-    num_pages = soup.find("li", class_="pages")
-    num_pages = num_pages.string.split()[1]
-    dir_name = soup.find("h1").string
-    #Removes illegal characters from folder name
+    title = soup.find("h1", class_="blockheader pink center lowercase").text
+    sponsor = soup.find("div", class_="c").find_all("a")[1].text
+    sponsor = "".join(["(", sponsor.strip(), ")"])
+    dir_name = " ".join([sponsor, title])
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
-    return [images, num_pages, dir_name]
-
-def hotgirl_parse(driver: webdriver.Firefox, url: str) -> list:
-    """Read the html for hotgirl.asia"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    #Gets the number of pages
-    num_pages = soup.findAll("a", class_="page larger")
-    if len(num_pages) > 0:
-        num_pages = num_pages.pop().text
-    else:
-        num_pages = 1
-    #Gets the folder name
-    dir_name = soup.find("h3").text
-    #Removes illegal characters from folder name
-    dir_name = clean_dir_name(dir_name)
-    images_html = soup.find_all('img', itemprop="image")
-    del images_html[0]
-    if int(num_pages) > 1:
-        for index in range(2, int(num_pages) + 1):
-            page_url = "".join([url, str(index), '/'])
-            driver.get(page_url)
-            soup = BeautifulSoup(driver.page_source, PARSER)
-            images_list = soup.find_all("img", itemprop="image")
-            del images_list[0]
-            images_html.extend(images_list)
-    images = [image.get("src") for image in images_html]
-    num_files = len(images)
+    tags = soup.find_all("div", class_="list gallery")
+    tag_list = []
+    for tag in tags:
+        tag_list.extend(tag.find_all("div", class_="item"))
+    num_files = len(tag_list)
+    image_list = ["".join(["https://babeimpact.com", tag.find("a").get("href")]) for tag in tag_list]
+    images = []
+    for image in image_list:
+        driver.get(image)
+        html = driver.page_source
+        soup = BeautifulSoup(html, PARSER)
+        images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
     return [images, num_files, dir_name]
 
-def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> list:
-    """Read the html for hentai.cafe"""
+def babesandbitches_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for babesandbitches.net"""
     #Parses the html of the site
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
-    if "hc.fyi" in url:
-        dir_name = soup.find("h3").text
-        dir_name = clean_dir_name(dir_name)
-        images = soup.find("a", class_="x-btn x-btn-flat x-btn-rounded x-btn-large").get("href")
-        driver.get(images)
-        html = driver.page_source
-        soup = BeautifulSoup(html, PARSER)
-    else:
-        start = url.find('/read/') + 6
-        end = url.find('/en/', start)
-        dir_name = url[start:end].replace("-", " ")   
-        dir_name = string.capwords(dir_name)
-        dir_name = clean_dir_name(dir_name)
-    images = soup.find("img", class_="open").get("src")
-    num_files = soup.find("div", class_="text").string.split()[0]
+    dir_name = soup.find("h1", id="title").text.split()
+    for i, word in enumerate(dir_name):
+        if word == "picture":
+            del dir_name[i::]
+            break
+    dir_name = clean_dir_name(" ".join(dir_name))
+    num_files = soup.find_all("a", class_="gallery-thumb")
+    images = num_files[0].get("href")
+    images = "".join(["https://babesandbitches.net", images])
+    num_files = len(num_files)
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("img", id="gallery-picture").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def babesandgirls_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for babesandgirls.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", class_="title").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find("div", class_="block-post album-item").find_all("a", class_="item-post")
+    num_files = len(num_files)
+    images = soup.find("div", class_="block-post album-item").find("a", class_="item-post").get("href")
+    images = "".join(["https://www.babesandgirls.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="main-post item-post w-100").find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def babesbang_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for babesbang.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", class_="main-title").text
+    dir_name = clean_dir_name(dir_name)
+    tag_list = soup.find_all("div", class_="gal-block")
+    image_list = []
+    for tag in tag_list:
+        image_list.extend(tag.find_all("a"))
+    num_files = len(image_list)
+    images = "".join(["https://www.babesbang.com", image_list[0].get("href")])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("img", style="max-width:620px").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def babeuniversum_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for babeuniversum.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", class_="title").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find("div", class_="three-column").find_all("div", class_="thumbnail")
+    images = num_files[0].find("a").get("href")
+    images = "".join(["https://www.babeuniversum.com", images])
+    num_files = len(num_files)
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find_all("div", class_="one-column")[1].find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def bustybloom_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for bustybloom.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    num_files = len(soup.find_all("div", class_="gallery_thumb"))
+    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+    for i in range(len(dir_name)):
+        if dir_name[i] == '-':
+            del dir_name[i::]
+            break
+    dir_name = " ".join(dir_name)
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
+    driver.get("".join(["https://www.bustybloom.com", images]))
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="picture_thumb").find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def chickteases_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for chickteases.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", id="galleryModelName").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find_all("div", class_="minithumbs")
+    images = num_files[0].find("a").get("href")
+    images = "".join(["https://www.chickteases.com", images])
+    num_files = len(num_files)
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", id="imageView").find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
     return [images, num_files, dir_name]
 
 def cupe_parse(driver: webdriver.Firefox) -> list:
@@ -276,6 +356,41 @@ def cupe_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def cyberdrop_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for cyberdrop.me"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", id="title").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find_all("div", class_="image-container column")
+    images = [image.find("a", class_="image").get("href") for image in image_list]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for exgirlfriendmarket.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    num_files = len(soup.find_all("div", class_="gallery_thumb"))
+    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+    for i in range(len(dir_name)):
+        if dir_name[i] == '-':
+            del dir_name[i::]
+            break
+    dir_name = " ".join(dir_name)
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
+    driver.get("".join(["https://www.exgirlfriendmarket.com", images]))
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="gallery_thumb").find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def girlsreleased_parse(driver: webdriver.Firefox) -> list:
     """Read the html for girlsreleased.com"""
     #Parses the html of the site
@@ -305,27 +420,134 @@ def girlsreleased_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
-def bustybloom_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for bustybloom.com"""
+def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> list:
+    """Read the html for hentai.cafe"""
     #Parses the html of the site
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
-    num_files = len(soup.find_all("div", class_="gallery_thumb"))
-    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
-    for i in range(len(dir_name)):
-        if dir_name[i] == '-':
-            del dir_name[i::]
-            break
-    dir_name = " ".join(dir_name)
-    dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
-    driver.get("".join(["https://www.bustybloom.com", images]))
+    if "hc.fyi" in url:
+        dir_name = soup.find("h3").text
+        dir_name = clean_dir_name(dir_name)
+        images = soup.find("a", class_="x-btn x-btn-flat x-btn-rounded x-btn-large").get("href")
+        driver.get(images)
+        html = driver.page_source
+        soup = BeautifulSoup(html, PARSER)
+    else:
+        start = url.find('/read/') + 6
+        end = url.find('/en/', start)
+        dir_name = url[start:end].replace("-", " ")   
+        dir_name = string.capwords(dir_name)
+        dir_name = clean_dir_name(dir_name)
+    images = soup.find("img", class_="open").get("src")
+    num_files = soup.find("div", class_="text").string.split()[0]
+    return [images, num_files, dir_name]
+
+def hotgirl_parse(driver: webdriver.Firefox, url: str) -> list:
+    """Read the html for hotgirl.asia"""
+    #Parses the html of the site
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
-    images = soup.find("div", class_="picture_thumb").find("img").get("src")
+    #Gets the number of pages
+    num_pages = soup.findAll("a", class_="page larger")
+    if len(num_pages) > 0:
+        num_pages = num_pages.pop().text
+    else:
+        num_pages = 1
+    #Gets the folder name
+    dir_name = soup.find("h3").text
+    #Removes illegal characters from folder name
+    dir_name = clean_dir_name(dir_name)
+    images_html = soup.find_all('img', itemprop="image")
+    del images_html[0]
+    if int(num_pages) > 1:
+        for index in range(2, int(num_pages) + 1):
+            page_url = "".join([url, str(index), '/'])
+            driver.get(page_url)
+            soup = BeautifulSoup(driver.page_source, PARSER)
+            images_list = soup.find_all("img", itemprop="image")
+            del images_list[0]
+            images_html.extend(images_list)
+    images = [image.get("src") for image in images_html]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def hottystop_parse(driver: webdriver.Firefox, url: str) -> list:
+    """Read the html for hottystop.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    try:
+        dir_name = soup.find("div", class_="Box_Large_Content").find("h1").text
+    except AttributeError:
+        dir_name = soup.find("div", class_="Box_Large_Content").find("u").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find("table").find_all("a")
+    images = ["".join([url, image.get("href")]) for image in image_list]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def hqbabes_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for hqbabes.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    model = soup.find("p", class_="desc").find("a").text
+    model = "".join(["[", model, "]"])
+    try:
+        shoot = soup.find("p", class_="desc").find("span").text
+    except AttributeError:
+        shoot = "-"
+    producer = soup.find("p", class_="details").find_all("a")[1].text
+    producer = "".join(["(", producer, ")"])
+    dir_name = " ".join([producer, shoot, model])
+    dir_name = clean_dir_name(dir_name)
+    ext = [".png", ".jpg", ".jpeg"]
+    images = []
+    image_list = soup.find_all("li", class_="item i p")
+    for image in image_list:
+        image_url = image.find("a").get("href")
+        if any(x in image_url for x in ext):
+            images.append("".join([PROTOCOL, image_url]))
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def hundredbucksbabes_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for 100bucksbabes.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", class_="fl").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find("div", class_="galleryblock").find_all("a")
+    num_files = len(num_files)
+    images = soup.find("div", class_="galleryblock").find("a").get("href")
+    images = "".join(["https://www.100bucksbabes.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="imageblock").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
+
+def imhentai_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for imhentai.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    #Gets the image URL to be turned into the general image URL
+    images = soup.find("img", class_="lazy preloader").get("data-src")
+    #Gets the number of pages (images) in the album
+    num_pages = soup.find("li", class_="pages")
+    num_pages = num_pages.string.split()[1]
+    dir_name = soup.find("h1").string
+    #Removes illegal characters from folder name
+    dir_name = clean_dir_name(dir_name)
+    driver.quit()
+    return [images, num_pages, dir_name]
 
 def morazzia_parse(driver: webdriver.Firefox) -> list:
     """Read the html for morazzia.com"""
@@ -367,179 +589,6 @@ def novojoy_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
-def hqbabes_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for hqbabes.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    model = soup.find("p", class_="desc").find("a").text
-    model = "".join(["[", model, "]"])
-    try:
-        shoot = soup.find("p", class_="desc").find("span").text
-    except AttributeError:
-        shoot = "-"
-    producer = soup.find("p", class_="details").find_all("a")[1].text
-    producer = "".join(["(", producer, ")"])
-    dir_name = " ".join([producer, shoot, model])
-    dir_name = clean_dir_name(dir_name)
-    ext = [".png", ".jpg", ".jpeg"]
-    images = []
-    image_list = soup.find_all("li", class_="item i p")
-    for image in image_list:
-        image_url = image.find("a").get("href")
-        if any(x in image_url for x in ext):
-            images.append("".join([PROTOCOL, image_url]))
-    num_files = len(images)
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def silkengirl_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for silkengirl.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("h1", class_="title").text
-    dir_name = clean_dir_name(dir_name)
-    num_files = soup.find_all("div", class_="thumb_box")
-    num_files = len(num_files)
-    images = soup.find("div", class_="thumb_box").find("a").get("href")
-    images = "".join(["https://silkengirl.com", images])
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("div", class_="wrap").find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def babesandgirls_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for babesandgirls.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("h1", class_="title").text
-    dir_name = clean_dir_name(dir_name)
-    num_files = soup.find("div", class_="block-post album-item").find_all("a", class_="item-post")
-    num_files = len(num_files)
-    images = soup.find("div", class_="block-post album-item").find("a", class_="item-post").get("href")
-    images = "".join(["https://www.babesandgirls.com", images])
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("div", class_="main-post item-post w-100").find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def babeimpact_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for babeimpact.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    title = soup.find("h1", class_="blockheader pink center lowercase").text
-    sponsor = soup.find("div", class_="c").find_all("a")[1].text
-    sponsor = "".join(["(", sponsor.strip(), ")"])
-    dir_name = " ".join([sponsor, title])
-    dir_name = clean_dir_name(dir_name)
-    tags = soup.find_all("div", class_="list gallery")
-    tag_list = []
-    for tag in tags:
-        tag_list.extend(tag.find_all("div", class_="item"))
-    num_files = len(tag_list)
-    image_list = ["".join(["https://babeimpact.com", tag.find("a").get("href")]) for tag in tag_list]
-    images = []
-    for image in image_list:
-        driver.get(image)
-        html = driver.page_source
-        soup = BeautifulSoup(html, PARSER)
-        images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def hundredbucksbabes_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for 100bucksbabes.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("div", class_="fl").find("h1").text
-    dir_name = clean_dir_name(dir_name)
-    num_files = soup.find("div", class_="galleryblock").find_all("a")
-    num_files = len(num_files)
-    images = soup.find("div", class_="galleryblock").find("a").get("href")
-    images = "".join(["https://www.100bucksbabes.com", images])
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("div", class_="imageblock").find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def sexykittenporn_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for sexykittenporn.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("h1", class_="blockheader").text
-    dir_name = clean_dir_name(dir_name)
-    tag_list = soup.find_all("div", class_="list gallery col3")
-    image_list = []
-    for tag in tag_list:
-        image_list.extend(tag.find_all("div", class_="item"))
-    num_files = len(image_list)
-    image_link = ["".join(["https://www.sexykittenporn.com", image.find("a").get("href")]) for image in image_list]
-    images = []
-    for link in image_link:
-        driver.get(link)
-        html = driver.page_source
-        soup = BeautifulSoup(html, PARSER)
-        images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def babesbang_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for babesbang.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("div", class_="main-title").text
-    dir_name = clean_dir_name(dir_name)
-    tag_list = soup.find_all("div", class_="gal-block")
-    image_list = []
-    for tag in tag_list:
-        image_list.extend(tag.find_all("a"))
-    num_files = len(image_list)
-    images = "".join(["https://www.babesbang.com", image_list[0].get("href")])
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("img", style="max-width:620px").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for exgirlfriendmarket.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    num_files = len(soup.find_all("div", class_="gallery_thumb"))
-    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
-    for i in range(len(dir_name)):
-        if dir_name[i] == '-':
-            del dir_name[i::]
-            break
-    dir_name = " ".join(dir_name)
-    dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
-    driver.get("".join(["https://www.exgirlfriendmarket.com", images]))
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("div", class_="gallery_thumb").find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
 def novoporn_parse(driver: webdriver.Firefox) -> list:
     """Read the html for novoporn.com"""
     #Parses the html of the site
@@ -559,138 +608,6 @@ def novoporn_parse(driver: webdriver.Firefox) -> list:
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", id="picture-holder").find("img").get("src")
     images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def hottystop_parse(driver: webdriver.Firefox, url: str) -> list:
-    """Read the html for hottystop.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    try:
-        dir_name = soup.find("div", class_="Box_Large_Content").find("h1").text
-    except AttributeError:
-        dir_name = soup.find("div", class_="Box_Large_Content").find("u").text
-    dir_name = clean_dir_name(dir_name)
-    image_list = soup.find("table").find_all("a")
-    images = ["".join([url, image.get("href")]) for image in image_list]
-    num_files = len(images)
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def babeuniversum_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for babeuniversum.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("div", class_="title").find("h1").text
-    dir_name = clean_dir_name(dir_name)
-    num_files = soup.find("div", class_="three-column").find_all("div", class_="thumbnail")
-    images = num_files[0].find("a").get("href")
-    images = "".join(["https://www.babeuniversum.com", images])
-    num_files = len(num_files)
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find_all("div", class_="one-column")[1].find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def babesandbitches_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for babesandbitches.net"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("h1", id="title").text.split()
-    for i, word in enumerate(dir_name):
-        if word == "picture":
-            del dir_name[i::]
-            break
-    dir_name = clean_dir_name(" ".join(dir_name))
-    num_files = soup.find_all("a", class_="gallery-thumb")
-    images = num_files[0].get("href")
-    images = "".join(["https://babesandbitches.net", images])
-    num_files = len(num_files)
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("img", id="gallery-picture").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def chickteases_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for chickteases.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("h1", id="galleryModelName").text
-    dir_name = clean_dir_name(dir_name)
-    num_files = soup.find_all("div", class_="minithumbs")
-    images = num_files[0].find("a").get("href")
-    images = "".join(["https://www.chickteases.com", images])
-    num_files = len(num_files)
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("div", id="imageView").find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def wantedbabes_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for wantedbabes.com"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("div", id="main-content").find("h1").text
-    dir_name = clean_dir_name(dir_name)
-    image_list = soup.find_all("div", class_="gallery")
-    num_files = []
-    for image in image_list:
-        num_files.extend(image.find_all("a"))
-    images = num_files[0].get("href")
-    images = "".join(["https://www.wantedbabes.com", images])
-    num_files = len(num_files)
-    driver.get(images)
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    images = soup.find("img", class_="img-responsive").get("src")
-    images = "".join([PROTOCOL, images])
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def cyberdrop_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for cyberdrop.me"""
-    #Parses the html of the site
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("h1", id="title").text
-    dir_name = clean_dir_name(dir_name)
-    image_list = soup.find_all("div", class_="image-container column")
-    images = [image.find("a", class_="image").get("href") for image in image_list]
-    num_files = len(images)
-    driver.quit()
-    return [images, num_files, dir_name]
-
-def sexyegirls_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for sexy-egirls.com"""
-    #Parses the html of the site
-    time.sleep(1) #Wait so images can load
-    html = driver.page_source
-    soup = BeautifulSoup(html, PARSER)
-    dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
-    split = 0
-    for i, word in enumerate(dir_name):
-        if "Pictures" in word or "Video" in word:
-            split = i
-            break
-    dir_name = dir_name[:split-1]
-    dir_name = clean_dir_name(" ".join(dir_name))
-    image_list = soup.find_all("div", class_="album-item")
-    images = [image.find("a").get("href") for image in image_list]
-    num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -735,6 +652,67 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def sexyegirls_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for sexy-egirls.com"""
+    #Parses the html of the site
+    time.sleep(1) #Wait so images can load
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
+    split = 0
+    for i, word in enumerate(dir_name):
+        if "Pictures" in word or "Video" in word:
+            split = i
+            break
+    dir_name = dir_name[:split-1]
+    dir_name = clean_dir_name(" ".join(dir_name))
+    image_list = soup.find_all("div", class_="album-item")
+    images = [image.find("a").get("href") for image in image_list]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def sexykittenporn_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for sexykittenporn.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", class_="blockheader").text
+    dir_name = clean_dir_name(dir_name)
+    tag_list = soup.find_all("div", class_="list gallery col3")
+    image_list = []
+    for tag in tag_list:
+        image_list.extend(tag.find_all("div", class_="item"))
+    num_files = len(image_list)
+    image_link = ["".join(["https://www.sexykittenporn.com", image.find("a").get("href")]) for image in image_list]
+    images = []
+    for link in image_link:
+        driver.get(link)
+        html = driver.page_source
+        soup = BeautifulSoup(html, PARSER)
+        images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def silkengirl_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for silkengirl.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", class_="title").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = soup.find_all("div", class_="thumb_box")
+    num_files = len(num_files)
+    images = soup.find("div", class_="thumb_box").find("a").get("href")
+    images = "".join(["https://silkengirl.com", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="wrap").find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def theomegaproject_parse(driver: webdriver.Firefox) -> list:
     """Read the html for theomegaproject.org"""
     #Parses the html of the site
@@ -750,6 +728,28 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> list:
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("img", id="big_picture").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def wantedbabes_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for wantedbabes.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("div", id="main-content").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find_all("div", class_="gallery")
+    num_files = []
+    for image in image_list:
+        num_files.extend(image.find_all("a"))
+    images = num_files[0].get("href")
+    images = "".join(["https://www.wantedbabes.com", images])
+    num_files = len(num_files)
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("img", class_="img-responsive").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
