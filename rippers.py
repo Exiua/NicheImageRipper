@@ -52,7 +52,7 @@ class ImageRipper():
         #Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                             "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                            "pleasuregirl", "sexyaporno"):
+                            "pleasuregirl", "sexyaporno", "theomegaproject"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
@@ -129,7 +129,8 @@ class ImageRipper():
             "cyberdrop": cyberdrop_parse,
             "sexy-egirls": sexyegirls_parse,
             "pleasuregirl": pleasuregirl_parse,
-            "sexyaporno": sexyaporno_parse
+            "sexyaporno": sexyaporno_parse,
+            "theomegaproject": theomegaproject_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -713,7 +714,7 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     return [images, num_files, dir_name]
 
 def sexyaporno_parse(driver: webdriver.Firefox) -> list:
-    """Read the html for"""
+    """Read the html for sexyaporno.com"""
     #Parses the html of the site
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
@@ -734,6 +735,25 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def theomegaproject_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for theomegaproject.org"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", class_="omega").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find("div", class_="postholder").find_all("div", class_="picture", recursive=False)
+    num_files = len(image_list)
+    images = image_list[0].find("a").get("href")
+    images = "".join(["https://theomegaproject.org", images])
+    driver.get(images)
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("img", id="big_picture").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -743,7 +763,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return sexyaporno_parse(driver)
+        return theomegaproject_parse(driver)
     finally:
         driver.quit()
 
@@ -850,7 +870,7 @@ def url_check(given_url: str) -> bool:
             "https://www.exgirlfriendmarket.com/", "https://www.novoporn.com/", "https://www.hottystop.com/",
             "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
             "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/",
-            "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/")
+            "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
