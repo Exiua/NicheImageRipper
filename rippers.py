@@ -52,7 +52,7 @@ class ImageRipper():
         #Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                             "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                            "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn"):
+                            "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url
                 num = index
@@ -132,7 +132,8 @@ class ImageRipper():
             "sexyaporno": sexyaporno_parse,
             "theomegaproject": theomegaproject_parse,
             "babesmachine": babesmachine_parse,
-            "babesinporn": babesinporn_parse
+            "babesinporn": babesinporn_parse,
+            "livejasminbabes": livejasminbabes_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -248,6 +249,7 @@ def babesinporn_parse(driver: webdriver.Firefox) -> list:
     html = driver.page_source
     soup = BeautifulSoup(html, PARSER)
     dir_name = soup.find("h1", class_="blockheader pink center lowercase").text
+    dir_name = clean_dir_name(dir_name)
     image_list = soup.find_all("div", class_="list gallery")
     images = []
     for image in image_list:
@@ -590,6 +592,23 @@ def imhentai_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_pages, dir_name]
 
+def livejasminbabes_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for livejasminbabes.net"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    num_files = len(soup.find_all("div", class_="gallery_thumb"))
+    dir_name = soup.find("div", id="gallery_header").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
+    driver.get("".join(["https://www.livejasminbabes.net", images]))
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    images = soup.find("div", class_="picture_thumb").find("img").get("src")
+    images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def morazzia_parse(driver: webdriver.Firefox) -> list:
     """Read the html for morazzia.com"""
     #Parses the html of the site
@@ -804,7 +823,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babesinporn_parse(driver)
+        return livejasminbabes_parse(driver)
     finally:
         driver.quit()
 
@@ -912,7 +931,7 @@ def url_check(given_url: str) -> bool:
             "https://www.babeuniversum.com/", "https://www.babesandbitches.net/", "https://www.chickteases.com/",
             "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/",
             "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/",
-            "https://www.babesmachine.com/", "https://www.babesinporn.com/")
+            "https://www.babesmachine.com/", "https://www.babesinporn.com/", "https://www.livejasminbabes.net/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
