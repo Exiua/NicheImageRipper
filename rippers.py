@@ -86,7 +86,7 @@ class ImageRipper():
                     pass
         #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
-                                "simply-cosplay"):
+                                "simply-cosplay", "simply-porn"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -136,7 +136,8 @@ class ImageRipper():
             "babesinporn": babesinporn_parse,
             "livejasminbabes": livejasminbabes_parse,
             "grabpussy": grabpussy_parse,
-            "simply-cosplay": simplycosplay_parse
+            "simply-cosplay": simplycosplay_parse,
+            "simply-porn": simplyporn_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -805,7 +806,7 @@ def simplycosplay_parse(driver: webdriver.Firefox) -> list:
     dir_name = clean_dir_name(dir_name)
     image_list = soup.find("div", class_="swiper-wrapper")
     if image_list == None:
-        images = soup.find("div", class_="image-wrapper").find("img").get("data-src")
+        images = [soup.find("div", class_="image-wrapper").find("img").get("data-src")]
         num_files = 1
     else:
         image_list = image_list.find_all("img") 
@@ -816,6 +817,28 @@ def simplycosplay_parse(driver: webdriver.Firefox) -> list:
             image.pop(1)
             image[0] = image[0][:-5]
             images.append("".join(image))
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def simplyporn_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for simply-porn.com"""
+    #Parses the html of the site
+    #time.sleep(5) #Wait so images can load
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = soup.find("h1", class_="mt-3 mb-3").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find("div", class_="row full-gutters").find_all("div", class_="col-6 col-lg-3")
+    if len(image_list) == 0:
+        images = [soup.find("img", class_="img-fluid ls-is-cached lazyloaded").get("src")]
+        num_files = 1
+    else:
+        images = []
+        for image in image_list:
+            image = image.find("img").get("data-src").split("_")
+            image[0] = image[0][:-5]
+            images.append("".join(image))
+        num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -869,7 +892,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return simplycosplay_parse(driver)
+        return simplyporn_parse(driver)
     finally:
         driver.quit()
 
@@ -978,7 +1001,7 @@ def url_check(given_url: str) -> bool:
             "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/",
             "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/",
             "https://www.babesmachine.com/", "https://www.babesinporn.com/", "https://www.livejasminbabes.net/",
-            "https://www.grabpussy.com/", "https://www.simply-cosplay.com/")
+            "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
