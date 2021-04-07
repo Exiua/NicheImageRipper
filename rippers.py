@@ -86,7 +86,7 @@ class ImageRipper():
                     pass
         #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
-                                "simply-cosplay", "simply-porn"):
+                                "simply-cosplay", "simply-porn", "pmatehunter"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -137,7 +137,8 @@ class ImageRipper():
             "livejasminbabes": livejasminbabes_parse,
             "grabpussy": grabpussy_parse,
             "simply-cosplay": simplycosplay_parse,
-            "simply-porn": simplyporn_parse
+            "simply-porn": simplyporn_parse,
+            "pmatehunter": pmatehunter_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -713,6 +714,19 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def pmatehunter_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for pmatehunter.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
+    dir_name = image_list[0].find("img").get("alt")
+    dir_name = clean_dir_name(dir_name)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     """Read the html for sexyaporno.com"""
     #Parses the html of the site
@@ -892,7 +906,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return simplyporn_parse(driver)
+        return pmatehunter_parse(driver)
     finally:
         driver.quit()
 
@@ -1001,7 +1015,8 @@ def url_check(given_url: str) -> bool:
             "https://www.wantedbabes.com/", "https://cyberdrop.me/", "https://www.sexy-egirls.com/",
             "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/",
             "https://www.babesmachine.com/", "https://www.babesinporn.com/", "https://www.livejasminbabes.net/",
-            "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/")
+            "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/",
+            "https://pmatehunter.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
