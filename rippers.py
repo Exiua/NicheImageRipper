@@ -86,7 +86,8 @@ class ImageRipper():
                     pass
         #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
-                                "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub"):
+                                "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
+                                "ftvhunter", "hegrehunter"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -141,7 +142,11 @@ class ImageRipper():
             "pmatehunter": pmatehunter_parse,
             "elitebabes": elitebabes_parse,
             "xarthunter": xarthunter_parse,
-            "joymiihub": joymiihub_parse
+            "joymiihub": joymiihub_parse,
+            "metarthunter": metarthunter_parse,
+            "femjoyhunter": femjoyhunter_parse,
+            "ftvhunter": ftvhunter_parse,
+            "hegrehunter": hegrehunter_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -455,6 +460,32 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def femjoyhunter_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for femjoyhunter.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
+    dir_name = image_list[0].find("img").get("alt")
+    dir_name = clean_dir_name(dir_name)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def ftvhunter_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for ftvhunter.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
+    dir_name = image_list[0].find("img").get("alt")
+    dir_name = clean_dir_name(dir_name)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def girlsreleased_parse(driver: webdriver.Firefox) -> list:
     """Read the html for girlsreleased.com"""
     #Parses the html of the site
@@ -500,6 +531,19 @@ def grabpussy_parse(driver: webdriver.Firefox) -> list:
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="pic").find("img").get("src")
     images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def hegrehunter_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for hegrehunter.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
+    dir_name = image_list[0].find("img").get("alt")
+    dir_name = clean_dir_name(dir_name)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -659,6 +703,19 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> list:
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="picture_thumb").find("img").get("src")
     images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def metarthunter_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for hetarthunter.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
+    dir_name = image_list[0].find("img").get("alt")
+    dir_name = clean_dir_name(dir_name)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -948,7 +1005,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return joymiihub_parse(driver)
+        return hegrehunter_parse(driver)
     finally:
         driver.quit()
 
@@ -1059,7 +1116,8 @@ def url_check(given_url: str) -> bool:
             "https://www.babesmachine.com/", "https://www.babesinporn.com/", "https://www.livejasminbabes.net/",
             "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/",
             "https://pmatehunter.com/", "https://www.elitebabes.com/", "https://www.xarthunter.com/",
-            "https://www.joymiihub.com/")
+            "https://www.joymiihub.com/", "https://www.metarthunter.com/", "https://www.femjoyhunter.com/",
+            "https://www.ftvhunter.com/", "https://www.hegrehunter.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
