@@ -86,7 +86,7 @@ class ImageRipper():
                     pass
         #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
-                                "simply-cosplay", "simply-porn", "pmatehunter"):
+                                "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -138,7 +138,8 @@ class ImageRipper():
             "grabpussy": grabpussy_parse,
             "simply-cosplay": simplycosplay_parse,
             "simply-porn": simplyporn_parse,
-            "pmatehunter": pmatehunter_parse
+            "pmatehunter": pmatehunter_parse,
+            "elitebabes": elitebabes_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -414,6 +415,19 @@ def cyberdrop_parse(driver: webdriver.Firefox) -> list:
     image_list = soup.find_all("div", class_="image-container column")
     images = [image.find("a", class_="image").get("href") for image in image_list]
     num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def elitebabes_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for elitebabes.com"""
+    #Parses the html of the site
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
+    dir_name = image_list[0].find("img").get("alt")
+    dir_name = clean_dir_name(dir_name)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -906,7 +920,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return pmatehunter_parse(driver)
+        return elitebabes_parse(driver)
     finally:
         driver.quit()
 
@@ -1016,7 +1030,7 @@ def url_check(given_url: str) -> bool:
             "https://www.pleasuregirl.net/", "https://www.sexyaporno.com/", "https://www.theomegaproject.org/",
             "https://www.babesmachine.com/", "https://www.babesinporn.com/", "https://www.livejasminbabes.net/",
             "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/",
-            "https://pmatehunter.com/")
+            "https://pmatehunter.com/", "https://www.elitebabes.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
