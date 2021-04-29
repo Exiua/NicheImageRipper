@@ -87,7 +87,7 @@ class ImageRipper():
         #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter"):
+                                "ftvhunter", "hegrehunter", "hanime"):
             for index in range(int(self.folder_info[1])):
                 try:
                     download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -146,7 +146,8 @@ class ImageRipper():
             "metarthunter": metarthunter_parse,
             "femjoyhunter": femjoyhunter_parse,
             "ftvhunter": ftvhunter_parse,
-            "hegrehunter": hegrehunter_parse
+            "hegrehunter": hegrehunter_parse,
+            "hanime": hanime_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -159,13 +160,16 @@ class ImageRipper():
     def site_check(self) -> str:
         """Check which site the url is from"""
         if url_check(self.given_url):
-            if "https://hentai.cafe/" in self.given_url:
+            if "https://hentai.cafe/" in self.given_url: #Special case
+                requests_header['referer'] = "https://hentai.cafe/"
                 return "hentaicafe"
-            else:
-                domain = urlparse(self.given_url).netloc
-                requests_header['referer'] = "".join(["https://", domain, "/"])
-                domain = domain.split(".")[-2]
-                return domain
+            
+            domain = urlparse(self.given_url).netloc
+            requests_header['referer'] = "".join(["https://", domain, "/"])
+            domain = domain.split(".")[-2]
+            if "https://members.hanime.tv/" in self.given_url: #Hosts images on a different domain
+                requests_header['referer'] = "https://cdn.discordapp.com/"
+            return domain
         raise RipperError("Not a support site")
 
 def babeimpact_parse(driver: webdriver.Firefox) -> list:
@@ -531,6 +535,19 @@ def grabpussy_parse(driver: webdriver.Firefox) -> list:
     soup = BeautifulSoup(html, PARSER)
     images = soup.find("div", class_="pic").find("img").get("src")
     images = "".join([PROTOCOL, images])
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def hanime_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for hanime.tv"""
+    #Parses the html of the site
+    time.sleep(1) #Wait so images can load
+    html = driver.page_source
+    soup = BeautifulSoup(html, PARSER)
+    dir_name = "Hanime Images"
+    image_list = soup.find("div", class_="cuc_container images__content flex row wrap justify-center relative").find_all("a", recursive=False)
+    images = [image.get("href") for image in image_list]
+    num_files = len(images)
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -1005,7 +1022,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return hegrehunter_parse(driver)
+        return hanime_parse(driver)
     finally:
         driver.quit()
 
@@ -1117,7 +1134,7 @@ def url_check(given_url: str) -> bool:
             "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/",
             "https://pmatehunter.com/", "https://www.elitebabes.com/", "https://www.xarthunter.com/",
             "https://www.joymiihub.com/", "https://www.metarthunter.com/", "https://www.femjoyhunter.com/",
-            "https://www.ftvhunter.com/", "https://www.hegrehunter.com/")
+            "https://www.ftvhunter.com/", "https://www.hegrehunter.com/", "https://members.hanime.tv/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
