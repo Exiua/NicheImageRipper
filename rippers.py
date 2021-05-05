@@ -53,7 +53,7 @@ class ImageRipper():
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                             "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                             "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                            "babesaround"):
+                            "babesaround", "8boobs"):
             trimmed_url = trim_url(self.folder_info[0]) #Gets the general url of all images in this album
             for index in range(1, int(self.folder_info[1]) + 1): #Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
                 num = index
@@ -149,7 +149,8 @@ class ImageRipper():
             "ftvhunter": ftvhunter_parse,
             "hegrehunter": hegrehunter_parse,
             "hanime": hanime_parse,
-            "babesaround": babesaround_parse
+            "babesaround": babesaround_parse,
+            "8boobs": eightboobs_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -425,6 +426,22 @@ def cyberdrop_parse(driver: webdriver.Firefox) -> list:
     image_list = soup.find_all("div", class_="image-container column")
     images = [image.find("a", class_="image").get("href") for image in image_list]
     num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
+def eightboobs_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for 8boobs.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="title").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
+    num_files = len(image_list)
+    images = "".join(["https://8boobs.com", image_list[0].get("href")])
+    driver.get(images)
+    soup = soupify(driver)
+    images = soup.find("div", class_="slider").find("img").get("src")
+    images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
 
@@ -978,7 +995,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babesaround_parse(driver)
+        return eightboobs_parse(driver)
     finally:
         driver.quit()
 
@@ -1096,7 +1113,7 @@ def url_check(given_url: str) -> bool:
             "https://pmatehunter.com/", "https://www.elitebabes.com/", "https://www.xarthunter.com/",
             "https://www.joymiihub.com/", "https://www.metarthunter.com/", "https://www.femjoyhunter.com/",
             "https://www.ftvhunter.com/", "https://www.hegrehunter.com/", "https://hanime.tv/",
-            "https://members.hanime.tv/", "https://www.babesaround.com/")
+            "https://members.hanime.tv/", "https://www.babesaround.com/", "https://www.8boobs.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
