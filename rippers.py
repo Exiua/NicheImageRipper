@@ -481,17 +481,18 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
     #Parses the html of the site
     soup = soupify(driver)
     num_files = len(soup.find_all("div", class_="gallery_thumb"))
-    dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+    dir_name = soup.find("div", class_="gallery").find("img").get("alt").split()
     for i in range(len(dir_name)):
         if dir_name[i] == '-':
             del dir_name[i::]
             break
     dir_name = " ".join(dir_name)
     dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
-    driver.get("".join(["https://www.exgirlfriendmarket.com", images]))
+    images = soup.find("div", class_="gallery").find("a", recursive=False).get("href")
+    images = "".join(["https://www.exgirlfriendmarket.com", images])
+    driver.get(images)
     soup = soupify(driver)
-    images = soup.find("div", class_="gallery_thumb").find("img").get("src")
+    images = soup.find("div", class_="pic-wrap").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
     return [images, num_files, dir_name]
@@ -1031,7 +1032,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return girlsofdesire_parse(driver)
+        return exgirlfriendmarket_parse(driver)
     finally:
         driver.quit()
 
