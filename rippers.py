@@ -163,11 +163,10 @@ class ImageRipper():
             if "https://hentai.cafe/" in self.given_url: #Special case
                 requests_header['referer'] = "https://hentai.cafe/"
                 return "hentaicafe"
-            
             domain = urlparse(self.given_url).netloc
             requests_header['referer'] = "".join(["https://", domain, "/"])
             domain = domain.split(".")[-2]
-            if "https://members.hanime.tv/" in self.given_url: #Hosts images on a different domain
+            if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url: #Hosts images on a different domain
                 requests_header['referer'] = "https://cdn.discordapp.com/"
             return domain
         raise RipperError("Not a support site")
@@ -1134,7 +1133,8 @@ def url_check(given_url: str) -> bool:
             "https://www.grabpussy.com/", "https://www.simply-cosplay.com/", "https://www.simply-porn.com/",
             "https://pmatehunter.com/", "https://www.elitebabes.com/", "https://www.xarthunter.com/",
             "https://www.joymiihub.com/", "https://www.metarthunter.com/", "https://www.femjoyhunter.com/",
-            "https://www.ftvhunter.com/", "https://www.hegrehunter.com/", "https://members.hanime.tv/")
+            "https://www.ftvhunter.com/", "https://www.hegrehunter.com/", "https://hanime.tv/",
+            "https://members.hanime.tv/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
