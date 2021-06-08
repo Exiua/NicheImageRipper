@@ -30,10 +30,11 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str):
+    def __init__(self, given_url: str, hash_filenames: bool = True):
         self.folder_info = []
         self.given_url = given_url
         self.save_path = read_config('DEFAULT', 'SavePath')
+        self.hash_filenames = hash_filenames
         self.site_name = self.site_check()
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
@@ -65,22 +66,22 @@ class ImageRipper():
                     file_num = str(num)
                 try:
                     #Most images will be .jpg
-                    download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
+                    self.download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
                 except PIL.UnidentifiedImageError:
                     try:
                         os.remove("".join([full_path, "/pic1.jpg"]))
                         #Check if .gif
-                        download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".gif")
+                        self.download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".gif")
                     except PIL.UnidentifiedImageError:
                         try:
                             os.remove("".join([full_path, "/pic1.gif"]))
                             #Check if .png
-                            download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".png")
+                            self.download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".png")
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove("".join([full_path, "/pic1.png"]))
                                 #If all fails, download thumbnail
-                                download_from_url(session, trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
+                                self.download_from_url(session, trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
                             except PIL.UnidentifiedImageError:
                                 os.remove("".join([full_path, "/pic1.jpg"])) #No image exists, probably
                 except OSError:
@@ -91,13 +92,84 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime"):
             for index in range(int(self.folder_info[1])):
                 try:
-                    download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
+                    self.download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
                 except PIL.UnidentifiedImageError:
                     pass #No image exists, probably
                 except requests.exceptions.ChunkedEncodingError:
                     time.sleep(10)
-                    download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
+                    self.download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
         print("Download Complete")
+
+    def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, num_files: int, ext: str):
+        """"Download image from image url"""
+        #Completes the specific image URL from the general URL
+        rip_url = "".join([url_name, str(file_name), ext])
+        num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
+        print(" ".join([rip_url, "   ", num_progress]))
+        image_url = "".join([full_path, "/pic1", ext])
+        with open(image_url, "wb") as handle:
+            response = session.get(rip_url, headers=requests_header, stream=True)
+            if not response.ok:
+                print(response)
+            if ext in (".jpg", ".png"):
+                for block in response.iter_content(1024):
+                    if not block:
+                        break
+                    handle.write(block)
+            elif ext == ".gif":
+                handle.write(response.content)
+        if self.hash_filenames:
+            #md5 hash is used as image name to avoid duplicate names
+            md5hash = hashlib.md5(Image.open(image_url).tobytes())
+            hash5 = md5hash.hexdigest()
+            image_hash_name = "".join([full_path, "/", hash5, ext])
+            if os.path.exists(image_hash_name): #If duplicate exists, remove the duplicate
+                os.remove(image_url)
+            else:
+                #Otherwise, rename the image with the md5 hash
+                os.rename(image_url, image_hash_name)
+        time.sleep(0.05)
+
+    def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int, num_files: int):
+        """Download images from url supplied from a list of image urls"""
+        rip_url = given_url.strip('\n')
+        num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
+        print(" ".join([rip_url, "   ", num_progress]))
+        file_name = os.path.basename(urlparse(rip_url).path)
+        image_name = "".join([full_path, '/', file_name])
+        ext = image_name.split(".")[-1]
+        with open(image_name, "wb") as handle:
+            try: 
+                response = session.get(rip_url, headers=requests_header, stream=True)
+                if not response.ok:
+                    print(response)
+                for block in response.iter_content(1024):
+                    if not block:
+                        break
+                    handle.write(block)
+            except requests.exceptions.ConnectionError:
+                options = Options()
+                options.headless = True
+                options.add_argument = DRIVER_HEADER
+                driver = webdriver.Firefox(options=options)
+                response = driver.get(rip_url)
+                if not response.ok:
+                    print(response)
+                for block in response.iter_content(1024):
+                    if not block:
+                        break
+                    handle.write(block)
+        if self.hash_filenames:
+            #md5 hash is used as image name to avoid duplicate names
+            md5hash = hashlib.md5(Image.open(image_name).tobytes())
+            hash5 = md5hash.hexdigest()
+            image_hash_name = "".join([full_path, "/", hash5, ext])
+            if os.path.exists(image_hash_name): #If duplicate exists, remove the duplicate
+                os.remove(image_name)
+            else:
+                #Otherwise, rename the image with the md5 hash
+                os.rename(image_name, image_hash_name)
+        time.sleep(0.05)
 
     def html_parse(self) -> list:
         """Return image URL, number of images, and folder name."""
@@ -1036,64 +1108,6 @@ def test_parse(given_url: str) -> list:
     finally:
         driver.quit()
 
-def download_from_url(session: requests.Session, url_name: str, file_name: str, full_path: str, num_files: int, ext: str):
-    """"Download image from image url"""
-    #Completes the specific image URL from the general URL
-    rip_url = "".join([url_name, str(file_name), ext])
-    num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
-    print(" ".join([rip_url, "   ", num_progress]))
-    image_url = "".join([full_path, "/pic1", ext])
-    with open(image_url, "wb") as handle:
-        response = session.get(rip_url, headers=requests_header, stream=True)
-        if not response.ok:
-            print(response)
-        if ext in (".jpg", ".png"):
-            for block in response.iter_content(1024):
-                if not block:
-                    break
-                handle.write(block)
-        elif ext == ".gif":
-            handle.write(response.content)
-    #md5 hash is used as image name to avoid duplicate names
-    md5hash = hashlib.md5(Image.open(image_url).tobytes())
-    hash5 = md5hash.hexdigest()
-    image_hash_name = "".join([full_path, "/", hash5, ext])
-    if os.path.exists(image_hash_name): #If duplicate exists, remove the duplicate
-        os.remove(image_url)
-    else:
-        #Otherwise, rename the image with the md5 hash
-        os.rename(image_url, image_hash_name)
-    time.sleep(0.05)
-
-def download_from_list(session: requests.Session, given_url: str, full_path: str, current_file_num: int, num_files: int):
-    """Download images from hotgirl.asia"""
-    rip_url = given_url.strip('\n')
-    num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
-    print(" ".join([rip_url, "   ", num_progress]))
-    file_name = os.path.basename(urlparse(rip_url).path)
-    with open("".join([full_path, '/', file_name]), "wb") as handle:
-        try: 
-            response = session.get(rip_url, headers=requests_header, stream=True)
-            if not response.ok:
-                print(response)
-            for block in response.iter_content(1024):
-                if not block:
-                    break
-                handle.write(block)
-        except requests.exceptions.ConnectionError:
-            options = Options()
-            options.headless = True
-            options.add_argument = DRIVER_HEADER
-            driver = webdriver.Firefox(options=options)
-            response = driver.get(rip_url)
-            if not response.ok:
-                print(response)
-            for block in response.iter_content(1024):
-                if not block:
-                    break
-                handle.write(block)
-    time.sleep(0.05)
-
 def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
@@ -1121,6 +1135,7 @@ def read_config(header: str, child: str) -> str:
         config['DEFAULT']['Theme'] = 'Dark'
         config['DEFAULT']['AskToReRip'] = 'True'
         config['DEFAULT']['LiveHistoryUpdate'] = 'False'
+        config['DEFAULT']['HashFilenames'] = 'True'
         config['DEFAULT']['NumberOfThreads'] = 1
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)

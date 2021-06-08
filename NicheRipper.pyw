@@ -16,6 +16,7 @@ class RipperGui():
         self.theme_color = read_config('DEFAULT', 'Theme')
         self.save_folder = read_config('DEFAULT', 'SavePath')
         self.live_history_update = RipperGui.string_to_bool(read_config('DEFAULT', 'LiveHistoryUpdate'))
+        self.hash_filenames = RipperGui.string_to_bool(read_config('DEFAULT', 'HashFilenames'))
         self.rerip_ask = RipperGui.string_to_bool(read_config('DEFAULT', 'AskToReRip'))
         self.max_threads = int(read_config('DEFAULT', 'NumberOfThreads'))
         if os.path.isfile('RipHistory.json'):
@@ -43,7 +44,7 @@ class RipperGui():
                 [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', 'UnfinishedRips.json'), ), change_submits=True)],
                 [sg.Text('Check for updates: '), sg.Button('Check', enable_events=True), sg.Text(key='-UPDATE-', size=(50, 1))],
                 [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
-                [sg.Check('Ask to re-rip url', key='-RERIP-', default=self.rerip_ask, enable_events=True), sg.Check('Live update history table', key='-LIVEUPDATE-', default=self.live_history_update, enable_events=True)],
+                [sg.Check('Ask to re-rip url', key='-RERIP-', default=self.rerip_ask, enable_events=True), sg.Check('Live update history table', key='-LIVEUPDATE-', default=self.live_history_update, enable_events=True), sg.Check('Hash filenames', key='-HASH-', default=self.hash_filenames, enable_events=True)],
                 #[sg.Text('Max Number of Threads: '), sg.Spin([i for i in range(1,11)], initial_value=int(self.max_threads), key='-MAXTHREADS-', enable_events=True, size=(3, 1))],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
         # GUI layout
@@ -60,7 +61,7 @@ class RipperGui():
             if event in (sg.WIN_CLOSED, 'Cancel'): #Save files when gui is closed
                 self.close_program()
                 break
-            if event == 'Rip': #Image rip behavior
+            if event == 'Rip': #Pushes urls into queue
                 if values['-URL-'].count("https://") > 1: #If multiple urls are entered at once
                     url_list = values['-URL-'].split() #Split by whitespace if present
                     for url in url_list:
@@ -115,6 +116,7 @@ class RipperGui():
             self.live_history_update = values['-LIVEUPDATE-']
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
+            self.hash_filenames = values['-HASH-']
             #self.max_threads = int(values['-MAXTHREADS-'])
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
@@ -133,6 +135,7 @@ class RipperGui():
         write_config('DEFAULT', 'Theme', self.theme_color)
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_history_update))
+        write_config('DEFAULT', 'HashFilenames', str(self.hash_filenames))
         write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
     def list_checker(self, window: sg.Window):
@@ -149,7 +152,7 @@ class RipperGui():
         """Rips files from url"""
         url = self.url_list[0]
         print(url)
-        img_ripper = ImageRipper(url) # pylint: disable=not-callable
+        img_ripper = ImageRipper(url, self.hash_filenames) # pylint: disable=not-callable
         img_ripper.image_getter()
         self.update_table(img_ripper, url, self.live_history_update, window)
         self.url_list.remove(url)
