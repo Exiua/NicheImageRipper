@@ -219,7 +219,7 @@ class ImageRipper():
         return site_info # pyright: reportUnboundVariable=false
 
     def site_check(self) -> str:
-        """Check which site the url is from"""
+        """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
         if url_check(self.given_url):
             if "https://hentai.cafe/" in self.given_url: #Special case
                 self.requests_header['referer'] = "https://hentai.cafe/"
