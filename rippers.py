@@ -106,7 +106,7 @@ class ImageRipper():
         rip_url = "".join([url_name, str(file_name), ext])
         num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
         print(" ".join([rip_url, "   ", num_progress]))
-        image_url = "".join([full_path, "/pic1", ext])
+        image_url = "".join([full_path, "/", str(file_name), ext])
         with open(image_url, "wb") as handle:
             response = session.get(rip_url, headers=requests_header, stream=True)
             if not response.ok:
