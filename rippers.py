@@ -107,7 +107,7 @@ class ImageRipper():
         #Completes the specific image URL from the general URL
         rip_url = "".join([url_name, str(file_name), ext])
         num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
-        print(" ".join([rip_url, "   ", num_progress]))
+        print("    ".join([rip_url, num_progress]))
         image_url = "".join([full_path, "/", str(file_name), ext])
         with open(image_url, "wb") as handle:
             response = session.get(rip_url, headers=requests_header, stream=True)
@@ -121,46 +121,30 @@ class ImageRipper():
             elif ext == ".gif":
                 handle.write(response.content)
         if self.hash_filenames:
-            #md5 hash is used as image name to avoid duplicate names
-            md5hash = hashlib.md5(Image.open(image_url).tobytes())
-            hash5 = md5hash.hexdigest()
-            image_hash_name = "".join([full_path, "/", hash5, ext])
-            if os.path.exists(image_hash_name): #If duplicate exists, remove the duplicate
-                os.remove(image_url)
-            else:
-                #Otherwise, rename the image with the md5 hash
-                os.rename(image_url, image_hash_name)
+            self.rename_file_to_hash(image_url, full_path, ext)
         time.sleep(0.05)
 
     def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int, num_files: int):
         """Download images from url supplied from a list of image urls"""
         rip_url = given_url.strip('\n')
         num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
-        print(" ".join([rip_url, "   ", num_progress]))
+        print("    ".join([rip_url, num_progress]))
         file_name = os.path.basename(urlparse(rip_url).path)
         image_name = "".join([full_path, '/', file_name])
         ext = image_name.split(".")[-1]
         with open(image_name, "wb") as handle:
-            try: 
-                response = session.get(rip_url, headers=requests_header, stream=True)
-                if not response.ok:
-                    print(response)
-                for block in response.iter_content(1024):
-                    if not block:
-                        break
-                    handle.write(block)
-            except requests.exceptions.ConnectionError:
-                options = Options()
-                options.headless = True
-                options.add_argument = DRIVER_HEADER
-                driver = webdriver.Firefox(options=options)
-                response = driver.get(rip_url)
-                if not response.ok:
-                    print(response)
-                for block in response.iter_content(1024):
-                    if not block:
-                        break
-                    handle.write(block)
+            response = session.get(rip_url, headers=requests_header, stream=True)
+            if not response.ok:
+                print(response)
+            for block in response.iter_content(1024):
+                if not block:
+                    break
+                handle.write(block)
+        if self.hash_filenames:
+            self.rename_file_to_hash(image_name, full_path, ext)
+        time.sleep(0.05)
+
+    def rename_file_to_hash(self, image_name: str, full_path: str, ext: str):
         if self.hash_filenames:
             #md5 hash is used as image name to avoid duplicate names
             md5hash = hashlib.md5(Image.open(image_name).tobytes())
@@ -171,7 +155,6 @@ class ImageRipper():
             else:
                 #Otherwise, rename the image with the md5 hash
                 os.rename(image_name, image_hash_name)
-        time.sleep(0.05)
 
     def html_parse(self) -> list:
         """Return image URL, number of images, and folder name."""
