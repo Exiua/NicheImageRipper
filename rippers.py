@@ -32,11 +32,11 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 class ImageRipper():
     """Image Ripper Class"""
     def __init__(self, given_url: str, hash_filenames: bool = True):
-        self.folder_info = []
-        self.given_url = given_url
-        self.save_path = read_config('DEFAULT', 'SavePath')
-        self.hash_filenames = hash_filenames
-        self.site_name = self.site_check()
+        self.folder_info: list[list, int, str] = []
+        self.given_url: str = given_url
+        self.save_path: str = read_config('DEFAULT', 'SavePath')
+        self.hash_filenames: bool = hash_filenames
+        self.site_name: str = self.site_check()
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
