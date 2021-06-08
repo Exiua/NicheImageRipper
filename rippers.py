@@ -6,6 +6,7 @@ import sys
 import string
 import configparser
 import time
+from math import ceil
 import functools
 import subprocess
 from pathlib import Path
@@ -89,7 +90,7 @@ class ImageRipper():
         #Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter", "hanime"):
+                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
@@ -100,6 +101,7 @@ class ImageRipper():
                     self.download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
         print("Download Complete")
 
+    #Probably could merge the two methods into one download method as the core logic is outside of the methods
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, num_files: int, ext: str):
         """"Download image from image url"""
         #Completes the specific image URL from the general URL
@@ -224,7 +226,8 @@ class ImageRipper():
             "babesaround": babesaround_parse,
             "8boobs": eightboobs_parse,
             "decorativemodels": decorativemodels_parse,
-            "girlsofdesire": girlsofdesire_parse
+            "girlsofdesire": girlsofdesire_parse,
+            "tuyangyan": tuyangyan_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -1063,6 +1066,33 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return [images, num_files, dir_name]
 
+def tuyangyan_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for tuyangyan.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="post-title entry-title").find("a").text
+    dir_name = dir_name.split("[")
+    num_files = dir_name[1].replace("P]", "")
+    dir_name = dir_name[0]
+    dir_name = clean_dir_name("".join(dir_name))
+    if int(num_files) > 20:
+        pages = ceil(int(num_files) / 20)
+        images = []
+        page_url = driver.current_url
+        for i in range(pages):
+            if i > 0:
+                url = "".join([page_url, str(i+1), "/"])
+                driver.get(url)
+                soup = soupify(driver)
+            image_list = soup.find("div", class_="entry-content clearfix").find_all("img")
+            images.extend(image_list)
+    else:
+        images = soup.find("div", class_="entry-content clearfix").find_all("img")
+    images = ["".join([PROTOCOL, img.get("src")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return [images, num_files, dir_name]
+
 def wantedbabes_parse(driver: webdriver.Firefox) -> list:
     """Read the html for wantedbabes.com"""
     #Parses the html of the site
@@ -1104,9 +1134,13 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return exgirlfriendmarket_parse(driver)
+        return tuyangyan_parse(driver)
     finally:
         driver.quit()
+
+def print_html(soup: BeautifulSoup):
+    with open("html.txt", "w+") as f:
+        f.write(str(soup.text))
 
 def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
@@ -1166,7 +1200,7 @@ def url_check(given_url: str) -> bool:
             "https://www.joymiihub.com/", "https://www.metarthunter.com/", "https://www.femjoyhunter.com/",
             "https://www.ftvhunter.com/", "https://www.hegrehunter.com/", "https://hanime.tv/",
             "https://members.hanime.tv/", "https://www.babesaround.com/", "https://www.8boobs.com/", 
-            "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/")
+            "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/", "https://www.tuyangyan.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
