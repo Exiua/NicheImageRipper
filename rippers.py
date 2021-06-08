@@ -67,22 +67,22 @@ class ImageRipper():
                     file_num = str(num)
                 try:
                     #Most images will be .jpg
-                    self.download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".jpg")
+                    self.download_from_url(session, trimmed_url, file_num, full_path, ".jpg")
                 except PIL.UnidentifiedImageError:
                     try:
                         os.remove("".join([full_path, "/pic1.jpg"]))
                         #Check if .gif
-                        self.download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".gif")
+                        self.download_from_url(session, trimmed_url, file_num, full_path, ".gif")
                     except PIL.UnidentifiedImageError:
                         try:
                             os.remove("".join([full_path, "/pic1.gif"]))
                             #Check if .png
-                            self.download_from_url(session, trimmed_url, file_num, full_path, self.folder_info[1], ".png")
+                            self.download_from_url(session, trimmed_url, file_num, full_path, ".png")
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove("".join([full_path, "/pic1.png"]))
                                 #If all fails, download thumbnail
-                                self.download_from_url(session, trimmed_url, file_num + "t", full_path, self.folder_info[1], ".jpg")
+                                self.download_from_url(session, trimmed_url, file_num + "t", full_path, ".jpg")
                             except PIL.UnidentifiedImageError:
                                 os.remove("".join([full_path, "/pic1.jpg"])) #No image exists, probably
                 except OSError:
@@ -93,17 +93,18 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan"):
             for index in range(int(self.folder_info[1])):
                 try:
-                    self.download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
+                    self.download_from_list(session, self.folder_info[0][index], full_path, index)
                 except PIL.UnidentifiedImageError:
                     pass #No image exists, probably
                 except requests.exceptions.ChunkedEncodingError:
                     time.sleep(10)
-                    self.download_from_list(session, self.folder_info[0][index], full_path, index, self.folder_info[1])
+                    self.download_from_list(session, self.folder_info[0][index], full_path, index)
         print("Download Complete")
 
     #Probably could merge the two methods into one download method as the core logic is outside of the methods
-    def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, num_files: int, ext: str):
+    def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):
         """"Download image from image url"""
+        num_files = self.folder_info[1]
         #Completes the specific image URL from the general URL
         rip_url = "".join([url_name, str(file_name), ext])
         num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
@@ -124,8 +125,9 @@ class ImageRipper():
             self.rename_file_to_hash(image_url, full_path, ext)
         time.sleep(0.05)
 
-    def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int, num_files: int):
+    def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int):
         """Download images from url supplied from a list of image urls"""
+        num_files = self.folder_info[1]
         rip_url = given_url.strip('\n')
         num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
