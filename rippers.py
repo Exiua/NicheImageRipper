@@ -26,6 +26,8 @@ PROTOCOL = "https:"
 CONFIG = 'config.ini'
 PARSER = "html.parser"
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+                    'referer': 'https://imhentai.xxx/'}
 
 class ImageRipper():
     """Image Ripper Class"""
@@ -35,8 +37,6 @@ class ImageRipper():
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.hash_filenames: bool = hash_filenames
         self.site_name: str = self.site_check()
-        self.requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
-                                'referer': 'https://imhentai.xxx/'}
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
@@ -139,7 +139,7 @@ class ImageRipper():
 
     def download_file(self, session: requests.Session, image_url: str, rip_url: str, ext: str):
         with open(image_url, "wb") as handle:
-            response = session.get(rip_url, headers=self.requests_header, stream=True)
+            response = session.get(rip_url, headers=requests_header, stream=True)
             if not response.ok:
                 print(response)
             if ext in (".jpg", ".jpeg", ".png"):
@@ -231,13 +231,13 @@ class ImageRipper():
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
         if url_check(self.given_url):
             if "https://hentai.cafe/" in self.given_url:  # Special case
-                self.requests_header['referer'] = "https://hentai.cafe/"
+                requests_header['referer'] = "https://hentai.cafe/"
                 return "hentaicafe"
             domain = urlparse(self.given_url).netloc
-            self.requests_header['referer'] = "".join(["https://", domain, "/"])
+            requests_header['referer'] = "".join(["https://", domain, "/"])
             domain = domain.split(".")[-2]
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:  # Hosts images on a different domain
-                self.requests_header['referer'] = "https://cdn.discordapp.com/"
+                requests_header['referer'] = "https://cdn.discordapp.com/"
             return domain
         raise RipperError("Not a support site")
 
