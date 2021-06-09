@@ -109,7 +109,7 @@ class ImageRipper():
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
         print("Download Complete")
 
-    # Probably could merge the two methods into one download method as the core logic is outside of the methods
+    # TODO: Look into merging the 2 download methods if possible
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):
         """"Download image from image url"""
         num_files = self.folder_info[1]
