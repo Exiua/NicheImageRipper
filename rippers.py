@@ -30,7 +30,7 @@ DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; 
 class ImageRipper():
     """Image Ripper Class"""
     def __init__(self, given_url: str, hash_filenames: bool = True):
-        self.folder_info: list[list, int, str] = []
+        self.folder_info: tuple[list, int, str] = ([], 0, "")
         self.given_url: str = given_url
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.hash_filenames: bool = hash_filenames
@@ -254,7 +254,7 @@ def babeimpact_parse(driver: webdriver.Firefox) -> list:
         soup = BeautifulSoup(html, PARSER)
         images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babesandbitches_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babesandbitches.net"""
@@ -275,7 +275,7 @@ def babesandbitches_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("img", id="gallery-picture").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babesandgirls_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babesandgirls.com"""
@@ -292,7 +292,7 @@ def babesandgirls_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="main-post item-post w-100").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babesaround_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babesaround.com"""
@@ -309,7 +309,7 @@ def babesaround_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="cwidg").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babesbang_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babesbang.com"""
@@ -328,7 +328,7 @@ def babesbang_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("img", style="max-width:620px").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babesinporn_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babesinporn.com"""
@@ -347,7 +347,7 @@ def babesinporn_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("img", alt="Click for more").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babesmachine_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babesmachine.com"""
@@ -364,7 +364,7 @@ def babesmachine_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", id="picture").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def babeuniversum_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babeuniversum.com"""
@@ -381,7 +381,7 @@ def babeuniversum_parse(driver: webdriver.Firefox) -> list:
     images = soup.find_all("div", class_="one-column")[1].find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def bustybloom_parse(driver: webdriver.Firefox) -> list:
     """Read the html for bustybloom.com"""
@@ -401,7 +401,7 @@ def bustybloom_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="picture_thumb").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def chickteases_parse(driver: webdriver.Firefox) -> list:
     """Read the html for chickteases.com"""
@@ -418,7 +418,7 @@ def chickteases_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", id="imageView").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def cupe_parse(driver: webdriver.Firefox) -> list:
     """Read the html for hentai.cafe"""
@@ -473,7 +473,7 @@ def cupe_parse(driver: webdriver.Firefox) -> list:
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def cyberdrop_parse(driver: webdriver.Firefox) -> list:
     """Read the html for cyberdrop.me"""
@@ -485,7 +485,7 @@ def cyberdrop_parse(driver: webdriver.Firefox) -> list:
     images = [image.find("a", class_="image").get("href") for image in image_list]
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def decorativemodels_parse(driver: webdriver.Firefox) -> list:
     """Read the html for decorativemodels.com"""
@@ -502,7 +502,7 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="image-wrapper").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def eightboobs_parse(driver: webdriver.Firefox) -> list:
     """Read the html for 8boobs.com"""
@@ -518,7 +518,7 @@ def eightboobs_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="slider").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def elitebabes_parse(driver: webdriver.Firefox) -> list:
     """Read the html for elitebabes.com"""
@@ -530,7 +530,7 @@ def elitebabes_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
     """Read the html for exgirlfriendmarket.com"""
@@ -551,7 +551,7 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="pic-wrap").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def femjoyhunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for femjoyhunter.com"""
@@ -563,7 +563,7 @@ def femjoyhunter_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def ftvhunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for ftvhunter.com"""
@@ -575,7 +575,7 @@ def ftvhunter_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def girlsofdesire_parse(driver: webdriver.Firefox) -> list:
     """Read the html for girlsofdesire.org"""
@@ -592,7 +592,7 @@ def girlsofdesire_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("img", id="bigpic").get("src")
     images = "".join("https://girlsofdesire.com")
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def girlsreleased_parse(driver: webdriver.Firefox) -> list:
     """Read the html for girlsreleased.com"""
@@ -620,7 +620,7 @@ def girlsreleased_parse(driver: webdriver.Firefox) -> list:
             pass #Image may have been deleted from ImageTwist servers
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def grabpussy_parse(driver: webdriver.Firefox) -> list:
     """Read the html for grabpussy.com"""
@@ -637,7 +637,7 @@ def grabpussy_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="pic").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hanime_parse(driver: webdriver.Firefox) -> list:
     """Read the html for hanime.tv"""
@@ -649,7 +649,7 @@ def hanime_parse(driver: webdriver.Firefox) -> list:
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hegrehunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for hegrehunter.com"""
@@ -661,7 +661,7 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> list:
     """Read the html for hentai.cafe"""
@@ -682,7 +682,7 @@ def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> list:
         dir_name = clean_dir_name(dir_name)
     images = soup.find("img", class_="open").get("src")
     num_files = soup.find("div", class_="text").string.split()[0]
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hotgirl_parse(driver: webdriver.Firefox, url: str) -> list:
     """Read the html for hotgirl.asia"""
@@ -711,7 +711,7 @@ def hotgirl_parse(driver: webdriver.Firefox, url: str) -> list:
     images = [image.get("src") for image in images_html]
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hottystop_parse(driver: webdriver.Firefox, url: str) -> list:
     """Read the html for hottystop.com"""
@@ -726,7 +726,7 @@ def hottystop_parse(driver: webdriver.Firefox, url: str) -> list:
     images = ["".join([url, image.get("href")]) for image in image_list]
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hqbabes_parse(driver: webdriver.Firefox) -> list:
     """Read the html for hqbabes.com"""
@@ -751,7 +751,7 @@ def hqbabes_parse(driver: webdriver.Firefox) -> list:
             images.append("".join([PROTOCOL, image_url]))
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def hundredbucksbabes_parse(driver: webdriver.Firefox) -> list:
     """Read the html for 100bucksbabes.com"""
@@ -768,7 +768,7 @@ def hundredbucksbabes_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="imageblock").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def imhentai_parse(driver: webdriver.Firefox) -> list:
     """Read the html for imhentai.com"""
@@ -795,7 +795,7 @@ def joymiihub_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def livejasminbabes_parse(driver: webdriver.Firefox) -> list:
     """Read the html for livejasminbabes.net"""
@@ -810,7 +810,7 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="picture_thumb").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def metarthunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for hetarthunter.com"""
@@ -822,7 +822,7 @@ def metarthunter_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def morazzia_parse(driver: webdriver.Firefox) -> list:
     """Read the html for morazzia.com"""
@@ -841,7 +841,7 @@ def morazzia_parse(driver: webdriver.Firefox) -> list:
         images = soup.find("a", class_="main-post item-post w-100").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def novojoy_parse(driver: webdriver.Firefox) -> list:
     """Read the html for novojoy.com"""
@@ -858,7 +858,7 @@ def novojoy_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="bigpic").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def novoporn_parse(driver: webdriver.Firefox) -> list:
     """Read the html for novoporn.com"""
@@ -878,7 +878,7 @@ def novoporn_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", id="picture-holder").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     """Read the html for pleasuregirl.net"""
@@ -895,7 +895,7 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     images = "".join([PROTOCOL, images])
     num_files = len(image_list)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def pmatehunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for pmatehunter.com"""
@@ -907,7 +907,7 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     """Read the html for sexyaporno.com"""
@@ -927,7 +927,7 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="picture_thumb").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def sexyegirls_parse(driver: webdriver.Firefox) -> list:
     """Read the html for sexy-egirls.com"""
@@ -946,7 +946,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> list:
     images = [image.find("a").get("href") for image in image_list]
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def sexykittenporn_parse(driver: webdriver.Firefox) -> list:
     """Read the html for sexykittenporn.com"""
@@ -967,7 +967,7 @@ def sexykittenporn_parse(driver: webdriver.Firefox) -> list:
         soup = BeautifulSoup(html, PARSER)
         images.append("".join([PROTOCOL, soup.find("div", class_="image-wrapper").find("img").get("src")]))
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def silkengirl_parse(driver: webdriver.Firefox) -> list:
     """Read the html for silkengirl.com"""
@@ -984,7 +984,7 @@ def silkengirl_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("div", class_="wrap").find("img").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def simplycosplay_parse(driver: webdriver.Firefox) -> list:
     """Read the html for simply-cosplay.com"""
@@ -1007,7 +1007,7 @@ def simplycosplay_parse(driver: webdriver.Firefox) -> list:
             image[0] = image[0][:-5]
             images.append("".join(image))
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def simplyporn_parse(driver: webdriver.Firefox) -> list:
     """Read the html for simply-porn.com"""
@@ -1028,7 +1028,7 @@ def simplyporn_parse(driver: webdriver.Firefox) -> list:
             images.append("".join(image))
         num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def theomegaproject_parse(driver: webdriver.Firefox) -> list:
     """Read the html for theomegaproject.org"""
@@ -1045,7 +1045,7 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("img", id="big_picture").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def tuyangyan_parse(driver: webdriver.Firefox) -> list:
     """Read the html for tuyangyan.com"""
@@ -1072,7 +1072,7 @@ def tuyangyan_parse(driver: webdriver.Firefox) -> list:
     images = ["".join([PROTOCOL, img.get("src")]) for img in images]
     num_files = len(images)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def wantedbabes_parse(driver: webdriver.Firefox) -> list:
     """Read the html for wantedbabes.com"""
@@ -1092,7 +1092,7 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> list:
     images = soup.find("img", class_="img-responsive").get("src")
     images = "".join([PROTOCOL, images])
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def xarthunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for xarthunter.com"""
@@ -1104,7 +1104,7 @@ def xarthunter_parse(driver: webdriver.Firefox) -> list:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_files, dir_name]
+    return (images, num_files, dir_name)
 
 def test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
