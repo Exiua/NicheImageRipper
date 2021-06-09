@@ -241,7 +241,6 @@ class ImageRipper():
             return domain
         raise RipperError("Not a support site")
 
-
 def babeimpact_parse(driver: webdriver.Firefox) -> list:
     """Read the html for babeimpact.com"""
     # Parses the html of the site
