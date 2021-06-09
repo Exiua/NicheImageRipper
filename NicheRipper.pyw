@@ -13,22 +13,22 @@ from rippers import ImageRipper, read_config, write_config, url_check
 class RipperGui():
     """GUI Object"""
     def __init__(self):
-        self.theme_color = read_config('DEFAULT', 'Theme')
-        self.save_folder = read_config('DEFAULT', 'SavePath')
-        self.live_history_update = RipperGui.string_to_bool(read_config('DEFAULT', 'LiveHistoryUpdate'))
-        self.hash_filenames = RipperGui.string_to_bool(read_config('DEFAULT', 'HashFilenames'))
-        self.rerip_ask = RipperGui.string_to_bool(read_config('DEFAULT', 'AskToReRip'))
-        self.max_threads = int(read_config('DEFAULT', 'NumberOfThreads'))
+        self.theme_color: str = read_config('DEFAULT', 'Theme')
+        self.save_folder: str = read_config('DEFAULT', 'SavePath')
+        self.live_history_update: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'LiveHistoryUpdate'))
+        self.hash_filenames: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'HashFilenames'))
+        self.rerip_ask: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'AskToReRip'))
+        self.max_threads: int = int(read_config('DEFAULT', 'NumberOfThreads'))
         if os.path.isfile('RipHistory.json'):
-            self.table_data = self.read_from_file('RipHistory.json')
+            self.table_data: list[list[str]] = self.read_from_file('RipHistory.json')
         else:
-            self.table_data = [[" ", " ", " ", " "]]
-        self.ripper_list = []
-        self.url_list = []
-        self.url_list_size = len(self.url_list)
-        self.loaded_file = False
-        self.latest_version = self.get_git_version()
-        self.version = 'v1.7.0'
+            self.table_data: list[list[str]] = [[" ", " ", " ", " "]]
+        self.ripper_list: list[ImageRipper] = []
+        self.url_list: list[str] = []
+        self.url_list_size: int = len(self.url_list)
+        self.loaded_file: bool = False
+        self.latest_version: str = self.get_git_version()
+        self.version: str = 'v1.7.0'
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
