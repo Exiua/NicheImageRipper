@@ -98,7 +98,7 @@ class ImageRipper():
         # Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts"):
+                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -219,7 +219,8 @@ class ImageRipper():
             "decorativemodels": decorativemodels_parse,
             "girlsofdesire": girlsofdesire_parse,
             "tuyangyan": tuyangyan_parse,
-            "hqsluts": hqsluts_parse
+            "hqsluts": hqsluts_parse,
+            "foxhq": foxhq_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -306,7 +307,6 @@ def babesandgirls_parse(driver: webdriver.Firefox) -> list:
     soup = soupify(driver)
     images = soup.find(
         "div", class_="main-post item-post w-100").find("img").get("src")
-    images = "".join([PROTOCOL, images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -591,6 +591,18 @@ def femjoyhunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
+def foxhq_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for foxhq.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h2").text
+    dir_name = clean_dir_name(dir_name)
+    url = driver.current_url
+    images = ["".join([url, td.find("a").get("href")]) for td in soup.find_all("td", align="center")[:-2]]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def ftvhunter_parse(driver: webdriver.Firefox) -> list:
     """Read the html for ftvhunter.com"""
     # Parses the html of the site
@@ -616,7 +628,7 @@ def girlsofdesire_parse(driver: webdriver.Firefox) -> list:
     driver.get(images)
     soup = soupify(driver)
     images = soup.find("img", id="bigpic").get("src")
-    images = "".join("https://girlsofdesire.com")
+    images = "".join(["https://girlsofdesire.org", images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -890,7 +902,6 @@ def morazzia_parse(driver: webdriver.Firefox) -> list:
         images = soup.find("p", align="center").find("img").get("src")
     except AttributeError:
         images = soup.find("a", class_="main-post item-post w-100").find("img").get("src")
-    #images = "".join([PROTOCOL, images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1178,7 +1189,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return hqsluts_parse(driver)
+        return foxhq_parse(driver)
     finally:
         driver.quit()
 
@@ -1245,7 +1256,7 @@ def url_check(given_url: str) -> bool:
              "https://www.ftvhunter.com/", "https://www.hegrehunter.com/", "https://hanime.tv/",
              "https://members.hanime.tv/", "https://www.babesaround.com/", "https://www.8boobs.com/",
              "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/", "https://www.tuyangyan.com/",
-             "http://www.hqsluts.com/")
+             "http://www.hqsluts.com/", "https://www.foxhq.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
