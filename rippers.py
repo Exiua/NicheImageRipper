@@ -57,14 +57,14 @@ class ImageRipper():
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                               "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun", "erosberry", "novohot"):
+                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun", "erosberry", "novohot", "eahentai"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
             for index in range(1, int(self.folder_info[1]) + 1):
                 num = index
                 # All other sites start from 00
-                if not self.site_name in ("imhentai", "hentaicafe"):
+                if not self.site_name in ("imhentai", "hentaicafe", "eahentai"):
                     num -= 1
                 # All other sites use 00 styling for single digit numers in url
                 if self.site_name != "imhentai" and num < 10:
@@ -223,7 +223,8 @@ class ImageRipper():
             "foxhq": foxhq_parse,
             "rabbitsfun": rabbitsfun_parse,
             "erosberry": erosberry_parse,
-            "novohot": novohot_parse
+            "novohot": novohot_parse,
+            "eahentai": eahentai_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -527,6 +528,23 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> list:
     soup = soupify(driver)
     images = soup.find("div", class_="image-wrapper").find("img").get("src")
     images = "".join([PROTOCOL, images])
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def eahentai_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for eahentai.com"""
+    #Parses the html of the site
+    time.sleep(1)
+    soup = soupify(driver)
+    dir_name = soup.find("h2").text
+    dir_name = clean_dir_name(dir_name)
+    num_files = int(soup.find("h1", class_="type-pages").find("div").text)
+    images = soup.find("div", class_="gallery").find("a").get("href")
+    images = "".join(["https://eahentai.com", images])
+    driver.get(images)
+    time.sleep(1)
+    soup = soupify(driver)
+    images = soup.find("img", class_="react-viewer-image drag react-viewer-image-transition").get("src")
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1246,7 +1264,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return novohot_parse(driver)
+        return eahentai_parse(driver)
     finally:
         driver.quit()
 
@@ -1314,7 +1332,7 @@ def url_check(given_url: str) -> bool:
              "https://members.hanime.tv/", "https://www.babesaround.com/", "https://www.8boobs.com/",
              "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/", "https://www.tuyangyan.com/",
              "http://www.hqsluts.com/", "https://www.foxhq.com/", "https://www.rabbitsfun.com/", 
-             "https://www.erosberry.com/", "https://www.novohot.com/")
+             "https://www.erosberry.com/", "https://www.novohot.com/", "https://eahentai.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
