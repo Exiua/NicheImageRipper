@@ -57,14 +57,14 @@ class ImageRipper():
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                               "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun", "erosberry", "novohot", "eahentai"):
+                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun", "erosberry", "novohot"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
             for index in range(1, int(self.folder_info[1]) + 1):
                 num = index
                 # All other sites start from 00
-                if not self.site_name in ("imhentai", "hentaicafe", "eahentai"):
+                if not self.site_name in ("imhentai", "hentaicafe"):
                     num -= 1
                 # All other sites use 00 styling for single digit numers in url
                 if self.site_name != "imhentai" and num < 10:
@@ -98,7 +98,7 @@ class ImageRipper():
         # Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq"):
+                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -535,16 +535,25 @@ def eahentai_parse(driver: webdriver.Firefox) -> list:
     """Read the html for eahentai.com"""
     #Parses the html of the site
     time.sleep(1)
+    #Scroll the page before parsing html to allow img tags to load (because images are set to be lazy loaded)
+    SCROLL_PAUSE_TIME = 0.5
+    i = 0
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(SCROLL_PAUSE_TIME)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+        i += 1
+    driver.implicitly_wait(10)
     soup = soupify(driver)
     dir_name = soup.find("h2").text
     dir_name = clean_dir_name(dir_name)
     num_files = int(soup.find("h1", class_="type-pages").find("div").text)
-    images = soup.find("div", class_="gallery").find("a").get("href")
-    images = "".join(["https://eahentai.com", images])
-    driver.get(images)
-    time.sleep(1)
-    soup = soupify(driver)
-    images = soup.find("img", class_="react-viewer-image drag react-viewer-image-transition").get("src")
+    images = soup.find("div", class_="gallery").find_all("a")
+    images = [img.find("img").get("src").replace("/thumbnail", "").replace("t.", ".") for img in images]
     driver.quit()
     return (images, num_files, dir_name)
 
