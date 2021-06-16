@@ -98,7 +98,7 @@ class ImageRipper():
         # Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai"):
+                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -224,7 +224,8 @@ class ImageRipper():
             "rabbitsfun": rabbitsfun_parse,
             "erosberry": erosberry_parse,
             "novohot": novohot_parse,
-            "eahentai": eahentai_parse
+            "eahentai": eahentai_parse,
+            "nightdreambabe": nightdreambabe_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -954,6 +955,18 @@ def morazzia_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
+def nightdreambabe_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for nightdreambabe.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", id="gallery_middle").find_all("h1", recursive=False)[1].text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("div", class_="gwrapper")
+    images = ["".join([PROTOCOL, img.find("img").get("src")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def novohot_parse(driver: webdriver.Firefox) -> list:
     """Read the html for novohot.com"""
     #Parses the html of the site
@@ -1273,7 +1286,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return eahentai_parse(driver)
+        return nightdreambabe_parse(driver)
     finally:
         driver.quit()
 
@@ -1341,7 +1354,8 @@ def url_check(given_url: str) -> bool:
              "https://members.hanime.tv/", "https://www.babesaround.com/", "https://www.8boobs.com/",
              "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/", "https://www.tuyangyan.com/",
              "http://www.hqsluts.com/", "https://www.foxhq.com/", "https://www.rabbitsfun.com/", 
-             "https://www.erosberry.com/", "https://www.novohot.com/", "https://eahentai.com/")
+             "https://www.erosberry.com/", "https://www.novohot.com/", "https://eahentai.com/",
+             "https://www.nightdreambabe.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
