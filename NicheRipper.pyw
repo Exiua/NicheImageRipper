@@ -41,7 +41,7 @@ class RipperGui():
                         auto_size_columns=True, display_row_numbers=False, justification='right', num_rows=9, key='-TABLE-', row_height=35)]]
         settings_layout = [[sg.Text('Save Location: '), sg.Text(text=str(self.save_folder), size=(65, 1),key='-FOLDER-')],
                 [sg.Text('Select Save Folder:'), sg.Input(default_text=self.save_folder, key='-SAVEFOLDER-', visible=False, enable_events=True), sg.FolderBrowse(initial_folder=self.save_folder, change_submits=True)],
-                [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', 'UnfinishedRips.json'), ), change_submits=True)],
+                [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', '*.json'), ), change_submits=True)],
                 [sg.Text('Check for updates: '), sg.Button('Check', enable_events=True), sg.Text(key='-UPDATE-', size=(50, 1))],
                 [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=self.rerip_ask, enable_events=True), sg.Check('Live update history table', key='-LIVEUPDATE-', default=self.live_history_update, enable_events=True), sg.Check('Hash filenames', key='-HASH-', default=self.hash_filenames, enable_events=True)],
