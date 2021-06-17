@@ -98,7 +98,8 @@ class ImageRipper():
         # Easier to put all image url in a list and then download for these sites
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe"):
+                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
+                                "glam0ur"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -225,7 +226,9 @@ class ImageRipper():
             "erosberry": erosberry_parse,
             "novohot": novohot_parse,
             "eahentai": eahentai_parse,
-            "nightdreambabe": nightdreambabe_parse
+            "nightdreambabe": nightdreambabe_parse,
+            "xmissy": xmissy_parse,
+            "glam0ur": glam0ur_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -708,6 +711,18 @@ def girlsreleased_parse(driver: webdriver.Firefox) -> list:
             images.append(image)
         except AttributeError:
             pass  # Image may have been deleted from ImageTwist servers
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def glam0ur_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for glam0ur.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="picnav").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="center").find_all("a", recursive=False)
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -1277,6 +1292,18 @@ def xarthunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
+def xmissy_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for xmissy.nl"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", id="pagetitle").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", id="gallery").find_all("div", class_="noclick-image")
+    images = [img.find("img").get("data-src") if img.find("img").get("data-src") != None else img.find("img").get("src") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
     driver = None
@@ -1286,7 +1313,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return nightdreambabe_parse(driver)
+        return glam0ur_parse(driver)
     finally:
         driver.quit()
 
@@ -1355,7 +1382,7 @@ def url_check(given_url: str) -> bool:
              "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/", "https://www.tuyangyan.com/",
              "http://www.hqsluts.com/", "https://www.foxhq.com/", "https://www.rabbitsfun.com/", 
              "https://www.erosberry.com/", "https://www.novohot.com/", "https://eahentai.com/",
-             "https://www.nightdreambabe.com/")
+             "https://www.nightdreambabe.com/","https://xmissy.nl/", "https://www.glam0ur.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
