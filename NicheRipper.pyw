@@ -66,7 +66,6 @@ class RipperGui():
                     url_list = values['-URL-'].split("https://") #Split by protocol
                     url_list.pop(0)
                     url_list = ["".join(["https://", url.strip()]) for url in url_list]
-                    print(url_list)
                     for url in url_list:
                         if url_check(url) and not url in self.url_list: #If url is for a supported site and not already queued
                             self.rip_check(url)
