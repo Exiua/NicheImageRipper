@@ -952,6 +952,18 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
+def mainbabes_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for mainbabes.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="heading").find("h2", class_="title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="thumbs_box").find_all("div", class_="thumb_box")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def metarthunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hetarthunter.com"""
     # Parses the html of the site
@@ -1349,7 +1361,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return nakedgirls_parse(driver)
+        return mainbabes_parse(driver)
     finally:
         driver.quit()
 
