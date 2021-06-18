@@ -64,7 +64,7 @@ class ImageRipper():
             for index in range(1, int(self.folder_info[1]) + 1):
                 num = index
                 # All other sites start from 00
-                if not self.site_name in ("imhentai", "hentaicafe"):
+                if not self.site_name in ("imhentai", "hentaicafe", "girlsofdesire"):
                     num -= 1
                 # All other sites use 00 styling for single digit numers in url
                 if self.site_name != "imhentai" and num < 10:
@@ -99,7 +99,7 @@ class ImageRipper():
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
-                                "glam0ur", "dirtyyoungbitches", "rossoporn"):
+                                "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -230,7 +230,8 @@ class ImageRipper():
             "xmissy": xmissy_parse,
             "glam0ur": glam0ur_parse,
             "dirtyyoungbitches": dirtyyoungbitches_parse,
-            "rossoporn": rossoporn_parse
+            "rossoporn": rossoporn_parse,
+            "nakedgirls": nakedgirls_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -981,6 +982,18 @@ def morazzia_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
+def nakedgirls_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for nakedgirls.xxx"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="content").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="content").find_all("div", class_="thumb")
+    images = ["".join(["https://www.nakedgirls.xxx", img.find("a").get("href")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for nightdreambabe.com"""
     #Parses the html of the site
@@ -1336,7 +1349,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return rossoporn_parse(driver)
+        return nakedgirls_parse(driver)
     finally:
         driver.quit()
 
@@ -1406,7 +1419,7 @@ def url_check(given_url: str) -> bool:
              "http://www.hqsluts.com/", "https://www.foxhq.com/", "https://www.rabbitsfun.com/", 
              "https://www.erosberry.com/", "https://www.novohot.com/", "https://eahentai.com/",
              "https://www.nightdreambabe.com/","https://xmissy.nl/", "https://www.glam0ur.com/",
-             "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/")
+             "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/", "https://www.nakedgirls.xxx/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
