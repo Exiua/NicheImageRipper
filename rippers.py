@@ -100,7 +100,7 @@ class ImageRipper():
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
-                                "pbabes", "sexybabesart", "heymanhustle", "sexhd"):
+                                "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -240,7 +240,8 @@ class ImageRipper():
             "pbabes": pbabes_parse,
             "sexybabesart": sexybabesart_parse,
             "heymanhustle": heymanhustle_parse,
-            "sexhd": sexhd_parse
+            "sexhd": sexhd_parse,
+            "gyrls": gyrls_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -764,6 +765,18 @@ def grabpussy_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     images = soup.find("div", class_="pic").find("img").get("src")
     images = "".join([PROTOCOL, images])
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def gyrls_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for gyrls.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="single_title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", id="gallery-1").find_all("a")
+    images = [img.get("href") for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1454,7 +1467,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return sexhd_parse(driver)
+        return gyrls_parse(driver)
     finally:
         driver.quit()
 
@@ -1527,7 +1540,7 @@ def url_check(given_url: str) -> bool:
              "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/", "https://www.nakedgirls.xxx/",
              "https://www.mainbabes.com/", "https://www.hotstunners.com/", "https://www.sexynakeds.com/",
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
-             "https://www.heymanhustle.com/", "https://sexhd.pics/")
+             "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
