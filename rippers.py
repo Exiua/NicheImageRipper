@@ -143,8 +143,13 @@ class ImageRipper():
 
     def download_file(self, session: requests.Session, image_url: str, rip_url: str, ext: str):
         with open(image_url, "wb") as handle:
-            response = session.get(rip_url, headers=requests_header, stream=True)
-            if not response.ok:
+            bad_cert = False
+            try:
+                response = session.get(rip_url, headers=requests_header, stream=True)
+            except requests.exceptions.SSLError:
+                response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
+                bad_cert = True
+            if not response.ok and not bad_cert:
                 print(response)
             handle.write(response.content)
             #if ext in (".jpg", ".jpeg", ".png", ".webp"):
