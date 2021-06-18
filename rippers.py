@@ -99,7 +99,7 @@ class ImageRipper():
         elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
-                                "glam0ur", "dirtyyoungbitches"):
+                                "glam0ur", "dirtyyoungbitches", "rossoporn"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -229,7 +229,8 @@ class ImageRipper():
             "nightdreambabe": nightdreambabe_parse,
             "xmissy": xmissy_parse,
             "glam0ur": glam0ur_parse,
-            "dirtyyoungbitches": dirtyyoungbitches_parse
+            "dirtyyoungbitches": dirtyyoungbitches_parse,
+            "rossoporn": rossoporn_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -540,7 +541,6 @@ def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> list:
     """Read the html for dirtyyoungbitches.com"""
     #Parses the html of the site
     soup = soupify(driver)
-    print_html(soup)
     dir_name = soup.find("div", class_="title-holder").find("h1").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="container cont-light").find("div", class_="images").find_all("a", class_="thumb")
@@ -1100,6 +1100,18 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
+def rossoporn_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for rossoporn.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="content_right").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("div", class_="wrapper_g")
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for tag_list in images for img in tag_list.find_all("img")]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     """Read the html for sexyaporno.com"""
     # Parses the html of the site
@@ -1327,7 +1339,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return dirtyyoungbitches_parse(driver)
+        return rossoporn_parse(driver)
     finally:
         driver.quit()
 
@@ -1397,7 +1409,7 @@ def url_check(given_url: str) -> bool:
              "http://www.hqsluts.com/", "https://www.foxhq.com/", "https://www.rabbitsfun.com/", 
              "https://www.erosberry.com/", "https://www.novohot.com/", "https://eahentai.com/",
              "https://www.nightdreambabe.com/","https://xmissy.nl/", "https://www.glam0ur.com/",
-             "https://www.dirtyyoungbitches.com/")
+             "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
