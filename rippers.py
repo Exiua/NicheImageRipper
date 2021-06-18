@@ -88,7 +88,7 @@ class ImageRipper():
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove("".join([full_path, "/pic1.png"]))
-                                # If all fails, download thumbnail
+                                # If all fails, download thumbnail (applicable to imhentai only)
                                 self.download_from_url(session, trimmed_url, file_num + "t", full_path, ".jpg")
                             except PIL.UnidentifiedImageError:
                                 # No image exists, probably
@@ -100,7 +100,7 @@ class ImageRipper():
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
-                                "pbabes", "sexybabesart", "heymanhustle"):
+                                "pbabes", "sexybabesart", "heymanhustle", "sexhd"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -239,7 +239,8 @@ class ImageRipper():
             "nudity911": nudity911_parse,
             "pbabes": pbabes_parse,
             "sexybabesart": sexybabesart_parse,
-            "heymanhustle": heymanhustle_parse
+            "heymanhustle": heymanhustle_parse,
+            "sexhd": sexhd_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -1190,6 +1191,18 @@ def rossoporn_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
+def sexhd_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for sexhd.pics"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="photobig").find("h4").text.split(":")[1].strip()
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="photobig").find_all("div", class_="relativetop")[1:]
+    images = ["".join(["https://sexhd.pics", img.find("a").get("href")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def sexyaporno_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexyaporno.com"""
     # Parses the html of the site
@@ -1441,7 +1454,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return heymanhustle_parse(driver)
+        return sexhd_parse(driver)
     finally:
         driver.quit()
 
@@ -1514,7 +1527,7 @@ def url_check(given_url: str) -> bool:
              "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/", "https://www.nakedgirls.xxx/",
              "https://www.mainbabes.com/", "https://www.hotstunners.com/", "https://www.sexynakeds.com/",
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
-             "https://www.heymanhustle.com/")
+             "https://www.heymanhustle.com/", "https://sexhd.pics/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
