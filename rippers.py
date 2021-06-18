@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 import PIL
 from PIL import Image
 import requests
+import bs4
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
@@ -100,7 +101,7 @@ class ImageRipper():
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
-                                "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls"):
+                                "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -241,7 +242,8 @@ class ImageRipper():
             "sexybabesart": sexybabesart_parse,
             "heymanhustle": heymanhustle_parse,
             "sexhd": sexhd_parse,
-            "gyrls": gyrls_parse
+            "gyrls": gyrls_parse,
+            "pinkfineart": pinkfineart_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -1142,6 +1144,19 @@ def pbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
+def pinkfineart_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for pinkfineart.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h5", class_="d-none d-sm-block text-center my-2")
+    dir_name = "".join([t for t in dir_name.contents if type(t) == bs4.element.NavigableString])
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("div", class_="card ithumbnail-nobody ishadow ml-2 mb-3")
+    images = ["".join(["https://pinkfineart.com", img.find("a").get("href")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def pleasuregirl_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for pleasuregirl.net"""
     # Parses the html of the site
@@ -1467,7 +1482,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return gyrls_parse(driver)
+        return pinkfineart_parse(driver)
     finally:
         driver.quit()
 
@@ -1540,7 +1555,8 @@ def url_check(given_url: str) -> bool:
              "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/", "https://www.nakedgirls.xxx/",
              "https://www.mainbabes.com/", "https://www.hotstunners.com/", "https://www.sexynakeds.com/",
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
-             "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/")
+             "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
+             "https://www.pinkfineart.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
