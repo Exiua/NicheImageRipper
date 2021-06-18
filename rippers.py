@@ -102,7 +102,7 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics"):
+                                "pics", "redpornblog"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -248,7 +248,8 @@ class ImageRipper():
             "sensualgirls": sensualgirls_parse,
             "novoglam": novoglam_parse,
             "cherrynudes": cherrynudes_parse,
-            "pics": pics_parse
+            "pics": pics_parse,
+            "redpornblog": redpornblog_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -1258,7 +1259,17 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
-parse
+def redpornblog_parse(driver: webdriver.Firefox) -> tuple:
+    """Read the html for redpornblog.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", id="pic-title").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", id="bigpic-image").find_all("img")
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "tn")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
 
 def rossoporn_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for rossoporn.com"""
@@ -1547,7 +1558,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return pics_parse(driver)
+        return redpornblog_parse(driver)
     finally:
         driver.quit()
 
@@ -1622,7 +1633,7 @@ def url_check(given_url: str) -> bool:
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
-             "https://www.cherrynudes.com/", "http://pics.vc/")
+             "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.redpornblog.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
