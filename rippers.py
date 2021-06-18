@@ -100,7 +100,7 @@ class ImageRipper():
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
-                                "pbabes"):
+                                "pbabes", "sexybabesart"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -237,7 +237,8 @@ class ImageRipper():
             "hotstunners": hotstunners_parse,
             "sexynakeds": sexynakeds_parse,
             "nudity911": nudity911_parse,
-            "pbabes": pbabes_parse
+            "pbabes": pbabes_parse,
+            "sexybabesart": sexybabesart_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -1196,6 +1197,18 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
+def sexybabesart_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for sexybabesart.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="content-title").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="thumbs").find_all("img")
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def sexyegirls_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexy-egirls.com"""
     # Parses the html of the site
@@ -1415,7 +1428,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return pbabes_parse(driver)
+        return sexybabesart_parse(driver)
     finally:
         driver.quit()
 
@@ -1487,7 +1500,7 @@ def url_check(given_url: str) -> bool:
              "https://www.nightdreambabe.com/","https://xmissy.nl/", "https://www.glam0ur.com/",
              "https://www.dirtyyoungbitches.com/", "https://www.rossoporn.com/", "https://www.nakedgirls.xxx/",
              "https://www.mainbabes.com/", "https://www.hotstunners.com/", "https://www.sexynakeds.com/",
-             "https://www.nudity911.com/", "https://www.pbabes.com/")
+             "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
