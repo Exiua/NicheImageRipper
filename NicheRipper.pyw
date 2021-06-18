@@ -188,7 +188,7 @@ class RipperGui():
         with open(file_name, 'w+') as save_file:
             if isinstance(data, collections.deque):
                 data = list(data)
-            json.dump(data, save_file)
+            json.dump(data, save_file, indent=4)
 
     @staticmethod
     def read_from_file(file_name: str) -> any:
