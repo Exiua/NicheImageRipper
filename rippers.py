@@ -1386,7 +1386,7 @@ def sexynakeds_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexynakeds.com"""
     #Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("div", class_="box").find("div", class_="box_header").find("h1").text
+    dir_name = soup.find("div", class_="box").find_all("h1")[1].text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="post_tn").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
@@ -1558,7 +1558,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return redpornblog_parse(driver)
+        return nightdreambabe_parse(driver)
     finally:
         driver.quit()
 
