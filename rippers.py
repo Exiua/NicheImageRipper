@@ -1266,7 +1266,7 @@ def redpornblog_parse(driver: webdriver.Firefox) -> tuple:
     dir_name = soup.find("div", id="pic-title").find("h1").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="bigpic-image").find_all("img")
-    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "tn")]) for img in images]
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
