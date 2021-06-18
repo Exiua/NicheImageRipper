@@ -101,7 +101,8 @@ class ImageRipper():
                                 "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
-                                "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes"):
+                                "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
+                                "pics"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -246,7 +247,8 @@ class ImageRipper():
             "pinkfineart": pinkfineart_parse,
             "sensualgirls": sensualgirls_parse,
             "novoglam": novoglam_parse,
-            "cherrynudes": cherrynudes_parse
+            "cherrynudes": cherrynudes_parse,
+            "pics": pics_parse
         }
         site_parser = parser_switch.get(self.site_name)
         if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
@@ -1172,6 +1174,27 @@ def pbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
+def pics_parse(driver: webdriver.Firefox) -> list:
+    """Read the html for pics.vc"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="gall_header").find("h2").text.split("-")[1].strip()
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while True:
+        image_list = soup.find("div", class_="grid").find_all("div", class_="photo_el grid-item transition_bs")
+        image_list = [img.find("img").get("src").replace("/s/", "/o/") for img in image_list]
+        images.extend(image_list)
+        if soup.find("div", id="center_control").find("div", class_="next_page clip") == None:
+            break
+        else:
+            next_page = "".join(["https://pics.vc", soup.find("div", id="center_control").find("a").get("href")])
+            driver.get(next_page)
+            soup = soupify(driver)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def pinkfineart_parse(driver: webdriver.Firefox) -> list:
     """Read the html for pinkfineart.com"""
     #Parses the html of the site
@@ -1247,7 +1270,7 @@ def rossoporn_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
-def sensualgirls_parse(driver: webdriver.Firefox) -> list:
+def sensualgirls_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sensualgirls.org"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -1522,7 +1545,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return cherrynudes_parse(driver)
+        return pics_parse(driver)
     finally:
         driver.quit()
 
@@ -1597,7 +1620,7 @@ def url_check(given_url: str) -> bool:
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
-             "https://www.cherrynudes.com/")
+             "https://www.cherrynudes.com/", "http://pics.vc/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
