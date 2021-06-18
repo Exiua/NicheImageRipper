@@ -56,7 +56,7 @@ class ImageRipper():
         session.headers.update(headers)
         # Can get the image through numerically acending url for these sites
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
-                              "babesbang", "exgirlfriendmarket", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
+                              "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                               "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
                               "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun", "erosberry", "novohot"):
             # Gets the general url of all images in this album
@@ -102,7 +102,7 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics", "redpornblog"):
+                                "pics", "redpornblog", "exgirlfriendmarket"):
             for index in range(int(self.folder_info[1])):
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
@@ -656,21 +656,11 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple:
     # Parses the html of the site
     soup = soupify(driver)
     num_files = len(soup.find_all("div", class_="gallery_thumb"))
-    dir_name = soup.find("div", class_="gallery").find(
-        "img").get("alt").split()
-    for i in range(len(dir_name)):
-        if dir_name[i] == '-':
-            del dir_name[i::]
-            break
-    dir_name = " ".join(dir_name)
+    dir_name = soup.find("div", class_="title-area").find("h1").text
     dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery").find(
-        "a", recursive=False).get("href")
-    images = "".join(["https://www.exgirlfriendmarket.com", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("div", class_="pic-wrap").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find("div", class_="gallery").find_all("a", class_="thumb exo")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1558,7 +1548,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return nightdreambabe_parse(driver)
+        return exgirlfriendmarket_parse(driver)
     finally:
         driver.quit()
 
