@@ -254,7 +254,7 @@ class ImageRipper():
             return domain
         raise RipperError("Not a support site")
 
-def babeimpact_parse(driver: webdriver.Firefox) -> list:
+def babeimpact_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babeimpact.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -280,7 +280,7 @@ def babeimpact_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babesandbitches_parse(driver: webdriver.Firefox) -> list:
+def babesandbitches_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesandbitches.net"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -301,7 +301,7 @@ def babesandbitches_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babesandgirls_parse(driver: webdriver.Firefox) -> list:
+def babesandgirls_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesandgirls.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -320,7 +320,7 @@ def babesandgirls_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babesaround_parse(driver: webdriver.Firefox) -> list:
+def babesaround_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesaround.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -338,7 +338,7 @@ def babesaround_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babesbang_parse(driver: webdriver.Firefox) -> list:
+def babesbang_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesbang.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -357,7 +357,7 @@ def babesbang_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babesinporn_parse(driver: webdriver.Firefox) -> list:
+def babesinporn_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesinporn.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -377,7 +377,7 @@ def babesinporn_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babesmachine_parse(driver: webdriver.Firefox) -> list:
+def babesmachine_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesmachine.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -394,7 +394,7 @@ def babesmachine_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def babeuniversum_parse(driver: webdriver.Firefox) -> list:
+def babeuniversum_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babeuniversum.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -413,7 +413,7 @@ def babeuniversum_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def bustybloom_parse(driver: webdriver.Firefox) -> list:
+def bustybloom_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for bustybloom.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -433,7 +433,7 @@ def bustybloom_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def chickteases_parse(driver: webdriver.Firefox) -> list:
+def chickteases_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for chickteases.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -450,7 +450,7 @@ def chickteases_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def cupe_parse(driver: webdriver.Firefox) -> list:
+def cupe_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hentai.cafe"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -506,7 +506,7 @@ def cupe_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def cyberdrop_parse(driver: webdriver.Firefox) -> list:
+def cyberdrop_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for cyberdrop.me"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -519,7 +519,7 @@ def cyberdrop_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def decorativemodels_parse(driver: webdriver.Firefox) -> list:
+def decorativemodels_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for decorativemodels.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -537,7 +537,7 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> list:
+def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for dirtyyoungbitches.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -549,13 +549,12 @@ def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def eahentai_parse(driver: webdriver.Firefox) -> list:
+def eahentai_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for eahentai.com"""
     #Parses the html of the site
     time.sleep(1)
     #Scroll the page before parsing html to allow img tags to load (because images are set to be lazy loaded)
     SCROLL_PAUSE_TIME = 0.5
-    i = 0
     last_height = driver.execute_script("return document.body.scrollHeight")
     while True:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -564,7 +563,6 @@ def eahentai_parse(driver: webdriver.Firefox) -> list:
         if new_height == last_height:
             break
         last_height = new_height
-        i += 1
     driver.implicitly_wait(10)
     soup = soupify(driver)
     dir_name = soup.find("h2").text
@@ -575,7 +573,7 @@ def eahentai_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def eightboobs_parse(driver: webdriver.Firefox) -> list:
+def eightboobs_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for 8boobs.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -592,7 +590,7 @@ def eightboobs_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def elitebabes_parse(driver: webdriver.Firefox) -> list:
+def elitebabes_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for elitebabes.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -604,7 +602,7 @@ def elitebabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def erosberry_parse(driver: webdriver.Firefox) -> list:
+def erosberry_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for erosberry.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -621,7 +619,7 @@ def erosberry_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
+def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for exgirlfriendmarket.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -644,7 +642,7 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def femjoyhunter_parse(driver: webdriver.Firefox) -> list:
+def femjoyhunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for femjoyhunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -656,7 +654,7 @@ def femjoyhunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def foxhq_parse(driver: webdriver.Firefox) -> list:
+def foxhq_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for foxhq.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -670,7 +668,7 @@ def foxhq_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def ftvhunter_parse(driver: webdriver.Firefox) -> list:
+def ftvhunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for ftvhunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -682,7 +680,7 @@ def ftvhunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def girlsofdesire_parse(driver: webdriver.Firefox) -> list:
+def girlsofdesire_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for girlsofdesire.org"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -699,7 +697,7 @@ def girlsofdesire_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def girlsreleased_parse(driver: webdriver.Firefox) -> list:
+def girlsreleased_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for girlsreleased.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -729,7 +727,7 @@ def girlsreleased_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def glam0ur_parse(driver: webdriver.Firefox) -> list:
+def glam0ur_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for glam0ur.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -741,7 +739,7 @@ def glam0ur_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def grabpussy_parse(driver: webdriver.Firefox) -> list:
+def grabpussy_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for grabpussy.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -759,7 +757,7 @@ def grabpussy_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hanime_parse(driver: webdriver.Firefox) -> list:
+def hanime_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hanime.tv"""
     # Parses the html of the site
     time.sleep(1)  # Wait so images can load
@@ -772,7 +770,7 @@ def hanime_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hegrehunter_parse(driver: webdriver.Firefox) -> list:
+def hegrehunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hegrehunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -784,7 +782,7 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> list:
+def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> tuple:
     """Read the html for hentai.cafe"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -806,7 +804,7 @@ def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> list:
     num_files = soup.find("div", class_="text").string.split()[0]
     return (images, num_files, dir_name)
 
-def hotgirl_parse(driver: webdriver.Firefox, url: str) -> list:
+def hotgirl_parse(driver: webdriver.Firefox, url: str) -> tuple:
     """Read the html for hotgirl.asia"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -835,7 +833,7 @@ def hotgirl_parse(driver: webdriver.Firefox, url: str) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hottystop_parse(driver: webdriver.Firefox, url: str) -> list:
+def hottystop_parse(driver: webdriver.Firefox, url: str) -> tuple:
     """Read the html for hottystop.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -850,7 +848,7 @@ def hottystop_parse(driver: webdriver.Firefox, url: str) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hqbabes_parse(driver: webdriver.Firefox) -> list:
+def hqbabes_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hqbabes.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -875,7 +873,7 @@ def hqbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hqsluts_parse(driver: webdriver.Firefox) -> list:
+def hqsluts_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hqsluts.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -889,13 +887,12 @@ def hqsluts_parse(driver: webdriver.Firefox) -> list:
     producer = "".join(["(", producer, ")"])
     dir_name = " ".join([producer, shoot, model])
     dir_name = clean_dir_name(dir_name)
-    #ext = [".png", ".jpg", ".jpeg"]
     images = [image.find("a").get("href") for image in soup.find_all("li", class_="item i p")]
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
-def hundredbucksbabes_parse(driver: webdriver.Firefox) -> list:
+def hundredbucksbabes_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for 100bucksbabes.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -912,7 +909,7 @@ def hundredbucksbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def imhentai_parse(driver: webdriver.Firefox) -> list:
+def imhentai_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for imhentai.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -925,9 +922,9 @@ def imhentai_parse(driver: webdriver.Firefox) -> list:
     # Removes illegal characters from folder name
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return [images, num_pages, dir_name]
+    return (images, num_pages, dir_name)
 
-def joymiihub_parse(driver: webdriver.Firefox) -> list:
+def joymiihub_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for joymiihub.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -939,7 +936,7 @@ def joymiihub_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def livejasminbabes_parse(driver: webdriver.Firefox) -> list:
+def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for livejasminbabes.net"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -954,7 +951,7 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def metarthunter_parse(driver: webdriver.Firefox) -> list:
+def metarthunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for hetarthunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -966,7 +963,7 @@ def metarthunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def morazzia_parse(driver: webdriver.Firefox) -> list:
+def morazzia_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for morazzia.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -984,7 +981,7 @@ def morazzia_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def nightdreambabe_parse(driver: webdriver.Firefox) -> list:
+def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for nightdreambabe.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -996,7 +993,7 @@ def nightdreambabe_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def novohot_parse(driver: webdriver.Firefox) -> list:
+def novohot_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for novohot.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -1012,7 +1009,7 @@ def novohot_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def novojoy_parse(driver: webdriver.Firefox) -> list:
+def novojoy_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for novojoy.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1029,7 +1026,7 @@ def novojoy_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def novoporn_parse(driver: webdriver.Firefox) -> list:
+def novoporn_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for novoporn.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1050,7 +1047,7 @@ def novoporn_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
+def pleasuregirl_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for pleasuregirl.net"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1069,7 +1066,7 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def pmatehunter_parse(driver: webdriver.Firefox) -> list:
+def pmatehunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for pmatehunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1081,7 +1078,7 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def rabbitsfun_parse(driver: webdriver.Firefox) -> list:
+def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for rabbitsfun.com"""
     #Parses the html of the site
     time.sleep(1)
@@ -1100,7 +1097,7 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def rossoporn_parse(driver: webdriver.Firefox) -> list:
+def rossoporn_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for rossoporn.com"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -1112,7 +1109,7 @@ def rossoporn_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def sexyaporno_parse(driver: webdriver.Firefox) -> list:
+def sexyaporno_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexyaporno.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1132,7 +1129,7 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def sexyegirls_parse(driver: webdriver.Firefox) -> list:
+def sexyegirls_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexy-egirls.com"""
     # Parses the html of the site
     time.sleep(1)  # Wait so images can load
@@ -1152,7 +1149,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def sexykittenporn_parse(driver: webdriver.Firefox) -> list:
+def sexykittenporn_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexykittenporn.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1175,7 +1172,7 @@ def sexykittenporn_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def silkengirl_parse(driver: webdriver.Firefox) -> list:
+def silkengirl_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for silkengirl.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1192,7 +1189,7 @@ def silkengirl_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def simplycosplay_parse(driver: webdriver.Firefox) -> list:
+def simplycosplay_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for simply-cosplay.com"""
     # Parses the html of the site
     time.sleep(5)  # Wait so images can load
@@ -1216,7 +1213,7 @@ def simplycosplay_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def simplyporn_parse(driver: webdriver.Firefox) -> list:
+def simplyporn_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for simply-porn.com"""
     # Parses the html of the site
     # time.sleep(5) #Wait so images can load
@@ -1239,7 +1236,7 @@ def simplyporn_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def theomegaproject_parse(driver: webdriver.Firefox) -> list:
+def theomegaproject_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for theomegaproject.org"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1257,7 +1254,7 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def tuyangyan_parse(driver: webdriver.Firefox) -> list:
+def tuyangyan_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for tuyangyan.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1286,7 +1283,7 @@ def tuyangyan_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def wantedbabes_parse(driver: webdriver.Firefox) -> list:
+def wantedbabes_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for wantedbabes.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1306,7 +1303,7 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def xarthunter_parse(driver: webdriver.Firefox) -> list:
+def xarthunter_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for xarthunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1318,7 +1315,7 @@ def xarthunter_parse(driver: webdriver.Firefox) -> list:
     driver.quit()
     return (images, num_files, dir_name)
 
-def xmissy_parse(driver: webdriver.Firefox) -> list:
+def xmissy_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for xmissy.nl"""
     #Parses the html of the site
     soup = soupify(driver)
@@ -1417,7 +1414,4 @@ if __name__ == "__main__":
         album_url = sys.argv[1]
     else:
         raise RipperError("Script requires a link as an argument")
-    #image_ripper = ImageRipper(sys.argv[1])
-    #image_ripper.image_getter()
     print(test_parse(sys.argv[1]))
-    #print(trim_url(sys.argv[1], True))
