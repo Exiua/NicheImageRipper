@@ -843,6 +843,30 @@ def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> tuple:
     num_files = soup.find("div", class_="text").string.split()[0]
     return (images, num_files, dir_name)
 
+#Cannot bypass captcha, so it doesn't work
+def __hentaicosplays_parse(driver: webdriver.Firefox) -> tuple:
+    """Read the html for hentai-cosplays.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    print_html(soup)
+    dir_name = soup.find("div", id="main_contents").find("h2").text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while True:
+        image_list = soup.find("div", id="display_image_detail").find_all("div", class_="icon-overlay")
+        image_list = [img.find("img").get("src") for img in images]
+        images.extend(image_list)
+        next_page = soup.find("div", id="paginator").find_all("span")[-2].find("a")
+        if next_page == None:
+            break
+        else:
+            next_page = "".join(["https://hentai-cosplays.com", next_page.get("href")])
+            driver.get(next_page)
+            soup = soupify(driver)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def heymanhustle_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for heymanhustle.com"""
     #Parses the html of the site
