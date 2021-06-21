@@ -5,6 +5,8 @@ __pycache__
 config.ini
 RipHistory.json
 UnfinishedRips.json
+Unfinishe1dRips.json
+Unfinishe2dRips.json
 geckodriver.log
 Unfinish1edRips.json
 test_code.py
