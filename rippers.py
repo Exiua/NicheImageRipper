@@ -104,6 +104,7 @@ class ImageRipper():
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket"):
             for index in range(int(self.folder_info[1])):
+                time.sleep(0.2)
                 try:
                     self.download_from_list(session, self.folder_info[0][index], full_path, index)
                 except PIL.UnidentifiedImageError:
@@ -142,23 +143,33 @@ class ImageRipper():
         time.sleep(0.05)
 
     def download_file(self, session: requests.Session, image_path: str, rip_url: str, ext: str):
-        with open(image_path, "wb") as handle:
-            bad_cert = False
-            try:
-                response = session.get(rip_url, headers=requests_header, stream=True)
-            except requests.exceptions.SSLError:
-                response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
-                bad_cert = True
-            if not response.ok and not bad_cert:
-                print(response)
-            handle.write(response.content)
-            #if ext in (".jpg", ".jpeg", ".png", ".webp"):
-                #for block in response.iter_content(chunk_size=512):
-                    #if not block:
-                        #break
-                    #handle.write(block)
-            #elif ext == ".gif":
-                #handle.write(response.content)
+        for _ in range(4):
+            with open(image_path, "wb") as handle:
+                bad_cert = False
+                try:
+                    response = requests.get(rip_url, headers=requests_header, stream=True)
+                except requests.exceptions.SSLError:
+                    response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
+                    bad_cert = True
+                #if "cyberdrop.me" in self.site_name:
+                    #time.sleep(15)
+                if not response.ok and not bad_cert:
+                    print(response)
+                try:
+                    #handle.write(response.content)
+                    #if ext in (".jpg", ".jpeg", ".png", ".webp"):
+                    for block in response.iter_content(chunk_size=10000):
+                        if not block:
+                            break
+                        handle.write(block)
+                    #elif ext == ".gif":
+                        #handle.write(response.content)
+                    break
+                except ConnectionResetError:
+                    print("Conection Reset, Retrying...")
+                    time.sleep(1)
+                    continue
+                
 
     def rename_file_to_hash(self, image_name: str, full_path: str, ext: str):
         if self.hash_filenames:
