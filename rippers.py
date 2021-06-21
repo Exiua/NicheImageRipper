@@ -134,15 +134,15 @@ class ImageRipper():
         num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
         file_name = os.path.basename(urlparse(rip_url).path)
-        image_name = "".join([full_path, '/', file_name])
-        ext = image_name.split(".")[-1]
-        self.download_file(session, image_name, rip_url, ext)
+        image_path = "".join([full_path, '/', file_name])
+        ext = image_path.split(".")[-1]
+        self.download_file(session, image_path, rip_url, ext)
         if self.hash_filenames:
-            self.rename_file_to_hash(image_name, full_path, ext)
+            self.rename_file_to_hash(image_path, full_path, ext)
         time.sleep(0.05)
 
-    def download_file(self, session: requests.Session, image_url: str, rip_url: str, ext: str):
-        with open(image_url, "wb") as handle:
+    def download_file(self, session: requests.Session, image_path: str, rip_url: str, ext: str):
+        with open(image_path, "wb") as handle:
             bad_cert = False
             try:
                 response = session.get(rip_url, headers=requests_header, stream=True)
@@ -153,7 +153,7 @@ class ImageRipper():
                 print(response)
             handle.write(response.content)
             #if ext in (".jpg", ".jpeg", ".png", ".webp"):
-                #for block in response.iter_content(chunk_size=1024):
+                #for block in response.iter_content(chunk_size=512):
                     #if not block:
                         #break
                     #handle.write(block)
