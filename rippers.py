@@ -151,14 +151,12 @@ class ImageRipper():
                 except requests.exceptions.SSLError:
                     response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
                     bad_cert = True
-                #if "cyberdrop.me" in self.site_name:
-                    #time.sleep(15)
                 if not response.ok and not bad_cert:
                     print(response)
                 try:
                     #handle.write(response.content)
                     #if ext in (".jpg", ".jpeg", ".png", ".webp"):
-                    for block in response.iter_content(chunk_size=10000):
+                    for block in response.iter_content(chunk_size=50000):
                         if not block:
                             break
                         handle.write(block)
