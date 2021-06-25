@@ -3,7 +3,6 @@ import hashlib
 import os
 from os import path
 import sys
-import string
 import configparser
 import time
 from math import ceil
@@ -105,7 +104,7 @@ class ImageRipper():
         num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
         image_url = "".join([full_path, "/", str(file_name), ext])
-        self.download_file(session, image_url, rip_url, ext)
+        self.download_file(session, image_url, rip_url)
         if self.hash_filenames:
             self.rename_file_to_hash(image_url, full_path, ext)
         time.sleep(0.05)
@@ -119,12 +118,14 @@ class ImageRipper():
         file_name = os.path.basename(urlparse(rip_url).path)
         image_path = "".join([full_path, '/', file_name])
         ext = image_path.split(".")[-1]
-        self.download_file(session, image_path, rip_url, ext)
+        self.download_file(session, image_path, rip_url)
         if self.hash_filenames:
             self.rename_file_to_hash(image_path, full_path, ext)
         time.sleep(0.05)
 
     def download_file(self, session: requests.Session, image_path: str, rip_url: str):
+        if image_path[-1] == "/":
+            image_path = image_path[:-2]
         for _ in range(4):
             with open(image_path, "wb") as handle:
                 bad_cert = False
@@ -149,7 +150,12 @@ class ImageRipper():
                     print("Conection Reset, Retrying...")
                     time.sleep(1)
                     continue
-                
+        if path.splitext(image_path)[-1] == "":
+            try:
+                os.rename(image_path, image_path + ".jpg")
+            except FileExistsError:
+                os.remove(image_path)
+
     def rename_file_to_hash(self, image_name: str, full_path: str, ext: str):
         if self.hash_filenames:
             # md5 hash is used as image name to avoid duplicate names
