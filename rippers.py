@@ -55,14 +55,14 @@ class ImageRipper():
         session.headers.update(headers)
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
-        if self.site_name in ("imhentai", "hentaicafe"):
+        if self.site_name in ("imhentai"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
             for index in range(1, int(self.folder_info[1]) + 1):
                 num = index
                 # All other sites start from 00
-                if not self.site_name in ("imhentai", "hentaicafe", "girlsofdesire"):
+                if not self.site_name in ("imhentai", "girlsofdesire"):
                     num -= 1
                 # All other sites use 00 styling for single digit numers in url
                 if self.site_name != "imhentai" and num < 10:
@@ -191,7 +191,6 @@ class ImageRipper():
         parser_switch = {
             "imhentai": imhentai_parse,
             "hotgirl": hotgirl_parse,
-            "hentaicafe": hentaicafe_parse,
             "cup-e": cupe_parse,
             "girlsreleased": girlsreleased_parse,
             "bustybloom": bustybloom_parse,
@@ -265,7 +264,7 @@ class ImageRipper():
             "redpornblog": redpornblog_parse
         }
         site_parser = parser_switch.get(self.site_name)
-        if self.site_name in ("hotgirl", "hentaicafe", "hottystop"):
+        if self.site_name in ("hotgirl", "hottystop"):
             site_info = site_parser(driver, self.given_url)
         else:
             site_info = site_parser(driver)
@@ -275,9 +274,6 @@ class ImageRipper():
     def site_check(self) -> str:
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
         if url_check(self.given_url):
-            if "https://hentai.cafe/" in self.given_url:  # Special case
-                requests_header['referer'] = "https://hentai.cafe/"
-                return "hentaicafe"
             domain = urlparse(self.given_url).netloc
             requests_header['referer'] = "".join(["https://", domain, "/"])
             domain = domain.split(".")[-2]
@@ -745,28 +741,6 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> tuple:
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     driver.quit()
-    return (images, num_files, dir_name)
-
-def hentaicafe_parse(driver: webdriver.Firefox, url: str) -> tuple:
-    """Read the html for hentai.cafe"""
-    # Parses the html of the site
-    soup = soupify(driver)
-    if "hc.fyi" in url:
-        dir_name = soup.find("h3").text
-        dir_name = clean_dir_name(dir_name)
-        images = soup.find(
-            "a", class_="x-btn x-btn-flat x-btn-rounded x-btn-large").get("href")
-        driver.get(images)
-        html = driver.page_source
-        soup = BeautifulSoup(html, PARSER)
-    else:
-        start = url.find('/read/') + 6
-        end = url.find('/en/', start)
-        dir_name = url[start:end].replace("-", " ")
-        dir_name = string.capwords(dir_name)
-        dir_name = clean_dir_name(dir_name)
-    images = soup.find("img", class_="open").get("src")
-    num_files = soup.find("div", class_="text").string.split()[0]
     return (images, num_files, dir_name)
 
 #Cannot bypass captcha, so it doesn't work
@@ -1491,7 +1465,7 @@ def write_config(header: str, child: str, change: str):
 
 def url_check(given_url: str) -> bool:
     """Check the url to make sure it is from valid site"""
-    sites = ("https://imhentai.xxx/", "https://hotgirl.asia/", "https://hentai.cafe/",
+    sites = ("https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/"
              "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/",
              "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
              "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
@@ -1515,7 +1489,7 @@ def url_check(given_url: str) -> bool:
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
-             "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.redpornblog.com/")
+             "https://www.cherrynudes.com/", "http://pics.vc/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
