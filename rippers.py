@@ -59,7 +59,7 @@ class ImageRipper():
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                              "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes"):
+                              "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
-                                "8boobs", "babesaround", "grabpussy"):
+                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -391,17 +391,9 @@ def babesinporn_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="blockheader pink center lowercase").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find_all("div", class_="list gallery")
-    images = []
-    for image in image_list:
-        images.extend(image.find_all("div", class_="item"))
+    images = soup.find_all("div", class_="list gallery")
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
     num_files = len(images)
-    images = "".join(["https://babesinporn.com",
-                     images[0].find("a").get("href")])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("img", alt="Click for more").get("src")
-    images = "".join([PROTOCOL, images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1540,7 +1532,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return livejasminbabes_parse(driver)
+        return babesinporn_parse(driver)
     finally:
         driver.quit()
 
