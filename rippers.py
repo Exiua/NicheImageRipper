@@ -59,7 +59,7 @@ class ImageRipper():
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                              "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy"):
+                              "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
-                                "8boobs", "babesaround"):
+                                "8boobs", "babesaround", "grabpussy"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -754,15 +754,9 @@ def grabpussy_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find_all("div", class_="c-title")[1].find("h1").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find(
-        "div", class_="gal own-gallery-images").find_all("a", recursive=False)
-    num_files = len(image_list)
-    images = image_list[0].get("href")
-    images = "".join(["https://grabpussy.com", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("div", class_="pic").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find("div", class_="gal own-gallery-images").find_all("a", recursive=False)
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1549,7 +1543,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babesaround_parse(driver)
+        return grabpussy_parse(driver)
     finally:
         driver.quit()
 
