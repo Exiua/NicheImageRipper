@@ -59,7 +59,7 @@ class ImageRipper():
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                              "pleasuregirl", "sexyaporno", "theomegaproject"):
+                              "pleasuregirl", "sexyaporno"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
-                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine"):
+                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -1433,15 +1433,9 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="omega").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find("div", class_="postholder").find_all(
-        "div", class_="picture", recursive=False)
-    num_files = len(image_list)
-    images = image_list[0].find("a").get("href")
-    images = "".join(["https://theomegaproject.org", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("img", id="big_picture").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find("div", class_="postholder").find_all("div", class_="picture", recursive=False)
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1527,7 +1521,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babesmachine_parse(driver)
+        return theomegaproject_parse(driver)
     finally:
         driver.quit()
 
