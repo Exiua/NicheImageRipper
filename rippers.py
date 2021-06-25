@@ -59,8 +59,7 @@ class ImageRipper():
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                              "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                              "babesaround", "8boobs"):
+                              "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +103,8 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels"):
+                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
+                                "8boobs", "babesaround"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -272,7 +272,7 @@ class ImageRipper():
         else:
             site_info = site_parser(driver)
         driver.quit()
-        return site_info  # pyright: reportUnboundVariable=false
+        return site_info
 
     def site_check(self) -> str:
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
@@ -359,15 +359,10 @@ def babesaround_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("div", class_="ctitle2").find("h1").text
     dir_name = clean_dir_name(dir_name)
-    image_tags = soup.find_all("div", class_="inner_gallery_thumbs")
-    image_list = [tag for im in image_tags for tag in im.find_all(
-        "a", recursive=False)]
-    num_files = len(image_list[1:])
-    images = "".join(["https://babesaround.com", image_list[1].get("href")])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("div", class_="cwidg").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find_all("div", class_="inner_gallery_thumbs")
+    images = [tag for im in images for tag in im.find_all("a", recursive=False)]
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1554,7 +1549,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return eightboobs_parse(driver)
+        return babesaround_parse(driver)
     finally:
         driver.quit()
 
