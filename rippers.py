@@ -60,7 +60,7 @@ class ImageRipper():
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                               "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire"):
+                              "babesaround", "8boobs", "decorativemodels"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun"):
+                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -719,15 +719,9 @@ def girlsofdesire_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("a", class_="albumName").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find("div", id="gal_10").find_all("td", class_="vtop")
-    num_files = len(image_list)
-    images = image_list[0].find("a").get("href")
-    images = "".join(["https://girlsofdesire.org", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("img", id="bigpic").get("src")
-    images = "".join(["https://girlsofdesire.org", images])
-    driver.quit()
+    images = soup.find("div", id="gal_10").find_all("td", class_="vtop")
+    images = ["".join(["https://girlsofdesire.org", img.find("img").get("src").replace("_thumb", "")]) for img in images]
+    num_files = len(images)
     return (images, num_files, dir_name)
 
 def girlsreleased_parse(driver: webdriver.Firefox) -> tuple:
@@ -1573,7 +1567,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return rabbitsfun_parse(driver)
+        return girlsofdesire_parse(driver)
     finally:
         driver.quit()
 
