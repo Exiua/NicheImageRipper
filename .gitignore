@@ -3,21 +3,17 @@ venv
 env
 __pycache__
 config.ini
-RipHistory.json
-UnfinishedRips.json
-Unfinish1edRips.json
-Unfinish2edRips.json
+*.json
+*.html
+*.jpg
+*.png
+*.gif
 geckodriver.log
-Unfinish1edRips.json
 test_code.py
 build
 dist
 NicheRipper.spec
-UnfinishedRips copy.json
 cookies.pkl
 file_compressor.py
 NicheImageRipper.rar
-html.html
 .vscode
-test.jpg
-test.gif
