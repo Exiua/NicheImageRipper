@@ -55,7 +55,7 @@ class ImageRipper():
         session.headers.update(headers)
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom"):
+        if self.site_name in ("imhentai", "hentaicafe"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -102,7 +102,7 @@ class ImageRipper():
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
                                 "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno",
                                 "pleasuregirl", "wantedbabes", "chickteases", "babesandbitches", "babeuniversum", "novoporn", "babesbang",
-                                "100bucksbabes", "babesandgirls", "silkengirl", "novojoy", "morazzia"):
+                                "100bucksbabes", "babesandgirls", "silkengirl", "novojoy", "morazzia", "bustybloom"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -404,19 +404,15 @@ def bustybloom_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for bustybloom.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    num_files = len(soup.find_all("div", class_="gallery_thumb"))
     dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
     for i in range(len(dir_name)):
         if dir_name[i] == '-':
-            del dir_name[i::]
+            del dir_name[i:]
             break
-    dir_name = " ".join(dir_name)
-    dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
-    driver.get("".join(["https://www.bustybloom.com", images]))
-    soup = soupify(driver)
-    images = soup.find("div", class_="picture_thumb").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    dir_name = clean_dir_name(" ".join(dir_name))
+    images = soup.find_all("div", class_="gallery_thumb")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1444,7 +1440,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return morazzia_parse(driver)
+        return bustybloom_parse(driver)
     finally:
         driver.quit()
 
