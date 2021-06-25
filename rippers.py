@@ -10,8 +10,6 @@ from math import ceil
 import functools
 import subprocess
 from pathlib import Path
-from typing import Protocol
-from urllib import parse
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
@@ -57,7 +55,7 @@ class ImageRipper():
         session.headers.update(headers)
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +102,7 @@ class ImageRipper():
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
                                 "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno",
                                 "pleasuregirl", "wantedbabes", "chickteases", "babesandbitches", "babeuniversum", "novoporn", "babesbang",
-                                "100bucksbabes", "babesandgirls", "silkengirl"):
+                                "100bucksbabes", "babesandgirls", "silkengirl", "novojoy"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -1058,14 +1056,9 @@ def novojoy_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("h1").text
     dir_name = clean_dir_name(dir_name)
-    num_files = soup.find_all("a", class_="gallery-thumb")
-    num_files = len(num_files)
-    images = soup.find("a", class_="gallery-thumb").get("href")
-    images = "".join(["https://novojoy.com", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("div", class_="bigpic").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find_all("img", class_="gallery-image")
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1457,7 +1450,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return silkengirl_parse(driver)
+        return novojoy_parse(driver)
     finally:
         driver.quit()
 
