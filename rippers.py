@@ -58,8 +58,7 @@ class ImageRipper():
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
-                              "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                              "pleasuregirl"):
+                              "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +103,8 @@ class ImageRipper():
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
-                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno"):
+                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno",
+                                "pleasuregirl"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -1190,16 +1190,9 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("h2", class_="title").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find(
-        "div", class_="lightgallery-wrap").find_all("div", class_="grid-item thumb")
-    images = image_list[0].find("a").get("href")
-    images = "".join(["https://pleasuregirl.net", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find(
-        "div", class_="swiper-container swiper-container-initialized swiper-container-horizontal").find("img").get("src")
-    images = "".join([PROTOCOL, images])
-    num_files = len(image_list)
+    images = soup.find("div", class_="lightgallery-wrap").find_all("div", class_="grid-item thumb")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1518,7 +1511,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return sexyaporno_parse(driver)
+        return pleasuregirl_parse(driver)
     finally:
         driver.quit()
 
