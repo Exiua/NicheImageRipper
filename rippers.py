@@ -619,14 +619,9 @@ def eightboobs_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("div", class_="title").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find("div", class_="gallery clear").find_all(
-        "a", recursive=False)
-    num_files = len(image_list)
-    images = "".join(["https://8boobs.com", image_list[0].get("href")])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("div", class_="slider").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1559,7 +1554,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return decorativemodels_parse(driver)
+        return eightboobs_parse(driver)
     finally:
         driver.quit()
 
