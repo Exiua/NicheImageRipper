@@ -55,21 +55,12 @@ class ImageRipper():
         session.headers.update(headers)
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
-        if self.site_name in ("imhentai"):
+        if self.site_name == "imhentai":
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
             for index in range(1, int(self.folder_info[1]) + 1):
-                num = index
-                # All other sites start from 00
-                if not self.site_name in ("imhentai", "girlsofdesire"):
-                    num -= 1
-                # All other sites use 00 styling for single digit numers in url
-                if self.site_name != "imhentai" and num < 10:
-                    # Appends a 0 to numbers less than 10
-                    file_num = "".join(["0", str(num)])
-                else:
-                    file_num = str(num)
+                file_num = index
                 try:
                     # Most images will be .jpg
                     self.download_from_url(session, trimmed_url, file_num, full_path, ".jpg")
@@ -86,7 +77,7 @@ class ImageRipper():
                         except PIL.UnidentifiedImageError:
                             try:
                                 os.remove("".join([full_path, "/pic1.png"]))
-                                # If all fails, download thumbnail (applicable to imhentai only)
+                                # If all fails, download thumbnail
                                 self.download_from_url(session, trimmed_url, file_num + "t", full_path, ".jpg")
                             except PIL.UnidentifiedImageError:
                                 # No image exists, probably
@@ -94,15 +85,7 @@ class ImageRipper():
                 except OSError:
                     pass
         # Easier to put all image url in a list and then download for these sites
-        elif self.site_name in ("hotgirl", "cup-e", "girlsreleased", "hqbabes", "babeimpact", "sexykittenporn", "hottystop", "cyberdrop", "sexy-egirls",
-                                "simply-cosplay", "simply-porn", "pmatehunter", "elitebabes", "xarthunter", "joymiihub", "metarthunter", "femjoyhunter",
-                                "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
-                                "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
-                                "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
-                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno",
-                                "pleasuregirl", "wantedbabes", "chickteases", "babesandbitches", "babeuniversum", "novoporn", "babesbang",
-                                "100bucksbabes", "babesandgirls", "silkengirl", "novojoy", "morazzia", "bustybloom"):
+        else:
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
