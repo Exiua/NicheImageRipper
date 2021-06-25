@@ -124,7 +124,7 @@ class ImageRipper():
             self.rename_file_to_hash(image_path, full_path, ext)
         time.sleep(0.05)
 
-    def download_file(self, session: requests.Session, image_path: str, rip_url: str, ext: str):
+    def download_file(self, session: requests.Session, image_path: str, rip_url: str):
         for _ in range(4):
             with open(image_path, "wb") as handle:
                 bad_cert = False
@@ -781,7 +781,7 @@ def hotgirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             driver.get(page_url)
             soup = BeautifulSoup(driver.page_source, PARSER)
             images_list = soup.find_all("img", itemprop="image")
-            del images_list[0]
+            del images_list[0] # First image is just the thumbnail
             images_html.extend(images_list)
     images = [image.get("src") for image in images_html]
     num_files = len(images)
@@ -1395,7 +1395,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return bustybloom_parse(driver)
+        return hotgirl_parse(driver)
     finally:
         driver.quit()
 
