@@ -57,7 +57,7 @@ class ImageRipper():
         session.headers.update(headers)
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
-        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl"):
+        if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
                                 "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno",
                                 "pleasuregirl", "wantedbabes", "chickteases", "babesandbitches", "babeuniversum", "novoporn", "babesbang",
-                                "100bucksbabes", "babesandgirls"):
+                                "100bucksbabes", "babesandgirls", "silkengirl"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -1318,14 +1318,9 @@ def silkengirl_parse(driver: webdriver.Firefox) -> tuple:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="title").text
     dir_name = clean_dir_name(dir_name)
-    num_files = soup.find_all("div", class_="thumb_box")
-    num_files = len(num_files)
-    images = soup.find("div", class_="thumb_box").find("a").get("href")
-    images = "".join(["https://silkengirl.com", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("div", class_="wrap").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find_all("div", class_="thumb_box")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1462,7 +1457,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babesandgirls_parse(driver)
+        return silkengirl_parse(driver)
     finally:
         driver.quit()
 
