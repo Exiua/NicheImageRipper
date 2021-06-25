@@ -1003,14 +1003,11 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for livejasminbabes.net"""
     # Parses the html of the site
     soup = soupify(driver)
-    num_files = len(soup.find_all("div", class_="gallery_thumb"))
     dir_name = soup.find("div", id="gallery_header").find("h1").text
     dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
-    driver.get("".join(["https://www.livejasminbabes.net", images]))
-    soup = soupify(driver)
-    images = soup.find("div", class_="picture_thumb").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find_all("div", class_="gallery_thumb")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1543,7 +1540,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return grabpussy_parse(driver)
+        return livejasminbabes_parse(driver)
     finally:
         driver.quit()
 
