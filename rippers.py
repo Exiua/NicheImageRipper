@@ -170,7 +170,6 @@ class ImageRipper():
                     time.sleep(1)
                     continue
                 
-
     def rename_file_to_hash(self, image_name: str, full_path: str, ext: str):
         if self.hash_filenames:
             # md5 hash is used as image name to avoid duplicate names
@@ -303,8 +302,7 @@ def babeimpact_parse(driver: webdriver.Firefox) -> tuple:
     for tag in tags:
         tag_list.extend(tag.find_all("div", class_="item"))
     num_files = len(tag_list)
-    image_list = ["".join(
-        ["https://babeimpact.com", tag.find("a").get("href")]) for tag in tag_list]
+    image_list = ["".join(["https://babeimpact.com", tag.find("a").get("href")]) for tag in tag_list]
     images = []
     for image in image_list:
         driver.get(image)
