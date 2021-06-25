@@ -10,6 +10,7 @@ from math import ceil
 import functools
 import subprocess
 from pathlib import Path
+from typing import Protocol
 from urllib import parse
 from urllib.parse import urlparse
 import PIL
@@ -59,7 +60,7 @@ class ImageRipper():
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                               "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun"):
+                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -103,7 +104,7 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry"):
+                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -1268,14 +1269,8 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple:
     dir_name = soup.find("h3", class_="watch-mobTitle").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="gallery-watch").find_all("li")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_","")]) for img in images]
     num_files = len(images)
-    images = images[0].find("a").get("href")
-    images = "".join(["https://www.rabbitsfun.com", images])
-    driver.get(images)
-    time.sleep(1)
-    soup = soupify(driver)
-    images = soup.find("a", class_="picture-photo__link").find("img").get("src")
-    images = "".join([PROTOCOL, images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1578,7 +1573,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return erosberry_parse(driver)
+        return rabbitsfun_parse(driver)
     finally:
         driver.quit()
 
