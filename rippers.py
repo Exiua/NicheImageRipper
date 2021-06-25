@@ -246,10 +246,7 @@ class ImageRipper():
             "redpornblog": redpornblog_parse
         }
         site_parser = parser_switch.get(self.site_name)
-        if self.site_name in ("hotgirl", "hottystop"):
-            site_info = site_parser(driver, self.given_url)
-        else:
-            site_info = site_parser(driver)
+        site_info = site_parser(driver)
         driver.quit()
         return site_info
 
@@ -761,10 +758,11 @@ def heymanhustle_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hotgirl_parse(driver: webdriver.Firefox, url: str) -> tuple[list[str], int, str]:
+def hotgirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hotgirl.asia"""
     # Parses the html of the site
     soup = soupify(driver)
+    url = driver.current_url
     # Gets the number of pages
     num_pages = soup.findAll("a", class_="page larger")
     if len(num_pages) > 0:
@@ -802,10 +800,11 @@ def hotstunners_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
-def hottystop_parse(driver: webdriver.Firefox, url: str) -> tuple[list[str], int, str]:
+def hottystop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hottystop.com"""
     # Parses the html of the site
     soup = soupify(driver)
+    url = driver.current_url
     try:
         dir_name = soup.find("div", class_="Box_Large_Content").find("h1").text
     except AttributeError:
