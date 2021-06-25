@@ -58,7 +58,7 @@ class ImageRipper():
         # Can get the image through numerically acending url for these sites
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
-                              "babesbang", "novoporn", "babeuniversum"):
+                              "babesbang", "novoporn"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
                                 "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno",
-                                "pleasuregirl", "wantedbabes", "chickteases", "babesandbitches"):
+                                "pleasuregirl", "wantedbabes", "chickteases", "babesandbitches", "babeuniversum"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -313,6 +313,18 @@ def babeimpact_parse(driver: webdriver.Firefox) -> tuple:
     driver.quit()
     return (images, num_files, dir_name)
 
+def babeuniversum_parse(driver: webdriver.Firefox) -> tuple:
+    """Read the html for babeuniversum.com"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="title").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="three-column").find_all("div", class_="thumbnail")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def babesandbitches_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for babesandbitches.net"""
     # Parses the html of the site
@@ -401,25 +413,6 @@ def babesmachine_parse(driver: webdriver.Firefox) -> tuple:
     images = soup.find("div", id="gallery").find("table").find_all("tr")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
-    return (images, num_files, dir_name)
-
-def babeuniversum_parse(driver: webdriver.Firefox) -> tuple:
-    """Read the html for babeuniversum.com"""
-    # Parses the html of the site
-    soup = soupify(driver)
-    dir_name = soup.find("div", class_="title").find("h1").text
-    dir_name = clean_dir_name(dir_name)
-    num_files = soup.find(
-        "div", class_="three-column").find_all("div", class_="thumbnail")
-    images = num_files[0].find("a").get("href")
-    images = "".join(["https://www.babeuniversum.com", images])
-    num_files = len(num_files)
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find_all(
-        "div", class_="one-column")[1].find("img").get("src")
-    images = "".join([PROTOCOL, images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1493,7 +1486,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babesandbitches_parse(driver)
+        return babeuniversum_parse(driver)
     finally:
         driver.quit()
 
