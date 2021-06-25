@@ -59,7 +59,7 @@ class ImageRipper():
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
                               "pleasuregirl", "sexyaporno", "theomegaproject", "babesmachine", "babesinporn", "livejasminbabes", "grabpussy",
-                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun", "erosberry"):
+                              "babesaround", "8boobs", "decorativemodels", "girlsofdesire", "rabbitsfun"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -103,7 +103,7 @@ class ImageRipper():
                                 "ftvhunter", "hegrehunter", "hanime", "tuyangyan", "hqsluts", "foxhq", "eahentai", "nightdreambabe", "xmissy",
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
-                                "pics", "redpornblog", "exgirlfriendmarket", "novohot"):
+                                "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -656,13 +656,8 @@ def erosberry_parse(driver: webdriver.Firefox) -> tuple:
     dir_name = soup.find("h1", class_="title").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="block-post three-post flex").find_all("a", recursive=False)
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    images = images[0].get("href")
-    images = "".join(["https://www.erosberry.com", images])
-    driver.get(images)
-    soup = soupify(driver)
-    images = soup.find("a", class_="img-view").find("img").get("src")
-    images = "".join([PROTOCOL, images])
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1583,7 +1578,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return novohot_parse(driver)
+        return erosberry_parse(driver)
     finally:
         driver.quit()
 
