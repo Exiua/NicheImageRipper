@@ -59,7 +59,7 @@ class ImageRipper():
         #TODO: #18 Change these from download-by-url types to download-by-list types
         if self.site_name in ("imhentai", "hentaicafe", "bustybloom", "morazzia", "novojoy", "silkengirl", "babesandgirls", "100bucksbabes",
                               "babesbang", "novoporn", "babeuniversum", "babesandbitches", "chickteases", "wantedbabes",
-                              "pleasuregirl", "sexyaporno"):
+                              "pleasuregirl"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url (eg. https://domain/gallery/##.jpg)
@@ -104,7 +104,7 @@ class ImageRipper():
                                 "glam0ur", "dirtyyoungbitches", "rossoporn", "nakedgirls", "mainbabes", "hotstunners", "sexynakeds", "nudity911",
                                 "pbabes", "sexybabesart", "heymanhustle", "sexhd", "gyrls", "pinkfineart", "sensualgirls", "novoglam", "cherrynudes",
                                 "pics", "redpornblog", "exgirlfriendmarket", "novohot", "erosberry", "rabbitsfun", "girlsofdesire", "decorativemodels",
-                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject"):
+                                "8boobs", "babesaround", "grabpussy", "livejasminbabes", "babesinporn", "babesmachine", "theomegaproject", "sexyaporno"):
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
@@ -1280,19 +1280,16 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> tuple:
     """Read the html for sexyaporno.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    num_files = len(soup.find_all("div", class_="gallery_thumb"))
     dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
     for i in range(len(dir_name)):
         if dir_name[i] == '-':
-            del dir_name[i::]
+            del dir_name[i:]
             break
     dir_name = " ".join(dir_name)
     dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="gallery_thumb").find("a").get("href")
-    driver.get("".join(["https://www.sexyaporno.com", images]))
-    soup = soupify(driver)
-    images = soup.find("div", class_="picture_thumb").find("img").get("src")
-    images = "".join([PROTOCOL, images])
+    images = soup.find_all("div", class_="gallery_thumb")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1521,7 +1518,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return theomegaproject_parse(driver)
+        return sexyaporno_parse(driver)
     finally:
         driver.quit()
 
