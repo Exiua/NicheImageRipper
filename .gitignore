@@ -8,6 +8,7 @@ config.ini
 *.jpg
 *.png
 *.gif
+*.txt
 geckodriver.log
 test_code.py
 build
