@@ -1451,7 +1451,7 @@ def write_config(header: str, child: str, change: str):
 
 def url_check(given_url: str) -> bool:
     """Check the url to make sure it is from valid site"""
-    sites = ("https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/"
+    sites = ("https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/",
              "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/",
              "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
              "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
