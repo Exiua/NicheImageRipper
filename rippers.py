@@ -149,6 +149,7 @@ class ImageRipper():
                     print("Conection Reset, Retrying...")
                     time.sleep(1)
                     continue
+        # If the downloaded file doesn't have an extension for some reason, append jpg to filename
         if path.splitext(image_path)[-1] == "":
             try:
                 os.rename(image_path, image_path + ".jpg")
