@@ -248,7 +248,8 @@ class ImageRipper():
             "novoglam": novoglam_parse,
             "cherrynudes": cherrynudes_parse,
             "pics": pics_parse,
-            "redpornblog": redpornblog_parse
+            "redpornblog": redpornblog_parse,
+            "join2babes": join2babes_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -892,6 +893,19 @@ def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
     driver.quit()
     return (images, num_pages, dir_name)
 
+def join2babes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for join2babes.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    print_html(soup)
+    dir_name = soup.find_all("h1")[1].text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("div", {"class" : "gimage"})
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for joymiihub.com"""
     # Parses the html of the site
@@ -1400,7 +1414,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return hotgirl_parse(driver)
+        return join2babes_parse(driver)
     finally:
         driver.quit()
 
@@ -1475,7 +1489,7 @@ def url_check(given_url: str) -> bool:
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
-             "https://www.cherrynudes.com/", "http://pics.vc/")
+             "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
