@@ -1520,7 +1520,6 @@ def read_config(header: str, child: str) -> str:
         config['DEFAULT']['FilenameScheme'] = 'Original'
         config['DEFAULT']['AskToReRip'] = 'True'
         config['DEFAULT']['LiveHistoryUpdate'] = 'False'
-        config['DEFAULT']['HashFilenames'] = 'True'
         config['DEFAULT']['NumberOfThreads'] = 1
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
