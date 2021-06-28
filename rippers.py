@@ -253,7 +253,8 @@ class ImageRipper():
             "join2babes": join2babes_parse,
             "babecentrum": babecentrum_parse,
             "cutegirlporn": cutegirlporn_parse,
-            "everia": everia_parse
+            "everia": everia_parse,
+            "imgbox": imgbox_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -919,6 +920,19 @@ def hundredbucksbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, 
     driver.quit()
     return (images, num_files, dir_name)
 
+def imgbox_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for imgbox.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", id="gallery-view").find("h1").text
+    dir_name = dir_name.split(" - ")[0]
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", id="gallery-view-content").find_all("img")
+    images = [img.get("src").replace("thumbs2", "images2").replace("_b", "_o") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
     """Read the html for imhentai.com"""
     # Parses the html of the site
@@ -1454,7 +1468,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return everia_parse(driver)
+        return imgbox_parse(driver)
     finally:
         driver.quit()
 
@@ -1530,7 +1544,8 @@ def url_check(given_url: str) -> bool:
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
-             "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/")
+             "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
+             "https://imgbox.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
