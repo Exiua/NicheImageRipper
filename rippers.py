@@ -251,7 +251,8 @@ class ImageRipper():
             "pics": pics_parse,
             "redpornblog": redpornblog_parse,
             "join2babes": join2babes_parse,
-            "babecentrum": babecentrum_parse
+            "babecentrum": babecentrum_parse,
+            "cutegirlporn": cutegirlporn_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -491,6 +492,18 @@ def cupe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         model_name = "".join([model_name[:51], "]"])
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     dir_name = clean_dir_name(dir_name)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def cutegirlporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for cutegirlporn.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="gal-title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("ul", class_="gal-thumbs").find_all("li")
+    images = ["".join([PROTOCOL, img.find("img").get("src").replace("/t", "/")]) for img in images]
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1430,7 +1443,7 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return babecentrum_parse(driver)
+        return cutegirlporn_parse(driver)
     finally:
         driver.quit()
 
@@ -1506,7 +1519,7 @@ def url_check(given_url: str) -> bool:
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
-             "https://www.babecentrum.com/")
+             "https://www.babecentrum.com/", "http://www.cutegirlporn.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
