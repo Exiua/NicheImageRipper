@@ -30,11 +30,12 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str, hash_filenames: bool = True):
-        self.folder_info: tuple[list, int, str] = ([], 0, "")
+    def __init__(self, given_url: str, hash_filenames: bool = True, filename_scheme: str = "Original"):
+        self.folder_info: tuple[list or str, int, str] = (None, 0, "")
         self.given_url: str = given_url
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.hash_filenames: bool = hash_filenames
+        self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
@@ -102,10 +103,12 @@ class ImageRipper():
         rip_url = "".join([url_name, str(file_name), ext])
         num_progress = "".join(["(", file_name, "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
-        image_url = "".join([full_path, "/", str(file_name), ext])
-        self.download_file(session, image_url, rip_url)
-        if self.hash_filenames:
-            self.rename_file_to_hash(image_url, full_path, ext)
+        image_path = "".join([full_path, "/", str(file_name), ext])
+        self.download_file(session, image_path, rip_url)
+        if self.filename_scheme == "Hash":
+            self.rename_file_to_hash(image_path, full_path, ext)
+        elif self.filename_scheme == "Chronological":
+            self.rename_file_chronologically(image_path, full_path, ext, file_name)
         time.sleep(0.05)
 
     def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int):
@@ -116,13 +119,16 @@ class ImageRipper():
         print("    ".join([rip_url, num_progress]))
         file_name = os.path.basename(urlparse(rip_url).path)
         image_path = "".join([full_path, '/', file_name])
-        ext = image_path.split(".")[-1]
+        ext = path.splitext(image_path)[1]
         self.download_file(session, image_path, rip_url)
-        if self.hash_filenames:
+        if self.filename_scheme == "Hash":
             self.rename_file_to_hash(image_path, full_path, ext)
+        elif self.filename_scheme == "Chronological":
+            self.rename_file_chronologically(image_path, full_path, ext, current_file_num)
         time.sleep(0.05)
 
     def download_file(self, session: requests.Session, image_path: str, rip_url: str):
+        """Download the given file"""
         if image_path[-1] == "/":
             image_path = image_path[:-2]
         for _ in range(4):
@@ -156,18 +162,29 @@ class ImageRipper():
             except FileExistsError:
                 os.remove(image_path)
 
-    def rename_file_to_hash(self, image_name: str, full_path: str, ext: str):
-        if self.hash_filenames:
-            # md5 hash is used as image name to avoid duplicate names
-            md5hash = hashlib.md5(Image.open(image_name).tobytes())
-            hash5 = md5hash.hexdigest()
-            image_hash_name = "".join([full_path, "/", hash5, ext])
-            # If duplicate exists, remove the duplicate
-            if os.path.exists(image_hash_name):
-                os.remove(image_name)
-            else:
-                # Otherwise, rename the image with the md5 hash
-                os.rename(image_name, image_hash_name)
+    def rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str or int):
+        """Rename the given file to the number of the order it was downloaded in"""
+        curr_num = str(curr_num)
+        chronological_image_name = "".join([full_path, "/", curr_num, ext])
+        # If duplicate exists, remove the duplicate
+        if os.path.exists(chronological_image_name):
+            os.remove(image_path)
+        else:
+            # Otherwise, rename the image with the chronological image name
+            os.rename(image_path, chronological_image_name)
+
+    def rename_file_to_hash(self, image_path: str, full_path: str, ext: str):
+        """Rename the given file to the hash of the given file"""
+        # md5 hash is used as image name to avoid duplicate names
+        md5hash = hashlib.md5(Image.open(image_path).tobytes())
+        hash5 = md5hash.hexdigest()
+        image_hash_name = "".join([full_path, "/", hash5, ext])
+        # If duplicate exists, remove the duplicate
+        if os.path.exists(image_hash_name):
+            os.remove(image_path)
+        else:
+            # Otherwise, rename the image with the md5 hash
+            os.rename(image_path, image_hash_name)
 
     def html_parse(self) -> list:
         """Return image URL, number of images, and folder name."""
@@ -1501,6 +1518,7 @@ def read_config(header: str, child: str) -> str:
         config['DEFAULT'] = {}
         config['DEFAULT']['SavePath'] = 'Rips/'
         config['DEFAULT']['Theme'] = 'Dark'
+        config['DEFAULT']['FilenameScheme'] = 'Original'
         config['DEFAULT']['AskToReRip'] = 'True'
         config['DEFAULT']['LiveHistoryUpdate'] = 'False'
         config['DEFAULT']['HashFilenames'] = 'True'
