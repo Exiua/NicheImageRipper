@@ -252,7 +252,8 @@ class ImageRipper():
             "redpornblog": redpornblog_parse,
             "join2babes": join2babes_parse,
             "babecentrum": babecentrum_parse,
-            "cutegirlporn": cutegirlporn_parse
+            "cutegirlporn": cutegirlporn_parse,
+            "everia": everia_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -604,6 +605,18 @@ def erosberry_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def everia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for everia.club"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("div", class_="separator")
+    images = [img.find("img").get("src") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for exgirlfriendmarket.com"""
     # Parses the html of the site
@@ -762,7 +775,6 @@ def __hentaicosplays_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
     """Read the html for hentai-cosplays.com"""
     #Parses the html of the site
     soup = soupify(driver)
-    print_html(soup)
     dir_name = soup.find("div", id="main_contents").find("h2").text
     dir_name = clean_dir_name(dir_name)
     images = []
@@ -926,7 +938,6 @@ def join2babes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for join2babes.com"""
     #Parses the html of the site
     soup = soupify(driver)
-    print_html(soup)
     dir_name = soup.find_all("h1")[1].text
     dir_name = clean_dir_name(dir_name)
     images = soup.find_all("div", {"class" : "gimage"})
@@ -1434,7 +1445,7 @@ def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
-def test_parse(given_url: str) -> list:
+def _test_parse(given_url: str) -> list:
     """Return image URL, number of images, and folder name."""
     driver = None
     try:
@@ -1443,11 +1454,11 @@ def test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return cutegirlporn_parse(driver)
+        return everia_parse(driver)
     finally:
         driver.quit()
 
-def print_html(soup: BeautifulSoup):
+def _print_html(soup: BeautifulSoup):
     with open("html.html", "w+") as f:
         f.write(str(soup))
 
@@ -1519,7 +1530,7 @@ def url_check(given_url: str) -> bool:
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
-             "https://www.babecentrum.com/", "http://www.cutegirlporn.com/")
+             "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
@@ -1527,4 +1538,4 @@ if __name__ == "__main__":
         album_url = sys.argv[1]
     else:
         raise RipperError("Script requires a link as an argument")
-    print(test_parse(sys.argv[1]))
+    print(_test_parse(sys.argv[1]))
