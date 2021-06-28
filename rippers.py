@@ -155,21 +155,14 @@ class ImageRipper():
                     continue
         # If the downloaded file doesn't have an extension for some reason, append jpg to filename
         if path.splitext(image_path)[-1] == "":
-            try:
-                os.rename(image_path, image_path + ".jpg")
-            except FileExistsError:
-                os.remove(image_path)
+            os.replace(image_path, image_path + ".jpg")
 
     def rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str or int):
         """Rename the given file to the number of the order it was downloaded in"""
         curr_num = str(curr_num)
         chronological_image_name = "".join([full_path, "/", curr_num, ext])
-        # If duplicate exists, remove the duplicate
-        if os.path.exists(chronological_image_name):
-            os.remove(image_path)
-        else:
-            # Otherwise, rename the image with the chronological image name
-            os.rename(image_path, chronological_image_name)
+        # Rename the image with the chronological image name
+        os.replace(image_path, chronological_image_name)
 
     def rename_file_to_hash(self, image_path: str, full_path: str, ext: str):
         """Rename the given file to the hash of the given file"""
