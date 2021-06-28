@@ -30,11 +30,10 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str, hash_filenames: bool = True, filename_scheme: str = "Original"):
+    def __init__(self, given_url: str, filename_scheme: str = "Original"):
         self.folder_info: tuple[list or str, int, str] = (None, 0, "")
         self.given_url: str = given_url
         self.save_path: str = read_config('DEFAULT', 'SavePath')
-        self.hash_filenames: bool = hash_filenames
         self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
         flag = 0x08000000  # No-Window flag
