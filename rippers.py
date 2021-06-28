@@ -58,7 +58,7 @@ class ImageRipper():
             trimmed_url = trim_url(self.folder_info[0])
             # Downloads all images from the general url by incrementing the file number (eg. https://domain/gallery/##.jpg)
             for index in range(1, int(self.folder_info[1]) + 1):
-                file_num = index
+                file_num = str(index)
                 try:
                     # Most images will be .jpg
                     self.download_from_url(session, trimmed_url, file_num, full_path, ".jpg")
@@ -106,8 +106,7 @@ class ImageRipper():
         self.download_file(session, image_path, rip_url)
         if self.filename_scheme == "Hash":
             self.rename_file_to_hash(image_path, full_path, ext)
-        elif self.filename_scheme == "Chronological":
-            self.rename_file_chronologically(image_path, full_path, ext, file_name)
+        # Filenames are chronological by default on imhentai
         time.sleep(0.05)
 
     def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int):
