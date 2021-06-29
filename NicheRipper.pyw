@@ -7,7 +7,7 @@ import time
 import collections
 import subprocess
 import PySimpleGUI as sg
-from rippers import ImageRipper, read_config, write_config, url_check 
+from rippers import ImageRipper, read_config, write_config, url_check
 
 # pylint: disable=line-too-long
 class RipperGui():

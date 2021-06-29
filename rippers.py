@@ -46,42 +46,31 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]])
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
-        headers = {
+        HEADERS = {
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
         }
         session = requests.Session()
-        session.headers.update(headers)
+        session.headers.update(HEADERS)
         # Can get the image through numerically acending url for imhentai (hard to account for gifs otherwise)
         if self.site_name == "imhentai":
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
+            exts = (".jpg", ".gif", ".png", "t.jpg")
             # Downloads all images from the general url by incrementing the file number (eg. https://domain/gallery/##.jpg)
             for index in range(1, int(self.folder_info[1]) + 1):
                 file_num = str(index)
-                try:
-                    # Most images will be .jpg
-                    self.download_from_url(session, trimmed_url, file_num, full_path, ".jpg")
-                except PIL.UnidentifiedImageError:
+                # Go throw file extensions to find the correct extension (generally will be jpg)
+                for i, ext in enumerate(exts):
                     try:
-                        os.remove("".join([full_path, "/pic1.jpg"]))
-                        # Check if .gif
-                        self.download_from_url(session, trimmed_url, file_num, full_path, ".gif")
+                        self.download_from_url(session, trimmed_url, file_num, full_path, ext)
+                        break # Correct extension was found
                     except PIL.UnidentifiedImageError:
-                        try:
-                            os.remove("".join([full_path, "/pic1.gif"]))
-                            # Check if .png
-                            self.download_from_url(session, trimmed_url, file_num, full_path, ".png")
-                        except PIL.UnidentifiedImageError:
-                            try:
-                                os.remove("".join([full_path, "/pic1.png"]))
-                                # If all fails, download thumbnail
-                                self.download_from_url(session, trimmed_url, file_num + "t", full_path, ".jpg")
-                            except PIL.UnidentifiedImageError:
-                                # No image exists, probably
-                                os.remove("".join([full_path, "/pic1.jpg"]))
-                except OSError:
-                    pass
+                        image_path = "".join([full_path, "/", file_num, ext])
+                        print(image_path)
+                        os.remove(image_path) # Remove temp file if wrong file extension
+                        if i == 3:
+                            print("Image not found")
         # Easier to put all image url in a list and then download for these sites
         else:
             for index in range(int(self.folder_info[1])):
@@ -109,10 +98,10 @@ class ImageRipper():
         # Filenames are chronological by default on imhentai
         time.sleep(0.05)
 
-    def download_from_list(self, session: requests.Session, given_url: str, full_path: str, current_file_num: int):
+    def download_from_list(self, session: requests.Session, image_url: str, full_path: str, current_file_num: int):
         """Download images from url supplied from a list of image urls"""
         num_files = self.folder_info[1]
-        rip_url = given_url.strip('\n')
+        rip_url = image_url.strip('\n')
         num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
         file_name = os.path.basename(urlparse(rip_url).path)
