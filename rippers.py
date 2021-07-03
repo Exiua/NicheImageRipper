@@ -251,7 +251,8 @@ class ImageRipper():
             "babecentrum": babecentrum_parse,
             "cutegirlporn": cutegirlporn_parse,
             "everia": everia_parse,
-            "imgbox": imgbox_parse
+            "imgbox": imgbox_parse,
+            "nonsummerjack": nonsummerjack_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -1041,6 +1042,28 @@ def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     driver.quit()
     return (images, num_files, dir_name)
 
+def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while True:
+        image_list = soup.find("div", class_="ngg-galleryoverview default-view").find_all("div", class_="ngg-gallery-thumbnail-box")
+        image_list = [img.find("img").get("src").replace("thumbs/thumbs_", "") for img in image_list]
+        images.extend(image_list)
+        next_page = soup.find("div", class_="ngg-navigation").find("a", class_="prev")
+        if next_page == None:
+            break
+        else:
+            next_page = next_page.get("href")
+            driver.get(next_page)
+            soup = soupify(driver)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def novoglam_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for novoglam.com"""
     #Parses the html of the site
@@ -1465,7 +1488,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return imgbox_parse(driver)
+        return nonsummerjack_parse(driver)
     finally:
         driver.quit()
 
@@ -1542,7 +1565,7 @@ def url_check(given_url: str) -> bool:
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
-             "https://imgbox.com/")
+             "https://imgbox.com/", "https://nonsummerjack.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
