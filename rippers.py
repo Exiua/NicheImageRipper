@@ -252,7 +252,8 @@ class ImageRipper():
             "cutegirlporn": cutegirlporn_parse,
             "everia": everia_parse,
             "imgbox": imgbox_parse,
-            "nonsummerjack": nonsummerjack_parse
+            "nonsummerjack": nonsummerjack_parse,
+            "myhentaigallery": myhentaigallery_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -1018,6 +1019,18 @@ def morazzia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def myhentaigallery_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for myhentaigallery.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="comic-description").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("ul", class_="comics-grid clear").find_all("li")
+    images = [img.find("img").get("src").replace("/thumbnail/", "/original/") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def nakedgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for nakedgirls.xxx"""
     #Parses the html of the site
@@ -1488,7 +1501,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return nonsummerjack_parse(driver)
+        return myhentaigallery_parse(driver)
     finally:
         driver.quit()
 
@@ -1565,7 +1578,7 @@ def url_check(given_url: str) -> bool:
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
-             "https://imgbox.com/", "https://nonsummerjack.com/")
+             "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
