@@ -253,7 +253,8 @@ class ImageRipper():
             "everia": everia_parse,
             "imgbox": imgbox_parse,
             "nonsummerjack": nonsummerjack_parse,
-            "myhentaigallery": myhentaigallery_parse
+            "myhentaigallery": myhentaigallery_parse,
+            "buondua": buondua_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -395,6 +396,33 @@ def babesmachine_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="gallery").find("table").find_all("tr")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def buondua_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for buondua.com"""
+    #Parses the html of the site
+    lazy_load(driver, True)
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="article-header").find("h1").text
+    dir_name = dir_name.split("(")
+    if "pictures" in dir_name[-1] or "photos" in dir_name[-1]:
+        dir_name = dir_name[:-1]
+    dir_name = "(".join(dir_name)
+    dir_name = clean_dir_name(dir_name)
+    pages = len(soup.find("div", class_="pagination-list").find_all("span"))
+    curr_url = driver.current_url.replace("?page=1", "")
+    images = []
+    for i in range(pages):
+        image_list = soup.find("div", class_="article-fulltext").find_all("img")
+        image_list = [img.get("src") for img in image_list]
+        images.extend(image_list)
+        if i < pages - 1:
+            next_page = "".join([curr_url, "?page=", str(i+2)])
+            driver.get(next_page)
+            lazy_load(driver, True)
+            soup = soupify(driver)
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -549,17 +577,8 @@ def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for eahentai.com"""
     #Parses the html of the site
     time.sleep(1)
-    #Scroll the page before parsing html to allow img tags to load (because images are set to be lazy loaded)
-    SCROLL_PAUSE_TIME = 0.5
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(SCROLL_PAUSE_TIME)
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            break
-        last_height = new_height
-    driver.implicitly_wait(10)
+    #Load lazy loaded images
+    lazy_load()
     soup = soupify(driver)
     dir_name = soup.find("h2").text
     dir_name = clean_dir_name(dir_name)
@@ -1501,7 +1520,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return myhentaigallery_parse(driver)
+        return buondua_parse(driver)
     finally:
         driver.quit()
 
@@ -1601,7 +1620,8 @@ def url_check(given_url: str) -> bool:
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
-             "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/")
+             "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
+             "https://buondua.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
