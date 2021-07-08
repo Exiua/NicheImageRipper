@@ -1514,6 +1514,29 @@ def clean_dir_name(given_name: str) -> str:
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     return given_name.translate(translation_table).strip()
 
+#TODO: Merge the if/else
+def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int = 2500):
+    """Load lazy loaded images by scrolling the page"""
+    SCROLL_PAUSE_TIME = 0.5
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    if scrollBy: 
+        curr_height = 0
+        while True:
+            driver.execute_script("".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"]))
+            time.sleep(SCROLL_PAUSE_TIME)
+            curr_height += increment
+            if curr_height >= last_height:
+                break
+    else:
+        while True:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(SCROLL_PAUSE_TIME)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+    driver.implicitly_wait(10)
+
 def soupify(driver: webdriver.Firefox) -> BeautifulSoup:
     """Return BeautifulSoup object of html from driver"""
     html = driver.page_source
