@@ -23,7 +23,7 @@ class RipperError(Exception):
 
 PROTOCOL = "https:"
 CONFIG = 'config.ini'
-PARSER = "html.parser"
+PARSER = "lxml" #"html.parser"
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
                     'referer': 'https://imhentai.xxx/'}
@@ -1586,4 +1586,7 @@ if __name__ == "__main__":
         album_url = sys.argv[1]
     else:
         raise RipperError("Script requires a link as an argument")
+    start = time.process_time_ns()
     print(_test_parse(sys.argv[1]))
+    end = time.process_time_ns()
+    #print("Time Elapsed: " + str(end - start))
