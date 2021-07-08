@@ -254,7 +254,8 @@ class ImageRipper():
             "imgbox": imgbox_parse,
             "nonsummerjack": nonsummerjack_parse,
             "myhentaigallery": myhentaigallery_parse,
-            "buondua": buondua_parse
+            "buondua": buondua_parse,
+            "f5girls": f5girls_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -645,6 +646,27 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple[list[str], int,
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="gallery").find_all("a", class_="thumb exo")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for f5girls.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find_all("div", class_="container")[2].find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    curr_url = driver.current_url.replace("?page=1", "")
+    pages = len(soup.find("ul", class_="pagination").find_all("li")) - 1
+    for i in range(pages):
+        image_list = soup.find_all("img", class_="album-image lazy")
+        image_list = [img.get("src") for img in image_list]
+        images.extend(image_list)
+        if i < pages - 1:
+            next_page = "".join([curr_url, "?page=", str(i + 2)])
+            driver.get(next_page)
+            soup = soupify(driver)
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -1520,7 +1542,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return buondua_parse(driver)
+        return f5girls_parse(driver)
     finally:
         driver.quit()
 
@@ -1621,7 +1643,7 @@ def url_check(given_url: str) -> bool:
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
-             "https://buondua.com/")
+             "https://buondua.com/", "https://f5girls.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
