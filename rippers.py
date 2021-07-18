@@ -1,5 +1,6 @@
 """This module downloads images from given URL"""
 import hashlib
+from json import load
 import os
 from os import path
 import sys
@@ -16,10 +17,16 @@ import requests
 import bs4
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver import ActionChains
 from selenium.webdriver.firefox.options import Options
 
 class RipperError(Exception):
     """General Ripper Exceptions"""
+    pass
+
+class WrongExtension(RipperError):
+    """File not found due to using incorrect extension"""
+    pass
 
 PROTOCOL = "https:"
 CONFIG = 'config.ini'
@@ -52,8 +59,8 @@ class ImageRipper():
         }
         session = requests.Session()
         session.headers.update(HEADERS)
-        # Can get the image through numerically acending url for imhentai (hard to account for gifs otherwise)
-        if self.site_name == "imhentai":
+        # Can get the image through numerically acending url for imhentai and hentairox (hard to account for gifs otherwise)
+        if self.site_name in ("imhentai", "hentairox"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
             exts = (".jpg", ".gif", ".png", "t.jpg")
@@ -65,9 +72,8 @@ class ImageRipper():
                     try:
                         self.download_from_url(session, trimmed_url, file_num, full_path, ext)
                         break # Correct extension was found
-                    except PIL.UnidentifiedImageError:
+                    except (PIL.UnidentifiedImageError, WrongExtension):
                         image_path = "".join([full_path, "/", file_num, ext])
-                        print(image_path)
                         os.remove(image_path) # Remove temp file if wrong file extension
                         if i == 3:
                             print("Image not found")
@@ -128,6 +134,8 @@ class ImageRipper():
                     bad_cert = True
                 if not response.ok and not bad_cert:
                     print(response)
+                    if response.status_code == 404:
+                        raise WrongExtension
                 try:
                     #handle.write(response.content)
                     #if ext in (".jpg", ".jpeg", ".png", ".webp"):
@@ -255,7 +263,8 @@ class ImageRipper():
             "nonsummerjack": nonsummerjack_parse,
             "myhentaigallery": myhentaigallery_parse,
             "buondua": buondua_parse,
-            "f5girls": f5girls_parse
+            "f5girls": f5girls_parse,
+            "hentairox": hentairox_parse
         }
         site_parser = parser_switch.get(self.site_name)
         site_info = site_parser(driver)
@@ -834,6 +843,17 @@ def __hentaicosplays_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
     driver.quit()
     return (images, num_files, dir_name)
 
+def hentairox_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
+    """Read the html for hentairox.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="col-md-7 col-sm-7 col-lg-8 right_details").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", id="append_thumbs").find("img", class_="lazy preloader").get("data-src")
+    num_files = int(soup.find("li", class_="pages").text.split()[0])
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def heymanhustle_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for heymanhustle.com"""
     #Parses the html of the site
@@ -974,7 +994,7 @@ def imgbox_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return (images, num_files, dir_name)
 
 def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
-    """Read the html for imhentai.com"""
+    """Read the html for imhentai.xxx"""
     # Parses the html of the site
     soup = soupify(driver)
     # Gets the image URL to be turned into the general image URL
@@ -1542,7 +1562,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return f5girls_parse(driver)
+        return hentairox_parse(driver)
     finally:
         driver.quit()
 
@@ -1643,7 +1663,7 @@ def url_check(given_url: str) -> bool:
              "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
-             "https://buondua.com/", "https://f5girls.com/")
+             "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
