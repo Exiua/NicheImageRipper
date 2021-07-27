@@ -14,10 +14,10 @@ from urllib.parse import urlparse
 import PIL
 from PIL import Image
 import requests
+import tldextract
 import bs4
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver import ActionChains
 from selenium.webdriver.firefox.options import Options
 
 class RipperError(Exception):
@@ -41,9 +41,10 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str, filename_scheme: str = "Original"):
+    def __init__(self, given_url: str, url_list: list[str], filename_scheme: str = "Original"):
         self.folder_info: tuple[list or str, int, str] = (None, 0, "")
         self.given_url: str = given_url
+        self.url_list: list[str] = url_list
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
