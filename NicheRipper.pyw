@@ -146,7 +146,7 @@ class RipperGui():
         """Rips files from url"""
         url = self.url_list[0]
         print(url)
-        img_ripper = ImageRipper(url, self.filename_scheme)
+        img_ripper = ImageRipper(url, self.url_list, self.filename_scheme)
         img_ripper.image_getter()
         self.update_table(img_ripper, url, self.live_history_update, window)
         self.url_list.remove(url)

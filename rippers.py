@@ -1372,19 +1372,41 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     # Parses the html of the site
     time.sleep(1)  # Wait so images can load
     soup = soupify(driver)
-    dir_name = soup.find(
-        "div", class_="album-info-title").find("h1").text.split()
-    split = 0
-    for i, word in enumerate(dir_name):
-        if "Pictures" in word or "Video" in word:
-            split = i
-            break
-    dir_name = dir_name[:split-1]
-    dir_name = clean_dir_name(" ".join(dir_name))
-    image_list = soup.find_all("div", class_="album-item")
-    images = [image.find("a").get("href") for image in image_list]
+    url = driver.current_url
+    subdomain = getattr(tldextract.extract(url), "subdomain")
+    rippable_links = ("https://forum.sexy-egirls.com/data/video/", "/attachments/")
+    #rippable_images = ("https://forum.sexy-egirls.com/attachments/")
+    if subdomain == "www":
+        dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
+        split = 0
+        for i, word in enumerate(dir_name):
+            if "Pictures" in word or "Video" in word:
+                split = i
+                break
+        dir_name = dir_name[:split-1]
+        dir_name = clean_dir_name(" ".join(dir_name))
+        image_list = soup.find_all("div", class_="album-item")
+        images = [image.find("a").get("href") for image in image_list]
+        driver.quit()
+    elif subdomain == "forum":
+        dir_name = soup.find("h1", class_="p-title-value").find_all(text=True, recursive=False)
+        dir_name = "".join(dir_name)
+        dir_name = clean_dir_name(dir_name)
+        posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
+        posts = [p.find("div", {"class": "message-userContent lbContainer js-lbContainer"}) for p in posts]
+        images = []
+        for p in posts:
+            links = p.find_all("a")
+            image_list = p.find_all("img")
+            links = [link.get("href") for link in links]
+            links = [link if "https://" in link else "".join(["https://forum.sexy-egirls.com", link]) for link in links if any(r in link for r in rippable_links)]
+            image_list = [img.get("src") for img in image_list]
+            image_list = [img for img in image_list if "https://forum.sexy-egirls.com/attachments/" in img]
+            images.extend(links)
+            images.extend(image_list)
+    else:
+        raise InvalidSubdomain
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sexykittenporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1567,7 +1589,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return hentairox_parse(driver)
+        return sexyegirls_parse(driver)
     finally:
         driver.quit()
 
