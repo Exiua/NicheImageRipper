@@ -1,6 +1,6 @@
 # .gitignore
 venv
-env
+.env
 __pycache__
 config.ini
 *.json
