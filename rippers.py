@@ -41,10 +41,9 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str, url_list: list[str], filename_scheme: str = "Original"):
+    def __init__(self, given_url: str, filename_scheme: str = "Original"):
         self.folder_info: tuple[list or str, int, str] = (None, 0, "")
         self.given_url: str = given_url
-        self.url_list: list[str] = url_list
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
@@ -115,7 +114,10 @@ class ImageRipper():
         rip_url = image_url.strip('\n')
         num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
-        file_name = os.path.basename(urlparse(rip_url).path)
+        if "https://forum.sexy-egirls.com/" in rip_url:
+            file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
+        else:
+            file_name = os.path.basename(urlparse(rip_url).path)
         image_path = "".join([full_path, '/', file_name])
         ext = path.splitext(image_path)[1]
         self.download_file(session, image_path, rip_url)
@@ -1392,18 +1394,26 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         dir_name = soup.find("h1", class_="p-title-value").find_all(text=True, recursive=False)
         dir_name = "".join(dir_name)
         dir_name = clean_dir_name(dir_name)
-        posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
-        posts = [p.find("div", {"class": "message-userContent lbContainer js-lbContainer"}) for p in posts]
         images = []
-        for p in posts:
-            links = p.find_all("a")
-            image_list = p.find_all("img")
-            links = [link.get("href") for link in links]
-            links = [link if "https://" in link else "".join(["https://forum.sexy-egirls.com", link]) for link in links if any(r in link for r in rippable_links)]
-            image_list = [img.get("src") for img in image_list]
-            image_list = [img for img in image_list if "https://forum.sexy-egirls.com/attachments/" in img]
-            images.extend(links)
-            images.extend(image_list)
+        while True:
+            posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
+            posts = [p.find("div", {"class": "message-userContent lbContainer js-lbContainer"}) for p in posts]
+            for p in posts:
+                links = p.find_all("a")
+                image_list = p.find_all("img")
+                links = [link.get("href") for link in links]
+                links = [link if "https://" in link else "".join(["https://forum.sexy-egirls.com", link]) for link in links if link != None and any(r in link for r in rippable_links)]
+                image_list = [img.get("src") for img in image_list]
+                image_list = [img for img in image_list if "https://forum.sexy-egirls.com/attachments/" in img]
+                images.extend(links)
+                images.extend(image_list)
+            next_page = soup.find("nav", {"class": "pageNavWrapper pageNavWrapper--mixed"}).find("a", class_="pageNav-jump pageNav-jump--next")
+            if next_page == None:
+                break
+            else:
+                next_page = "".join(["https://forum.sexy-egirls.com/", next_page.get("href")])
+                driver.get(next_page)
+                soup = soupify(driver)
     else:
         raise InvalidSubdomain
     num_files = len(images)
