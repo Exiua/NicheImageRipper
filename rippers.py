@@ -272,7 +272,8 @@ class ImageRipper():
             "buondua": buondua_parse,
             "f5girls": f5girls_parse,
             "hentairox": hentairox_parse,
-            "gofile": gofile_parse
+            "gofile": gofile_parse,
+            "putme": putme_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] or str, int, str] = site_parser(driver)
@@ -1293,6 +1294,28 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def putme_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for putme.ga"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("a", {"data-text": "album-name"}).text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while True:
+        image_list = soup.find("div", class_="pad-content-listing").find_all("img")
+        image_list = [img.get("src").replace(".md", "") for img in image_list]
+        images.extend(image_list)
+        next_page = soup.find("li", class_="pagination-next").find("a").get("href")
+        if next_page == None:
+            break
+        else:
+            print(next_page)
+            driver.get(next_page)
+            soup = soupify(driver)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for rabbitsfun.com"""
     #Parses the html of the site
@@ -1613,7 +1636,7 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return gofile_parse(driver)
+        return putme_parse(driver)
     finally:
         driver.quit()
 
@@ -1715,7 +1738,7 @@ def url_check(given_url: str) -> bool:
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
-             "https://gofile.io/")
+             "https://gofile.io/", "https://putme.ga/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
