@@ -187,13 +187,11 @@ class ImageRipper():
     def site_login(self, driver: webdriver.Firefox):
         curr_url = driver.current_url
         if self.site_name == "sexy-egirls" and "forum." in self.given_url:
-            
-            driver.get("https://forum.sexy-egirls.com/login/")
             driver.implicitly_wait(10)
+            driver.get("https://forum.sexy-egirls.com/login/")
             driver.find_element_by_xpath("//input[@type='text']").send_keys(self.logins["sexy-egirls"][0])
-            driver.find_element_by_xpath("//input[@type='password']").send_keys(self.logins["sexy-egirls"][0])
+            driver.find_element_by_xpath("//input[@type='password']").send_keys(self.logins["sexy-egirls"][1])
             driver.find_element_by_xpath("//button[@type='submit']").click()
-            print("hi")
         driver.get(curr_url)
 
     def html_parse(self) -> tuple[list[str] or str, int, str]:
@@ -1653,9 +1651,7 @@ def _test_parse(given_url: str) -> list:
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
         rip = ImageRipper(given_url)
-        time.sleep(5)
         rip.site_login(driver)
-        time.sleep(500)
         return sexyegirls_parse(driver)
     finally:
         driver.quit()
