@@ -184,6 +184,18 @@ class ImageRipper():
             # Otherwise, rename the image with the md5 hash
             os.rename(image_path, image_hash_name)
 
+    def site_login(self, driver: webdriver.Firefox):
+        curr_url = driver.current_url
+        if self.site_name == "sexy-egirls" and "forum." in self.given_url:
+            
+            driver.get("https://forum.sexy-egirls.com/login/")
+            driver.implicitly_wait(10)
+            driver.find_element_by_xpath("//input[@type='text']").send_keys(self.logins["sexy-egirls"][0])
+            driver.find_element_by_xpath("//input[@type='password']").send_keys(self.logins["sexy-egirls"][0])
+            driver.find_element_by_xpath("//button[@type='submit']").click()
+            print("hi")
+        driver.get(curr_url)
+
     def html_parse(self) -> tuple[list[str] or str, int, str]:
         """Return image URL, number of images, and folder name."""
         options = Options()
@@ -191,6 +203,7 @@ class ImageRipper():
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url)
+        self.site_login(driver)
         parser_switch = {
             "imhentai": imhentai_parse,
             "hotgirl": hotgirl_parse,
@@ -1635,11 +1648,15 @@ def _test_parse(given_url: str) -> list:
     driver = None
     try:
         options = Options()
-        options.headless = True
+        options.headless = False
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        return putme_parse(driver)
+        rip = ImageRipper(given_url)
+        time.sleep(5)
+        rip.site_login(driver)
+        time.sleep(500)
+        return sexyegirls_parse(driver)
     finally:
         driver.quit()
 
@@ -1743,7 +1760,7 @@ def url_check(given_url: str) -> bool:
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
-             "https://gofile.io/", "https://putme.ga/")
+             "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
