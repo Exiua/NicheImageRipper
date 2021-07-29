@@ -1,6 +1,7 @@
 # .gitignore
 venv
 .env
+.idea
 __pycache__
 config.ini
 *.json

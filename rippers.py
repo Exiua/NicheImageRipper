@@ -10,6 +10,7 @@ from math import ceil
 import functools
 import subprocess
 from pathlib import Path
+from typing import Callable
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
@@ -67,7 +68,7 @@ class ImageRipper():
         }
         session = requests.Session()
         session.headers.update(HEADERS)
-        # Can get the image through numerically acending url for imhentai and hentairox (hard to account for gifs otherwise)
+        # Can get the image through numerically ascending url for imhentai and hentairox (hard to account for gifs otherwise)
         if self.site_name in ("imhentai", "hentairox"):
             # Gets the general url of all images in this album
             trimmed_url = trim_url(self.folder_info[0])
@@ -1448,6 +1449,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         dir_name = clean_dir_name(dir_name)
         images = []
         BASE_URL = "https://forum.sexy-egirls.com"
+        page = 1
         while True:
             posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
             posts = [p.find("div", {"class": "message-userContent lbContainer js-lbContainer"}) for p in posts]
@@ -1465,9 +1467,11 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
                 images.extend(image_list)
                 images.extend(videos)
             next_page = soup.find("nav", {"class": "pageNavWrapper pageNavWrapper--mixed"}).find("a", class_="pageNav-jump pageNav-jump--next")
-            if next_page != None:
+            print("".join(["Parsed page ", str(page)]))
+            if next_page == None:
                 break
             else:
+                page += 1
                 next_page = "".join([BASE_URL, "/", next_page.get("href")])
                 driver.get(next_page)
                 soup = soupify(driver)
@@ -1661,6 +1665,14 @@ def _test_parse(given_url: str) -> list:
         return sexyegirls_parse(driver)
     finally:
         driver.quit()
+
+def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], tuple[list[str] or str, int, str]]) -> list[str]:
+    """Parses the html for links for supported sites used in other sites"""
+    curr = driver.current_url
+    driver.get(link)
+    images, _, _ = parser(driver)
+    driver.get(curr)
+    return images
 
 def _print_html(soup: BeautifulSoup):
     with open("html.html", "w+") as f:
