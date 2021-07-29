@@ -181,7 +181,7 @@ class ImageRipper():
             # Otherwise, rename the image with the md5 hash
             os.rename(image_path, image_hash_name)
 
-    def html_parse(self) -> list:
+    def html_parse(self) -> tuple[list[str] or str, int, str]:
         """Return image URL, number of images, and folder name."""
         options = Options()
         options.headless = True
@@ -274,8 +274,8 @@ class ImageRipper():
             "hentairox": hentairox_parse,
             "gofile": gofile_parse
         }
-        site_parser = parser_switch.get(self.site_name)
-        site_info = site_parser(driver)
+        site_parser: function = parser_switch.get(self.site_name)
+        site_info: tuple[list[str] or str, int, str] = site_parser(driver)
         driver.quit()
         return site_info
 
