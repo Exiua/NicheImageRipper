@@ -34,7 +34,7 @@ class InvalidSubdomain(RipperError):
 
 PROTOCOL = "https:"
 CONFIG = 'config.ini'
-PARSER = "lxml" #"html.parser"
+PARSER = "lxml" #"html.parser" lxml is faster
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
                     'referer': 'https://imhentai.xxx/'}
@@ -47,6 +47,9 @@ class ImageRipper():
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
+        self.logins: dict[str, tuple[str, str]] = {
+            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
+        }
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
@@ -1696,6 +1699,8 @@ def read_config(header: str, child: str) -> str:
         config['DEFAULT']['AskToReRip'] = 'True'
         config['DEFAULT']['LiveHistoryUpdate'] = 'False'
         config['DEFAULT']['NumberOfThreads'] = 1
+        config['LOGINS']['Sexy-EgirlsU'] = ""
+        config['LOGINS']['Sexy-EgirlsP'] = ""
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
