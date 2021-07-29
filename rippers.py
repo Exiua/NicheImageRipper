@@ -33,6 +33,7 @@ class InvalidSubdomain(RipperError):
     pass
 
 PROTOCOL = "https:"
+SCHEME = "https://"
 CONFIG = 'config.ini'
 PARSER = "lxml" #"html.parser" lxml is faster
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
@@ -117,7 +118,7 @@ class ImageRipper():
         rip_url = image_url.strip('\n')
         num_progress = "".join(["(", str(current_file_num + 1), "/", str(num_files), ")"])
         print("    ".join([rip_url, num_progress]))
-        if "https://forum.sexy-egirls.com/" in rip_url:
+        if "https://forum.sexy-egirls.com/" in rip_url and rip_url[-1] =="/":
             file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
         else:
             file_name = os.path.basename(urlparse(rip_url).path)
@@ -298,7 +299,7 @@ class ImageRipper():
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
         if url_check(self.given_url):
             domain = urlparse(self.given_url).netloc
-            requests_header['referer'] = "".join(["https://", domain, "/"])
+            requests_header['referer'] = "".join([SCHEME, domain, "/"])
             domain = domain.split(".")[-2]
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:  # Hosts images on a different domain
                 requests_header['referer'] = "https://cdn.discordapp.com/"
@@ -1428,7 +1429,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     url = driver.current_url
     subdomain = getattr(tldextract.extract(url), "subdomain")
     rippable_links = ("https://forum.sexy-egirls.com/data/video/", "/attachments/")
-    #rippable_images = ("https://forum.sexy-egirls.com/attachments/")
+    rippable_images = ("https://forum.sexy-egirls.com/attachments/", "putme.ga")
     if subdomain == "www":
         dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
         split = 0
@@ -1446,23 +1447,28 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         dir_name = "".join(dir_name)
         dir_name = clean_dir_name(dir_name)
         images = []
+        BASE_URL = "https://forum.sexy-egirls.com"
         while True:
             posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
             posts = [p.find("div", {"class": "message-userContent lbContainer js-lbContainer"}) for p in posts]
             for p in posts:
                 links = p.find_all("a")
                 image_list = p.find_all("img")
+                videos = p.find_all("video")
                 links = [link.get("href") for link in links]
-                links = [link if "https://" in link else "".join(["https://forum.sexy-egirls.com", link]) for link in links if link != None and any(r in link for r in rippable_links)]
+                links = [link if SCHEME in link else "".join([BASE_URL, link]) for link in links if link != None and any(r in link for r in rippable_links)]
                 image_list = [img.get("src") for img in image_list]
-                image_list = [img for img in image_list if "https://forum.sexy-egirls.com/attachments/" in img]
+                image_list = [img if not "putme.ga" in img else img.replace(".md", "") for img in image_list if any(r in img for r in rippable_images)]
+                videos = [vid.find("source").get("src") for vid in videos]
+                videos = [vid if SCHEME in vid else "".join([BASE_URL, vid]) for vid in videos]
                 images.extend(links)
                 images.extend(image_list)
+                images.extend(videos)
             next_page = soup.find("nav", {"class": "pageNavWrapper pageNavWrapper--mixed"}).find("a", class_="pageNav-jump pageNav-jump--next")
-            if next_page == None:
+            if next_page != None:
                 break
             else:
-                next_page = "".join(["https://forum.sexy-egirls.com/", next_page.get("href")])
+                next_page = "".join([BASE_URL, "/", next_page.get("href")])
                 driver.get(next_page)
                 soup = soupify(driver)
     else:
@@ -1646,7 +1652,7 @@ def _test_parse(given_url: str) -> list:
     driver = None
     try:
         options = Options()
-        options.headless = False
+        options.headless = True
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
