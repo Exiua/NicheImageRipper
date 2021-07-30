@@ -198,6 +198,10 @@ class ImageRipper():
 
     def html_parse(self) -> tuple[list[str] or str, int, str]:
         """Return image URL, number of images, and folder name."""
+        if path.isfile("partial.json"):
+            save_data = self.read_partial_save()
+            if self.given_url in save_data:
+                return save_data[self.given_url]
         options = Options()
         options.headless = True
         options.add_argument = DRIVER_HEADER
@@ -293,8 +297,23 @@ class ImageRipper():
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] or str, int, str] = site_parser(driver)
+        self.partial_save(site_info)
         driver.quit()
         return site_info
+
+    def partial_save(self, site_info: tuple[list[str] or str, int, str]):
+        """Saves parsed site data to quickly retrieve in event of a failure"""
+        with open("partial.json", 'w+') as save_file:
+            json.dump({self.given_url: site_info}, save_file, indent=4)
+
+    def read_partial_save(self) -> tuple[list[str] or str, int, str]:
+        """Read site_info from partial save file"""
+        try:
+            with open("partial.json", 'r') as load_file:
+                data = json.load(load_file)
+                return data
+        except FileNotFoundError:
+            pass
 
     def site_check(self) -> str:
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
