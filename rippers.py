@@ -208,6 +208,7 @@ class ImageRipper():
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url)
         self.site_login(driver)
+        global parser_switch
         parser_switch = {
             "imhentai": imhentai_parse,
             "hotgirl": hotgirl_parse,
