@@ -1,8 +1,10 @@
 """This module downloads images from given URL"""
 import hashlib
 from json import load
+import json
 import os
-from os import path
+from os import path, walk
+import subprocess
 import sys
 import configparser
 import time
@@ -14,6 +16,7 @@ from typing import Callable
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
+from natsort import natsorted
 import requests
 import tldextract
 import bs4
@@ -44,7 +47,7 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 class ImageRipper():
     """Image Ripper Class"""
     def __init__(self, given_url: str, filename_scheme: str = "Original"):
-        self.folder_info: tuple[list or str, int, str] = (None, 0, "")
+        self.folder_info: tuple[list[str] or str, int, str] = (None, 0, "")
         self.given_url: str = given_url
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: str = filename_scheme
@@ -121,6 +124,8 @@ class ImageRipper():
         print("    ".join([rip_url, num_progress]))
         if "https://forum.sexy-egirls.com/" in rip_url and rip_url[-1] =="/":
             file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
+            ext = file_name.split(".")[-1]
+            file_name = "".join([hashlib.md5(file_name.encode()).hexdigest(), ".", ext])
         else:
             file_name = os.path.basename(urlparse(rip_url).path)
         image_path = "".join([full_path, '/', file_name])
@@ -147,7 +152,10 @@ class ImageRipper():
                 if not response.ok and not bad_cert:
                     print(response)
                     if response.status_code == 404:
-                        raise WrongExtension
+                        with open("failed.txt", "a") as f:
+                            f.write("".join([rip_url, "\n"]))
+                        return
+                        #raise WrongExtension
                 try:
                     #handle.write(response.content)
                     #if ext in (".jpg", ".jpeg", ".png", ".webp"):
@@ -171,7 +179,11 @@ class ImageRipper():
         curr_num = str(curr_num)
         chronological_image_name = "".join([full_path, "/", curr_num, ext])
         # Rename the image with the chronological image name
-        os.replace(image_path, chronological_image_name)
+        try:
+            os.replace(image_path, chronological_image_name)
+        except:
+            with open("failed.txt", "a") as f:
+                f.write("".join([self.folder_info[0][int(curr_num)], "\n"]))
 
     def rename_file_to_hash(self, image_path: str, full_path: str, ext: str):
         """Rename the given file to the hash of the given file"""
@@ -1521,8 +1533,11 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     url = driver.current_url
     subdomain = getattr(tldextract.extract(url), "subdomain")
-    rippable_links = ("https://forum.sexy-egirls.com/data/video/", "/attachments/")
-    rippable_images = ("https://forum.sexy-egirls.com/attachments/", "putme.ga")
+    rippable_links = ("https://forum.sexy-egirls.com/data/video/", "/attachments/"#, "https://gofile.io/"
+    )
+    rippable_images = ("https://forum.sexy-egirls.com/attachments/", "putme.ga"#, "https://i.imgur.com/"
+    )
+    parsable_links = ("https://gofile.io/")
     if subdomain == "www":
         dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
         split = 0
@@ -1883,6 +1898,8 @@ if __name__ == "__main__":
     else:
         raise RipperError("Script requires a link as an argument")
     start = time.process_time_ns()
-    print(_test_parse(sys.argv[1]))
+    #print(_test_parse(sys.argv[1]))
+    ripper = ImageRipper(sys.argv[1])
+    ripper.verify_files("D:\Documents\Programming\Rips\Ashley Tervort")
     end = time.process_time_ns()
     #print("Time Elapsed: " + str(end - start))
