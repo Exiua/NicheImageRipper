@@ -186,6 +186,55 @@ class ImageRipper():
             # Otherwise, rename the image with the md5 hash
             os.rename(image_path, image_hash_name)
 
+    def verify_files(self, full_path: str):
+        """Check for truncated and corrupted files"""
+        _, _, files = next(walk(full_path))
+        files = natsorted(files)
+        #files = sorted(Path(full_path).iterdir(), key=os.path.getctime)
+        image_links = self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
+        log_file = open("error.log", "w")
+        log_file.close()
+        vid_ext = (".m4v", ".mp4", ".mov", ".webm")
+        vid_cmd = ["ffmpeg.exe", "-v", "error", "-i", None, "-f", "null", "-", ">error.log", "2>&1"] #Chenge idx 4
+        for i, f in enumerate(files):
+            filename = os.path.join(full_path, f)
+            vid_cmd[4] = "".join(['', filename, ''])
+            statfile = os.stat(filename)
+            filesize = statfile.st_size
+            if filesize == 0:
+                print("0b filesize")
+                print(f)
+                self.redownload_files(filename, image_links[i])
+            else:
+                if any(ext in f for ext in vid_ext):
+                    subprocess.call(vid_cmd, stderr=open("error.log", "a"))
+                    with open("error.log", "rb") as log:
+                        cmd_out = tail(log).decode()
+                        if "[NULL @" not in cmd_out:
+                            print(cmd_out)
+                            print(f)
+                            self.redownload_files(filename, image_links[i])
+                else:
+                    try:
+                        with Image.open(filename) as im:
+                            im.verify()
+                        with Image.open(filename) as im: #Image reloading may be needed
+                            im.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+                    except Exception as e: 
+                        print(e)
+                        print(f)
+                        self.redownload_files(filename, image_links[i])
+    
+    def redownload_files(self, filename: str, url: str):
+        """Redownload damaged files"""
+        with open(filename, "wb") as handle:
+            response = requests.get(url, headers=requests_header, stream=True)
+            if response.ok:
+                for block in response.iter_content(chunk_size=50000):
+                    if not block:
+                        break
+                    handle.write(block)
+
     def site_login(self, driver: webdriver.Firefox):
         curr_url = driver.current_url
         if self.site_name == "sexy-egirls" and "forum." in self.given_url:
