@@ -1544,6 +1544,14 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
                 next_page = "".join([BASE_URL, "/", next_page.get("href")])
                 driver.get(next_page)
                 soup = soupify(driver)
+        for link in images:
+            if any(p in link for p in parsable_links):
+                site_name = urlparse(link).netloc
+                global parser_switch
+                parser: Callable[[webdriver.Firefox], tuple[list[str] or str, int, str]] = parser_switch.get(site_name)
+                image_list = secondary_parse(driver, link, parser)
+                images.extend(image_list)
+                images.remove(link)
     else:
         raise InvalidSubdomain
     num_files = len(images)
