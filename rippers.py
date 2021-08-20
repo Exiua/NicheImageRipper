@@ -1462,7 +1462,6 @@ def redgifs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = []
     while True:
         image_list = soup.find_all("video", class_="video media")
-        print(len(image_list))
         image_list = [img.find("source").get("src").replace("-mobile", "") for img in image_list]
         images.extend(image_list)
         try:
