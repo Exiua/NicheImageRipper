@@ -18,6 +18,7 @@ import PIL
 from PIL import Image
 from natsort import natsorted
 import requests
+import selenium
 import tldextract
 import bs4
 from bs4 import BeautifulSoup
@@ -355,7 +356,8 @@ class ImageRipper():
             "f5girls": f5girls_parse,
             "hentairox": hentairox_parse,
             "gofile": gofile_parse,
-            "putme": putme_parse
+            "putme": putme_parse,
+            "redgifs": redgifs_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] or str, int, str] = site_parser(driver)
@@ -1449,6 +1451,30 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def redgifs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for redgifs.com"""
+    #Parses the html of the site
+    time.sleep(3)
+    lazy_load(driver, True, 1250)
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="name-wrapper").find("h1", class_="name").text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while True:
+        image_list = soup.find_all("video", class_="video media")
+        print(len(image_list))
+        image_list = [img.find("source").get("src").replace("-mobile", "") for img in image_list]
+        images.extend(image_list)
+        try:
+            driver.find_element_by_xpath("//div[@class='paginator__next-button']").click()
+            lazy_load(driver, True, 1250)
+            soup = soupify(driver)
+        except selenium.common.exceptions.NoSuchElementException:
+            break
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def redpornblog_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for redpornblog.com"""
     #Parses the html of the site
@@ -1537,7 +1563,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     )
     rippable_images = ("https://forum.sexy-egirls.com/attachments/", "putme.ga"#, "https://i.imgur.com/"
     )
-    parsable_links = ("https://gofile.io/")
+    parsable_links = ("https://gofile.io/", "https://cyberdrop.me/a/")
     if subdomain == "www":
         dir_name = soup.find("div", class_="album-info-title").find("h1").text.split()
         split = 0
@@ -1775,9 +1801,9 @@ def _test_parse(given_url: str) -> list:
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
-        rip = ImageRipper(given_url)
-        rip.site_login(driver)
-        return sexyegirls_parse(driver)
+        #rip = ImageRipper(given_url)
+        #rip.site_login(driver)
+        return redgifs_parse(driver)
     finally:
         driver.quit()
 
@@ -1799,18 +1825,18 @@ def clean_dir_name(given_name: str) -> str:
     return given_name.translate(translation_table).strip()
 
 #TODO: Merge the if/else
-def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int = 2500):
+def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5):
     """Load lazy loaded images by scrolling the page"""
-    SCROLL_PAUSE_TIME = 0.5
-    last_height = driver.execute_script("return document.body.scrollHeight")
+    SCROLL_PAUSE_TIME = scroll_pause_time
+    last_height = driver.execute_script("return window.pageYOffset")
     if scrollBy: 
-        curr_height = 0
         while True:
             driver.execute_script("".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"]))
             time.sleep(SCROLL_PAUSE_TIME)
-            curr_height += increment
-            if curr_height >= last_height:
+            new_height = driver.execute_script("return window.pageYOffset")
+            if new_height == last_height:
                 break
+            last_height = new_height
     else:
         while True:
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -1889,7 +1915,8 @@ def url_check(given_url: str) -> bool:
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
-             "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/")
+             "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
+             "https://www.redgifs.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
@@ -1898,8 +1925,8 @@ if __name__ == "__main__":
     else:
         raise RipperError("Script requires a link as an argument")
     start = time.process_time_ns()
-    #print(_test_parse(sys.argv[1]))
-    ripper = ImageRipper(sys.argv[1])
-    ripper.verify_files("D:\Documents\Programming\Rips\Ashley Tervort")
+    print(_test_parse(sys.argv[1]))
+    #ripper = ImageRipper(sys.argv[1])
+    #ripper.verify_files("D:\Documents\Programming\Rips\Ashley Tervort")
     end = time.process_time_ns()
     #print("Time Elapsed: " + str(end - start))
