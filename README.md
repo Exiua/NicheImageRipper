@@ -1,5 +1,5 @@
 # NicheImageRipper [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE)
-[![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases)
+[![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases) ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
 
 # About
 
