@@ -48,7 +48,7 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
 class ImageRipper():
     """Image Ripper Class"""
     def __init__(self, given_url: str, filename_scheme: str = "Original"):
-        self.folder_info: tuple[list[str] or str, int, str] = (None, 0, "")
+        self.folder_info: tuple[list[str] | str, int, str] = (None, 0, "")
         self.given_url: str = given_url
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: str = filename_scheme
@@ -175,7 +175,7 @@ class ImageRipper():
         if path.splitext(image_path)[-1] == "":
             os.replace(image_path, image_path + ".jpg")
 
-    def rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str or int):
+    def rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str | int):
         """Rename the given file to the number of the order it was downloaded in"""
         curr_num = str(curr_num)
         chronological_image_name = "".join([full_path, "/", curr_num, ext])
@@ -258,7 +258,7 @@ class ImageRipper():
             driver.find_element_by_xpath("//button[@type='submit']").click()
         driver.get(curr_url)
 
-    def html_parse(self) -> tuple[list[str] or str, int, str]:
+    def html_parse(self) -> tuple[list[str] | str, int, str]:
         """Return image URL, number of images, and folder name."""
         if path.isfile("partial.json"):
             save_data = self.read_partial_save()
@@ -357,20 +357,21 @@ class ImageRipper():
             "hentairox": hentairox_parse,
             "gofile": gofile_parse,
             "putme": putme_parse,
-            "redgifs": redgifs_parse
+            "redgifs": redgifs_parse,
+            "kemono": kemono_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
-        site_info: tuple[list[str] or str, int, str] = site_parser(driver)
+        site_info: tuple[list[str] | str, int, str] = site_parser(driver)
         self.partial_save(site_info)
         driver.quit()
         return site_info
 
-    def partial_save(self, site_info: tuple[list[str] or str, int, str]):
+    def partial_save(self, site_info: tuple[list[str] | str, int, str]):
         """Saves parsed site data to quickly retrieve in event of a failure"""
         with open("partial.json", 'w+') as save_file:
             json.dump({self.given_url: site_info}, save_file, indent=4)
 
-    def read_partial_save(self) -> tuple[list[str] or str, int, str]:
+    def read_partial_save(self) -> tuple[list[str] | str, int, str]:
         """Read site_info from partial save file"""
         try:
             with open("partial.json", 'r') as load_file:
@@ -961,6 +962,44 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for kemono.party"""
+    #Parses the html of the site
+    base_url = driver.current_url
+    base_url = base_url.split("/")
+    source_site = base_url[3]
+    base_url = "/".join(base_url[:6])
+    time.sleep(5)
+    soup = soupify(driver)
+    dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+    dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
+    image_links = []
+    while True:
+        image_list = soup.find("div", class_="card-list__items").find_all("article")
+        image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+        image_links.extend(image_list)
+        next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
+        if next_page == None:
+            break
+        else:
+            next_page = "".join(["https://kemono.party", next_page.get("href")])
+            driver.get(next_page)
+            time.sleep(5)
+            soup = soupify(driver)
+    images = []
+    for link in image_links:
+        driver.get(link)
+        time.sleep(5)
+        soup = soupify(driver)
+        image_list = soup.find("div", class_="post__files")
+        if image_list != None:
+            image_list = image_list.find_all("a", class_="fileThumb image-link")
+            image_list = ["".join(["https://data2.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
+            images.extend(image_list)
+    num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
 
@@ -1611,7 +1650,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             if any(p in link for p in parsable_links):
                 site_name = urlparse(link).netloc
                 global parser_switch
-                parser: Callable[[webdriver.Firefox], tuple[list[str] or str, int, str]] = parser_switch.get(site_name)
+                parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(site_name)
                 image_list = secondary_parse(driver, link, parser)
                 images.extend(image_list)
                 images.remove(link)
@@ -1802,11 +1841,11 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return redgifs_parse(driver)
+        return kemono_parse(driver)
     finally:
         driver.quit()
 
-def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], tuple[list[str] or str, int, str]]) -> list[str]:
+def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]]) -> list[str]:
     """Parses the html for links for supported sites used in other sites"""
     curr = driver.current_url
     driver.get(link)
@@ -1869,9 +1908,10 @@ def read_config(header: str, child: str) -> str:
         config['DEFAULT']['FilenameScheme'] = 'Original'
         config['DEFAULT']['AskToReRip'] = 'True'
         config['DEFAULT']['LiveHistoryUpdate'] = 'False'
-        config['DEFAULT']['NumberOfThreads'] = 1
-        config['LOGINS']['Sexy-EgirlsU'] = ""
-        config['LOGINS']['Sexy-EgirlsP'] = ""
+        config['DEFAULT']['NumberOfThreads'] = '1'
+        config['LOGINS'] = {}
+        config['LOGINS']['Sexy-EgirlsU'] = ''
+        config['LOGINS']['Sexy-EgirlsP'] = ''
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
@@ -1915,7 +1955,7 @@ def url_check(given_url: str) -> bool:
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
-             "https://www.redgifs.com/")
+             "https://www.redgifs.com/", "https://kemono.party/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
