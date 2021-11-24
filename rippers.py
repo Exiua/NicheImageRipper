@@ -43,7 +43,9 @@ CONFIG = 'config.ini'
 PARSER = "lxml" #"html.parser" lxml is faster
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
-                    'referer': 'https://imhentai.xxx/'}
+                    'referer': 'https://imhentai.xxx/',
+                    'cookie': ''
+                    }
 
 class ImageRipper():
     """Image Ripper Class"""
@@ -146,7 +148,7 @@ class ImageRipper():
             with open(image_path, "wb") as handle:
                 bad_cert = False
                 try:
-                    response = requests.get(rip_url, headers=requests_header, stream=True)
+                    response = session.get(rip_url, headers=requests_header, stream=True)
                 except requests.exceptions.SSLError:
                     response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
                     bad_cert = True
@@ -388,6 +390,8 @@ class ImageRipper():
             domain = domain.split(".")[-2]
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:  # Hosts images on a different domain
                 requests_header['referer'] = "https://cdn.discordapp.com/"
+            elif "https://kemono.party/" in self.given_url:
+                requests_header['referer'] = ""
             return domain
         raise RipperError("Not a support site")
 
@@ -968,6 +972,11 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for kemono.party"""
     #Parses the html of the site
+    cookies = driver.get_cookies()
+    cookie_str = ''
+    for c in cookies:
+        cookie_str += "".join([c['name'], '=', c['value'], ';'])
+    requests_header["cookie"] = cookie_str
     base_url = driver.current_url
     base_url = base_url.split("/")
     source_site = base_url[3]
@@ -987,12 +996,10 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         else:
             next_page = "".join(["https://kemono.party", next_page.get("href")])
             driver.get(next_page)
-            time.sleep(5)
             soup = soupify(driver)
     images = []
     for link in image_links:
         driver.get(link)
-        time.sleep(5)
         soup = soupify(driver)
         image_list = soup.find("div", class_="post__files")
         if image_list != None:
