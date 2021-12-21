@@ -360,7 +360,8 @@ class ImageRipper():
             "gofile": gofile_parse,
             "putme": putme_parse,
             "redgifs": redgifs_parse,
-            "kemono": kemono_parse
+            "kemono": kemono_parse,
+            "sankakucomplex": sankakucomplex_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1544,6 +1545,18 @@ def rossoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def sankakucomplex_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").find("a").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("a", class_="swipebox")
+    images = [img.get("href") if PROTOCOL in img.get("href") else "".join([PROTOCOL, img.get("href")]) for img in images[1:]]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def sensualgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for sensualgirls.org"""
     #Parses the html of the site
@@ -1848,7 +1861,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return kemono_parse(driver)
+        return sankakucomplex_parse(driver)
     finally:
         driver.quit()
 
@@ -1962,7 +1975,7 @@ def url_check(given_url: str) -> bool:
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
-             "https://www.redgifs.com/", "https://kemono.party/")
+             "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
