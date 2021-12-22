@@ -158,8 +158,10 @@ class ImageRipper():
                     if response.status_code == 404:
                         with open("failed.txt", "a") as f:
                             f.write("".join([rip_url, "\n"]))
-                        return
-                        #raise WrongExtension
+                        if self.site_name != "imhentai":
+                            return
+                        else:    
+                            raise WrongExtension
                 try:
                     #handle.write(response.content)
                     #if ext in (".jpg", ".jpeg", ".png", ".webp"):
