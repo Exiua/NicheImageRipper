@@ -46,6 +46,7 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
                     'referer': 'https://imhentai.xxx/',
                     'cookie': ''
                     }
+DEBUG = False
 
 class ImageRipper():
     """Image Ripper Class"""
@@ -361,7 +362,8 @@ class ImageRipper():
             "putme": putme_parse,
             "redgifs": redgifs_parse,
             "kemono": kemono_parse,
-            "sankakucomplex": sankakucomplex_parse
+            "sankakucomplex": sankakucomplex_parse,
+            "luscious": luscious_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1235,6 +1237,25 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     driver.quit()
     return (images, num_files, dir_name)
 
+def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for luscious.net"""
+    #Parses the html of the site
+    time.sleep(5)
+    lazy_load(driver, True, backscroll=2)
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="o-h1 album-heading").text
+    dir_name = clean_dir_name(dir_name)
+    image_list = soup.find_all("div", class_="o-justified-box safe_link 2")
+    images = []
+    for img in image_list:
+        link = img.find("img").get("src").split(".")
+        link[-2] = "1680x0"
+        link = ".".join(link)
+        images.append(link)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def mainbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for mainbabes.com"""
     #Parses the html of the site
@@ -1546,7 +1567,7 @@ def rossoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return (images, num_files, dir_name)
 
 def sankakucomplex_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for"""
+    """Read the html for sankakucomplex.com"""
     #Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="entry-title").find("a").text
@@ -1855,13 +1876,13 @@ def _test_parse(given_url: str) -> list:
     driver = None
     try:
         options = Options()
-        options.headless = True
+        options.headless = not DEBUG
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return sankakucomplex_parse(driver)
+        return luscious_parse(driver)
     finally:
         driver.quit()
 
@@ -1883,7 +1904,7 @@ def clean_dir_name(given_name: str) -> str:
     return given_name.translate(translation_table).strip()
 
 #TODO: Merge the if/else
-def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5):
+def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5, backscroll: int = 0):
     """Load lazy loaded images by scrolling the page"""
     SCROLL_PAUSE_TIME = scroll_pause_time
     last_height = driver.execute_script("return window.pageYOffset")
@@ -1893,6 +1914,11 @@ def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int 
             time.sleep(SCROLL_PAUSE_TIME)
             new_height = driver.execute_script("return window.pageYOffset")
             if new_height == last_height:
+                if backscroll > 0:
+                    for _ in range(backscroll):
+                        driver.execute_script("".join(["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
+                        time.sleep(SCROLL_PAUSE_TIME)
+                    time.sleep(SCROLL_PAUSE_TIME)
                 break
             last_height = new_height
     else:
@@ -1975,7 +2001,8 @@ def url_check(given_url: str) -> bool:
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
-             "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/")
+             "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
+             "https://www.luscious.net/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
