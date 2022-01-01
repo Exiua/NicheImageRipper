@@ -13,6 +13,7 @@ import functools
 import subprocess
 from pathlib import Path
 from typing import Callable
+import urllib3
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
@@ -44,7 +45,7 @@ PARSER = "lxml" #"html.parser" lxml is faster
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
                     'referer': 'https://imhentai.xxx/',
-                    'cookie': ''
+                    'cookie': '__ddgid=8OYPBCcijNqNLFPG; __ddg2=jJBBC0uFUQodvYkW; __ddg1=7H91n5MBCH1UanO5mMhw'
                     }
 DEBUG = False
 
@@ -163,14 +164,10 @@ class ImageRipper():
                         else:    
                             raise WrongExtension
                 try:
-                    #handle.write(response.content)
-                    #if ext in (".jpg", ".jpeg", ".png", ".webp"):
                     for block in response.iter_content(chunk_size=50000):
                         if not block:
                             break
                         handle.write(block)
-                    #elif ext == ".gif":
-                        #handle.write(response.content)
                     break
                 except ConnectionResetError:
                     print("Conection Reset, Retrying...")
@@ -269,6 +266,7 @@ class ImageRipper():
             save_data = self.read_partial_save()
             if self.given_url in save_data:
                 return save_data[self.given_url]
+            requests_header["cookie"] = save_data["cookies"]
         options = Options()
         options.headless = True
         options.add_argument = DRIVER_HEADER
@@ -375,8 +373,10 @@ class ImageRipper():
 
     def partial_save(self, site_info: tuple[list[str] | str, int, str]):
         """Saves parsed site data to quickly retrieve in event of a failure"""
+        data = {self.given_url: site_info,
+                "cookies": requests_header["cookie"]}
         with open("partial.json", 'w+') as save_file:
-            json.dump({self.given_url: site_info}, save_file, indent=4)
+            json.dump(data, save_file, indent=4)
 
     def read_partial_save(self) -> tuple[list[str] | str, int, str]:
         """Read site_info from partial save file"""
@@ -1018,7 +1018,7 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         image_list = soup.find("div", class_="post__files")
         if image_list != None:
             image_list = image_list.find_all("a", class_="fileThumb image-link")
-            image_list = ["".join(["https://data4.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
+            image_list = ["".join(["https://data1.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
             images.extend(image_list)
     with open("megaLinks.txt", "a") as f:
         f.writelines(mega_links)
