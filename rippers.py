@@ -1944,6 +1944,10 @@ def lazy_load(driver: webdriver.Firefox, scrollBy: bool = False, increment: int 
             last_height = new_height
     driver.implicitly_wait(10)
 
+def mark_as_failed(url: str):
+    with open("failed.txt", "a") as f:
+        f.write("".join([url, "\n"]))
+
 def soupify(driver: webdriver.Firefox) -> BeautifulSoup:
     """Return BeautifulSoup object of html from driver"""
     html = driver.page_source
