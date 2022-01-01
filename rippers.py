@@ -990,8 +990,11 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
     dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
+    page = 1
     image_links = []
     while True:
+        print("".join(["Parsing page ", str(page)]))
+        page += 1
         image_list = soup.find("div", class_="card-list__items").find_all("article")
         image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
         image_links.extend(image_list)
@@ -1003,14 +1006,22 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             driver.get(next_page)
             soup = soupify(driver)
     images = []
-    for link in image_links:
+    mega_links = []
+    num_posts = len(image_links)
+    for i, link in enumerate(image_links):
+        print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
         driver.get(link)
         soup = soupify(driver)
+        links = soup.find_all("a")
+        links = ["".join([l.get("href"), "\n"]) for l in links if "mega.nz" in l.get("href")]
+        mega_links.extend(links)
         image_list = soup.find("div", class_="post__files")
         if image_list != None:
             image_list = image_list.find_all("a", class_="fileThumb image-link")
-            image_list = ["".join(["https://data2.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
+            image_list = ["".join(["https://data4.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
             images.extend(image_list)
+    with open("megaLinks.txt", "a") as f:
+        f.writelines(mega_links)
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -1884,7 +1895,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return luscious_parse(driver)
+        return kemono_parse(driver)
     finally:
         driver.quit()
 
