@@ -146,6 +146,7 @@ class ImageRipper():
         """Download the given file"""
         if image_path[-1] == "/":
             image_path = image_path[:-2]
+        bad_subdomain = False
         for _ in range(4):
             with open(image_path, "wb") as handle:
                 bad_cert = False
@@ -155,6 +156,10 @@ class ImageRipper():
                     response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
                     bad_cert = True
                 if not response.ok and not bad_cert:
+                    print(self.site_name)
+                    if response.status_code == 403 and self.site_name == "kemono":
+                        bad_subdomain = True
+                        break
                     print(response)
                     if response.status_code == 404:
                         with open("failed.txt", "a") as f:
@@ -173,6 +178,21 @@ class ImageRipper():
                     print("Conection Reset, Retrying...")
                     time.sleep(1)
                     continue
+        #If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
+        # Context: 
+        #   https://data1.kemono.party//data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
+        #   Will fail, however, changing the subdomain to data5 will allow requests to download the file
+        #   Given that there are generally correct cookies in place
+        if bad_subdomain:
+            url_parts = tldextract.extract(rip_url)
+            subdomain = url_parts.subdomain
+            subdomain_num = int(subdomain[-1])
+            if subdomain_num > 20:
+                mark_as_failed(rip_url)
+                return
+            rip_url = rip_url.replace(subdomain, "".join(["data", str(subdomain_num + 1)]))
+            print(rip_url)
+            self.download_file(session, image_path, rip_url)
         # If the downloaded file doesn't have an extension for some reason, append jpg to filename
         if path.splitext(image_path)[-1] == "":
             os.replace(image_path, image_path + ".jpg")
