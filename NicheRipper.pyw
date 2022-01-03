@@ -95,7 +95,14 @@ class RipperGui():
                     window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file: #Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
-                self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(url in sublist for sublist in self.table_data)])
+                #for url in unfinished_list:
+                #    if url not in self.url_list:
+                #        if any(url in sublist for sublist in self.table_data):
+                #            if sg.popup_yes_no('Do you want to re-rip URL?') == 'Yes':
+                #                self.url_list.append(url)
+                #        else:
+                #            self.url_list.append(url)
+                self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(url in sublist for sublist in self.table_data)]) #Fix this to allow rerip
                 self.loaded_file = True
                 window['-STATUS-']('Urls loaded', text_color='green')
                 if sg.popup_yes_no('Do you want to delete the file?', no_titlebar=True) == 'Yes':
