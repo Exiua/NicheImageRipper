@@ -45,7 +45,7 @@ PARSER = "lxml" #"html.parser" lxml is faster
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
                     'referer': 'https://imhentai.xxx/',
-                    'cookie': '__ddgid=8OYPBCcijNqNLFPG; __ddg2=jJBBC0uFUQodvYkW; __ddg1=7H91n5MBCH1UanO5mMhw'
+                    'cookie': ''
                     }
 DEBUG = False
 
@@ -151,7 +151,7 @@ class ImageRipper():
             with open(image_path, "wb") as handle:
                 bad_cert = False
                 try:
-                    response = session.get(rip_url, headers=requests_header, stream=True)
+                    response = session.get(rip_url, headers=requests_header, stream=True, allow_redirects=True)
                 except requests.exceptions.SSLError:
                     response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
                     bad_cert = True
@@ -162,8 +162,7 @@ class ImageRipper():
                         break
                     print(response)
                     if response.status_code == 404:
-                        with open("failed.txt", "a") as f:
-                            f.write("".join([rip_url, "\n"]))
+                        mark_as_failed(rip_url)
                         if self.site_name != "imhentai":
                             return
                         else:    
