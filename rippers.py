@@ -382,7 +382,8 @@ class ImageRipper():
             "redgifs": redgifs_parse,
             "kemono": kemono_parse,
             "sankakucomplex": sankakucomplex_parse,
-            "luscious": luscious_parse
+            "luscious": luscious_parse,
+            "sxchinesegirlz": sxchinesegirlz_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1826,6 +1827,31 @@ def simplyporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for sxchinesegirlz.one"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="title single-title entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    num_pages = soup.find("div", class_="pagination").find_all("a", class_="post-page-numbers")
+    num_pages = len(num_pages)
+    images = []
+    curr_url = driver.current_url
+    for i in range(num_pages):
+        if i != 0:
+            driver.get("".join([curr_url, str(i + 1), "/"]))
+            soup = soupify(driver)
+        image_list = soup.find("div", class_="thecontent").find_all("figure", class_="wp-block-image size-large", recursive=False)
+        for img in image_list:
+            img_url = img.find("img").get("src")
+            url_parts = img_url.split("-")
+            ext = "." + url_parts[-1].split(".")[-1]
+            img_url = "-".join(url_parts[:-1]) + ext
+            images.append(img_url)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for theomegaproject.org"""
     # Parses the html of the site
@@ -1914,7 +1940,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return kemono_parse(driver)
+        return sxchinesegirlz_parse(driver)
     finally:
         driver.quit()
 
@@ -2038,7 +2064,7 @@ def url_check(given_url: str) -> bool:
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
-             "https://www.luscious.net/")
+             "https://www.luscious.net/", "https://sxchinesegirlz.one/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
