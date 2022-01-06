@@ -6,6 +6,7 @@ import os
 from os import path, walk
 import subprocess
 import sys
+import re
 import configparser
 import time
 from math import ceil
@@ -1830,6 +1831,7 @@ def simplyporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for sxchinesegirlz.one"""
     #Parses the html of the site
+    regp = re.compile('[0-9]+x[0-9]')
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="title single-title entry-title").text
     dir_name = clean_dir_name(dir_name)
@@ -1844,9 +1846,10 @@ def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
         image_list = soup.find("div", class_="thecontent").find_all("figure", class_="wp-block-image size-large", recursive=False)
         for img in image_list:
             img_url = img.find("img").get("src")
-            url_parts = img_url.split("-")
-            ext = "." + url_parts[-1].split(".")[-1]
-            img_url = "-".join(url_parts[:-1]) + ext
+            if regp.search(img_url): #Searches the img url for #x# and removes that to get full-scale image url
+                url_parts = img_url.split("-")
+                ext = "." + url_parts[-1].split(".")[-1]
+                img_url = "-".join(url_parts[:-1]) + ext
             images.append(img_url)
     num_files = len(images)
     driver.quit()
