@@ -384,7 +384,8 @@ class ImageRipper():
             "kemono": kemono_parse,
             "sankakucomplex": sankakucomplex_parse,
             "luscious": luscious_parse,
-            "sxchinesegirlz": sxchinesegirlz_parse
+            "sxchinesegirlz": sxchinesegirlz_parse,
+            "agirlpic": agirlpic_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -443,6 +444,23 @@ def tail(f, lines=2):
         block_number -= 1
     all_read_text = b''.join(reversed(blocks))
     return b'\n'.join(all_read_text.splitlines()[-total_lines_wanted:])
+
+def agirlpic_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for agirlpic.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    tags = soup.find("div", class_="entry-content clear").find_all("div", class_="separator", recursive=False)
+    images = []
+    for tag in tags:
+        img_tags = tag.find_all("img")
+        for img in img_tags:
+            if img:
+                images.append(img.get("src"))
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
 
 def babecentrum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babecentrum.com"""
@@ -1943,7 +1961,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return sxchinesegirlz_parse(driver)
+        return agirlpic_parse(driver)
     finally:
         driver.quit()
 
@@ -2067,7 +2085,7 @@ def url_check(given_url: str) -> bool:
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
-             "https://www.luscious.net/", "https://sxchinesegirlz.one/")
+             "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
