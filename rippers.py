@@ -1955,7 +1955,7 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="h5 text-center mb-3").text
     dir_name = clean_dir_name(dir_name)
-    num_pages = int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text) // 10
+    num_pages = int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text)
     base_url = driver.current_url
     base_url = base_url.split("?")[0]
     images = []
