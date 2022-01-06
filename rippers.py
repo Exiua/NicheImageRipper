@@ -26,6 +26,7 @@ import bs4
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
 
 class RipperError(Exception):
     """General Ripper Exceptions"""
@@ -46,7 +47,7 @@ PARSER = "lxml" #"html.parser" lxml is faster
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
                     'referer': 'https://imhentai.xxx/',
-                    'cookie': ''
+                    'cookie': 'frontend=6987139f7e35d85f7e5925c51440d3bb; __cf_bm=9kXa22S7nzCDz.Q6KWEMwQg4UTngv_veglJvrn2dGx8-1641494817-0-AeQ/kaQb9LFIIomM9Kti8sroSJbYiZ6cPQR0AvbqM+oB0j8psVA4Sn+FCku4tlLVL7NTJt0scy0BNqNiz5Oa5FlNhsiI94lC3jTBMfNn65K6agnZlCS6gM2rBIfFPNZAhA=='
                     }
 DEBUG = False
 
@@ -59,7 +60,8 @@ class ImageRipper():
         self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
         self.logins: dict[str, tuple[str, str]] = {
-            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
+            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP')),
+            "v2ph": (read_config('LOGINS', 'V2PhU'), read_config('LOGINS', 'V2PhP'))
         }
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
@@ -288,7 +290,7 @@ class ImageRipper():
                 return save_data[self.given_url]
             requests_header["cookie"] = save_data["cookies"]
         options = Options()
-        options.headless = True
+        options.headless = self.site_name != "v2ph"
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url)
@@ -385,7 +387,8 @@ class ImageRipper():
             "sankakucomplex": sankakucomplex_parse,
             "luscious": luscious_parse,
             "sxchinesegirlz": sxchinesegirlz_parse,
-            "agirlpic": agirlpic_parse
+            "agirlpic": agirlpic_parse,
+            "v2ph": v2ph_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1925,6 +1928,55 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
+DEBUG = True
+def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for v2ph.com"""
+    #Parses the html of the site
+    """curr_url = driver.current_url
+    driver.get("https://www.v2ph.com/login?hl=en")
+    time.sleep(5)
+    username = read_config("LOGINS", "V2PhU")
+    password = read_config("LOGINS", "V2PhP")
+    driver.find_element(By.ID, "email").send_keys(username)
+    driver.find_element(By.ID, "password").send_keys(password)
+    frame = driver.find_element(By.XPATH, '//iframe')
+    print(frame)
+    driver.switch_to.frame(frame)
+    driver.find_element(By.ID, "recaptcha-anchor").click()
+    time.sleep(5)
+    #driver.switch_to.frame(0)
+    #driver.switch_to.default_content()
+    time.sleep(5)
+    driver.find_element(By.XPATH, '//button[@class="btn btn-primary btn-block"]').click()
+    time.sleep(5)
+    driver.get(curr_url)
+    time.sleep(1)"""
+    lazy_load(driver, True, scroll_pause_time=0.75, increment=1250)
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="h5 text-center mb-3").text
+    dir_name = clean_dir_name(dir_name)
+    num_pages = int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text) // 10
+    base_url = driver.current_url
+    base_url = base_url.split("?")[0]
+    images = []
+    logged_in = False
+    for i in range(num_pages):
+        if i != 0:
+            next_page = "".join([base_url, "?page=", str(i + 1)])
+            driver.get(next_page)
+            if not logged_in:
+                input("Enter a key to continue after logging in: ")
+                logged_in = True
+            lazy_load(driver, True, scroll_pause_time=0.75, increment=1250)
+            soup = soupify(driver)
+        image_list = soup.find("div", class_="photos-list text-center").find_all("div", class_="album-photo my-2")
+        if len(image_list) == 0:
+            break
+        image_list = [img.find("img").get("src") for img in image_list]
+        images.extend(image_list)
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
 
 def xarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for xarthunter.com"""
@@ -1961,7 +2013,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return agirlpic_parse(driver)
+        return v2ph_parse(driver)
     finally:
         driver.quit()
 
@@ -2041,6 +2093,8 @@ def read_config(header: str, child: str) -> str:
         config['LOGINS'] = {}
         config['LOGINS']['Sexy-EgirlsU'] = ''
         config['LOGINS']['Sexy-EgirlsP'] = ''
+        config['LOGINS']['V2PhU'] = ''
+        config['LOGINS']['V2PhP'] = ''
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
@@ -2085,7 +2139,8 @@ def url_check(given_url: str) -> bool:
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
-             "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/")
+             "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
+             "https://www.v2ph.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
