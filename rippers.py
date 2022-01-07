@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 class RipperError(Exception):
     """General Ripper Exceptions"""
@@ -1951,15 +1952,17 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     time.sleep(5)
     driver.get(curr_url)
     time.sleep(1)"""
-    lazy_load(driver, True, scroll_pause_time=0.75, increment=1250)
+    LAZY_LOAD_ARGS = (True, 1250, 0.75)
+    lazy_load(driver, *LAZY_LOAD_ARGS)
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="h5 text-center mb-3").text
     dir_name = clean_dir_name(dir_name)
-    num_pages = int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text)
+    num_pages = (int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text) // 10) + 1
     base_url = driver.current_url
     base_url = base_url.split("?")[0]
     images = []
     logged_in = False
+    parse_complete = False
     for i in range(num_pages):
         if i != 0:
             next_page = "".join([base_url, "?page=", str(i + 1)])
@@ -1967,13 +1970,23 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             if not logged_in:
                 input("Enter a key to continue after logging in: ")
                 logged_in = True
-            lazy_load(driver, True, scroll_pause_time=0.75, increment=1250)
+            lazy_load(driver, *LAZY_LOAD_ARGS)
             soup = soupify(driver)
-        image_list = soup.find("div", class_="photos-list text-center").find_all("div", class_="album-photo my-2")
-        if len(image_list) == 0:
-            break
-        image_list = [img.find("img").get("src") for img in image_list]
+        while True:
+            image_list = soup.find("div", class_="photos-list text-center").find_all("div", class_="album-photo my-2")
+            if len(image_list) == 0:
+                parse_complete = True
+                break
+            image_list = [img.find("img").get("src") for img in image_list]
+            if not any([img for img in image_list if "data:image/gif;base64" in img]):
+                break
+            else:
+                driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.CONTROL + Keys.HOME)
+                lazy_load(driver, *LAZY_LOAD_ARGS)
+                soup = soupify(driver)
         images.extend(image_list)
+        if parse_complete:
+            break
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
