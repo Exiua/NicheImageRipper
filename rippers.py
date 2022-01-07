@@ -1929,7 +1929,8 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
-DEBUG = True
+
+#TODO: Work on saving driver across sites to avoid relogging in
 def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for v2ph.com"""
     #Parses the html of the site
@@ -1968,7 +1969,11 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             next_page = "".join([base_url, "?page=", str(i + 1)])
             driver.get(next_page)
             if not logged_in:
-                input("Enter a key to continue after logging in: ")
+                curr_page = driver.current_url
+                driver.get("https://www.v2ph.com/login?hl=en")
+                while driver.current_url == "https://www.v2ph.com/login?hl=en":
+                    time.sleep(0.1)
+                driver.get(curr_page)
                 logged_in = True
             lazy_load(driver, *LAZY_LOAD_ARGS)
             soup = soupify(driver)
