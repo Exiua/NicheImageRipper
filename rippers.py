@@ -390,7 +390,8 @@ class ImageRipper():
             "sxchinesegirlz": sxchinesegirlz_parse,
             "agirlpic": agirlpic_parse,
             "v2ph": v2ph_parse,
-            "nudebird": nudebird_parse
+            "nudebird": nudebird_parse,
+            "bestprettygirl": bestprettygirl_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -591,6 +592,18 @@ def babesmachine_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="gallery").find("table").find_all("tr")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def bestprettygirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for bestprettygirl.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find_all("img", class_="aligncenter size-full")
+    images = [img.get("src") for img in images]
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -2044,7 +2057,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return nudebird_parse(driver)
+        return bestprettygirl_parse(driver)
     finally:
         driver.quit()
 
@@ -2171,7 +2184,7 @@ def url_check(given_url: str) -> bool:
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
-             "https://www.v2ph.com/", "https://nudebird.biz/")
+             "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
