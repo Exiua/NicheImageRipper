@@ -391,7 +391,8 @@ class ImageRipper():
             "agirlpic": agirlpic_parse,
             "v2ph": v2ph_parse,
             "nudebird": nudebird_parse,
-            "bestprettygirl": bestprettygirl_parse
+            "bestprettygirl": bestprettygirl_parse,
+            "coomer": coomer_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -672,6 +673,58 @@ def chickteases_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     images = soup.find_all("div", class_="minithumbs")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
+def coomer_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for coomer.party"""
+    #Parses the html of the site
+    cookies = driver.get_cookies()
+    cookie_str = ''
+    for c in cookies:
+        cookie_str += "".join([c['name'], '=', c['value'], ';'])
+    requests_header["cookie"] = cookie_str
+    base_url = driver.current_url
+    base_url = base_url.split("/")
+    source_site = base_url[3]
+    base_url = "/".join(base_url[:6])
+    time.sleep(5)
+    soup = soupify(driver)
+    dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+    dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
+    page = 1
+    image_links = []
+    while True:
+        print("".join(["Parsing page ", str(page)]))
+        page += 1
+        image_list = soup.find("div", class_="card-list__items").find_all("article")
+        image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+        image_links.extend(image_list)
+        next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
+        if next_page == None:
+            break
+        else:
+            next_page = "".join(["https://coomer.party", next_page.get("href")])
+            driver.get(next_page)
+            soup = soupify(driver)
+    images = []
+    mega_links = []
+    num_posts = len(image_links)
+    for i, link in enumerate(image_links):
+        print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+        driver.get(link)
+        soup = soupify(driver)
+        links = soup.find_all("a")
+        links = ["".join([l.get("href"), "\n"]) for l in links if "mega.nz" in l.get("href")]
+        mega_links.extend(links)
+        image_list = soup.find("div", class_="post__files")
+        if image_list != None:
+            image_list = image_list.find_all("a", class_="fileThumb image-link")
+            image_list = ["".join(["https://data1.coomer.party", img.get("href").split("?")[0]]) for img in image_list]
+            images.extend(image_list)
+    with open("megaLinks.txt", "a") as f:
+        f.writelines(mega_links)
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -2057,7 +2110,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return bestprettygirl_parse(driver)
+        return coomer_parse(driver)
     finally:
         driver.quit()
 
@@ -2184,7 +2237,8 @@ def url_check(given_url: str) -> bool:
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
-             "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/")
+             "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
+             "https://coomer.party/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
