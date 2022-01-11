@@ -64,6 +64,8 @@ class ImageRipper():
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP')),
             "v2ph": (read_config('LOGINS', 'V2PhU'), read_config('LOGINS', 'V2PhP'))
         }
+        global logged_in
+        logged_in = os.path.isfile("cookies.pkl")
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
@@ -291,7 +293,7 @@ class ImageRipper():
                 return save_data[self.given_url]
             requests_header["cookie"] = save_data["cookies"]
         options = Options()
-        options.headless = self.site_name != "v2ph"
+        options.headless = self.site_name != "v2ph" or logged_in
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url)
@@ -2013,12 +2015,13 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for v2ph.com"""
     #Parses the html of the site
-    logged_in = False
+    global logged_in
     try:
         cookies = pickle.load(open("cookies.pkl", "rb"))
         logged_in = True
     except IOError:
         cookies = []
+        logged_in = False
     for cookie in cookies:
         driver.add_cookie(cookie)
     LAZY_LOAD_ARGS = (True, 1250, 0.75)
@@ -2026,7 +2029,7 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="h5 text-center mb-3").text
     dir_name = clean_dir_name(dir_name)
-    num_pages = (int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text) // 10) + 1
+    num_pages = int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text)
     base_url = driver.current_url
     base_url = base_url.split("?")[0]
     images = []
