@@ -14,7 +14,7 @@ import functools
 import subprocess
 from pathlib import Path
 from typing import Callable
-import urllib3
+import pickle
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
@@ -2032,6 +2032,14 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     time.sleep(5)
     driver.get(curr_url)
     time.sleep(1)"""
+    logged_in = False
+    try:
+        cookies = pickle.load(open("cookies.pkl", "rb"))
+        logged_in = True
+    except IOError:
+        cookies = []
+    for cookie in cookies:
+        driver.add_cookie(cookie)
     LAZY_LOAD_ARGS = (True, 1250, 0.75)
     lazy_load(driver, *LAZY_LOAD_ARGS)
     soup = soupify(driver)
@@ -2041,7 +2049,6 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     base_url = driver.current_url
     base_url = base_url.split("?")[0]
     images = []
-    logged_in = False
     parse_complete = False
     for i in range(num_pages):
         if i != 0:
@@ -2052,6 +2059,7 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
                 driver.get("https://www.v2ph.com/login?hl=en")
                 while driver.current_url == "https://www.v2ph.com/login?hl=en":
                     time.sleep(0.1)
+                pickle.dump(driver.get_cookies(), open("cookies.pkl", "wb"))
                 driver.get(curr_page)
                 logged_in = True
             lazy_load(driver, *LAZY_LOAD_ARGS)
