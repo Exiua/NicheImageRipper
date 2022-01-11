@@ -2013,25 +2013,6 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for v2ph.com"""
     #Parses the html of the site
-    """curr_url = driver.current_url
-    driver.get("https://www.v2ph.com/login?hl=en")
-    time.sleep(5)
-    username = read_config("LOGINS", "V2PhU")
-    password = read_config("LOGINS", "V2PhP")
-    driver.find_element(By.ID, "email").send_keys(username)
-    driver.find_element(By.ID, "password").send_keys(password)
-    frame = driver.find_element(By.XPATH, '//iframe')
-    print(frame)
-    driver.switch_to.frame(frame)
-    driver.find_element(By.ID, "recaptcha-anchor").click()
-    time.sleep(5)
-    #driver.switch_to.frame(0)
-    #driver.switch_to.default_content()
-    time.sleep(5)
-    driver.find_element(By.XPATH, '//button[@class="btn btn-primary btn-block"]').click()
-    time.sleep(5)
-    driver.get(curr_url)
-    time.sleep(1)"""
     logged_in = False
     try:
         cookies = pickle.load(open("cookies.pkl", "rb"))
