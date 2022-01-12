@@ -133,7 +133,6 @@ class RipperGui():
         write_config('DEFAULT', 'FilenameScheme', self.filename_scheme)
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_history_update))
-        write_config('DEFAULT', 'HashFilenames', str(self.hash_filenames))
         write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
     def list_checker(self, window: sg.Window):
