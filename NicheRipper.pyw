@@ -98,7 +98,10 @@ class RipperGui():
                 #for url in unfinished_list:
                 #    if url not in self.url_list:
                 #        if any(url in sublist for sublist in self.table_data):
-                #            if sg.popup_yes_no('Do you want to re-rip URL?') == 'Yes':
+                #           if self.rerip_ask:
+                #               if sg.popup_yes_no('Do you want to re-rip URL?') == 'Yes':
+                #                   self.url_list.append(url)
+                #            else:
                 #                self.url_list.append(url)
                 #        else:
                 #            self.url_list.append(url)
@@ -111,6 +114,7 @@ class RipperGui():
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
             self.filename_scheme = values['-SAVESCHEME-']
+            self.theme_color = values['-THEME-']
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
