@@ -5,7 +5,7 @@ import json
 import os
 import time
 import collections
-import subprocess
+import requests
 import PySimpleGUI as sg
 from rippers import ImageRipper, read_config, write_config, url_check
 
@@ -97,14 +97,7 @@ class RipperGui():
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
                 #for url in unfinished_list:
                 #    if url not in self.url_list:
-                #        if any(url in sublist for sublist in self.table_data):
-                #           if self.rerip_ask:
-                #               if sg.popup_yes_no('Do you want to re-rip URL?') == 'Yes':
-                #                   self.url_list.append(url)
-                #            else:
-                #                self.url_list.append(url)
-                #        else:
-                #            self.url_list.append(url)
+                #        self.rip_check(url)
                 self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(url in sublist for sublist in self.table_data)]) #Fix this to allow rerip
                 self.loaded_file = True
                 window['-STATUS-']('Urls loaded', text_color='green')
@@ -213,11 +206,8 @@ class RipperGui():
 
     @staticmethod
     def get_git_version() -> str:
-        version = subprocess.check_output(['git', 'describe', '--tags'])
-        version = version.decode("utf-8").strip('\n')
-        end = version.find('-', 0)
-        version = version[0:end]
-        return version
+        response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
+        return response.json()['tag_name']
 
 if __name__ == "__main__":
     rip_gui = RipperGui()
