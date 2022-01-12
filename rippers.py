@@ -2092,7 +2092,7 @@ def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return (images, num_files, dir_name)
 
 def _test_parse(given_url: str) -> list:
-    """Return image URL, number of images, and folder name."""
+    """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
     driver = None
     try:
         options = Options()
