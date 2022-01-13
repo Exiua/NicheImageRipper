@@ -65,7 +65,7 @@ class RipperGui():
             if event == 'Rip': #Pushes urls into queue
                 if values['-URL-'].count("https://") > 1: #If multiple urls are entered at once
                     url_list = values['-URL-'].split("https://") #Split by protocol
-                    url_list.pop(0)
+                    url_list.pop(0) #Remove initial empty element
                     url_list = ["".join(["https://", url.strip()]) for url in url_list]
                     for url in url_list:
                         if url_check(url) and not url in self.url_list: #If url is for a supported site and not already queued
