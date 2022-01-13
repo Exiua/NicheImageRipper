@@ -159,7 +159,7 @@ class RipperGui():
         """Update the displayed queue"""
         if len(self.url_list) != self.url_list_size: #If the url queue changes size
             window['-QUEUE-']('') #Clears the queue
-            for url in self.url_list: #Re-prints the queue #Change this to not use range(len())
+            for url in self.url_list: #Re-prints the queue
                 window.find_element('-QUEUE-').print(url)
             self.url_list_size = len(self.url_list)
 
@@ -168,12 +168,12 @@ class RipperGui():
         if self.table_data[0][0] == " ": #If the first value in the table empty
             del self.table_data[0] #Replace with real table value
         duplicate_entry = False
-        for index in range(len(self.table_data)):
-            if self.table_data[index][0] == ripper.folder_info[2]:
+        for i, entry in enumerate(self.table_data):
+            if entry[0] == ripper.folder_info[2]:
                 duplicate_entry = True
-                self.table_data[index][2] = str(datetime.today().strftime('%Y-%m-%d'))
-                self.table_data.append(self.table_data[index])
-                del self.table_data[index]
+                self.table_data[i][2] = str(datetime.today().strftime('%Y-%m-%d'))
+                self.table_data.append(entry)
+                self.table_data.pop(i)
                 break
         if not duplicate_entry:
             self.table_data.append([ripper.folder_info[2], url, str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
