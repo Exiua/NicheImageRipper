@@ -5,7 +5,7 @@ import json
 import os
 import time
 import collections
-import subprocess
+import requests
 import PySimpleGUI as sg
 from rippers import ImageRipper, read_config, write_config, url_check
 
@@ -65,7 +65,7 @@ class RipperGui():
             if event == 'Rip': #Pushes urls into queue
                 if values['-URL-'].count("https://") > 1: #If multiple urls are entered at once
                     url_list = values['-URL-'].split("https://") #Split by protocol
-                    url_list.pop(0)
+                    url_list.pop(0) #Remove initial empty element
                     url_list = ["".join(["https://", url.strip()]) for url in url_list]
                     for url in url_list:
                         if url_check(url) and not url in self.url_list: #If url is for a supported site and not already queued
@@ -95,7 +95,10 @@ class RipperGui():
                     window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file: #Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
-                self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(url in sublist for sublist in self.table_data)])
+                #for url in unfinished_list:
+                #    if url not in self.url_list:
+                #        self.rip_check(url)
+                self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(url in sublist for sublist in self.table_data)]) #Fix this to allow rerip
                 self.loaded_file = True
                 window['-STATUS-']('Urls loaded', text_color='green')
                 if sg.popup_yes_no('Do you want to delete the file?', no_titlebar=True) == 'Yes':
@@ -104,6 +107,7 @@ class RipperGui():
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
             self.filename_scheme = values['-SAVESCHEME-']
+            self.theme_color = values['-THEME-']
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
             window['-FOLDER-'].update(self.save_folder)
@@ -122,7 +126,6 @@ class RipperGui():
         write_config('DEFAULT', 'FilenameScheme', self.filename_scheme)
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_history_update))
-        write_config('DEFAULT', 'HashFilenames', str(self.hash_filenames))
         write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
     def list_checker(self, window: sg.Window):
@@ -156,7 +159,7 @@ class RipperGui():
         """Update the displayed queue"""
         if len(self.url_list) != self.url_list_size: #If the url queue changes size
             window['-QUEUE-']('') #Clears the queue
-            for url in self.url_list: #Re-prints the queue #Change this to not use range(len())
+            for url in self.url_list: #Re-prints the queue
                 window.find_element('-QUEUE-').print(url)
             self.url_list_size = len(self.url_list)
 
@@ -165,12 +168,12 @@ class RipperGui():
         if self.table_data[0][0] == " ": #If the first value in the table empty
             del self.table_data[0] #Replace with real table value
         duplicate_entry = False
-        for index in range(len(self.table_data)):
-            if self.table_data[index][0] == ripper.folder_info[2]:
+        for i, entry in enumerate(self.table_data):
+            if entry[0] == ripper.folder_info[2]:
                 duplicate_entry = True
-                self.table_data[index][2] = str(datetime.today().strftime('%Y-%m-%d'))
-                self.table_data.append(self.table_data[index])
-                del self.table_data[index]
+                self.table_data[i][2] = str(datetime.today().strftime('%Y-%m-%d'))
+                self.table_data.append(entry)
+                self.table_data.pop(i)
                 break
         if not duplicate_entry:
             self.table_data.append([ripper.folder_info[2], url, str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
@@ -203,11 +206,8 @@ class RipperGui():
 
     @staticmethod
     def get_git_version() -> str:
-        version = subprocess.check_output(['git', 'describe', '--tags'])
-        version = version.decode("utf-8").strip('\n')
-        end = version.find('-', 0)
-        version = version[0:end]
-        return version
+        response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
+        return response.json()['tag_name']
 
 if __name__ == "__main__":
     rip_gui = RipperGui()
