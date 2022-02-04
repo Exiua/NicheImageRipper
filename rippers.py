@@ -1,6 +1,6 @@
 """This module downloads images from given URL"""
 import hashlib
-from json import load
+from __future__ import annotations
 import json
 import os
 from os import path, walk
