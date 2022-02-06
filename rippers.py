@@ -1,6 +1,6 @@
 """This module downloads images from given URL"""
-import hashlib
 from __future__ import annotations
+import hashlib
 import json
 import os
 from os import path, walk
@@ -15,6 +15,7 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 import pickle
+from urllib import response
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
@@ -394,7 +395,8 @@ class ImageRipper():
             "v2ph": v2ph_parse,
             "nudebird": nudebird_parse,
             "bestprettygirl": bestprettygirl_parse,
-            "coomer": coomer_parse
+            "coomer": coomer_parse,
+            "imgur": imgur_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1311,6 +1313,28 @@ def imgbox_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return (images, num_files, dir_name)
 
+def imgur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for imgur.com"""
+    #Parses the html of the site
+    client_id = read_config('KEYS', 'Imgur')
+    if client_id == '':
+        print("Client Id not properly set")
+        print("Follow to generate Client Id: https://apidocs.imgur.com/#intro")
+        print("Then add Client Id to imugur in config.ini under KEYS")
+    else:
+        requests_header['Authorization'] = 'Client-ID ' + client_id
+        album_hash = driver.current_url.split("/")[4]
+        response = requests.get("https://api.imgur.com/3/album/" + album_hash, headers=requests_header)
+        if(response.status_code == 403):
+            print("Client Id is incorrect")
+        else:
+            json = response.json()['data']
+            dir_name = json.get('title')
+            images = [img.get("link") for img in json.get("images")]
+            num_files = len(images)
+    driver.quit()
+    return (images, num_files, dir_name)
+
 def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
     """Read the html for imhentai.xxx"""
     # Parses the html of the site
@@ -2102,7 +2126,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return coomer_parse(driver)
+        return imgur_parse(driver)
     finally:
         driver.quit()
 
@@ -2184,6 +2208,7 @@ def read_config(header: str, child: str) -> str:
         config['LOGINS']['Sexy-EgirlsP'] = ''
         config['LOGINS']['V2PhU'] = ''
         config['LOGINS']['V2PhP'] = ''
+        config['KEYS']['Imgur'] = ''
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
     return config.get(header, child)
@@ -2230,7 +2255,7 @@ def url_check(given_url: str) -> bool:
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
-             "https://coomer.party/")
+             "https://coomer.party/", "https://imgur.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
