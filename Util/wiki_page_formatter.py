@@ -48,7 +48,7 @@ class WikiPageFormatter():
                 end = i
                 break
         data = [l.strip() for l in data[start:end]]
-        data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
+        data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "").replace('"', "")
         self.add(data.split(", "))
         print(self.sites)
 
