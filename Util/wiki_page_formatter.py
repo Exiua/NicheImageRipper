@@ -19,20 +19,10 @@ class WikiPageFormatter():
         if os.path.exists("SupportedSites.json"):
             self.load()
 
-    def add(self, thing: str or list):
-            print(thing)
-            if isinstance(thing, str):
-                if "," in thing:
-                    thing = thing.split(",")
-                    for t in thing:
-                        if t not in self.sites and self.valid_site(t):
-                            self.sites.append(t)
-                elif thing not in self.sites and self.valid_site(thing):
-                    self.sites.append(thing)
-            else:
-                for t in thing:
-                    if t not in self.sites and self.valid_site(t):
-                        self.sites.append(t)
+    def add(self, urls: list[str]):
+            for url in urls:
+                if url not in self.sites:# and self.valid_site(t):
+                    self.sites.append(url)
             self.sites.sort(key = lambda x: urlparse(x).netloc.split(".")[-2])
             self.save()
 
@@ -48,7 +38,7 @@ class WikiPageFormatter():
                 end = i
                 break
         data = [l.replace('"', "").strip().replace(" ", "") for l in data[start:end]]
-        data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
+        data = "".join(data).replace(",", ", ").replace("sites=(", "").replace(")", "")
         self.add(data.split(", "))
 
     def valid_site(self, url: str) -> bool:
