@@ -49,6 +49,7 @@ class WikiPageFormatter():
         data = [l.strip() for l in data[start:end]]
         data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
         self.add(data.split(", "))
+        print(self.sites)
 
     def valid_site(self, url: str) -> bool:
         try:
