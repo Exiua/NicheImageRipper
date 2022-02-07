@@ -68,10 +68,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     formatter = WikiPageFormatter()
+    if args.update:
+        formatter.update()
     if args.output:
         formatter.wiki_format()
     if args.list:
-        formatter.view()
-    if args.update:
-        formatter.update()
-        
+        formatter.view()  
