@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run wiki_page_formatter
-        run: py ./Util/wiki_page_formatter.py -uo
+        run: python3./Util/wiki_page_formatter.py -uo
       - name: Clone Wiki Repo
         run: git clone https://github.com/Exiua/NicheImageRipper.wiki.git
       - name: Update Supported Sites Wiki Page
