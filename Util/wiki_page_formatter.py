@@ -19,6 +19,22 @@ class WikiPageFormatter():
         if os.path.exists("SupportedSites.json"):
             self.load()
 
+    def add(self, thing: str or list):
+            if isinstance(thing, str):
+                if "," in thing:
+                    thing = thing.split(",")
+                    for t in thing:
+                        if t not in self.sites and self.valid_site(t):
+                            self.sites.append(t)
+                elif thing not in self.sites and self.valid_site(thing):
+                    self.sites.append(thing)
+            else:
+                for t in thing:
+                    if t not in self.sites and self.valid_site(t):
+                        self.sites.append(t)
+            self.sites.sort(key = lambda x: urlparse(x).netloc.split(".")[-2])
+            self.save()
+
     def update(self):
         with open("rippers.py", "r") as f:
             data = f.readlines()
