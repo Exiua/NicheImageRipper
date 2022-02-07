@@ -6,6 +6,10 @@ on:
 jobs:
   update_wiki:
     runs-on: ubuntu-latest
+    env:
+      EMAIL: 52053026+Exiua@users.noreply.github.com
+      USER: Exiua
+      GH_PAT: ${{ secrets.GH_PAT }}
     steps:
       - uses: actions/checkout@main
       - name: Clone Wiki Repo
@@ -14,11 +18,7 @@ jobs:
         run: python3 ./Util/wiki_page_formatter.py -uo "./NicheImageRipper.wiki/Supported-Sites.md"
       #- name: Update Supported Sites Wiki Page
        # run: cp ./Util/Supported-Sites.md ./NicheImageRipper.wiki/Supported-Sites.md && cat ./NicheImageRipper.wiki/Supported-Sites.md
+      - name: Commit Wiki Changes
+        run: cd NicheImageRipper.wiki && git config user.name ${USER} && git config user.email ${EMAIL} && git commit -am "Updated Wiki"
       - name: Push Wiki Changes
-        env:
-          EMAIL: 52053026+Exiua@users.noreply.github.com
-          USER: Exiua
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: cd NicheImageRipper.wiki && git config user.name ${USER} && git config user.email ${EMAIL}
-        run: git commit -am "Updated Wiki"
         run: git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.wiki.git
