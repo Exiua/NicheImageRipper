@@ -9,11 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - name: Run wiki_page_formatter
-        run: ls -la && python3 ./Util/wiki_page_formatter.py -uo
+        run: python3 ./Util/wiki_page_formatter.py -uo
       - name: Clone Wiki Repo
         run: git clone https://github.com/Exiua/NicheImageRipper.wiki.git
       - name: Update Supported Sites Wiki Page
-        run: mv ./Util/Supported-Sites.md ./NicheImageRipper.wiki/Supported-Sites.md
+        run: cp ./Util/Supported-Sites.md ./NicheImageRipper.wiki/Supported-Sites.md && cat ./NicheImageRipper.wiki/Supported-Sites.md
       - name: Push Wiki Changes
         env:
           EMAIL: 52053026+Exiua@users.noreply.github.com
