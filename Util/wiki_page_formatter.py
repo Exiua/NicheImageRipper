@@ -60,8 +60,8 @@ class WikiPageFormatter():
     def view(self):
         print(self.sites)
 
-    def wiki_format(self):
-        with open("./Util/Supported-Sites.md", "w+") as f:
+    def wiki_format(self, dest: str):
+        with open(dest, "w+") as f:
             for site in self.sites:
                 f.write("".join(["- [", site.replace("www.", "").replace("https:", "").replace("http:", "").replace("/", ""), "](", site, ")\n"]))
 
@@ -77,16 +77,16 @@ class WikiPageFormatter():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
     parser.add_argument('--output', '-o', action='store_true')
     parser.add_argument('--list', '-l', action='store_true')
     parser.add_argument('--update', '-u', action='store_true')
+    parser.add_argument('dir', nargs='?', default="./Util/Supported-Sites.md")
     args = parser.parse_args()
     
     formatter = WikiPageFormatter()
     if args.update:
         formatter.update()
     if args.output:
-        formatter.wiki_format()
+        formatter.wiki_format(args.dir)
     if args.list:
         formatter.view()  
