@@ -15,25 +15,8 @@ jobs:
       - name: Clone Wiki Repo
         run: git clone https://github.com/Exiua/NicheImageRipper.wiki.git
       - name: Run wiki_page_formatter
-        run: python3 ./Util/wiki_page_formatter.py -uo "./Wiki/Supported-Sites.md"
+        run: python3 ./Util/wiki_page_formatter.py -uo "./NicheImageRipper.wiki/Supported-Sites.md"
       - name: Commit Wiki Changes
         run: git config user.name ${USER} && git config user.email ${EMAIL} && nl ./Wiki/Supported-Sites.md && git commit -am "Updated Supported Sites"
       - name: Push Wiki Changes
-        run: git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.git
-      - name: Wiki Sync
-        # You may pin to the exact commit or the version.
-        # uses: JoeIzzard/ghaction-wiki-sync@56fa2d2877578ffd8480f8694eff93de0fac5d4f
-        uses: JoeIzzard/ghaction-wiki-sync@v1
-        with:
-          # The username of the repo owner
-          username: ${USER}
-          # The access token with Repo access. Can be passed in using `{{ secrets.GITHUB_TOKEN }}`.
-          access_token: ${GH_PAT}
-          # The folder you want to sync the repo with
-          wiki_folder: "./Wiki"
-          # A custom commit message to be used
-          commit_message: "Updated Wiki"
-          # The email address to use with the commit
-          commit_username: ${USER}
-          # The email address to use when committing
-          commit_email: ${EMAIL}
+        run: git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.wiki.git
