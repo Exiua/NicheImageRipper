@@ -1,8 +1,9 @@
 import json
 import os
 import re
-
+import argparse
 import requests
+from urllib.parse import urlparse
 
 regex = re.compile(
         r'^(?:http|ftp)s?://' # http:// or https://
@@ -31,7 +32,7 @@ class WikiPageFormatter():
             for t in thing:
                 if t not in self.sites and self.valid_site(t):
                     self.sites.append(t)
-        self.sites.sort()
+        self.sites.sort(key = lambda x: urlparse(x).netloc.split(".")[-2])
         self.save()
 
     def add_from_file(self):
@@ -68,21 +69,24 @@ class WikiPageFormatter():
             self.sites = json.load(f)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--add', '-a', type=str, nargs=1)
+    group.add_argument('--fileadd', '-fa', action='store_true')
+    parser.add_argument('--output', '-o', action='store_true')
+    parser.add_argument('--list', '-l', action='store_true')
+    args = parser.parse_args()
+    
     formatter = WikiPageFormatter()
-    while True:
-        user_in = input("Enter: ")
-        if user_in.lower() in ("stop", "esc", "end", "q", "quit"):
-            break
-        elif user_in.lower() == "add":
-            user_in = input("Add: ")
-            user_in = user_in.replace("www.", "").replace("https:", "").replace("/", "").replace("\"", "").replace("http:", "")
-            if "," in user_in: 
-                user_in = user_in.split(", ")
-            formatter.add(user_in)
-        elif user_in.lower() in ("format", "f"):
-            formatter.wiki_format()
-        elif user_in.lower() in ("fileadd", "add from file", "file"):
-            formatter.add_from_file()
-        elif user_in.lower() in ("v", "view"):
-            formatter.view()
+    if args.add:
+        urls = args.add.replace("www.", "").replace("https:", "").replace("/", "").replace("\"", "").replace("http:", "")
+        if "," in urls: 
+                urls = urls.split(", ")
+        formatter.add(urls)
+    if args.fileadd:
+        formatter.add_from_file()
+    if args.output:
+        formatter.wiki_format()
+    if args.list:
+        formatter.view()
         
