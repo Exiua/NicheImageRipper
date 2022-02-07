@@ -45,7 +45,7 @@ class WikiPageFormatter():
         print(self.sites)
 
     def wiki_format(self):
-        with open("./Util/Supported Sites.md", "w+") as f:
+        with open("./Util/Supported-Sites.md", "w+") as f:
             for site in self.sites:
                 f.write("".join(["- [", site.replace("www.", "").replace("https:", "").replace("http:", "").replace("/", ""), "](", site, ")\n"]))
 
