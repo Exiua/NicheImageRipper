@@ -19,4 +19,4 @@ jobs:
       - name: Commit Wiki Changes
         run: cd ../NicheImageRipper.wiki && git config user.name ${USER} && git config user.email ${EMAIL} && cat Supported-Sites.md && git commit -am "Updated Supported Sites"
       - name: Push Wiki Changes
-        run: cd .. && ls -la && git pull && git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.wiki.git
+        run: cd ../NicheImageRipper.wiki && ls -la && git pull && git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.wiki.git
