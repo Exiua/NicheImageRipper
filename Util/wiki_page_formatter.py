@@ -43,6 +43,21 @@ class WikiPageFormatter():
         text_list = [t.strip() for t in text_list]
         self.add(text_list)
 
+    def update(self):
+        with open("rippers.py", "r") as f:
+            data = f.readlines()
+        start = 0
+        end = 0
+        for i, line in enumerate(data):
+            if "def url_check(given_url: str) -> bool:" in line:
+                start = i + 2
+            if "return any(x in given_url for x in sites)" in line:
+                end = i
+                break
+        data = [l.strip() for l in data[start:end]]
+        data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
+        self.add(data.split(", "))
+
     def valid_site(self, url: str) -> bool:
         try:
             requests.get(url)
@@ -71,22 +86,16 @@ class WikiPageFormatter():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--add', '-a', type=str, nargs=1)
-    group.add_argument('--fileadd', '-fa', action='store_true')
     parser.add_argument('--output', '-o', action='store_true')
     parser.add_argument('--list', '-l', action='store_true')
+    parser.add_argument('--update', '-u', action='store_true')
     args = parser.parse_args()
     
     formatter = WikiPageFormatter()
-    if args.add:
-        urls = args.add.replace("www.", "").replace("https:", "").replace("/", "").replace("\"", "").replace("http:", "")
-        if "," in urls: 
-                urls = urls.split(", ")
-        formatter.add(urls)
-    if args.fileadd:
-        formatter.add_from_file()
     if args.output:
         formatter.wiki_format()
     if args.list:
         formatter.view()
+    if args.update:
+        formatter.update()
         
