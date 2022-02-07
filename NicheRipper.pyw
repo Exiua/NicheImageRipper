@@ -28,7 +28,7 @@ class RipperGui():
         self.url_list_size: int = len(self.url_list)
         self.loaded_file: bool = False
         self.latest_version: str = self.get_git_version()
-        self.version: str = 'v1.9.0'
+        self.version: str = 'v1.10.0'
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
