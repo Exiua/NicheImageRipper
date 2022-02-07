@@ -15,7 +15,7 @@ jobs:
       - name: Clone Wiki Repo
         run: cd .. && git clone https://github.com/Exiua/NicheImageRipper.wiki.git && cd NicheImageRipper
       - name: Run wiki_page_formatter
-        run: python3 ./Util/wiki_page_formatter.py -uo "./NicheImageRipper.wiki/Supported-Sites.md"
+        run: python3 ./Util/wiki_page_formatter.py -uo "../NicheImageRipper.wiki/Supported-Sites.md"
       - name: Commit Wiki Changes
         run: cd ../NicheImageRipper.wiki && git config user.name ${USER} && git config user.email ${EMAIL} && cat Supported-Sites.md && git commit -am "Updated Supported Sites"
       - name: Push Wiki Changes
