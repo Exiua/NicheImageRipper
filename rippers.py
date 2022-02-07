@@ -15,7 +15,6 @@ import subprocess
 from pathlib import Path
 from typing import Callable
 import pickle
-from urllib import response
 from urllib.parse import urlparse
 import PIL
 from PIL import Image
