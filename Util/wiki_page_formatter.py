@@ -38,7 +38,6 @@ class WikiPageFormatter():
     def update(self):
         with open("rippers.py", "r") as f:
             data = f.readlines()
-            print(data)
         start = 0
         end = 0
         for i, line in enumerate(data):
@@ -49,6 +48,7 @@ class WikiPageFormatter():
                 break
         data = [l.strip() for l in data[start:end]]
         data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
+        print(data)
         self.add(data.split(", "))
         print(self.sites)
 
