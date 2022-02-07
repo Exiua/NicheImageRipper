@@ -20,6 +20,7 @@ class WikiPageFormatter():
             self.load()
 
     def add(self, thing: str or list):
+            print(thing)
             if isinstance(thing, str):
                 if "," in thing:
                     thing = thing.split(",")
@@ -48,7 +49,6 @@ class WikiPageFormatter():
                 break
         data = [l.strip() for l in data[start:end]]
         data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
-        print(data)
         self.add(data.split(", "))
         print(self.sites)
 
