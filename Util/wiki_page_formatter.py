@@ -47,8 +47,8 @@ class WikiPageFormatter():
             if "return any(x in given_url for x in sites)" in line:
                 end = i
                 break
-        data = [l.strip() for l in data[start:end]]
-        data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "").replace('"', "")
+        data = [l.replace('"', "").strip() for l in data[start:end]]
+        data = "".join(data).replace(",", ", ").replace("sites = (", "").replace(")", "")
         self.add(data.split(", "))
         print(self.sites)
 
