@@ -19,4 +19,4 @@ jobs:
           EMAIL: 52053026+Exiua@users.noreply.github.com
           USER: Exiua
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: git config user.name ${USER} && git config user.email ${EMAIL} && git commit -am "Updated Wiki" && git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.wiki.git
+        run: cd NicheImageRipper.wiki && git config user.name ${USER} && git config user.email ${EMAIL} && git commit -am "Updated Wiki" && git push https://${GH_PAT}@github.com/Exiua/NicheImageRipper.wiki.git
