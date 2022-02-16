@@ -1393,18 +1393,50 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
 def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for luscious.net"""
     #Parses the html of the site
-    time.sleep(5)
-    lazy_load(driver, True, backscroll=2)
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="o-h1 album-heading").text
     dir_name = clean_dir_name(dir_name)
-    image_list = soup.find_all("div", class_="o-justified-box safe_link 2")
+    endpoint = "https://members.luscious.net/graphqli/?"
+    album_id = driver.current_url.split("/")[4].split("_")[-1]
+    variables = {
+        "input": {
+            "page": 1,
+            "display": "date_newest",
+            "filters": [{"name": "album_id", "value": album_id}]
+        }
+    }
+    query = """query PictureQuery($input: PictureListInput!) {
+                picture {
+                    list(input: $input) {
+                        info {
+                            total_items
+                            has_next_page
+                        }
+                        items {
+                            id
+                            title
+                            url_to_original
+                            tags{
+                                id
+                                text
+                            }
+                        }
+                    }
+                }
+            }"""
+    next_page = True
     images = []
-    for img in image_list:
-        link = img.find("img").get("src").split(".")
-        link[-2] = "1680x0"
-        link = ".".join(link)
-        images.append(link)
+    while next_page:
+        response = requests.post(endpoint, headers=requests_header, json={
+            "operationName": "PictureQuery",
+            "query": query,
+            "variables": variables
+        })
+        json = response.json()['data']['picture']['list']
+        next_page = json['info']['has_next_page']
+        variables["input"]["page"] += 1
+        items = json['items']
+        images.extend([i['url_to_original'] for i in items])
     num_files = len(images)
     driver.quit()
     return (images, num_files, dir_name)
@@ -2130,7 +2162,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return imgur_parse(driver)
+        return luscious_parse2(driver)
     finally:
         driver.quit()
 
