@@ -61,8 +61,7 @@ class ImageRipper():
         self.filename_scheme: str = filename_scheme
         self.site_name: str = self.site_check()
         self.logins: dict[str, tuple[str, str]] = {
-            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP')),
-            "v2ph": (read_config('LOGINS', 'V2PhU'), read_config('LOGINS', 'V2PhP'))
+            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
         global logged_in
         logged_in = os.path.isfile("cookies.pkl")
@@ -2205,8 +2204,6 @@ def read_config(header: str, child: str) -> str:
         config['LOGINS'] = {}
         config['LOGINS']['Sexy-EgirlsU'] = ''
         config['LOGINS']['Sexy-EgirlsP'] = ''
-        config['LOGINS']['V2PhU'] = ''
-        config['LOGINS']['V2PhP'] = ''
         config['KEYS']['Imgur'] = ''
         with open(CONFIG, 'w') as configfile:    # save
             config.write(configfile)
