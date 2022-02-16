@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from os import path, walk
+from enum import Enum, auto
 import subprocess
 import sys
 import re
@@ -51,6 +52,11 @@ requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Appl
                     'cookie': 'frontend=6987139f7e35d85f7e5925c51440d3bb; __cf_bm=9kXa22S7nzCDz.Q6KWEMwQg4UTngv_veglJvrn2dGx8-1641494817-0-AeQ/kaQb9LFIIomM9Kti8sroSJbYiZ6cPQR0AvbqM+oB0j8psVA4Sn+FCku4tlLVL7NTJt0scy0BNqNiz5Oa5FlNhsiI94lC3jTBMfNn65K6agnZlCS6gM2rBIfFPNZAhA=='
                     }
 DEBUG = False
+
+class FilenameScheme(Enum):
+    ORIGINAL = auto()
+    HASH = auto()
+    CHRONOLOGICAL = auto()
 
 class ImageRipper():
     """Image Ripper Class"""
