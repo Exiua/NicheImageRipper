@@ -60,11 +60,11 @@ class FilenameScheme(Enum):
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str, filename_scheme: str = "Original"):
+    def __init__(self, given_url: str, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
         self.folder_info: tuple[list[str] | str, int, str] = (None, 0, "")
         self.given_url: str = given_url
         self.save_path: str = read_config('DEFAULT', 'SavePath')
-        self.filename_scheme: str = filename_scheme
+        self.filename_scheme: FilenameScheme = filename_scheme
         self.site_name: str = self.site_check()
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
@@ -127,7 +127,7 @@ class ImageRipper():
         print("    ".join([rip_url, num_progress]))
         image_path = "".join([full_path, "/", str(file_name), ext])
         self.download_file(session, image_path, rip_url)
-        if self.filename_scheme == "Hash":
+        if self.filename_scheme == FilenameScheme.HASH:
             self.rename_file_to_hash(image_path, full_path, ext)
         # Filenames are chronological by default on imhentai
         time.sleep(0.05)
@@ -147,9 +147,9 @@ class ImageRipper():
         image_path = "".join([full_path, '/', file_name])
         ext = path.splitext(image_path)[1]
         self.download_file(session, image_path, rip_url)
-        if self.filename_scheme == "Hash":
+        if self.filename_scheme == FilenameScheme.HASH:
             self.rename_file_to_hash(image_path, full_path, ext)
-        elif self.filename_scheme == "Chronological":
+        elif self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
             self.rename_file_chronologically(image_path, full_path, ext, current_file_num)
         time.sleep(0.05)
 

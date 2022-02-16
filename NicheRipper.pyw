@@ -7,7 +7,7 @@ import time
 import collections
 import requests
 import PySimpleGUI as sg
-from rippers import ImageRipper, read_config, write_config, url_check
+from rippers import ImageRipper, FilenameScheme, read_config, write_config, url_check
 
 # pylint: disable=line-too-long
 class RipperGui():
@@ -16,7 +16,7 @@ class RipperGui():
         self.theme_color: str = read_config('DEFAULT', 'Theme')
         self.save_folder: str = read_config('DEFAULT', 'SavePath')
         self.live_history_update: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'LiveHistoryUpdate'))
-        self.filename_scheme: str = read_config('DEFAULT', 'FilenameScheme')
+        self.filename_scheme: FilenameScheme = FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()]
         self.rerip_ask: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'AskToReRip'))
         self.max_threads: int = int(read_config('DEFAULT', 'NumberOfThreads'))
         if os.path.isfile('RipHistory.json'):
@@ -44,7 +44,7 @@ class RipperGui():
                 [sg.Text('Load Unfinished Urls:'), sg.Input(key='-LOADFILE-', visible=False, enable_events=True), sg.FileBrowse(initial_folder='./', file_types=(('JSON Files', '*.json'), ), change_submits=True)],
                 [sg.Text('Check for updates: '), sg.Button('Check', enable_events=True), sg.Text(key='-UPDATE-', size=(50, 1))],
                 [sg.Text('Change Theme:'), sg.Drop(sg.theme_list(), default_value=self.theme_color, key='-THEME-', enable_events=True)],
-                [sg.Text('Filename Scheme:'), sg.Drop(("Original", "Hash", "Chronological"), default_value=self.filename_scheme, key='-SAVESCHEME-', enable_events=True)],
+                [sg.Text('Filename Scheme:'), sg.Drop(("Original", "Hash", "Chronological"), default_value=self.filename_scheme.name.title(), key='-SAVESCHEME-', enable_events=True)],
                 [sg.Check('Ask to re-rip url', key='-RERIP-', default=self.rerip_ask, enable_events=True), sg.Check('Live update history table', key='-LIVEUPDATE-', default=self.live_history_update, enable_events=True)],
                 #[sg.Text('Max Number of Threads: '), sg.Spin([i for i in range(1,11)], initial_value=int(self.max_threads), key='-MAXTHREADS-', enable_events=True, size=(3, 1))],
                 [sg.Text('Number of threads running: '), sg.Text(key='-THREADS-')]]
@@ -106,7 +106,7 @@ class RipperGui():
             self.live_history_update = values['-LIVEUPDATE-']
             self.rerip_ask = values['-RERIP-']
             self.save_folder = values['-SAVEFOLDER-']
-            self.filename_scheme = values['-SAVESCHEME-']
+            self.filename_scheme = FilenameScheme[values['-SAVESCHEME-'].upper()]
             self.theme_color = values['-THEME-']
             if not self.save_folder[-1] == '/': #Makes sure the save path ends with '/'
                 self.save_folder += '/'
@@ -123,7 +123,7 @@ class RipperGui():
             RipperGui.save_to_file('UnfinishedRips.json', self.url_list) #Save queued urls
         write_config('DEFAULT', 'SavePath', self.save_folder) #Update the config
         write_config('DEFAULT', 'Theme', self.theme_color)
-        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme)
+        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_history_update))
         write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
