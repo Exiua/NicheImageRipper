@@ -74,6 +74,13 @@ class ImageRipper():
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
+    def set_url(self, url: str):
+        self.given_url = url
+        self.site_name = self.site_check()
+
+    def set_filename_scheme(self, filename_scheme: FilenameScheme):
+        self.filename_scheme = filename_scheme
+
     def image_getter(self):
         """Download images from URL."""
         self.folder_info = self.html_parse()  # Gets image url, number of images, and name of album
@@ -2162,7 +2169,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url)
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return luscious_parse2(driver)
+        return luscious_parse(driver)
     finally:
         driver.quit()
 
