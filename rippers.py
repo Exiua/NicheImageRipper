@@ -60,9 +60,9 @@ class FilenameScheme(Enum):
 
 class ImageRipper():
     """Image Ripper Class"""
-    def __init__(self, given_url: str, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
+    def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
         self.folder_info: tuple[list[str] | str, int, str] = (None, 0, "")
-        self.given_url: str = given_url
+        self.given_url: str = ""
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: FilenameScheme = filename_scheme
         self.site_name: str = self.site_check()
@@ -74,14 +74,17 @@ class ImageRipper():
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
-    def set_url(self, url: str):
+    def rip(self, url: str):
+        """Download images from given URL"""
         self.given_url = url
         self.site_name = self.site_check()
+        self._image_getter()
 
     def set_filename_scheme(self, filename_scheme: FilenameScheme):
+        """Set the filename scheme to use when naming downloaded files"""
         self.filename_scheme = filename_scheme
 
-    def image_getter(self):
+    def _image_getter(self):
         """Download images from URL."""
         self.folder_info = self.html_parse()  # Gets image url, number of images, and name of album
         # Save location of this album
