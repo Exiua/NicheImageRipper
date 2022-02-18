@@ -65,7 +65,7 @@ class ImageRipper():
         self.given_url: str = ""
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: FilenameScheme = filename_scheme
-        self.site_name: str = self.site_check()
+        self.site_name: str = ""
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
