@@ -488,7 +488,6 @@ def agirlpic_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             if img:
                 images.append(img.get("src"))
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babecentrum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -502,7 +501,6 @@ def babecentrum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("table").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babeimpact_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -527,7 +525,6 @@ def babeimpact_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         soup = BeautifulSoup(html, PARSER)
         images.append("".join([PROTOCOL, soup.find(
             "div", class_="image-wrapper").find("img").get("src")]))
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babeuniversum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -539,7 +536,6 @@ def babeuniversum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
     images = soup.find("div", class_="three-column").find_all("div", class_="thumbnail")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babesandbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -555,7 +551,6 @@ def babesandbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     images = soup.find_all("a", class_="gallery-thumb")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babesandgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -567,7 +562,6 @@ def babesandgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
     images = soup.find("div", class_="block-post album-item").find_all("a", class_="item-post")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babesaround_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -580,7 +574,6 @@ def babesaround_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = [tag for im in images for tag in im.find_all("a", recursive=False)]
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babesbang_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -592,7 +585,6 @@ def babesbang_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="gal-block")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babesinporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -604,7 +596,6 @@ def babesinporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="list gallery")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def babesmachine_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -616,7 +607,6 @@ def babesmachine_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="gallery").find("table").find_all("tr")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def bestprettygirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -628,7 +618,6 @@ def bestprettygirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     images = soup.find_all("img", class_="aligncenter size-full")
     images = [img.get("src") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def buondua_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -655,7 +644,6 @@ def buondua_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             lazy_load(driver, True)
             soup = soupify(driver)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def bustybloom_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -671,7 +659,6 @@ def bustybloom_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="gallery_thumb")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def cherrynudes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -684,7 +671,6 @@ def cherrynudes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     content_url = driver.current_url.replace("www", "cdn")
     images = ["".join([content_url, img.get("href")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def chickteases_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -696,7 +682,6 @@ def chickteases_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="minithumbs")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def coomer_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -748,7 +733,6 @@ def coomer_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     with open("megaLinks.txt", "a") as f:
         f.writelines(mega_links)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def cupe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -804,7 +788,6 @@ def cupe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         model_name = "".join([model_name[:51], "]"])
     dir_name = " ".join(["(Cup E)", album_title, "-", shoot_theme, model_name])
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def cutegirlporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -816,7 +799,6 @@ def cutegirlporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("ul", class_="gal-thumbs").find_all("li")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("/t", "/")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def cyberdrop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -829,7 +811,6 @@ def cyberdrop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = [image.find("a", class_="image").get("href")
               for image in image_list]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def decorativemodels_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -841,7 +822,6 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
     images = soup.find("div", class_="list gallery").find_all("div", class_="item")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -853,7 +833,6 @@ def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, 
     images = soup.find("div", class_="container cont-light").find("div", class_="images").find_all("a", class_="thumb")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -868,7 +847,6 @@ def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = int(soup.find("h1", class_="type-pages").find("div").text)
     images = soup.find("div", class_="gallery").find_all("a")
     images = [img.find("img").get("src").replace("/thumbnail", "").replace("t.", ".") for img in images]
-    driver.quit()
     return (images, num_files, dir_name)
 
 def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -880,7 +858,6 @@ def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def elitebabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -892,7 +869,6 @@ def elitebabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def erosberry_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -904,7 +880,6 @@ def erosberry_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="block-post three-post flex").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def everia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -916,7 +891,6 @@ def everia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="separator")
     images = [img.find("img").get("src") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -929,7 +903,6 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple[list[str], int,
     images = soup.find("div", class_="gallery").find_all("a", class_="thumb exo")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -950,7 +923,6 @@ def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             driver.get(next_page)
             soup = soupify(driver)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def femjoyhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -962,7 +934,6 @@ def femjoyhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def foxhq_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -976,7 +947,6 @@ def foxhq_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     url = driver.current_url
     images = ["".join([url, td.find("a").get("href")]) for td in soup.find_all("td", align="center")[:-2]]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def ftvhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -988,7 +958,6 @@ def ftvhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def girlsofdesire_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1029,7 +998,6 @@ def girlsreleased_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
         except AttributeError:
             pass  # Image may have been deleted from ImageTwist servers
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def glam0ur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1041,7 +1009,6 @@ def glam0ur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="center").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def gofile_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1054,7 +1021,6 @@ def gofile_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="rowFolder-tableContent").find_all("div", recursive=False)
     images = [img.find("a").get("href") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def grabpussy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1066,7 +1032,6 @@ def grabpussy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="gal own-gallery-images").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def gyrls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1078,7 +1043,6 @@ def gyrls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="gallery-1").find_all("a")
     images = [img.get("href") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hanime_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1091,7 +1055,6 @@ def hanime_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         "div", class_="cuc_container images__content flex row wrap justify-center relative").find_all("a", recursive=False)
     images = [image.get("href") for image in image_list]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hegrehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1103,7 +1066,6 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1155,7 +1117,6 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     with open("megaLinks.txt", "a") as f:
         f.writelines(mega_links)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 #Cannot bypass captcha, so it doesn't work
@@ -1178,7 +1139,6 @@ def __hentaicosplays_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
             driver.get(next_page)
             soup = soupify(driver)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hentairox_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
@@ -1189,7 +1149,6 @@ def hentairox_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="append_thumbs").find("img", class_="lazy preloader").get("data-src")
     num_files = int(soup.find("li", class_="pages").text.split()[0])
-    driver.quit()
     return (images, num_files, dir_name)
 
 def heymanhustle_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1201,7 +1160,6 @@ def heymanhustle_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="galleria-thumbnails").find_all("img")
     images = [img.get("src").replace("/cache", "").split("-nggid")[0] for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hotgirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1231,7 +1189,6 @@ def hotgirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             images_html.extend(images_list)
     images = [image.get("src") for image in images_html]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hotstunners_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1243,7 +1200,6 @@ def hotstunners_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="gallery_janna2").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hottystop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1259,7 +1215,6 @@ def hottystop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     image_list = soup.find("table").find_all("a")
     images = ["".join([url, image.get("href")]) for image in image_list]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hqbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1284,7 +1239,6 @@ def hqbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         if any(x in image_url for x in ext):
             images.append("".join([PROTOCOL, image_url]))
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hqsluts_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1303,7 +1257,6 @@ def hqsluts_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     images = [image.find("a").get("href") for image in soup.find_all("li", class_="item i p")]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def hundredbucksbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1315,7 +1268,6 @@ def hundredbucksbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, 
     images = soup.find("div", class_="main-thumbs").find_all("img")
     images = ["".join([PROTOCOL, img.get("data-url")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def imgbox_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1328,7 +1280,6 @@ def imgbox_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="gallery-view-content").find_all("img")
     images = [img.get("src").replace("thumbs2", "images2").replace("_b", "_o") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def imgur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1350,7 +1301,6 @@ def imgur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             dir_name = json.get('title')
             images = [img.get("link") for img in json.get("images")]
             num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
@@ -1365,7 +1315,6 @@ def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
     dir_name = soup.find("h1").string
     # Removes illegal characters from folder name
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_pages, dir_name)
 
 def join2babes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1377,7 +1326,6 @@ def join2babes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", {"class" : "gimage"})
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1389,7 +1337,6 @@ def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1401,7 +1348,6 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     images = soup.find_all("div", class_="gallery_thumb")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1452,7 +1398,6 @@ def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         items = json['items']
         images.extend([i['url_to_original'] for i in items])
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def mainbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1464,7 +1409,6 @@ def mainbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="thumbs_box").find_all("div", class_="thumb_box")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def metarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1476,7 +1420,6 @@ def metarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def morazzia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1488,7 +1431,6 @@ def morazzia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="block-post album-item").find_all("a")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def myhentaigallery_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1500,7 +1442,6 @@ def myhentaigallery_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     images = soup.find("ul", class_="comics-grid clear").find_all("li")
     images = [img.find("img").get("src").replace("/thumbnail/", "/original/") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def nakedgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1512,7 +1453,6 @@ def nakedgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="content").find_all("div", class_="thumb")
     images = ["".join(["https://www.nakedgirls.xxx", img.find("a").get("href")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1524,7 +1464,6 @@ def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     images = soup.find_all("div", class_="gwrapper")
     images = ["".join([PROTOCOL, img.find("img").get("src")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1546,7 +1485,6 @@ def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
             driver.get(next_page)
             soup = soupify(driver)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def novoglam_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1558,7 +1496,6 @@ def novoglam_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("ul", id="myGalleryThumbs").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def novohot_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1570,7 +1507,6 @@ def novohot_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="runout").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def novojoy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1582,7 +1518,6 @@ def novojoy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("img", class_="gallery-image")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def novoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1598,7 +1533,6 @@ def novoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("img", class_="gallerythumbs")
     images = [img.get("src").replace("tn_", "") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def nudebird_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1610,7 +1544,6 @@ def nudebird_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("a", class_="fancybox-thumb")
     images = [img.get("href") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def nudity911_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1622,7 +1555,6 @@ def nudity911_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("tr", valign="top").find("td", align="center").find("table", width="650").find_all("td", width="33%")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def pbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1634,7 +1566,6 @@ def pbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", style="margin-left:35px;").find_all("a", rel="nofollow")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def pics_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1655,7 +1586,6 @@ def pics_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             driver.get(next_page)
             soup = soupify(driver)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def pinkfineart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1668,7 +1598,6 @@ def pinkfineart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="card ithumbnail-nobody ishadow ml-2 mb-3")
     images = ["".join(["https://pinkfineart.com", img.find("a").get("href")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def pleasuregirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1680,7 +1609,6 @@ def pleasuregirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="lightgallery-wrap").find_all("div", class_="grid-item thumb")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1692,7 +1620,6 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def putme_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1714,7 +1641,6 @@ def putme_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             driver.get(next_page)
             soup = soupify(driver)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1727,7 +1653,6 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="gallery-watch").find_all("li")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_","")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def redgifs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1750,7 +1675,6 @@ def redgifs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         except selenium.common.exceptions.NoSuchElementException:
             break
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def redpornblog_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1762,7 +1686,6 @@ def redpornblog_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="bigpic-image").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def rossoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1774,7 +1697,6 @@ def rossoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="wrapper_g")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for tag_list in images for img in tag_list.find_all("img")]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sankakucomplex_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1786,7 +1708,6 @@ def sankakucomplex_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     images = soup.find_all("a", class_="swipebox")
     images = [img.get("href") if PROTOCOL in img.get("href") else "".join([PROTOCOL, img.get("href")]) for img in images[1:]]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sensualgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1798,7 +1719,6 @@ def sensualgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="box_289").find_all("div", class_="gbox")
     images = ["".join(["https://sensualgirls.org", img.find("img").get("src").replace("_thumb", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sexhd_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1810,7 +1730,6 @@ def sexhd_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="photobig").find_all("div", class_="relativetop")[1:]
     images = ["".join(["https://sexhd.pics", img.find("a").get("href")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sexyaporno_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1827,7 +1746,6 @@ def sexyaporno_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="gallery_thumb")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sexybabesart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1839,7 +1757,6 @@ def sexybabesart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="thumbs").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1865,7 +1782,6 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         dir_name = clean_dir_name(" ".join(dir_name))
         image_list = soup.find_all("div", class_="album-item")
         images = [image.find("a").get("href") for image in image_list]
-        driver.quit()
     elif subdomain == "forum":
         dir_name = soup.find("h1", class_="p-title-value").find_all(text=True, recursive=False)
         dir_name = "".join(dir_name)
@@ -1931,7 +1847,6 @@ def sexykittenporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
         soup = BeautifulSoup(html, PARSER)
         images.append("".join([PROTOCOL, soup.find(
             "div", class_="image-wrapper").find("img").get("src")]))
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sexynakeds_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1943,7 +1858,6 @@ def sexynakeds_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="post_tn").find_all("img")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def silkengirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1955,7 +1869,6 @@ def silkengirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="thumb_box")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def simplycosplay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -1979,7 +1892,6 @@ def simplycosplay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
             image.pop(1)
             image[0] = image[0][:-5]
             images.append("".join(image))
-    driver.quit()
     return (images, num_files, dir_name)
 
 def simplyporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2002,7 +1914,6 @@ def simplyporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             image[0] = image[0][:-5]
             images.append("".join(image))
         num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2029,7 +1940,6 @@ def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
                 img_url = "-".join(url_parts[:-1]) + ext
             images.append(img_url)
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2041,7 +1951,6 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     images = soup.find("div", class_="postholder").find_all("div", class_="picture", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2070,7 +1979,6 @@ def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             "div", class_="entry-content clearfix").find_all("img")
     images = ["".join([PROTOCOL, img.get("src")]) for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def wantedbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2082,7 +1990,6 @@ def wantedbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="gallery")
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 #TODO: Work on saving driver across sites to avoid relogging in
@@ -2138,7 +2045,6 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         if parse_complete:
             break
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def xarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2150,7 +2056,6 @@ def xarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2162,7 +2067,6 @@ def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", id="gallery").find_all("div", class_="noclick-image")
     images = [img.find("img").get("data-src") if img.find("img").get("data-src") != None else img.find("img").get("src") for img in images]
     num_files = len(images)
-    driver.quit()
     return (images, num_files, dir_name)
 
 def _test_parse(given_url: str) -> list:
