@@ -46,11 +46,19 @@ PROTOCOL = "https:"
 SCHEME = "https://"
 CONFIG = 'config.ini'
 PARSER = "lxml" #"html.parser" lxml is faster
+SESSION_HEADERS = {
+    "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
+}
 DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
-requests_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
-                    'referer': 'https://imhentai.xxx/',
-                    'cookie': 'frontend=6987139f7e35d85f7e5925c51440d3bb; __cf_bm=9kXa22S7nzCDz.Q6KWEMwQg4UTngv_veglJvrn2dGx8-1641494817-0-AeQ/kaQb9LFIIomM9Kti8sroSJbYiZ6cPQR0AvbqM+oB0j8psVA4Sn+FCku4tlLVL7NTJt0scy0BNqNiz5Oa5FlNhsiI94lC3jTBMfNn65K6agnZlCS6gM2rBIfFPNZAhA=='
-                    }
+requests_header = {
+    'User-Agent': 
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+    'referer': 
+        'https://imhentai.xxx/',
+    'cookie': 
+        'frontend=6987139f7e35d85f7e5925c51440d3bb; __cf_bm=9kXa22S7nzCDz.Q6KWEMwQg4UTngv_veglJvrn2dGx8-1641494817-0-AeQ/kaQb9LFIIomM9Kti8sroSJbYiZ6cPQR0AvbqM+oB0j8psVA4Sn+FCku4tlLVL7NTJt0scy0BNqNiz5Oa5FlNhsiI94lC3jTBMfNn65K6agnZlCS6gM2rBIfFPNZAhA=='
+}
 DEBUG = False
 
 class FilenameScheme(Enum):
@@ -66,6 +74,8 @@ class ImageRipper():
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: FilenameScheme = filename_scheme
         self.site_name: str = ""
+        self.session = requests.Session()
+        self.session.headers.update(SESSION_HEADERS)
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
@@ -91,12 +101,6 @@ class ImageRipper():
         full_path = "".join([self.save_path, self.folder_info[2]])
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
-        HEADERS = {
-            "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
-        }
-        session = requests.Session()
-        session.headers.update(HEADERS)
         # Can get the image through numerically ascending url for imhentai and hentairox (hard to account for gifs otherwise)
         if self.site_name in ("imhentai", "hentairox"):
             # Gets the general url of all images in this album
@@ -108,7 +112,7 @@ class ImageRipper():
                 # Go throw file extensions to find the correct extension (generally will be jpg)
                 for i, ext in enumerate(exts):
                     try:
-                        self.download_from_url(session, trimmed_url, file_num, full_path, ext)
+                        self.download_from_url(self.session, trimmed_url, file_num, full_path, ext)
                         break # Correct extension was found
                     except (PIL.UnidentifiedImageError, WrongExtension):
                         image_path = "".join([full_path, "/", file_num, ext])
@@ -120,12 +124,12 @@ class ImageRipper():
             for index in range(int(self.folder_info[1])):
                 time.sleep(0.2)
                 try:
-                    self.download_from_list(session, self.folder_info[0][index], full_path, index)
+                    self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
                 except PIL.UnidentifiedImageError:
                     pass  # No image exists, probably
                 except requests.exceptions.ChunkedEncodingError:
                     time.sleep(10)
-                    self.download_from_list(session, self.folder_info[0][index], full_path, index)
+                    self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
         print("Download Complete")
 
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):
