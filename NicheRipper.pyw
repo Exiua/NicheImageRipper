@@ -139,10 +139,10 @@ class RipperGui():
                 time.sleep(2)
 
     def rip_check(self, item: str):
-        if self.rerip_ask and any(item in sublist for sublist in self.table_data): #If user wants to be prompted and if url is in the history
+        if self.rerip_ask and any(item in table_entry for table_entry in self.table_data): #If user wants to be prompted and if url is in the history
             if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes': #Ask user to re-rip
                 self.url_list.append(item)
-        else: #If user always wants to re-rip
+        else: #If user always wants to re-rip or duplicate entry was not found
             self.url_list.append(item)
 
     def rip_images(self, window: sg.Window):

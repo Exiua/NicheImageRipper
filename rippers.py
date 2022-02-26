@@ -2205,9 +2205,9 @@ def url_check(given_url: str) -> bool:
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
-             "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
-             "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
-             "https://coomer.party/", "https://imgur.com/")
+             "https://www.luscious.net/", "https://members.luscious.net/", "https://sxchinesegirlz.one/",
+             "https://agirlpic.com/", "https://www.v2ph.com/", "https://nudebird.biz/",
+             "https://bestprettygirl.com/", "https://coomer.party/", "https://imgur.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
