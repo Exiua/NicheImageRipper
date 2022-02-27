@@ -50,7 +50,7 @@ SESSION_HEADERS = {
     "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
 }
-DRIVER_HEADER = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
+DRIVER_HEADER = ("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")#Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header = {
     'User-Agent': 
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
@@ -414,7 +414,8 @@ class ImageRipper():
             "nudebird": nudebird_parse,
             "bestprettygirl": bestprettygirl_parse,
             "coomer": coomer_parse,
-            "imgur": imgur_parse
+            "imgur": imgur_parse,
+            "8kcosplay": eightkcosplay_parse
         }
         site_parser: function = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -858,6 +859,18 @@ def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
+    return (images, num_files, dir_name)
+
+def eightkcosplay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for 8kcosplay.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="entry-content").find_all("img", class_="j-lazy")
+    images = [img.get("src").replace(".th", "") for img in images]
+    num_files = len(images)
+    driver.quit()
     return (images, num_files, dir_name)
 
 def elitebabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2085,7 +2098,7 @@ def _test_parse(given_url: str) -> list:
         driver.get(given_url.replace("members.", "www."))
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
-        return luscious_parse(driver)
+        return eightkcosplay_parse(driver)
     finally:
         driver.quit()
 
@@ -2212,7 +2225,7 @@ def url_check(given_url: str) -> bool:
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
              "https://www.luscious.net/", "https://sxchinesegirlz.one/","https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
-             "https://coomer.party/", "https://imgur.com/")
+             "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
