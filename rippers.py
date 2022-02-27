@@ -86,7 +86,7 @@ class ImageRipper():
 
     def rip(self, url: str):
         """Download images from given URL"""
-        self.given_url = url
+        self.given_url = url.replace("members.", "www.")
         self.site_name = self.site_check()
         self._image_getter()
 
@@ -1353,6 +1353,8 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
 def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for luscious.net"""
     #Parses the html of the site
+    if "members." in driver.current_url:
+        driver.get(driver.current_url.replace("members.", "www."))
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="o-h1 album-heading").text
     dir_name = clean_dir_name(dir_name)
@@ -1398,6 +1400,9 @@ def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         items = json['items']
         images.extend([i['url_to_original'] for i in items])
     num_files = len(images)
+    for i, img in enumerate(images):
+        if "https:" not in img:
+            images[i] = "https://" + img.replace("//", "")
     return (images, num_files, dir_name)
 
 def mainbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2077,7 +2082,7 @@ def _test_parse(given_url: str) -> list:
         options.headless = not DEBUG
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
-        driver.get(given_url)
+        driver.get(given_url.replace("members.", "www."))
         #rip = ImageRipper(given_url)
         #rip.site_login(driver)
         return luscious_parse(driver)
@@ -2205,9 +2210,9 @@ def url_check(given_url: str) -> bool:
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
              "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
-             "https://www.luscious.net/", "https://members.luscious.net/", "https://sxchinesegirlz.one/",
-             "https://agirlpic.com/", "https://www.v2ph.com/", "https://nudebird.biz/",
-             "https://bestprettygirl.com/", "https://coomer.party/", "https://imgur.com/")
+             "https://www.luscious.net/", "https://sxchinesegirlz.one/","https://agirlpic.com/",
+             "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
+             "https://coomer.party/", "https://imgur.com/")
     return any(x in given_url for x in sites)
 
 if __name__ == "__main__":
