@@ -423,8 +423,10 @@ class ImageRipper:
             "bestprettygirl": bestprettygirl_parse,
             "coomer": coomer_parse,
             "imgur": imgur_parse,
-            "8kcosplay": eightkcosplay_parse
+            "8kcosplay": eightkcosplay_parse,
+            "inven": inven_parse
         }
+        print(self.site_name)
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
         self.partial_save(site_info)
@@ -452,7 +454,7 @@ class ImageRipper:
         if url_check(self.given_url):
             domain = urlparse(self.given_url).netloc
             requests_header['referer'] = "".join([SCHEME, domain, "/"])
-            domain = domain.split(".")[-2]
+            domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:  # Hosts images on a different domain
                 requests_header['referer'] = "https://cdn.discordapp.com/"
             elif "https://kemono.party/" in self.given_url:
@@ -1399,7 +1401,7 @@ def inven_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for inven.co.kr"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("div", class_="articleTitle").find("font").text
+    dir_name = soup.find("div", class_="articleTitle").find("h1").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="BBSImageHolderTop").find_all("img")
     images = [img.get("src") for img in images]
@@ -2247,7 +2249,7 @@ def secondary_parse(driver: webdriver.Firefox, link: str,
 
 
 def _print_html(soup: BeautifulSoup):
-    with open("html.html", "w+") as f:
+    with open("html.html", "w", encoding="utf-8") as f:
         f.write(str(soup))
 
 
@@ -2371,7 +2373,8 @@ def url_check(given_url: str) -> bool:
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
-             "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/")
+             "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
+             "https://www.inven.co.kr/")
     return any(x in given_url for x in sites)
 
 
