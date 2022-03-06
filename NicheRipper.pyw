@@ -87,10 +87,8 @@ class RipperGui:
                         if url_check(
                                 url) and url not in self.url_list:  # If url is for a supported site and not already queued
                             self.rip_check(url)
-                elif url_check(values['-URL-']) and not values[
-                                                            '-URL-'] in self.url_list:  # If url is for a supported site and not already queued
-                    if self.rerip_ask and any(values['-URL-'] in sublist for sublist in
-                                              self.table_data):  # If user wants to be prompted and if url is in the history
+                elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:  # If url is for a supported site and not already queued
+                    if self.rerip_ask and any(values['-URL-'] in sublist for sublist in self.table_data):  # If user wants to be prompted and if url is in the history
                         if sg.popup_yes_no('Do you want to re-rip URL?',
                                            no_titlebar=True) == 'Yes':  # Ask user to re-rip
                             self.url_list.append(values['-URL-'])
@@ -109,7 +107,7 @@ class RipperGui:
                     checker_thread.start()
                 self.print_queue(window)
             if event == 'Check':  # Check if there is an update available
-                if self.version >= self.latest_version:
+                if self.is_latest_version():
                     window['-UPDATE-'](' '.join([self.version, 'is the latest version']), text_color='green')
                 else:
                     window['-UPDATE-']('Update available', text_color='red')
@@ -203,6 +201,22 @@ class RipperGui:
         ripper.folder_info = []
         if update:
             window['-TABLE-'].update(values=self.table_data)
+
+    def is_latest_version(self) -> bool:
+        v1 = self.version.replace("v", "").split(".")
+        v2 = self.latest_version.replace("v", "").split(".")
+        if int(v1[0]) > int(v2[0]):
+            return True
+        elif int(v1[0]) < int(v2[0]):
+            return False
+        else:
+            if int(v1[1]) > int(v2[1]):
+                return True
+            elif int(v1[1]) < int(v2[1]):
+                return False
+            else:
+                return int(v1[2]) >= int(v2[2])
+
 
     @staticmethod
     def string_to_bool(v: str) -> bool:
