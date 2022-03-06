@@ -8,6 +8,7 @@ import json
 import os
 import pickle
 import re
+import string
 import subprocess
 import sys
 import time
@@ -424,9 +425,9 @@ class ImageRipper:
             "coomer": coomer_parse,
             "imgur": imgur_parse,
             "8kcosplay": eightkcosplay_parse,
-            "inven": inven_parse
+            "inven": inven_parse,
+            "arca": arca_parse
         }
-        print(self.site_name)
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
         self.partial_save(site_info)
@@ -501,6 +502,20 @@ def agirlpic_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             if img:
                 images.append(img.get("src"))
     num_files = len(images)
+    return images, num_files, dir_name
+
+
+def arca_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for arca.live"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="fr-view article-content").find_all("img")
+    images = ["".join([img.get("src").split("?")[0], "?type=orig"]) for img in images]
+    images = [PROTOCOL + img if PROTOCOL not in img else img for img in images]
+    num_files = len(images)
+    driver.quit()
     return images, num_files, dir_name
 
 
@@ -2216,8 +2231,9 @@ def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = soup.find("h1", id="pagetitle").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="gallery").find_all("div", class_="noclick-image")
-    images = [img.find("img").get("data-src") if img.find("img").get("data-src") is not None else img.find("img").get("src")
-              for img in images]
+    images = [
+        img.find("img").get("data-src") if img.find("img").get("data-src") is not None else img.find("img").get("src")
+        for img in images]
     num_files = len(images)
     return images, num_files, dir_name
 
@@ -2233,7 +2249,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
         # rip.site_login(driver)
-        return inven_parse(driver)
+        return arca_parse(driver)
     finally:
         driver.quit()
 
@@ -2256,7 +2272,7 @@ def _print_html(soup: BeautifulSoup):
 def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    return given_name.translate(translation_table).strip()
+    return given_name.translate(translation_table).strip().replace("\n", "").strip(string.punctuation)
 
 
 # TODO: Merge the if/else
@@ -2374,7 +2390,7 @@ def url_check(given_url: str) -> bool:
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
-             "https://www.inven.co.kr/")
+             "https://www.inven.co.kr/", "https://arca.live/")
     return any(x in given_url for x in sites)
 
 
