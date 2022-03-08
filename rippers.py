@@ -426,7 +426,8 @@ class ImageRipper:
             "imgur": imgur_parse,
             "8kcosplay": eightkcosplay_parse,
             "inven": inven_parse,
-            "arca": arca_parse
+            "arca": arca_parse,
+            "cool18": cool18_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -724,6 +725,19 @@ def chickteases_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find_all("div", class_="minithumbs")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
+    return images, num_files, dir_name
+
+
+def cool18_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("td", class_="show_content").find("b").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("td", class_="show_content").find("pre").find_all("img")
+    images = [img.get("src") for img in images]
+    num_files = len(images)
+    driver.quit()
     return images, num_files, dir_name
 
 
@@ -2249,7 +2263,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
         # rip.site_login(driver)
-        return arca_parse(driver)
+        return cool18_parse(driver)
     finally:
         driver.quit()
 
@@ -2390,7 +2404,7 @@ def url_check(given_url: str) -> bool:
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
-             "https://www.inven.co.kr/", "https://arca.live/")
+             "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/")
     return any(x in given_url for x in sites)
 
 
