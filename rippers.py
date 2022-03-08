@@ -427,7 +427,8 @@ class ImageRipper:
             "8kcosplay": eightkcosplay_parse,
             "inven": inven_parse,
             "arca": arca_parse,
-            "cool18": cool18_parse
+            "cool18": cool18_parse,
+            "maturewoman": maturewoman_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -729,7 +730,7 @@ def chickteases_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 
 def cool18_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for"""
+    """Read the html for cool18.com"""
     # Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("td", class_="show_content").find("b").text
@@ -1543,6 +1544,19 @@ def mainbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def maturewoman_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for maturewoman.xyz"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="entry-title").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="entry-content cf").find_all("img")
+    images = [img.get("src") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+
 def metarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hetarthunter.com"""
     # Parses the html of the site
@@ -2263,7 +2277,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
         # rip.site_login(driver)
-        return cool18_parse(driver)
+        return maturewoman_parse(driver)
     finally:
         driver.quit()
 
@@ -2404,7 +2418,8 @@ def url_check(given_url: str) -> bool:
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
-             "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/")
+             "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
+             "https://maturewoman.xyz/")
     return any(x in given_url for x in sites)
 
 
