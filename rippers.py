@@ -428,7 +428,8 @@ class ImageRipper:
             "inven": inven_parse,
             "arca": arca_parse,
             "cool18": cool18_parse,
-            "maturewoman": maturewoman_parse
+            "maturewoman": maturewoman_parse,
+            "putmega": putmega_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1809,6 +1810,30 @@ def putme_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for putmega.com"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("a", {"data-text": "album-name"}).text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while True:
+        image_list = soup.find("div", class_="pad-content-listing").find_all("img")
+        image_list = [img.get("src").replace(".md", "") for img in image_list]
+        images.extend(image_list)
+        next_page = soup.find("li", class_="pagination-next")
+        if next_page is None:
+            break
+        else:
+            next_page = next_page.find("a").get("href")
+            print(next_page)
+            driver.get(next_page)
+            soup = soupify(driver)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+
 def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for rabbitsfun.com"""
     # Parses the html of the site
@@ -2277,7 +2302,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
         # rip.site_login(driver)
-        return maturewoman_parse(driver)
+        return putmega_parse(driver)
     finally:
         driver.quit()
 
@@ -2419,7 +2444,7 @@ def url_check(given_url: str) -> bool:
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
-             "https://maturewoman.xyz/")
+             "https://maturewoman.xyz/", "https://putmega.com/")
     return any(x in given_url for x in sites)
 
 
