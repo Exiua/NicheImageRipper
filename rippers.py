@@ -29,6 +29,8 @@ from bs4 import BeautifulSoup
 from natsort import natsorted
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 
@@ -431,7 +433,8 @@ class ImageRipper:
             "cool18": cool18_parse,
             "maturewoman": maturewoman_parse,
             "thotsbay": thotsbay_parse,
-            "tikhoe": tikhoe_parse
+            "tikhoe": tikhoe_parse,
+            "lovefap": lovefap_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1479,6 +1482,29 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     return images, num_files, dir_name
 
 
+def lovefap_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for lovefap.com"""
+    #Parses the html of the site
+    #element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, "myDynamicElement")))
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="albums-content-header").find("span").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="files-wrapper noselect").find_all("a")
+    images = [img.get("href") for img in images]
+    vid = []
+    for i, l in enumerate(images):
+        if "/video/" in l:
+            vid.append(i)
+            driver.get("https://lovefap.com" + l)
+            soup = soupify(driver)
+            images.append(soup.find("video", id="main-video").find("source").get("src"))
+    for i in reversed(vid):
+        images.pop(i)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+TEST_PARSER = lovefap_parse
 def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for luscious.net"""
     # Parses the html of the site
@@ -2189,7 +2215,7 @@ def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = tikhoe_parse
+
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for tuyangyan.com"""
     # Parses the html of the site
@@ -2472,7 +2498,8 @@ def url_check(given_url: str) -> bool:
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
-             "https://maturewoman.xyz/", "https://thotsbay.com/", "https://tikhoe.com/")
+             "https://maturewoman.xyz/", "https://thotsbay.com/", "https://tikhoe.com/",
+             "https://lovefap.com/")
     return any(x in given_url for x in sites)
 
 
