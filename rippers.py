@@ -430,7 +430,8 @@ class ImageRipper:
             "arca": arca_parse,
             "cool18": cool18_parse,
             "maturewoman": maturewoman_parse,
-            "thotsbay": thotsbay_parse
+            "thotsbay": thotsbay_parse,
+            "tikhoe": tikhoe_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -2148,7 +2149,7 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
 def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for thotsbay.com"""
     # Parses the html of the site
-    driver.find_element(By.CLASS_NAME, "show-files-btn").click()
+    #driver.find_element(By.CLASS_NAME, "show-files-btn").click()
     soup = soupify(driver)
     dir_name = soup.find("div", class_="album-info-title").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -2171,7 +2172,24 @@ def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = thotsbay_parse
+
+def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for tikhoe.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="album-title").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    file_tag = soup.find("div", class_="album-files")
+    images = file_tag.find_all("a")
+    videos = file_tag.find_all("source")
+    images = [img.get("href") for img in images]
+    videos = [vid.get("src") for vid in videos]
+    images.extend(videos)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+TEST_PARSER = tikhoe_parse
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for tuyangyan.com"""
     # Parses the html of the site
@@ -2454,7 +2472,7 @@ def url_check(given_url: str) -> bool:
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
-             "https://maturewoman.xyz/", "https://thotsbay.com/")
+             "https://maturewoman.xyz/", "https://thotsbay.com/", "https://tikhoe.com/")
     return any(x in given_url for x in sites)
 
 
