@@ -67,6 +67,7 @@ requests_header = {
         ''
 }
 DEBUG = False
+TEST_PARSER = None
 
 
 class FilenameScheme(Enum):
@@ -428,7 +429,8 @@ class ImageRipper:
             "inven": inven_parse,
             "arca": arca_parse,
             "cool18": cool18_parse,
-            "maturewoman": maturewoman_parse
+            "maturewoman": maturewoman_parse,
+            "thotsbay": thotsbay_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -2143,6 +2145,33 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     return images, num_files, dir_name
 
 
+def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for thotsbay.com"""
+    # Parses the html of the site
+    driver.find_element(By.CLASS_NAME, "show-files-btn").click()
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="album-info-title").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = []
+    while not images:
+        soup = soupify(driver)
+        images = soup.find("div", class_="album-files").find_all("a")
+        images = [img.get("href") for img in images]
+        time.sleep(1)
+    vid = []
+    for i, l in enumerate(images):
+        if "/video/" in l:
+            vid.append(i)
+            driver.get(l)
+            soup = soupify(driver)
+            images.append(soup.find("video", id="main-video").find("source").get("src"))
+    for i in reversed(vid):
+        images.pop(i)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+TEST_PARSER = thotsbay_parse
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for tuyangyan.com"""
     # Parses the html of the site
@@ -2269,15 +2298,18 @@ def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def _test_parse(given_url: str) -> tuple[list[str], int, str]:
     """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
     driver = None
+    #ripper = ImageRipper()
+    #ripper.rip(given_url)
+    #return
     try:
         options = Options()
         options.headless = not DEBUG
-        options.add_argument = DRIVER_HEADER
+        options.add_argument = DRIVER_HEADER #+ ",referer=https://nukeleaks.com/"
         driver = webdriver.Firefox(options=options)
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
         # rip.site_login(driver)
-        return maturewoman_parse(driver)
+        return TEST_PARSER(driver)
     finally:
         driver.quit()
 
@@ -2300,7 +2332,10 @@ def _print_html(soup: BeautifulSoup):
 def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
-    return given_name.translate(translation_table).strip().replace("\n", "").strip(string.punctuation)
+    dir_name = given_name.translate(translation_table).strip().replace("\n", "")
+    if dir_name[-1] not in (")", "]", "}"):
+        dir_name.strip(string.punctuation)
+    return dir_name
 
 
 # TODO: Merge the if/else
@@ -2419,7 +2454,7 @@ def url_check(given_url: str) -> bool:
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
-             "https://maturewoman.xyz/")
+             "https://maturewoman.xyz/", "https://thotsbay.com/")
     return any(x in given_url for x in sites)
 
 
