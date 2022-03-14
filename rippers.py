@@ -1826,6 +1826,8 @@ def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             break
         else:
             next_page = next_page.find("a").get("href")
+            if next_page is None:
+                break
             print(next_page)
             driver.get(next_page)
             soup = soupify(driver)
