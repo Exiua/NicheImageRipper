@@ -346,7 +346,7 @@ class ImageRipper:
         options.headless = self.site_name != "v2ph" or logged_in
         options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
-        driver.get(self.given_url)
+        driver.get(self.given_url.replace("members.", "www."))
         self.site_login(driver)
         global parser_switch
         parser_switch = {
@@ -454,7 +454,8 @@ class ImageRipper:
             "putmega": putmega_parse,
             "thotsbay": thotsbay_parse,
             "tikhoe": tikhoe_parse,
-            "lovefap": lovefap_parse
+            "lovefap": lovefap_parse,
+            "8muses": eightmuses_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -949,6 +950,23 @@ def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
+    return images, num_files, dir_name
+
+
+def eightmuses_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for 8muses.com"""
+    #Parses the html of the site
+    gallery = driver.find_element(By.CLASS_NAME, "gallery")
+    while gallery is None:
+        time.sleep(0.5)
+        gallery = driver.find_element(By.CLASS_NAME, "gallery")
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="top-menu-breadcrumb").find_all("a")[-1].text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="gallery").find_all("img")
+    images = ["https://comics.8muses.com" + img.get("src").replace("/th/", "/fm/") for img in images]
+    num_files = len(images)
+    driver.quit()
     return images, num_files, dir_name
 
 
@@ -2394,7 +2412,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
     try:
         options = Options()
         options.headless = not DEBUG
-        options.add_argument = DRIVER_HEADER #+ ",referer=https://nukeleaks.com/"
+        options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
@@ -2545,7 +2563,7 @@ def url_check(given_url: str) -> bool:
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
-             "https://tikhoe.com/", "https://lovefap.com/")
+             "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/")
     return any(x in given_url for x in sites)
 
 
