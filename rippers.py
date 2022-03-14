@@ -103,6 +103,25 @@ class ImageRipper:
         self.site_name = self.site_check()
         self._image_getter()
 
+    def custom_rip(self, url: str, parser: Callable[[str], tuple[list[str], int, str]]):
+        options = Options()
+        options.headless = True
+        options.add_argument = ("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+        driver = webdriver.Firefox(options=options)
+        driver.get(url)
+        self.folder_info = parser(driver)
+        full_path = "".join([self.save_path, self.folder_info[2]])
+        for index in range(int(self.folder_info[1])):
+            time.sleep(0.2)
+            try:
+                self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
+            except PIL.UnidentifiedImageError:
+                pass  # No image exists, probably
+            except requests.exceptions.ChunkedEncodingError:
+                time.sleep(10)
+                self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
+        print("Download Complete")
+
     def set_filename_scheme(self, filename_scheme: FilenameScheme):
         """Set the filename scheme to use when naming downloaded files"""
         self.filename_scheme = filename_scheme
@@ -1504,7 +1523,7 @@ def lovefap_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = lovefap_parse
+
 def luscious_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for luscious.net"""
     # Parses the html of the site
