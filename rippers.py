@@ -94,6 +94,10 @@ class ImageRipper:
         }
         global logged_in
         logged_in = os.path.isfile("cookies.pkl")
+        cookies = {
+            "v2ph": [],
+            "fantia": []
+        }
         flag = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
@@ -1051,7 +1055,60 @@ def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
+# Started working on support for fantia.com
+def __fantia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for fantia.com"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="fanclub-name").find("a").text
+    dir_name = clean_dir_name(dir_name)
+    curr_url = driver.current_url
+    driver.get("https://fantia.jp/sessions/signin")
+    input("cont")
+    driver.get(curr_url)
+    post_list = []
+    while True:
+        posts = soup.find("div", class_="row row-packed row-eq-height").find_all("a", class_="link-block")
+        posts = ["https://fantia.jp" + post.get("href") for post in posts]
+        post_list.extend(posts)
+        next_page = soup.find("ul", class_="pagination").find("a", rel="next")
+        if next_page is None:
+            break
+        else:
+            next_page = "https://fantia.jp" + next_page.get("href")
+            driver.get(next_page)
+            soup = soupify(driver)
+    images = []
+    for post in post_list:
+        driver.get(post)
+        mimg = None
+        try:
+            mimg = driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
+        except selenium.common.exceptions.NoSuchElementException:
+            pass
+        while mimg is None:
+            time.sleep(0.5)
+            try:
+                mimg = driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
+            except selenium.common.exceptions.NoSuchElementException:
+                pass
+        soup = soupify(driver)
+        _print_html(soup)
+        print(post)
+        main_image = soup.find("div", class_="post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope").find("img").get("src")
+        images.append(main_image)
+        # 4 and 6
+        other_images = soup.find("div", class_="row no-gutters ng-scope").find_all("img")
+        for img in other_images:
+            url = img.split("/")
+            img_url = "/".join([post, url[4], url[6]])
+            images.append(img_url)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
 
+TEST_PARSER = fantia_parse
+DEBUG = True
 def femjoyhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for femjoyhunter.com"""
     # Parses the html of the site
