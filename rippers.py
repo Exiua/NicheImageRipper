@@ -459,7 +459,8 @@ class ImageRipper:
             "thotsbay": thotsbay_parse,
             "tikhoe": tikhoe_parse,
             "lovefap": lovefap_parse,
-            "8muses": eightmuses_parse
+            "8muses": eightmuses_parse,
+            "jkforum": jkforum_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1534,6 +1535,19 @@ def inven_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = soup.find("div", class_="articleTitle").find("h1").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", id="BBSImageHolderTop").find_all("img")
+    images = [img.get("src") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+
+def jkforum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for jkforum.net"""
+    #Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="title-cont").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("td", class_="t_f").find_all("img")
     images = [img.get("src") for img in images]
     num_files = len(images)
     driver.quit()
@@ -2619,7 +2633,8 @@ def url_check(given_url: str) -> bool:
              "https://coomer.party/", "https://imgur.com/", "https://www.8kcosplay.com/",
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
-             "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/")
+             "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
+             "https://www.jkforum.net/")
     return any(x in given_url for x in sites)
 
 
