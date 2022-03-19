@@ -1107,8 +1107,7 @@ def __fantia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = fantia_parse
-DEBUG = True
+
 def femjoyhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for femjoyhunter.com"""
     # Parses the html of the site
