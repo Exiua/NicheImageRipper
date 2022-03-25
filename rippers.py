@@ -460,7 +460,8 @@ class ImageRipper:
             "tikhoe": tikhoe_parse,
             "lovefap": lovefap_parse,
             "8muses": eightmuses_parse,
-            "jkforum": jkforum_parse
+            "jkforum": jkforum_parse,
+            "leakedbb": leakedbb_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -1578,6 +1579,25 @@ def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def leakedbb_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for leakedbb.com"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="flow-text left").find("strong").text
+    dir_name = clean_dir_name(dir_name)
+    image_links = soup.find("div", class_="post_body scaleimages").find_all("img")
+    image_links = [img.get("src") for img in image_links]
+    images = []
+    for link in image_links:
+        driver.get(link)
+        soup = soupify(driver)
+        img = soup.find("a", id="download").get("href").split("?")[0]
+        images.append(img)
+    num_files = len(image_links)
+    driver.quit()
+    return images, num_files, dir_name
+
+TEST_PARSER = leakedbb_parse
 def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for livejasminbabes.net"""
     # Parses the html of the site
@@ -2634,7 +2654,7 @@ def url_check(given_url: str) -> bool:
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
-             "https://www.jkforum.net/")
+             "https://www.jkforum.net/", "https://leakedbb.com/")
     return any(x in given_url for x in sites)
 
 
