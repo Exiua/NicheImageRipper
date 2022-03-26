@@ -4,3 +4,4 @@ PySimpleGUI>=4.33.0
 requests>=2.25.1
 selenium>=3.141.0
 urllib3>=1.26.2
+cyberdrop-dl>=2.7.2

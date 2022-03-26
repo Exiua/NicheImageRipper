@@ -12,6 +12,8 @@ import string
 import subprocess
 import sys
 import time
+import logging
+import logging.handlers
 from enum import Enum, auto
 from math import ceil
 from os import path, walk
@@ -29,8 +31,6 @@ from bs4 import BeautifulSoup
 from natsort import natsorted
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 
@@ -71,6 +71,12 @@ requests_header = {
 CYBERDROP_DOMAINS = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG = False
 TEST_PARSER = None
+handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "error.log"))
+formatter = logging.Formatter(logging.BASIC_FORMAT)
+handler.setFormatter(formatter)
+log = logging.getLogger()
+log.setLevel(os.environ.get("LOGLEVEL", "INFO"))
+log.addHandler(handler)
 
 
 class FilenameScheme(Enum):
@@ -212,7 +218,7 @@ class ImageRipper:
             file_name = "".join([hashlib.md5(file_name.encode()).hexdigest(), ".", ext])
         else:
             file_name = os.path.basename(urlparse(rip_url).path)
-        image_path = "".join([full_path, '/', file_name])
+        image_path = os.path.join(full_path, file_name)
         ext = path.splitext(image_path)[1]
         self.download_file(session, image_path, rip_url)
         if self.filename_scheme == FilenameScheme.HASH:
@@ -234,6 +240,9 @@ class ImageRipper:
                 except requests.exceptions.SSLError:
                     response = session.get(rip_url, headers=requests_header, stream=True, verify=False)
                     bad_cert = True
+                except requests.exceptions.ConnectionError:
+                    log.error("Unable to establish connection to " + rip_url)
+                    break
                 if not response.ok and not bad_cert:
                     print(self.site_name)
                     if response.status_code == 403 and self.site_name == "kemono":
@@ -1603,10 +1612,13 @@ def leakedbb_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("div", class_="flow-text left").find("strong").text
     dir_name = clean_dir_name(dir_name)
-    image_links = soup.find("div", class_="post_body scaleimages").find_all("img")
+    image_links = soup.find("div", class_="post_body scaleimages").find_all("img", recursive=False)
     image_links = [img.get("src") for img in image_links]
     images = []
     for link in image_links:
+        if "postimg.cc" not in link:
+            images.append(link)
+            continue
         driver.get(link)
         soup = soupify(driver)
         img = soup.find("a", id="download").get("href").split("?")[0]
