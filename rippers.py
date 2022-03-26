@@ -68,6 +68,7 @@ requests_header = {
     'cookie':
         ''
 }
+CYBERDROP_DOMAINS = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG = False
 TEST_PARSER = None
 
@@ -157,15 +158,32 @@ class ImageRipper:
                             print("Image not found")
         # Easier to put all image url in a list and then download for these sites
         else:
-            for index in range(int(self.folder_info[1])):
-                time.sleep(0.2)
-                try:
-                    self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
-                except PIL.UnidentifiedImageError:
-                    pass  # No image exists, probably
-                except requests.exceptions.ChunkedEncodingError:
-                    time.sleep(10)
-                    self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
+            if "cyberdrop" == self.site_name:
+                cmd = ["cyberdrop-dl", "-o", full_path]
+                cmd.extend(self.folder_info[0])
+                print("Starting cyberdrop-dl")
+                subprocess.run(cmd)
+                print("Cyberdrop-dl finished")
+            else:
+                cyberdrop_files = []
+                for i, link in enumerate(self.folder_info[0]):
+                    time.sleep(0.2)
+                    if any(domain in link for domain in CYBERDROP_DOMAINS):
+                        cyberdrop_files.append(link)
+                        continue
+                    try:
+                        self.download_from_list(self.session, link, full_path, i)
+                    except PIL.UnidentifiedImageError:
+                        pass  # No image exists, probably
+                    except requests.exceptions.ChunkedEncodingError:
+                        time.sleep(10)
+                        self.download_from_list(self.session, link, full_path, i)
+                if cyberdrop_files:
+                    cmd = ["cyberdrop-dl", "-o", full_path]
+                    cmd.extend(cyberdrop_files)
+                    print("Starting cyberdrop-dl")
+                    subprocess.run(cmd)
+                    print("Cyberdrop-dl finished")
         print("Download Complete")
 
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):
