@@ -71,6 +71,8 @@ requests_header = {
 CYBERDROP_DOMAINS = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG = False
 TEST_PARSER = None
+
+# Setup Logging
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "error.log"))
 formatter = logging.Formatter(logging.BASIC_FORMAT)
 handler.setFormatter(formatter)
@@ -96,6 +98,7 @@ class ImageRipper:
         self.site_name: str = ""
         self.session = requests.Session()
         self.session.headers.update(SESSION_HEADERS)
+        self.sleep_time: float = 0.2
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
@@ -110,6 +113,7 @@ class ImageRipper:
 
     def rip(self, url: str):
         """Download images from given URL"""
+        self.sleep_time = 0.2 # Reset sleep time to 0.2
         self.given_url = url.replace("members.", "www.")
         self.site_name = self.site_check()
         self._image_getter()
@@ -173,7 +177,7 @@ class ImageRipper:
             else:
                 cyberdrop_files = []
                 for i, link in enumerate(self.folder_info[0]):
-                    time.sleep(0.2)
+                    time.sleep(self.sleep_time)
                     if any(domain in link for domain in CYBERDROP_DOMAINS):
                         cyberdrop_files.append(link)
                         continue
@@ -235,6 +239,7 @@ class ImageRipper:
         for _ in range(4):
             with open(image_path, "wb") as handle:
                 bad_cert = False
+                time.sleep(self.sleep_time)
                 try:
                     response = session.get(rip_url, headers=requests_header, stream=True, allow_redirects=True)
                 except requests.exceptions.SSLError:
@@ -488,7 +493,8 @@ class ImageRipper:
             "lovefap": lovefap_parse,
             "8muses": eightmuses_parse,
             "jkforum": jkforum_parse,
-            "leakedbb": leakedbb_parse
+            "leakedbb": leakedbb_parse,
+            "e-hentai": ehentai_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         site_info: tuple[list[str] | str, int, str] = site_parser(driver)
@@ -522,6 +528,8 @@ class ImageRipper:
                 requests_header['referer'] = "https://cdn.discordapp.com/"
             elif "https://kemono.party/" in self.given_url:
                 requests_header['referer'] = ""
+            elif "https://e-hentai.org/" in self.given_url:
+                self.sleep_time = 5
             return domain
         raise RipperError("Not a support site")
 
@@ -974,6 +982,47 @@ def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def ehentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for e-hentai.org"""
+    time.sleep(5) # To prevent ip ban; This is going to be a slow process
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", id="gn").text
+    dir_name = clean_dir_name(dir_name)
+    image_links = []
+    page_count = 1
+    while True:
+        print("Parsing page " + str(page_count))
+        image_tags = soup.find("div", id="gdt").find_all("a")
+        image_tags = [link.get("href") for link in image_tags]
+        image_links.extend(image_tags)
+        next_page = soup.find("table", class_="ptb").find_all("a")[-1].get("href")
+        if next_page == driver.current_url:
+            break
+        else:
+            time.sleep(5)
+            try:
+                page_count += 1
+                driver.get(next_page)
+            except selenium.common.exceptions.TimeoutException:
+                print("Timed out. Sleeping for 10 seconds before retrying...")
+                time.sleep(10)
+                driver.get(next_page)
+            soup = soupify(driver)
+    images = []
+    links = str(len(image_links))
+    for i, link in enumerate(image_links):
+        print("".join(["Parsing image ", str(i + 1), "/", links]))
+        time.sleep(5)
+        driver.get(link)
+        soup = soupify(driver)
+        img = soup.find("img", id="img").get("src")
+        images.append(img)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+
 def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for 8boobs.com"""
     # Parses the html of the site
@@ -1293,58 +1342,6 @@ def hegrehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
-def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for kemono.party"""
-    # Parses the html of the site
-    cookies = driver.get_cookies()
-    cookie_str = ''
-    for c in cookies:
-        cookie_str += "".join([c['name'], '=', c['value'], ';'])
-    requests_header["cookie"] = cookie_str
-    base_url = driver.current_url
-    base_url = base_url.split("/")
-    source_site = base_url[3]
-    base_url = "/".join(base_url[:6])
-    time.sleep(5)
-    soup = soupify(driver)
-    dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
-    dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
-    page = 1
-    image_links = []
-    while True:
-        print("".join(["Parsing page ", str(page)]))
-        page += 1
-        image_list = soup.find("div", class_="card-list__items").find_all("article")
-        image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
-        image_links.extend(image_list)
-        next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
-        if next_page is None:
-            break
-        else:
-            next_page = "".join(["https://kemono.party", next_page.get("href")])
-            driver.get(next_page)
-            soup = soupify(driver)
-    images = []
-    mega_links = []
-    num_posts = len(image_links)
-    for i, link in enumerate(image_links):
-        print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
-        driver.get(link)
-        soup = soupify(driver)
-        links = soup.find_all("a")
-        links = ["".join([link.get("href"), "\n"]) for link in links if "mega.nz" in link.get("href")]
-        mega_links.extend(links)
-        image_list = soup.find("div", class_="post__files")
-        if image_list is not None:
-            image_list = image_list.find_all("a", class_="fileThumb image-link")
-            image_list = ["".join(["https://data1.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
-            images.extend(image_list)
-    with open("megaLinks.txt", "a") as f:
-        f.writelines(mega_links)
-    num_files = len(images)
-    return images, num_files, dir_name
-
-
 # Cannot bypass captcha, so it doesn't work
 def __hentaicosplays_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hentai-cosplays.com"""
@@ -1606,6 +1603,58 @@ def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for kemono.party"""
+    # Parses the html of the site
+    cookies = driver.get_cookies()
+    cookie_str = ''
+    for c in cookies:
+        cookie_str += "".join([c['name'], '=', c['value'], ';'])
+    requests_header["cookie"] = cookie_str
+    base_url = driver.current_url
+    base_url = base_url.split("/")
+    source_site = base_url[3]
+    base_url = "/".join(base_url[:6])
+    time.sleep(5)
+    soup = soupify(driver)
+    dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+    dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
+    page = 1
+    image_links = []
+    while True:
+        print("".join(["Parsing page ", str(page)]))
+        page += 1
+        image_list = soup.find("div", class_="card-list__items").find_all("article")
+        image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+        image_links.extend(image_list)
+        next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
+        if next_page is None:
+            break
+        else:
+            next_page = "".join(["https://kemono.party", next_page.get("href")])
+            driver.get(next_page)
+            soup = soupify(driver)
+    images = []
+    mega_links = []
+    num_posts = len(image_links)
+    for i, link in enumerate(image_links):
+        print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+        driver.get(link)
+        soup = soupify(driver)
+        links = soup.find_all("a")
+        links = ["".join([link.get("href"), "\n"]) for link in links if "mega.nz" in link.get("href")]
+        mega_links.extend(links)
+        image_list = soup.find("div", class_="post__files")
+        if image_list is not None:
+            image_list = image_list.find_all("a", class_="fileThumb image-link")
+            image_list = ["".join(["https://data1.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
+            images.extend(image_list)
+    with open("megaLinks.txt", "a") as f:
+        f.writelines(mega_links)
+    num_files = len(images)
+    return images, num_files, dir_name
+
+
 def leakedbb_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for leakedbb.com"""
     # Parses the html of the site
@@ -1627,7 +1676,7 @@ def leakedbb_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = leakedbb_parse
+
 def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for livejasminbabes.net"""
     # Parses the html of the site
@@ -2400,6 +2449,18 @@ def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for titsintops.com"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="p-title-value").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find()
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for tuyangyan.com"""
     # Parses the html of the site
@@ -2684,7 +2745,7 @@ def url_check(given_url: str) -> bool:
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
-             "https://www.jkforum.net/", "https://leakedbb.com/")
+             "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/")
     return any(x in given_url for x in sites)
 
 
