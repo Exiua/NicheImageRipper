@@ -5,6 +5,7 @@ import configparser
 import functools
 import hashlib
 import json
+import logging.handlers
 import os
 import pickle
 import re
@@ -12,8 +13,6 @@ import string
 import subprocess
 import sys
 import time
-import logging
-import logging.handlers
 from enum import Enum, auto
 from math import ceil
 from os import path, walk
@@ -113,15 +112,16 @@ class ImageRipper:
 
     def rip(self, url: str):
         """Download images from given URL"""
-        self.sleep_time = 0.2 # Reset sleep time to 0.2
+        self.sleep_time = 0.2  # Reset sleep time to 0.2
         self.given_url = url.replace("members.", "www.")
         self.site_name = self.site_check()
         self._image_getter()
 
-    def custom_rip(self, url: str, parser: Callable[[str], tuple[list[str], int, str]]):
+    def custom_rip(self, url: str, parser: Callable[[webdriver.Firefox], tuple[list[str], int, str]]):
         options = Options()
         options.headless = True
-        options.add_argument = ("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+        options.add_argument = (
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
         driver = webdriver.Firefox(options=options)
         driver.get(url)
         self.folder_info = parser(driver)
@@ -374,7 +374,7 @@ class ImageRipper:
     def html_parse(self) -> tuple[list[str] | str, int, str]:
         """Return image URL, number of images, and folder name."""
         if path.isfile("partial.json"):
-            save_data = self.read_partial_save()
+            save_data: dict = self.read_partial_save()
             if self.given_url in save_data:
                 return save_data[self.given_url]
             requests_header["cookie"] = save_data["cookies"]
@@ -509,7 +509,7 @@ class ImageRipper:
         with open("partial.json", 'w+') as save_file:
             json.dump(data, save_file, indent=4)
 
-    def read_partial_save(self) -> tuple[list[str] | str, int, str]:
+    def read_partial_save(self) -> dict[str, tuple[list[str] | str, int, str] | str]:
         """Read site_info from partial save file"""
         try:
             with open("partial.json", 'r') as load_file:
@@ -984,7 +984,7 @@ def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 def ehentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for e-hentai.org"""
-    time.sleep(5) # To prevent ip ban; This is going to be a slow process
+    time.sleep(5)  # To prevent ip ban; This is going to be a slow process
     # Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("h1", id="gn").text
@@ -1037,7 +1037,7 @@ def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 def eightmuses_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for 8muses.com"""
-    #Parses the html of the site
+    # Parses the html of the site
     gallery = driver.find_element(By.CLASS_NAME, "gallery")
     while gallery is None:
         time.sleep(0.5)
@@ -1133,10 +1133,11 @@ def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
+
 # Started working on support for fantia.com
 def __fantia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for fantia.com"""
-    #Parses the html of the site
+    # Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="fanclub-name").find("a").text
     dir_name = clean_dir_name(dir_name)
@@ -1173,7 +1174,8 @@ def __fantia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         soup = soupify(driver)
         _print_html(soup)
         print(post)
-        main_image = soup.find("div", class_="post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope").find("img").get("src")
+        main_image = soup.find("div", class_="post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope").find("img").get(
+            "src")
         images.append(main_image)
         # 4 and 6
         other_images = soup.find("div", class_="row no-gutters ng-scope").find_all("img")
@@ -1568,7 +1570,7 @@ def inven_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 def jkforum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for jkforum.net"""
-    #Parses the html of the site
+    # Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("div", class_="title-cont").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -1691,8 +1693,8 @@ def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
 
 def lovefap_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for lovefap.com"""
-    #Parses the html of the site
-    #element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, "myDynamicElement")))
+    # Parses the html of the site
+    # element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, "myDynamicElement")))
     soup = soupify(driver)
     dir_name = soup.find("div", class_="albums-content-header").find("span").text
     dir_name = clean_dir_name(dir_name)
@@ -2408,7 +2410,7 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
 def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for thotsbay.com"""
     # Parses the html of the site
-    #driver.find_element(By.CLASS_NAME, "show-files-btn").click()
+    # driver.find_element(By.CLASS_NAME, "show-files-btn").click()
     soup = soupify(driver)
     dir_name = soup.find("div", class_="album-info-title").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -2434,7 +2436,7 @@ def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for tikhoe.com"""
-    #Parses the html of the site
+    # Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("div", class_="album-title").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -2448,8 +2450,8 @@ def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-
-def titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+# TODO
+def _titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for titsintops.com"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -2587,9 +2589,9 @@ def xmissy_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def _test_parse(given_url: str) -> tuple[list[str], int, str]:
     """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
     driver = None
-    #ripper = ImageRipper()
-    #ripper.rip(given_url)
-    #return
+    # ripper = ImageRipper()
+    # ripper.rip(given_url)
+    # return
     try:
         options = Options()
         options.headless = not DEBUG
