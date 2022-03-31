@@ -13,6 +13,7 @@ import string
 import subprocess
 import sys
 import time
+from time import sleep
 from enum import Enum, auto
 from math import ceil
 from os import path, walk
@@ -127,13 +128,13 @@ class ImageRipper:
         self.folder_info = parser(driver)
         full_path = "".join([self.save_path, self.folder_info[2]])
         for index in range(int(self.folder_info[1])):
-            time.sleep(0.2)
+            sleep(0.2)
             try:
                 self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
             except PIL.UnidentifiedImageError:
                 pass  # No image exists, probably
             except requests.exceptions.ChunkedEncodingError:
-                time.sleep(10)
+                sleep(10)
                 self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
         print("Download Complete")
 
@@ -177,7 +178,7 @@ class ImageRipper:
             else:
                 cyberdrop_files = []
                 for i, link in enumerate(self.folder_info[0]):
-                    time.sleep(self.sleep_time)
+                    sleep(self.sleep_time)
                     if any(domain in link for domain in CYBERDROP_DOMAINS):
                         cyberdrop_files.append(link)
                         continue
@@ -186,7 +187,7 @@ class ImageRipper:
                     except PIL.UnidentifiedImageError:
                         pass  # No image exists, probably
                     except requests.exceptions.ChunkedEncodingError:
-                        time.sleep(10)
+                        sleep(10)
                         self.download_from_list(self.session, link, full_path, i)
                 if cyberdrop_files:
                     cmd = ["cyberdrop-dl", "-o", full_path]
@@ -208,7 +209,7 @@ class ImageRipper:
         if self.filename_scheme == FilenameScheme.HASH:
             self.rename_file_to_hash(image_path, full_path, ext)
         # Filenames are chronological by default on imhentai
-        time.sleep(0.05)
+        sleep(0.05)
 
     def download_from_list(self, session: requests.Session, image_url: str, full_path: str, current_file_num: int):
         """Download images from url supplied from a list of image urls"""
@@ -229,7 +230,7 @@ class ImageRipper:
             self.rename_file_to_hash(image_path, full_path, ext)
         elif self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
             self.rename_file_chronologically(image_path, full_path, ext, current_file_num)
-        time.sleep(0.05)
+        sleep(0.05)
 
     def download_file(self, session: requests.Session, image_path: str, rip_url: str):
         """Download the given file"""
@@ -239,7 +240,7 @@ class ImageRipper:
         for _ in range(4):
             with open(image_path, "wb") as handle:
                 bad_cert = False
-                time.sleep(self.sleep_time)
+                sleep(self.sleep_time)
                 try:
                     response = session.get(rip_url, headers=requests_header, stream=True, allow_redirects=True)
                 except requests.exceptions.SSLError:
@@ -268,7 +269,7 @@ class ImageRipper:
                     break
                 except ConnectionResetError:
                     print("Connection Reset, Retrying...")
-                    time.sleep(1)
+                    sleep(1)
                     continue
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
         # Context: 
@@ -822,7 +823,7 @@ def coomer_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     base_url = base_url.split("/")
     source_site = base_url[3]
     base_url = "/".join(base_url[:6])
-    time.sleep(5)
+    sleep(5)
     soup = soupify(driver)
     dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
     dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
@@ -970,7 +971,7 @@ def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, 
 def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for eahentai.com"""
     # Parses the html of the site
-    time.sleep(1)
+    sleep(1)
     # Load lazy loaded images
     lazy_load(driver)
     soup = soupify(driver)
@@ -984,7 +985,7 @@ def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 def ehentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for e-hentai.org"""
-    time.sleep(5)  # To prevent ip ban; This is going to be a slow process
+    sleep(5)  # To prevent ip ban; This is going to be a slow process
     # Parses the html of the site
     soup = soupify(driver)
     dir_name = soup.find("h1", id="gn").text
@@ -1000,20 +1001,20 @@ def ehentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         if next_page == driver.current_url:
             break
         else:
-            time.sleep(5)
+            sleep(5)
             try:
                 page_count += 1
                 driver.get(next_page)
             except selenium.common.exceptions.TimeoutException:
                 print("Timed out. Sleeping for 10 seconds before retrying...")
-                time.sleep(10)
+                sleep(10)
                 driver.get(next_page)
             soup = soupify(driver)
     images = []
     links = str(len(image_links))
     for i, link in enumerate(image_links):
         print("".join(["Parsing image ", str(i + 1), "/", links]))
-        time.sleep(5)
+        sleep(5)
         driver.get(link)
         soup = soupify(driver)
         img = soup.find("img", id="img").get("src")
@@ -1040,7 +1041,7 @@ def eightmuses_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     # Parses the html of the site
     gallery = driver.find_element(By.CLASS_NAME, "gallery")
     while gallery is None:
-        time.sleep(0.5)
+        sleep(0.5)
         gallery = driver.find_element(By.CLASS_NAME, "gallery")
     soup = soupify(driver)
     dir_name = soup.find("div", class_="top-menu-breadcrumb").find_all("a")[-1].text
@@ -1166,7 +1167,7 @@ def __fantia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         except selenium.common.exceptions.NoSuchElementException:
             pass
         while mimg is None:
-            time.sleep(0.5)
+            sleep(0.5)
             try:
                 mimg = driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
             except selenium.common.exceptions.NoSuchElementException:
@@ -1284,7 +1285,7 @@ def glam0ur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def gofile_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for gofile.io"""
     # Parses the html of the site
-    time.sleep(5)
+    sleep(5)
     soup = soupify(driver)
     dir_name = soup.find("span", id="rowFolder-folderName").text
     dir_name = clean_dir_name(dir_name)
@@ -1321,7 +1322,7 @@ def gyrls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def hanime_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hanime.tv"""
     # Parses the html of the site
-    time.sleep(1)  # Wait so images can load
+    sleep(1)  # Wait so images can load
     soup = soupify(driver)
     dir_name = "Hanime Images"
     image_list = soup.find(
@@ -1617,7 +1618,7 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     base_url = base_url.split("/")
     source_site = base_url[3]
     base_url = "/".join(base_url[:6])
-    time.sleep(5)
+    sleep(5)
     soup = soupify(driver)
     dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
     dir_name = clean_dir_name("".join([dir_name, " - (", source_site, ")"]))
@@ -2076,7 +2077,7 @@ def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for rabbitsfun.com"""
     # Parses the html of the site
-    time.sleep(1)
+    sleep(1)
     soup = soupify(driver)
     dir_name = soup.find("h3", class_="watch-mobTitle").text
     dir_name = clean_dir_name(dir_name)
@@ -2089,7 +2090,7 @@ def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def redgifs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for redgifs.com"""
     # Parses the html of the site
-    time.sleep(3)
+    sleep(3)
     lazy_load(driver, True, 1250)
     soup = soupify(driver)
     dir_name = soup.find("div", class_="name-wrapper").find("h1", class_="name").text
@@ -2203,7 +2204,7 @@ def sexybabesart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for sexy-egirls.com"""
     # Parses the html of the site
-    time.sleep(1)  # Wait so images can load
+    sleep(1)  # Wait so images can load
     soup = soupify(driver)
     url = driver.current_url
     subdomain = getattr(tldextract.extract(url), "subdomain")
@@ -2323,7 +2324,7 @@ def silkengirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def simplycosplay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for simply-cosplay.com"""
     # Parses the html of the site
-    time.sleep(5)  # Wait so images can load
+    sleep(5)  # Wait so images can load
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="content-headline").text
     dir_name = clean_dir_name(dir_name)
@@ -2347,7 +2348,7 @@ def simplycosplay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
 def simplyporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for simply-porn.com"""
     # Parses the html of the site
-    # time.sleep(5) #Wait so images can load
+    # sleep(5) #Wait so images can load
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="mt-3 mb-3").text
     dir_name = clean_dir_name(dir_name)
@@ -2419,7 +2420,7 @@ def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         soup = soupify(driver)
         images = soup.find("div", class_="album-files").find_all("a")
         images = [img.get("href") for img in images]
-        time.sleep(1)
+        sleep(1)
     vid = []
     for i, l in enumerate(images):
         if "/video/" in l:
@@ -2535,7 +2536,7 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
                 curr_page = driver.current_url
                 driver.get("https://www.v2ph.com/login?hl=en")
                 while driver.current_url == "https://www.v2ph.com/login?hl=en":
-                    time.sleep(0.1)
+                    sleep(0.1)
                 pickle.dump(driver.get_cookies(), open("cookies.pkl", "wb"))
                 driver.get(curr_page)
                 logged_in = True
@@ -2638,21 +2639,21 @@ def lazy_load(driver: webdriver.Firefox, scroll_by: bool = False, increment: int
         while True:
             driver.execute_script(
                 "".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"]))
-            time.sleep(scroll_pause_time)
+            sleep(scroll_pause_time)
             new_height = driver.execute_script("return window.pageYOffset")
             if new_height == last_height:
                 if backscroll > 0:
                     for _ in range(backscroll):
                         driver.execute_script(
                             "".join(["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
-                        time.sleep(scroll_pause_time)
-                    time.sleep(scroll_pause_time)
+                        sleep(scroll_pause_time)
+                    sleep(scroll_pause_time)
                 break
             last_height = new_height
     else:
         while True:
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(scroll_pause_time)
+            sleep(scroll_pause_time)
             new_height = driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break
