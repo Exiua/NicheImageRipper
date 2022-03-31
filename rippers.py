@@ -103,7 +103,7 @@ class ImageRipper:
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
         global logged_in
-        logged_in: bool = os.path.isfile("cookies.pkl")
+        logged_in = os.path.isfile("cookies.pkl")
         cookies: dict[str, list[str]] = {
             "v2ph": [],
             "fantia": []
@@ -386,7 +386,7 @@ class ImageRipper:
         driver.get(self.given_url.replace("members.", "www."))
         self.site_login(driver)
         global parser_switch
-        parser_switch: dict[str, Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]]] = {
+        parser_switch = {
             "imhentai": imhentai_parse,
             "hotgirl": hotgirl_parse,
             "cup-e": cupe_parse,
