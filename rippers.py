@@ -50,17 +50,17 @@ class InvalidSubdomain(RipperError):
     pass
 
 
-PROTOCOL = "https:"
-SCHEME = "https://"
-CONFIG = 'config.ini'
-PARSER = "lxml"  # "html.parser" lxml is faster
-SESSION_HEADERS = {
+PROTOCOL: str = "https:"
+SCHEME: str = "https://"
+CONFIG: str = 'config.ini'
+PARSER: str = "lxml"  # "html.parser" lxml is faster
+SESSION_HEADERS: dict[str, str] = {
     "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
 }
-DRIVER_HEADER = (
+DRIVER_HEADER: tuple[str] = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")  # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
-requests_header = {
+requests_header: dict[str, str] = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
     'referer':
@@ -68,9 +68,9 @@ requests_header = {
     'cookie':
         ''
 }
-CYBERDROP_DOMAINS = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
-DEBUG = False
-TEST_PARSER = None
+CYBERDROP_DOMAINS: tuple[str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
+DEBUG: bool = False
+TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = None
 
 # Setup Logging
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "error.log"))
@@ -96,19 +96,19 @@ class ImageRipper:
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: FilenameScheme = filename_scheme
         self.site_name: str = ""
-        self.session = requests.Session()
+        self.session: requests.Session = requests.Session()
         self.session.headers.update(SESSION_HEADERS)
         self.sleep_time: float = 0.2
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
         global logged_in
-        logged_in = os.path.isfile("cookies.pkl")
-        cookies = {
+        logged_in: bool = os.path.isfile("cookies.pkl")
+        cookies: dict[str, list[str]] = {
             "v2ph": [],
             "fantia": []
         }
-        flag = 0x08000000  # No-Window flag
+        flag: int = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
 
     def rip(self, url: str):
@@ -121,21 +121,20 @@ class ImageRipper:
     def custom_rip(self, url: str, parser: Callable[[webdriver.Firefox], tuple[list[str], int, str]]):
         options = Options()
         options.headless = True
-        options.add_argument = (
-            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+        options.add_argument = DRIVER_HEADER
         driver = webdriver.Firefox(options=options)
         driver.get(url)
         self.folder_info = parser(driver)
         full_path = "".join([self.save_path, self.folder_info[2]])
-        for index in range(int(self.folder_info[1])):
+        for i in range(int(self.folder_info[1])):
             sleep(0.2)
             try:
-                self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
+                self.download_from_list(self.session, self.folder_info[0][i], full_path, i)
             except PIL.UnidentifiedImageError:
                 pass  # No image exists, probably
             except requests.exceptions.ChunkedEncodingError:
                 sleep(10)
-                self.download_from_list(self.session, self.folder_info[0][index], full_path, index)
+                self.download_from_list(self.session, self.folder_info[0][i], full_path, i)
         print("Download Complete")
 
     def set_filename_scheme(self, filename_scheme: FilenameScheme):
@@ -169,6 +168,7 @@ class ImageRipper:
                             print("Image not found")
         # Easier to put all image url in a list and then download for these sites
         else:
+            # Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
             if "cyberdrop" == self.site_name:
                 cmd = ["cyberdrop-dl", "-o", full_path]
                 cmd.extend(self.folder_info[0])
@@ -274,8 +274,8 @@ class ImageRipper:
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
         # Context: 
         #   https://data1.kemono.party//data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
-        #   Will fail, however, changing the subdomain to data5 will allow requests to download the file
-        #   Given that there are generally correct cookies in place
+        #   will fail, however, changing the subdomain to data5 will allow requests to download the file
+        #   given that there are generally correct cookies in place
         if bad_subdomain:
             url_parts = tldextract.extract(rip_url)
             subdomain = url_parts.subdomain
@@ -367,9 +367,9 @@ class ImageRipper:
         if self.site_name == "sexy-egirls" and "forum." in self.given_url:
             driver.implicitly_wait(10)
             driver.get("https://forum.sexy-egirls.com/login/")
-            driver.find_element_by_xpath("//input[@type='text']").send_keys(self.logins["sexy-egirls"][0])
-            driver.find_element_by_xpath("//input[@type='password']").send_keys(self.logins["sexy-egirls"][1])
-            driver.find_element_by_xpath("//button[@type='submit']").click()
+            driver.find_element(By.XPATH, "//input[@type='text']").send_keys(self.logins["sexy-egirls"][0])
+            driver.find_element(By.XPATH, "//input[@type='password']").send_keys(self.logins["sexy-egirls"][1])
+            driver.find_element(By.XPATH, "//button[@type='submit']").click()
         driver.get(curr_url)
 
     def html_parse(self) -> tuple[list[str] | str, int, str]:
@@ -386,7 +386,7 @@ class ImageRipper:
         driver.get(self.given_url.replace("members.", "www."))
         self.site_login(driver)
         global parser_switch
-        parser_switch = {
+        parser_switch: dict[str, Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]]] = {
             "imhentai": imhentai_parse,
             "hotgirl": hotgirl_parse,
             "cup-e": cupe_parse,
@@ -507,7 +507,7 @@ class ImageRipper:
         """Saves parsed site data to quickly retrieve in event of a failure"""
         data = {self.given_url: site_info,
                 "cookies": requests_header["cookie"]}
-        with open("partial.json", 'w+') as save_file:
+        with open("partial.json", 'w') as save_file:
             json.dump(data, save_file, indent=4)
 
     def read_partial_save(self) -> dict[str, tuple[list[str] | str, int, str] | str]:
@@ -517,7 +517,7 @@ class ImageRipper:
                 data = json.load(load_file)
                 return data
         except FileNotFoundError:
-            pass
+            pass # Doesn't matter if the cached data doesn't exist, will regen instead
 
     def site_check(self) -> str:
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
@@ -535,7 +535,7 @@ class ImageRipper:
         raise RipperError("Not a support site")
 
 
-def tail(f, lines=2):
+def tail(f, lines=2) -> bytes:
     total_lines_wanted = lines
 
     BLOCK_SIZE = 1024
@@ -1541,7 +1541,7 @@ def imgur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
-def imhentai_parse(driver: webdriver.Firefox) -> tuple[str | list[str] | None, str, str]:
+def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, str, str]:
     """Read the html for imhentai.xxx"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -2607,7 +2607,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
 
 
 def secondary_parse(driver: webdriver.Firefox, link: str,
-                    parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]]) -> list[str]:
+                    parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]]) -> list[str] | str:
     """Parses the html for links for supported sites used in other sites"""
     curr = driver.current_url
     driver.get(link)
@@ -2626,7 +2626,9 @@ def clean_dir_name(given_name: str) -> str:
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
     dir_name = given_name.translate(translation_table).strip().replace("\n", "")
     if dir_name[-1] not in (")", "]", "}"):
-        dir_name.strip(string.punctuation)
+        dir_name.rstrip(string.punctuation)
+    if dir_name[0] not in ("(", "[", "{"):
+        dir_name.lstrip(string.punctuation)
     return dir_name
 
 
@@ -2666,9 +2668,14 @@ def mark_as_failed(url: str):
         f.write("".join([url, "\n"]))
 
 
-def soupify(driver: webdriver.Firefox) -> BeautifulSoup:
+def soupify(driver: webdriver.Firefox | requests.Response) -> BeautifulSoup:
     """Return BeautifulSoup object of html from driver"""
-    html = driver.page_source
+    if isinstance(driver, webdriver.Firefox):
+        html = driver.page_source
+    elif isinstance(driver, requests.Response):
+        html = driver.content
+    else:
+        raise RuntimeError("Unable to get page html")
     return BeautifulSoup(html, PARSER)
 
 
