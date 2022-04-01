@@ -1,12 +1,14 @@
 """This is the GUI for the image ripper"""
-from datetime import datetime
-import threading
+import collections
 import json
 import os
+import threading
 import time
-import collections
-import requests
+from datetime import datetime
+
 import PySimpleGUI as sg
+import requests
+
 from rippers import ImageRipper, FilenameScheme, read_config, write_config, url_check
 
 
@@ -84,19 +86,22 @@ class RipperGui:
                     url_list.pop(0)  # Remove initial empty element
                     url_list = ["".join(["https://", url.strip()]) for url in url_list]
                     for url in url_list:
-                        if url_check(
-                                url) and url not in self.url_list:  # If url is for a supported site and not already queued
+                        # If url is for a supported site and not already queued
+                        if url_check(url) and url not in self.url_list:
                             self.rip_check(url)
-                elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:  # If url is for a supported site and not already queued
-                    if self.rerip_ask and any(values['-URL-'] in sublist for sublist in self.table_data):  # If user wants to be prompted and if url is in the history
-                        if sg.popup_yes_no('Do you want to re-rip URL?',
-                                           no_titlebar=True) == 'Yes':  # Ask user to re-rip
+                # If url is for a supported site and not already queued
+                elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:
+                    # If user wants to be prompted and if url is in the history
+                    if self.rerip_ask and any(values['-URL-'] in sublist for sublist in self.table_data):
+                        # Ask user to re-rip
+                        if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes':
                             self.url_list.append(values['-URL-'])
                     else:  # If user always wants to re-rip
                         self.url_list.append(values['-URL-'])
                 elif values['-URL-'] in self.url_list:  # If url is already queued
                     window['-STATUS-']('Already queued', text_color='green')
-                elif values['-URL-'] == "" and self.url_list:  # If not url is entered but there are queued urls (loading from UnfinishedRips.json)
+                # If not url is entered but there are queued urls (loading from UnfinishedRips.json)
+                elif values['-URL-'] == "" and self.url_list:
                     window['-STATUS-']('Starting rip', text_color='green')
                 elif values['-URL-'] == "" and not self.url_list:  # If no input and no queue
                     window['-STATUS-']('')
@@ -113,6 +118,7 @@ class RipperGui:
                     window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file:  # Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
+                # TODO
                 # for url in unfinished_list:
                 #    if url not in self.url_list:
                 #        self.rip_check(url)
@@ -216,7 +222,6 @@ class RipperGui:
                 return False
             else:
                 return int(v1[2]) >= int(v2[2])
-
 
     @staticmethod
     def string_to_bool(v: str) -> bool:
