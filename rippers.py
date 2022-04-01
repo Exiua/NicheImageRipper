@@ -565,13 +565,19 @@ def agirlpic_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="entry-title").text
     dir_name = clean_dir_name(dir_name)
-    tags = soup.find("div", class_="entry-content clear").find_all("div", class_="separator", recursive=False)
+    base_url = driver.current_url
+    num_pages = len(soup.find("div", class_="page-links").find_all("a", recursive=False)) + 1
     images = []
-    for tag in tags:
-        img_tags = tag.find_all("img")
-        for img in img_tags:
-            if img:
-                images.append(img.get("src"))
+    for i in range(1, num_pages + 1):
+        tags = soup.find("div", class_="entry-content clear").find_all("div", class_="separator", recursive=False)
+        for tag in tags:
+            img_tags = tag.find_all("img")
+            for img in img_tags:
+                if img:
+                    images.append(img.get("src"))
+        if i != num_pages:
+            driver.get("".join([base_url, str(i + 1), "/"]))
+            soup = soupify(driver)
     num_files = len(images)
     return images, num_files, dir_name
 
