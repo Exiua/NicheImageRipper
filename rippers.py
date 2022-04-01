@@ -588,9 +588,14 @@ def arca_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("div", class_="title").text
     dir_name = clean_dir_name(dir_name)
-    images = soup.find("div", class_="fr-view article-content").find_all("img")
+    main_tag = soup.find("div", class_="fr-view article-content")
+    images = main_tag.find_all("img")
     images = ["".join([img.get("src").split("?")[0], "?type=orig"]) for img in images]
     images = [PROTOCOL + img if PROTOCOL not in img else img for img in images]
+    videos = main_tag.find_all("video")
+    videos = [vid.get("src") for vid in videos]
+    videos = [PROTOCOL + vid if PROTOCOL not in vid else vid for vid in videos]
+    images.extend(videos)
     num_files = len(images)
     driver.quit()
     return images, num_files, dir_name
