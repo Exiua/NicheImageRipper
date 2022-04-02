@@ -684,15 +684,15 @@ def babesaround_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babesaround.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("div", class_="ctitle2").find("h1").text
+    dir_name = soup.find("section", class_="outer-section").find("h2").text # soup.find("div", class_="ctitle2").find("h1").text
     dir_name = clean_dir_name(dir_name)
-    images = soup.find_all("div", class_="inner_gallery_thumbs")
-    images = [tag for im in images for tag in im.find_all("a", recursive=False)]
+    images = soup.find_all("div", class_="lightgallery thumbs quadruple fivefold")
+    images = [tag for img in images for tag in img.find_all("a", recursive=False)]
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = babesaround_parse
 def babesbang_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babesbang.com"""
     # Parses the html of the site
