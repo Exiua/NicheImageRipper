@@ -11,7 +11,7 @@ with open("parameters.json", "r", encoding='utf-8') as f:
     test_data = json.load(f)
 
 @pytest.mark.parametrize("parser,url,count,dir_name", test_data)
-def test_parser(parser, url, count, dir_name):
+def test_parser(parser: str, url: str, count: int, dir_name: str):
     parser = eval("".join(["rippers.", parser, "_parse"]))
     driver = None
     try:
