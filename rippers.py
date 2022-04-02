@@ -692,7 +692,7 @@ def babesaround_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = babesaround_parse
+
 def babesbang_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babesbang.com"""
     # Parses the html of the site
@@ -851,6 +851,7 @@ def coomer_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             break
         else:
             next_page = "".join(["https://coomer.party", next_page.get("href")])
+            print(next_page)
             driver.get(next_page)
             soup = soupify(driver)
     images = []
@@ -875,11 +876,10 @@ def coomer_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 
 def cupe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for hentai.cafe"""
+    """Read the html for cup-e.club"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find_all("img", ["alignnone", "size-full"])
-    del image_list[0]
+    image_list = soup.find_all("img", {"class": ["alignnone", "size-full"]})
     images = [image.get("src") for image in image_list]
     if len(images) == 0:
         image_list = soup.find_all("a", class_="ngg-fancybox")
@@ -941,7 +941,7 @@ def cutegirlporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = cupe_parse
 def cyberdrop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for cyberdrop.me"""
     # Parses the html of the site
