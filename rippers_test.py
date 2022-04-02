@@ -19,7 +19,7 @@ def parameter_parser():
 
 def parser_test(parameters: list[str]):
     print("".join(["Testing ", parameters[0]]))
-    parser_data = parser_driver(eval("".join(["rippers.", parameters[0]])), parameters[1])
+    parser_data = parser_driver(eval("".join(["rippers.", parameters[0], "_parse"])), parameters[1])
     assert parser_data[1] == parameters[2]
     assert parser_data[2] == parameters[3]
 
