@@ -13,7 +13,7 @@ config.ini
 *.log
 *.md
 geckodriver.log
-test_code.py
+testing_code.py
 build
 dist
 NicheRipper.spec
