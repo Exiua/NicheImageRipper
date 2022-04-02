@@ -9,7 +9,6 @@ from rippers import ImageRipper
 
 with open("parameters.json", "r", encoding='utf-8') as f:
     test_data = json.load(f)
-print(test_data)
 
 @pytest.mark.parametrize("parser,url,count,dir_name", test_data)
 def test_parser(parser, url, count, dir_name):
