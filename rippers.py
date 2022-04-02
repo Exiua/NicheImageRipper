@@ -966,7 +966,7 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = decorativemodels_parse
+
 def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for dirtyyoungbitches.com"""
     # Parses the html of the site
@@ -978,7 +978,7 @@ def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, 
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = dirtyyoungbitches_parse
 def eahentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for eahentai.com"""
     # Parses the html of the site
