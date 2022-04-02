@@ -941,7 +941,7 @@ def cutegirlporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = cupe_parse
+
 def cyberdrop_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for cyberdrop.me"""
     # Parses the html of the site
@@ -966,7 +966,7 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = decorativemodels_parse
 def dirtyyoungbitches_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for dirtyyoungbitches.com"""
     # Parses the html of the site
@@ -1930,14 +1930,14 @@ def novoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for novoporn.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("div", class_="gallery").find("h1").text.split()
+    dir_name = soup.find("section", class_="outer-section").find("h2").text.split() # find("div", class_="gallery").find("h1").text.split()
     for i, word in enumerate(dir_name):
         if word == "porn":
             del dir_name[i:]
             break
     dir_name = clean_dir_name(" ".join(dir_name))
-    images = soup.find_all("img", class_="gallerythumbs")
-    images = [img.get("src").replace("tn_", "") for img in images]
+    images = soup.find_all("div", class_="thumb grid-item")
+    images = [img.find("img").get("src").replace("tn_", "") for img in images]
     num_files = len(images)
     return images, num_files, dir_name
 
