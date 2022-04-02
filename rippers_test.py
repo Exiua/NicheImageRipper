@@ -7,23 +7,13 @@ from selenium.webdriver.firefox.options import Options
 import rippers
 from rippers import ImageRipper
 
-def test_parsers():
-    parameters: list[list[str | int]] = parameter_parser()
-    for param in parameters:
-        parser_test(param)
+with open("parameters.json", "r", encoding='utf-8') as f:
+    test_data = json.load(f)
+print(test_data)
 
-def parameter_parser():
-    with open("parameters.json", "r") as f:
-        params = json.load(f)
-    return params
-
-def parser_test(parameters: list[str]):
-    print("".join(["Testing ", parameters[0]]))
-    parser_data = parser_driver(eval("".join(["rippers.", parameters[0], "_parse"])), parameters[1])
-    assert parser_data[1] == parameters[2]
-    assert parser_data[2] == parameters[3]
-
-def parser_driver(parser, url):
+@pytest.mark.parametrize("parser,url,count,dir_name", test_data)
+def test_parser(parser, url, count, dir_name):
+    parser = eval("".join(["rippers.", parser, "_parse"]))
     driver = None
     try:
         options = Options()
@@ -31,6 +21,8 @@ def parser_driver(parser, url):
         options.add_argument = ("user-agent=Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
         driver = webdriver.Firefox(options=options)
         driver.get(url)
-        return parser(driver)
+        parser_data = parser(driver)
     finally:
         driver.quit()
+    assert parser_data[1] == count
+    assert parser_data[2] == dir_name
