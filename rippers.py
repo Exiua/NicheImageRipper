@@ -1034,12 +1034,12 @@ def ehentai_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = ehentai_parse
+
 def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for 8boobs.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("div", class_="title").text
+    dir_name = soup.find("div", id="content").find_all("div", class_="title")[1].text
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
@@ -1054,6 +1054,7 @@ def eightmuses_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     while gallery is None:
         sleep(0.5)
         gallery = driver.find_element(By.CLASS_NAME, "gallery")
+    lazy_load(driver)
     soup = soupify(driver)
     dir_name = soup.find("div", class_="top-menu-breadcrumb").find_all("a")[-1].text
     dir_name = clean_dir_name(dir_name)
@@ -1081,7 +1082,7 @@ def elitebabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for elitebabes.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
@@ -1124,7 +1125,7 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple[list[str], int,
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = exgirlfriendmarket_parse
 def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for f5girls.com"""
     # Parses the html of the site
