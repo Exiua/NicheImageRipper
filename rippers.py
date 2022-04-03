@@ -1125,7 +1125,7 @@ def exgirlfriendmarket_parse(driver: webdriver.Firefox) -> tuple[list[str], int,
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = exgirlfriendmarket_parse
+
 def f5girls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for f5girls.com"""
     # Parses the html of the site
@@ -1205,7 +1205,7 @@ def femjoyhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for femjoyhunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
@@ -1231,7 +1231,7 @@ def ftvhunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for ftvhunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
@@ -1255,6 +1255,7 @@ def girlsofdesire_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
 def girlsreleased_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for girlsreleased.com"""
     # Parses the html of the site
+    sleep(5)
     soup = soupify(driver)
     set_name = soup.find("a", id="set_name").text
     model_name = soup.find_all("a", class_="button link")[1]
@@ -1262,22 +1263,8 @@ def girlsreleased_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
     model_name = "".join(["[", model_name, "]"])
     dir_name = " ".join([set_name, model_name])
     dir_name = clean_dir_name(dir_name)
-    images_source = soup.find_all("a", target="imageView")
-    images_url = [image.get("href") for image in images_source]
-    images = []
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36'}
-    session = requests.Session()
-    for url in images_url:
-        response = session.get(url, stream=True, headers=headers)
-        html = response.text
-        soup = BeautifulSoup(html, PARSER)
-        try:
-            image = soup.find(
-                "img", class_="pic img img-responsive").get("src")
-            images.append(image)
-        except AttributeError:
-            pass  # Image may have been deleted from ImageTwist servers
+    images = soup.find("ul", class_="setthumbs").find_all("img")
+    images = [img.get("src").replace("/t/", "/i/") for img in images]
     num_files = len(images)
     return images, num_files, dir_name
 
@@ -1290,6 +1277,9 @@ def glam0ur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     images = soup.find("div", class_="center").find_all("a", recursive=False)
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    for i, img in enumerate(images):
+        if "/banners/" in img:
+            images.pop(i)
     num_files = len(images)
     return images, num_files, dir_name
 
@@ -1330,7 +1320,7 @@ def gyrls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = gyrls_parse
 def hanime_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hanime.tv"""
     # Parses the html of the site
