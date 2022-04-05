@@ -1505,7 +1505,7 @@ def hundredbucksbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, 
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = hundredbucksbabes_parse
+
 def imgbox_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for imgbox.com"""
     # Parses the html of the site
@@ -1588,10 +1588,10 @@ def join2babes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for join2babes.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find_all("h1")[1].text
+    dir_name = soup.find_all("div", class_="gallery_title_div")[1].find("h1").text
     dir_name = clean_dir_name(dir_name)
-    images = soup.find_all("div", {"class": "gimage"})
-    images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+    images = soup.find("div", class_="gthumbs").find_all("img")
+    images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
     return images, num_files, dir_name
 
@@ -1600,14 +1600,14 @@ def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for joymiihub.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
     return images, num_files, dir_name
 
-
+TEST_PARSER = joymiihub_parse
 def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for kemono.party"""
     # Parses the html of the site
