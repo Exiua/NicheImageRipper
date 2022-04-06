@@ -1607,7 +1607,7 @@ def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     return images, num_files, dir_name
 
-TEST_PARSER = joymiihub_parse
+
 def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for kemono.party"""
     # Parses the html of the site
@@ -1642,13 +1642,17 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = []
     mega_links = []
     num_posts = len(image_links)
+    ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm")
     for i, link in enumerate(image_links):
         print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
         driver.get(link)
         soup = soupify(driver)
         links = soup.find_all("a")
-        links = ["".join([link.get("href"), "\n"]) for link in links if "mega.nz" in link.get("href")]
-        mega_links.extend(links)
+        links = [link.get("href") for link in links]
+        m_links = [link + "\n" for link in links if "mega.nz" in link]
+        attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in links if any(a in link for a in ATTACHMENTS)]
+        images.extend(attachments)
+        mega_links.extend(m_links)
         image_list = soup.find("div", class_="post__files")
         if image_list is not None:
             image_list = image_list.find_all("a", class_="fileThumb image-link")
@@ -1681,7 +1685,7 @@ def leakedbb_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-
+TEST_PARSER = kemono_parse
 def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for livejasminbabes.net"""
     # Parses the html of the site
