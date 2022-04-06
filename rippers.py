@@ -1685,7 +1685,7 @@ def leakedbb_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = kemono_parse
+
 def livejasminbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for livejasminbabes.net"""
     # Parses the html of the site
@@ -1806,7 +1806,7 @@ def metarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hetarthunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
@@ -1837,7 +1837,7 @@ def myhentaigallery_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = myhentaigallery_parse
 def nakedgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for nakedgirls.xxx"""
     # Parses the html of the site
