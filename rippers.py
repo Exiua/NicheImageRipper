@@ -58,7 +58,7 @@ SESSION_HEADERS: dict[str, str] = {
     "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
 }
-DRIVER_HEADER: tuple[str] = (
+DRIVER_HEADER: str = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")  # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/W.X.Y.Z‡ Safari/537.36")
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -68,7 +68,7 @@ requests_header: dict[str, str] = {
     'cookie':
         ''
 }
-CYBERDROP_DOMAINS: tuple[str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
+CYBERDROP_DOMAINS: tuple[str, str, str, str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG: bool = False
 TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = None
 
@@ -1837,7 +1837,7 @@ def myhentaigallery_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = myhentaigallery_parse
+
 def nakedgirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for nakedgirls.xxx"""
     # Parses the html of the site
@@ -1854,33 +1854,36 @@ def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     """Read the html for nightdreambabe.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("div", id="gallery_middle").find_all("h1", recursive=False)[1].text
+    dir_name = soup.find("section", class_="outer-section").find("h2", class_="section-title title").text
     dir_name = clean_dir_name(dir_name)
-    images = soup.find_all("div", class_="gwrapper")
+    images = soup.find("div", class_="lightgallery thumbs quadruple fivefold").find_all("a", class_="gallery-card")
     images = ["".join([PROTOCOL, img.find("img").get("src")]) for img in images]
     num_files = len(images)
     return images, num_files, dir_name
 
 
 def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for"""
+    """Read the html for nonsummerjack.com"""
     # Parses the html of the site
+    lazy_load(driver, True, increment= 1250, backscroll=1)
+    ul = driver.find_element(By.CLASS_NAME, "fg-dots")
+    while not ul:
+        ul = driver.find_element(By.CLASS_NAME, "fg-dots")
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="entry-title").text
     dir_name = clean_dir_name(dir_name)
+    pages = len(soup.find("ul", class_="fg-dots").find_all("li", recursive=False))
+    base_url = driver.current_url
     images = []
-    while True:
-        image_list = soup.find("div", class_="ngg-galleryoverview default-view").find_all("div",
-                                                                                          class_="ngg-gallery-thumbnail-box")
-        image_list = [img.find("img").get("src").replace("thumbs/thumbs_", "") for img in image_list]
-        images.extend(image_list)
-        next_page = soup.find("div", class_="ngg-navigation").find("a", class_="prev")
-        if next_page is None:
-            break
-        else:
-            next_page = next_page.get("href")
-            driver.get(next_page)
+    for i in range(1, pages + 1):
+        if i != 1:
+            driver.find_element(By.XPATH, f"//ul[@class='fg-dots']/li[{i}]").click()
+            lazy_load(driver, True, increment=1250, backscroll=1)
             soup = soupify(driver)
+        image_list = soup.find("div",
+                               class_="foogallery foogallery-container foogallery-justified foogallery-lightbox-foobox fg-justified fg-light fg-shadow-outline fg-loading-default fg-loaded-fade-in fg-caption-always fg-hover-fade fg-hover-zoom2 fg-ready fbx-instance").find_all("a")
+        image_list = [img.get("href") for img in image_list]
+        images.extend(image_list)
     num_files = len(images)
     return images, num_files, dir_name
 
@@ -1961,7 +1964,7 @@ def nudity911_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = nudity911_parse
 def pbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for pbabes.com"""
     # Parses the html of the site
@@ -2602,7 +2605,10 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
     try:
         options = Options()
         options.headless = not DEBUG
-        options.add_argument = DRIVER_HEADER
+        options.add_argument(DRIVER_HEADER)
+        #options.add_argument("--window-size=1920,1080")
+        #options.add_argument("--start-maximized")
+        #options.add_argument("--disable-gpu")
         driver = webdriver.Firefox(options=options)
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
