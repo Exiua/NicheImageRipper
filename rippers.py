@@ -2592,9 +2592,6 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         options = Options()
         options.headless = not DEBUG
         options.add_argument(DRIVER_HEADER)
-        #options.add_argument("--window-size=1920,1080")
-        #options.add_argument("--start-maximized")
-        #options.add_argument("--disable-gpu")
         driver = webdriver.Firefox(options=options)
         driver.get(given_url.replace("members.", "www."))
         # rip = ImageRipper(given_url)
@@ -2741,11 +2738,10 @@ def url_check(given_url: str) -> bool:
              "https://www.nudity911.com/", "https://www.pbabes.com/", "https://www.sexybabesart.com/",
              "https://www.heymanhustle.com/", "https://sexhd.pics/", "http://www.gyrls.com/",
              "https://www.pinkfineart.com/", "https://www.sensualgirls.org/", "https://www.novoglam.com/",
-             "https://www.cherrynudes.com/", "http://pics.vc/", "https://www.join2babes.com/",
+             "https://www.cherrynudes.com/", "https://www.join2babes.com/", "https://gofile.io/",
              "https://www.babecentrum.com/", "http://www.cutegirlporn.com/", "https://everia.club/",
              "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
              "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
-             "https://gofile.io/", "https://putme.ga/", "https://forum.sexy-egirls.com/",
              "https://www.redgifs.com/", "https://kemono.party/", "https://www.sankakucomplex.com/",
              "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
              "https://www.v2ph.com/", "https://nudebird.biz/", "https://bestprettygirl.com/",
