@@ -1964,7 +1964,7 @@ def nudity911_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = nudity911_parse
+
 def pbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for pbabes.com"""
     # Parses the html of the site
@@ -1976,8 +1976,8 @@ def pbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
-def pics_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+# Seems like all galleries have been deleted
+def _pics_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for pics.vc"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -2027,7 +2027,7 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for pmatehunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
@@ -2056,7 +2056,7 @@ def putme_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = putme_parse
 def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for putmega.com"""
     # Parses the html of the site
