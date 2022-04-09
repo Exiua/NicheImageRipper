@@ -2191,8 +2191,8 @@ def sexybabesart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
-def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+# TODO: Convert to thotsbay parser since this site moved
+def _sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for sexy-egirls.com"""
     # Parses the html of the site
     sleep(1)  # Wait so images can load
@@ -2264,7 +2264,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = sexyegirls_parse
+
 def sexykittenporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for sexykittenporn.com"""
     # Parses the html of the site
@@ -2301,11 +2301,15 @@ def sexynakeds_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 
 
 def silkengirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for silkengirl.com"""
+    """Read the html for silkengirl.com and silkengirl.net"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("h1", class_="title").text
-    dir_name = clean_dir_name(dir_name)
+    if ".com" in driver.current_url:
+        dir_name = soup.find("h1", class_="title").text
+        dir_name = clean_dir_name(dir_name)
+    else:
+        dir_name = soup.find("div", class_="content_main").find("h2").text
+        dir_name = clean_dir_name(dir_name)
     images = soup.find_all("div", class_="thumb_box")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
@@ -2386,7 +2390,7 @@ def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = sxchinesegirlz_parse
 def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for theomegaproject.org"""
     # Parses the html of the site
