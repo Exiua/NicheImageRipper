@@ -2034,7 +2034,7 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     return images, num_files, dir_name
 
-
+# TODO: Site may be down permanently
 def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for putmega.com"""
     # Parses the html of the site
@@ -2060,7 +2060,7 @@ def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = putmega_parse
+
 def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for rabbitsfun.com"""
     # Parses the html of the site
@@ -2080,15 +2080,19 @@ def redgifs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     sleep(3)
     lazy_load(driver, True, 1250)
     soup = soupify(driver)
-    dir_name = soup.find("div", class_="name-wrapper").find("h1", class_="name").text
+    dir_name = soup.find("div", class_="username").text
     dir_name = clean_dir_name(dir_name)
     images = []
     while True:
-        image_list = soup.find_all("video", class_="video media")
-        image_list = [img.find("source").get("src").replace("-mobile", "") for img in image_list]
+        wrapper = soup.find("div", class_="gif-tiles-wrapper")
+        gif_list = wrapper.find_all("video")
+        gif_list = [gif.find("source").get("src").replace("-mobile", "") for gif in gif_list]
+        image_list = wrapper.find_all("img")
+        image_list = [img.get("src").replace("-small", "-large") for img in image_list]
+        images.extend(gif_list)
         images.extend(image_list)
         try:
-            driver.find_element_by_xpath("//div[@class='paginator__next-button']").click()
+            driver.find_element_by_xpath("//div[@class='pager']/div[@data-page='next']").click()
             lazy_load(driver, True, 1250)
             soup = soupify(driver)
         except selenium.common.exceptions.NoSuchElementException:
@@ -2260,7 +2264,7 @@ def sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     return images, num_files, dir_name
 
-
+TEST_PARSER = sexyegirls_parse
 def sexykittenporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for sexykittenporn.com"""
     # Parses the html of the site
