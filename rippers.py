@@ -2035,28 +2035,6 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
-def putme_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
-    """Read the html for putme.ga"""
-    # Parses the html of the site
-    soup = soupify(driver)
-    dir_name = soup.find("a", {"data-text": "album-name"}).text
-    dir_name = clean_dir_name(dir_name)
-    images = []
-    while True:
-        image_list = soup.find("div", class_="pad-content-listing").find_all("img")
-        image_list = [img.get("src").replace(".md", "") for img in image_list]
-        images.extend(image_list)
-        next_page = soup.find("li", class_="pagination-next").find("a").get("href")
-        if next_page is None:
-            break
-        else:
-            print(next_page)
-            driver.get(next_page)
-            soup = soupify(driver)
-    num_files = len(images)
-    return images, num_files, dir_name
-
-TEST_PARSER = putme_parse
 def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for putmega.com"""
     # Parses the html of the site
@@ -2082,7 +2060,7 @@ def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-
+TEST_PARSER = putmega_parse
 def rabbitsfun_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for rabbitsfun.com"""
     # Parses the html of the site
