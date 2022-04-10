@@ -1423,6 +1423,19 @@ def hotgirl_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def hotpornpics_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for hotpornpics.com"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="hotpornpics_h1player").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="hotpornpics_gallerybox").find_all("img")
+    images = [img.get("src").replace("-square", "") for img in images]
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+
 def hotstunners_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for hotstunners.com"""
     # Parses the html of the site
