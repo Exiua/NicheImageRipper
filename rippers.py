@@ -495,7 +495,10 @@ class ImageRipper:
             "e-hentai": ehentai_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
-        site_info: tuple[list[str] | str, int, str] = site_parser(driver)
+        try:
+            site_info: tuple[list[str] | str, int, str] = site_parser(driver)
+        finally:
+            driver.quit()
         self.partial_save(site_info)
         driver.quit()
         return site_info
@@ -2387,7 +2390,7 @@ def sxchinesegirlz_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
     num_files = len(images)
     return images, num_files, dir_name
 
-TEST_PARSER = sxchinesegirlz_parse
+
 def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for theomegaproject.org"""
     # Parses the html of the site
@@ -2443,7 +2446,7 @@ def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-# TODO
+# TODO: Complete this
 def _titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for titsintops.com"""
     # Parses the html of the site
@@ -2455,7 +2458,7 @@ def _titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-
+# TODO: Cert Date Invalid; Build Test Later
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for tuyangyan.com"""
     # Parses the html of the site
@@ -2515,7 +2518,13 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="h5 text-center mb-3").text
     dir_name = clean_dir_name(dir_name)
-    num_pages = int(soup.find("dl", class_="row mb-0").find_all("dd")[-1].text)
+    num = soup.find("dl", class_="row mb-0").find_all("dd")[-1].text
+    digits = ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
+    for i, d in enumerate(num):
+        if d not in digits:
+            num = num[:i]
+            break
+    num_pages = int(num)
     base_url = driver.current_url
     base_url = base_url.split("?")[0]
     images = []
@@ -2557,7 +2566,7 @@ def xarthunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for xarthunter.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    image_list = soup.find("ul", class_="list-justified2").find_all("a")
+    image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
     images = [image.get("href") for image in image_list]
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
