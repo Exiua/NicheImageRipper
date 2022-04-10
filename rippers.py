@@ -492,7 +492,8 @@ class ImageRipper:
             "8muses": eightmuses_parse,
             "jkforum": jkforum_parse,
             "leakedbb": leakedbb_parse,
-            "e-hentai": ehentai_parse
+            "e-hentai": ehentai_parse,
+            "jpg": jpg_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         try:
@@ -1605,6 +1606,19 @@ def joymiihub_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     dir_name = image_list[0].find("img").get("alt")
     dir_name = clean_dir_name(dir_name)
+    return images, num_files, dir_name
+
+
+def jpg_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for jpg.church"""
+    # Parses the html of the site
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="text-overflow-ellipsis").find("a").text
+    dir_name = clean_dir_name(dir_name)
+    images = soup.find("div", class_="pad-content-listing").find_all("img")
+    images = [img.get("src").replace(".md", "") for img in images]
+    num_files = len(images)
+    driver.quit()
     return images, num_files, dir_name
 
 
@@ -2755,7 +2769,8 @@ def url_check(given_url: str) -> bool:
              "https://www.inven.co.kr/", "https://arca.live/", "https://www.cool18.com/",
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
-             "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/")
+             "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
+             "https://jpg.church/")
     return any(x in given_url for x in sites)
 
 
