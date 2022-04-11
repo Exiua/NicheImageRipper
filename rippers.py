@@ -2715,24 +2715,30 @@ def trim_url(given_url: str) -> str:
     return given_url
 
 
+def create_config(config_path: str) -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
+    config['DEFAULT'] = {}
+    config['DEFAULT']['SavePath'] = 'Rips/'
+    config['DEFAULT']['Theme'] = 'Dark'
+    config['DEFAULT']['FilenameScheme'] = 'Original'
+    config['DEFAULT']['AskToReRip'] = 'True'
+    config['DEFAULT']['LiveHistoryUpdate'] = 'False'
+    config['DEFAULT']['NumberOfThreads'] = '1'
+    config['LOGINS'] = {}
+    config['LOGINS']['Sexy-EgirlsU'] = ''
+    config['LOGINS']['Sexy-EgirlsP'] = ''
+    config['KEYS']['Imgur'] = ''
+    with open(config_path, 'w') as configfile:  # save
+        config.write(configfile)
+    return config
+
+
 def read_config(header: str, child: str) -> str:
     """Read from config.ini"""
     config = configparser.ConfigParser()
     config.read(CONFIG)
     if not path.isfile(CONFIG):
-        config['DEFAULT'] = {}
-        config['DEFAULT']['SavePath'] = 'Rips/'
-        config['DEFAULT']['Theme'] = 'Dark'
-        config['DEFAULT']['FilenameScheme'] = 'Original'
-        config['DEFAULT']['AskToReRip'] = 'True'
-        config['DEFAULT']['LiveHistoryUpdate'] = 'False'
-        config['DEFAULT']['NumberOfThreads'] = '1'
-        config['LOGINS'] = {}
-        config['LOGINS']['Sexy-EgirlsU'] = ''
-        config['LOGINS']['Sexy-EgirlsP'] = ''
-        config['KEYS']['Imgur'] = ''
-        with open(CONFIG, 'w') as configfile:  # save
-            config.write(configfile)
+        config = create_config(CONFIG)
     return config.get(header, child)
 
 
@@ -2740,6 +2746,8 @@ def write_config(header: str, child: str, change: str):
     """Write to config.ini"""
     config = configparser.ConfigParser()
     config.read(CONFIG)
+    if not path.isfile(CONFIG):
+        config = create_config(CONFIG)
     config[header][child] = change
     with open(CONFIG, 'w') as configfile:  # save
         config.write(configfile)
