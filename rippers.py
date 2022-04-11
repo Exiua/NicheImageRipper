@@ -70,7 +70,7 @@ requests_header: dict[str, str] = {
 }
 CYBERDROP_DOMAINS: tuple[str, str, str, str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG: bool = False
-TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = None
+TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = lambda x: ([""], 0, "")
 
 # Setup Logging
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "error.log"))
@@ -1557,7 +1557,7 @@ def imgur_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
-def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, str, str]:
+def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, int, str]:
     """Read the html for imhentai.xxx"""
     # Parses the html of the site
     soup = soupify(driver)
@@ -1565,7 +1565,7 @@ def imhentai_parse(driver: webdriver.Firefox) -> tuple[str, str, str]:
     images = soup.find("img", class_="lazy preloader").get("data-src")
     # Gets the number of pages (images) in the album
     num_pages = soup.find("li", class_="pages")
-    num_pages = num_pages.string.split()[1]
+    num_pages = int(num_pages.string.split()[1])
     dir_name = soup.find("h1").string
     # Removes illegal characters from folder name
     dir_name = clean_dir_name(dir_name)
