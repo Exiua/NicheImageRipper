@@ -70,7 +70,7 @@ requests_header: dict[str, str] = {
 }
 CYBERDROP_DOMAINS: tuple[str, str, str, str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG: bool = False
-TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = lambda x: ([""], 0, "")
+TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = lambda _: ([""], 0, "")
 
 # Setup Logging
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "error.log"))
