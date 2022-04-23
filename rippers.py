@@ -493,7 +493,8 @@ class ImageRipper:
             "jkforum": jkforum_parse,
             "leakedbb": leakedbb_parse,
             "e-hentai": ehentai_parse,
-            "jpg": jpg_parse
+            "jpg": jpg_parse,
+            "artstation": artstation_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         try:
@@ -602,6 +603,34 @@ def arca_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     return images, num_files, dir_name
 
 
+def artstation_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for artstation.com"""
+    # Parses the html of the site
+    lazy_load(driver)
+    soup = soupify(driver)
+    dir_name = soup.find("h1", class_="artist-name").text
+    dir_name = clean_dir_name(dir_name)
+    posts = soup.find("div", class_="gallery").find_all("a", class_="project-image")
+    posts = ["https://www.artstation.com" + p.get("href") for p in posts]
+    print(len(posts))
+    images = []
+    for post in posts:
+        print(post)
+        driver.get(post)
+        try:
+            driver.find_element_by_xpath('//div[@class="matureContent-container"]//a').click()
+        except selenium.common.exceptions.NoSuchElementException:
+            pass
+        soup = soupify(driver)
+        image_lists = soup.find("div", {"class": "project-assets-list"}).find_all("picture")
+        for image in image_lists:
+            link = image.find("source").get("srcset")
+            images.append(link)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+TEST_PARSER = artstation_parse
 def babecentrum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babecentrum.com"""
     # Parses the html of the site
@@ -2791,7 +2820,7 @@ def url_check(given_url: str) -> bool:
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
              "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
-             "https://jpg.church/")
+             "https://jpg.church/", "https://www.artstation.com/")
     return any(x in given_url for x in sites)
 
 
