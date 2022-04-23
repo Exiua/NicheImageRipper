@@ -612,10 +612,10 @@ def artstation_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     posts = soup.find("div", class_="gallery").find_all("a", class_="project-image")
     posts = ["https://www.artstation.com" + p.get("href") for p in posts]
-    print(len(posts))
+    num_posts = len(posts)
     images = []
-    for post in posts:
-        print(post)
+    for i, post in enumerate(posts):
+        print(f'Parsing post {str(i + 1)} of {num_posts}')
         driver.get(post)
         try:
             driver.find_element_by_xpath('//div[@class="matureContent-container"]//a').click()
