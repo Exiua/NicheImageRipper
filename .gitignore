@@ -12,6 +12,7 @@ config.ini
 *.txt
 *.log
 *.md
+*.mp4
 geckodriver.log
 testing_code.py
 build

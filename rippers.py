@@ -26,6 +26,7 @@ import bs4
 import requests
 import selenium
 import tldextract
+import m3u8_To_MP4
 from PIL import Image
 from bs4 import BeautifulSoup
 from natsort import natsorted
@@ -176,11 +177,15 @@ class ImageRipper:
                 subprocess.run(cmd)
                 print("Cyberdrop-dl finished")
             else:
-                cyberdrop_files = []
+                cyberdrop_files: list[str] = []
+                m3u8_files: list[tuple[str, str, str]] = []
                 for i, link in enumerate(self.folder_info[0]):
                     sleep(self.sleep_time)
                     if any(domain in link for domain in CYBERDROP_DOMAINS):
                         cyberdrop_files.append(link)
+                        continue
+                    if ".m3u8" in link:
+                        m3u8_files.append((link, full_path, str(i) + ".mp4"))
                         continue
                     try:
                         self.download_from_list(self.session, link, full_path, i)
@@ -195,6 +200,10 @@ class ImageRipper:
                     print("Starting cyberdrop-dl")
                     subprocess.run(cmd)
                     print("Cyberdrop-dl finished")
+                if m3u8_files:
+                    for f in m3u8_files:
+                        m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2])
+                        sleep(0.5)
         print("Download Complete")
 
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):
@@ -494,7 +503,8 @@ class ImageRipper:
             "leakedbb": leakedbb_parse,
             "e-hentai": ehentai_parse,
             "jpg": jpg_parse,
-            "artstation": artstation_parse
+            "artstation": artstation_parse,
+            "porn3dx": porn3dx_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
         try:
@@ -630,7 +640,7 @@ def artstation_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = artstation_parse
+
 def babecentrum_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babecentrum.com"""
     # Parses the html of the site
@@ -2090,6 +2100,40 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     dir_name = clean_dir_name(dir_name)
     return images, num_files, dir_name
 
+
+def porn3dx_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for porn3dx.com"""
+    # Parses the html of the site
+    lazy_load(driver, True)
+    soup = soupify(driver)
+    dir_name = soup.find("div", class_="title-wrapper").find("h1").text
+    dir_name = clean_dir_name(dir_name)
+    posts = soup.find("div", class_="post-list post-list-popular-monthly position-relative").find_all("a", recursive=False)
+    posts = [p.get("href") for p in posts]
+    num_posts = len(posts)
+    images = []
+    for i, post in enumerate(posts):
+        print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+        driver.get(post)
+        lazy_load(driver, True)
+        soup = soupify(driver)
+        media = soup.find("div", class_="content-wrapper")
+        videos = media.find_all("div", class_="video-block")
+        image_list = media.find_all("img")
+        image_list = [img.get("data-full-url") for img in image_list]
+        images.extend(image_list)
+        videos = [v.find("iframe").get("src") for v in videos]
+        if videos:
+            for vid in videos:
+                driver.get(vid)
+                soup = soupify(driver)
+                v = soup.find("div", class_="plyr__video-wrapper").find("source").get("src")
+                images.append(v)
+    num_files = len(images)
+    driver.quit()
+    return images, num_files, dir_name
+
+TEST_PARSER = porn3dx_parse
 # TODO: Site may be down permanently
 def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for putmega.com"""
@@ -2820,7 +2864,7 @@ def url_check(given_url: str) -> bool:
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
              "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
-             "https://jpg.church/", "https://www.artstation.com/")
+             "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/")
     return any(x in given_url for x in sites)
 
 
