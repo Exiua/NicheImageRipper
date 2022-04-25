@@ -201,9 +201,33 @@ class ImageRipper:
                     subprocess.run(cmd)
                     print("Cyberdrop-dl finished")
                 if m3u8_files:
+                    # Path(path.join(full_path, "Temp")).mkdir(parents=True, exist_ok=True)
                     for f in m3u8_files:
-                        m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2])
+                        open(path.join(f[1], f[2]), "w").close()
+                        m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2]) # , tmpdir=f[1] + "\\Temp")
                         sleep(0.5)
+                    dir_path = m3u8_files[0][1]
+                    files = [f for f in os.listdir(dir_path) if path.isfile(path.join(dir_path, f)) and ".mp4" in f]
+                    empty_files = []
+                    rename_files = []
+                    for f in files:
+                        if "m3u8_To_Mp4" in f:
+                            rename_files.append(f)
+                        elif not path.getsize(path.join(dir_path, f)):
+                            empty_files.append(f)
+                    for f in empty_files:
+                        file = path.join(dir_path, f)
+                        os.remove(file)
+                    if empty_files:
+                        if self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
+                            for i, f in enumerate(rename_files):
+                                old_name = path.join(dir_path, f)
+                                new_name = path.join(dir_path, empty_files[i])
+                                os.rename(old_name, new_name)
+                        elif self.filename_scheme == FilenameScheme.HASH:
+                            for f in rename_files:
+                                file = path.join(dir_path, f)
+                                self.rename_file_to_hash(file, dir_path, ".mp4")
         print("Download Complete")
 
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):

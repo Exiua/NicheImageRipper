@@ -133,8 +133,8 @@ class RipperGui:
             self.save_folder = values['-SAVEFOLDER-']
             self.filename_scheme = FilenameScheme[values['-SAVESCHEME-'].upper()]
             self.theme_color = values['-THEME-']
-            if not self.save_folder[-1] == '/':  # Makes sure the save path ends with '/'
-                self.save_folder += '/'
+            if not self.save_folder[-1] == '\\':  # Makes sure the save path ends with '\'
+                self.save_folder += '\\'
             window['-FOLDER-'].update(self.save_folder)
             window['-THREADS-'].update(threading.active_count())
             time.sleep(0.2)
