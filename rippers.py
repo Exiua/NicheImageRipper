@@ -100,6 +100,7 @@ class ImageRipper:
         self.session: requests.Session = requests.Session()
         self.session.headers.update(SESSION_HEADERS)
         self.sleep_time: float = 0.2
+        self.interrupted: bool = False
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
         }
@@ -147,6 +148,8 @@ class ImageRipper:
         self.folder_info = self.html_parse()  # Gets image url, number of images, and name of album
         # Save location of this album
         full_path = "".join([self.save_path, self.folder_info[2]])
+        if self.interrupted and self.filename_scheme != FilenameScheme.HASH:
+            pass #TODO: self.folder_info[0] = self.get_incomplete_files(full_path)
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
         # Can get the image through numerically ascending url for imhentai and hentairox (hard to account for gifs otherwise)
@@ -204,7 +207,17 @@ class ImageRipper:
                     # Path(path.join(full_path, "Temp")).mkdir(parents=True, exist_ok=True)
                     for f in m3u8_files:
                         open(path.join(f[1], f[2]), "w").close()
-                        m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2]) # , tmpdir=f[1] + "\\Temp")
+                        for i in range(3):
+                            try:
+                                # TODO: Use a different library as this can infinite loop (and filenames don't get assigned properly)
+                                m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2])
+                                break
+                            except:
+                                sleep(5)
+                                if i == 2:
+                                    os.remove(path.join(f[1], f[2]))
+                                    with open("failed.txt", "a") as file:
+                                        file.write(str(f[0]))
                         sleep(0.5)
                     dir_path = m3u8_files[0][1]
                     files = [f for f in os.listdir(dir_path) if path.isfile(path.join(dir_path, f)) and ".mp4" in f]
@@ -229,6 +242,21 @@ class ImageRipper:
                                 file = path.join(dir_path, f)
                                 self.rename_file_to_hash(file, dir_path, ".mp4")
         print("Download Complete")
+
+    def get_incomplete_files(self, dir_path: str) -> list[str]:
+        files = [f for f in os.listdir(dir_path) if path.isfile(path.join(dir_path, f))]
+        incomplete_files = []
+        if self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
+            completed_files = [int(f.split(".")[0]) for f in files]
+            for i, f in enumerate(self.folder_info[0]):
+                if i not in completed_files:
+                    incomplete_files.append(f)
+        elif self.filename_scheme == FilenameScheme.ORIGINAL:
+            for f in self.folder_info[0]:
+                filename = f.split("/")[-1]
+                if filename not in files:
+                    incomplete_files.append(f)
+        return incomplete_files if incomplete_files else self.folder_info[0]
 
     def download_from_url(self, session: requests.Session, url_name: str, file_name: str, full_path: str, ext: str):
         """"Download image from image url"""
@@ -410,8 +438,9 @@ class ImageRipper:
         if path.isfile("partial.json"):
             save_data: dict = self.read_partial_save()
             if self.given_url in save_data:
+                requests_header["cookie"] = save_data["cookies"]
+                self.interrupted = True
                 return save_data[self.given_url]
-            requests_header["cookie"] = save_data["cookies"]
         options = Options()
         options.headless = self.site_name != "v2ph" or logged_in
         options.add_argument = DRIVER_HEADER
