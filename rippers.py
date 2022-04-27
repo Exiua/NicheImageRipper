@@ -428,9 +428,9 @@ class ImageRipper:
         if self.site_name == "sexy-egirls" and "forum." in self.given_url:
             driver.implicitly_wait(10)
             driver.get("https://forum.sexy-egirls.com/login/")
-            driver.find_element(By.XPATH, "//input[@type='text']").send_keys(self.logins["sexy-egirls"][0])
-            driver.find_element(By.XPATH, "//input[@type='password']").send_keys(self.logins["sexy-egirls"][1])
-            driver.find_element(By.XPATH, "//button[@type='submit']").click()
+            driver.find_element_by_xpath("//input[@type='text']").send_keys(self.logins["sexy-egirls"][0])
+            driver.find_element_by_xpath("//input[@type='password']").send_keys(self.logins["sexy-egirls"][1])
+            driver.find_element_by_xpath("//button[@type='submit']").click()
         driver.get(curr_url)
 
     def html_parse(self) -> tuple[list[str] | str, int, str]:
@@ -1143,10 +1143,10 @@ def eightboobs_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def eightmuses_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for 8muses.com"""
     # Parses the html of the site
-    gallery = driver.find_element(By.CLASS_NAME, "gallery")
+    gallery = driver.find_element_by_class_name("gallery")
     while gallery is None:
         sleep(0.5)
-        gallery = driver.find_element(By.CLASS_NAME, "gallery")
+        gallery = driver.find_element_by_class_name("gallery")
     lazy_load(driver)
     soup = soupify(driver)
     dir_name = soup.find("div", class_="top-menu-breadcrumb").find_all("a")[-1].text
@@ -1268,13 +1268,13 @@ def __fantia_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         driver.get(post)
         mimg = None
         try:
-            mimg = driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
+            mimg = driver.find_element_by_class_name("post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
         except selenium.common.exceptions.NoSuchElementException:
             pass
         while mimg is None:
             sleep(0.5)
             try:
-                mimg = driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
+                mimg = driver.find_element_by_class_name("post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
             except selenium.common.exceptions.NoSuchElementException:
                 pass
         soup = soupify(driver)
@@ -1985,9 +1985,9 @@ def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
     """Read the html for nonsummerjack.com"""
     # Parses the html of the site
     lazy_load(driver, True, increment= 1250, backscroll=1)
-    ul = driver.find_element(By.CLASS_NAME, "fg-dots")
+    ul = driver.find_element_by_class_name("fg-dots")
     while not ul:
-        ul = driver.find_element(By.CLASS_NAME, "fg-dots")
+        ul = driver.find_element_by_class_name("fg-dots")
     soup = soupify(driver)
     dir_name = soup.find("h1", class_="entry-title").text
     dir_name = clean_dir_name(dir_name)
@@ -1996,7 +1996,7 @@ def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
     images = []
     for i in range(1, pages + 1):
         if i != 1:
-            driver.find_element(By.XPATH, f"//ul[@class='fg-dots']/li[{i}]").click()
+            driver.find_element_by_xpath(f"//ul[@class='fg-dots']/li[{i}]").click()
             lazy_load(driver, True, increment=1250, backscroll=1)
             soup = soupify(driver)
         image_list = soup.find("div",
@@ -2179,7 +2179,9 @@ def porn3dx_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         if videos:
             for vid in videos:
                 driver.get(vid)
+                sleep(1)
                 soup = soupify(driver)
+                _print_html(soup)
                 v = soup.find("div", class_="plyr__video-wrapper").find("source").get("src")
                 images.append(v)
     num_files = len(images)
@@ -2559,7 +2561,6 @@ def theomegaproject_parse(driver: webdriver.Firefox) -> tuple[list[str], int, st
 def thotsbay_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for thotsbay.com"""
     # Parses the html of the site
-    # driver.find_element(By.CLASS_NAME, "show-files-btn").click()
     soup = soupify(driver)
     dir_name = soup.find("div", class_="album-info-title").find("h1").text
     dir_name = clean_dir_name(dir_name)
@@ -2705,7 +2706,7 @@ def v2ph_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             if not any([img for img in image_list if "data:image/gif;base64" in img]):
                 break
             else:
-                driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.CONTROL + Keys.HOME)
+                driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.HOME)
                 lazy_load(driver, *LAZY_LOAD_ARGS)
                 soup = soupify(driver)
         images.extend(image_list)
