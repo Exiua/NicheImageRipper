@@ -69,6 +69,7 @@ requests_header: dict[str, str] = {
     'cookie':
         ''
 }
+PARSER_SWITCH: dict[str, Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]]] = {}
 CYBERDROP_DOMAINS: tuple[str, str, str, str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
 DEBUG: bool = False
 TEST_PARSER: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = lambda _: ([""], 0, "")
@@ -112,6 +113,7 @@ class ImageRipper:
         }
         flag: int = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
+        Path("./Temp").mkdir(parents=True, exist_ok=True)
 
     def rip(self, url: str):
         """Download images from given URL"""
@@ -447,8 +449,8 @@ class ImageRipper:
         driver = webdriver.Firefox(options=options)
         driver.get(self.given_url.replace("members.", "www."))
         self.site_login(driver)
-        global parser_switch
-        parser_switch = {
+        global PARSER_SWITCH
+        PARSER_SWITCH = {
             "imhentai": imhentai_parse,
             "hotgirl": hotgirl_parse,
             "cup-e": cupe_parse,
@@ -559,7 +561,7 @@ class ImageRipper:
             "artstation": artstation_parse,
             "porn3dx": porn3dx_parse
         }
-        site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(self.site_name)
+        site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = PARSER_SWITCH.get(self.site_name)
         try:
             site_info: tuple[list[str] | str, int, str] = site_parser(driver)
         finally:
@@ -2157,6 +2159,24 @@ def pmatehunter_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
 def porn3dx_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for porn3dx.com"""
     # Parses the html of the site
+    username = read_config("LOGINS", "Porn3dxU")
+    password = read_config("LOGINS", "Porn3dxP")
+    curr_url = driver.current_url
+    logged_in = False
+    if username and password:
+        while True:
+            try:
+                driver.find_element_by_xpath('//button[@class="btn btn-primary sign_in"]').click()
+                break
+            except selenium.common.exceptions.NoSuchElementException:
+                sleep(1)
+        driver.find_element_by_id("email").send_keys(username)
+        driver.find_element_by_id("password").send_keys(password)
+        driver.find_element_by_xpath('//button[@class="btn btn-action"]').click()
+        while driver.current_url == curr_url:
+            sleep(1)
+        logged_in = True
+        driver.get(curr_url)
     lazy_load(driver, True)
     soup = soupify(driver)
     dir_name = soup.find("div", class_="title-wrapper").find("h1").text
@@ -2171,24 +2191,29 @@ def porn3dx_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         lazy_load(driver, True)
         soup = soupify(driver)
         media = soup.find("div", class_="content-wrapper")
-        videos = media.find_all("div", class_="video-block")
         image_list = media.find_all("img")
         image_list = [img.get("data-full-url") for img in image_list]
         images.extend(image_list)
-        videos = [v.find("iframe").get("src") for v in videos]
-        if videos:
-            for vid in videos:
-                driver.get(vid)
-                sleep(1)
-                soup = soupify(driver)
-                _print_html(soup)
-                v = soup.find("div", class_="plyr__video-wrapper").find("source").get("src")
-                images.append(v)
+        if logged_in:
+            links = soup.find_all("div", class_="download_btn")[3::4]
+            links = [l.find("a").get("href") for l in links]
+            images.extend(links)
+        else:
+            videos = media.find_all("div", class_="video-block")
+            videos = [v.find("iframe").get("src") for v in videos]
+            if videos:
+                for vid in videos:
+                    driver.get(vid)
+                    sleep(1)
+                    soup = soupify(driver)
+                    _print_html(soup)
+                    v = soup.find("div", class_="plyr__video-wrapper").find("source").get("src")
+                    images.append(v)
     num_files = len(images)
     driver.quit()
     return images, num_files, dir_name
 
-TEST_PARSER = porn3dx_parse
+
 # TODO: Site may be down permanently
 def putmega_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for putmega.com"""
@@ -2409,8 +2434,8 @@ def _sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         for link in images:
             if any(p in link for p in parsable_links):
                 site_name = urlparse(link).netloc
-                global parser_switch
-                parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = parser_switch.get(site_name)
+                global PARSER_SWITCH
+                parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = PARSER_SWITCH.get(site_name)
                 image_list = secondary_parse(driver, link, parser)
                 images.extend(image_list)
                 images.remove(link)
@@ -2854,6 +2879,8 @@ def create_config(config_path: str) -> configparser.ConfigParser:
     config['LOGINS'] = {}
     config['LOGINS']['Sexy-EgirlsU'] = ''
     config['LOGINS']['Sexy-EgirlsP'] = ''
+    config['LOGINS']['Porn3dxU'] = ''
+    config['LOGINS']['Porn3dxP'] = ''
     config['KEYS']['Imgur'] = ''
     with open(config_path, 'w') as configfile:  # save
         config.write(configfile)
