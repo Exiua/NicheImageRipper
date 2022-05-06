@@ -2195,8 +2195,8 @@ def porn3dx_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         image_list = [img.get("data-full-url") for img in image_list]
         images.extend(image_list)
         if logged_in:
-            links = soup.find_all("div", class_="download_btn")[3::4]
-            links = [l.find("a").get("href") for l in links]
+            links = soup.find_all("div", class_="tab download")
+            links = [l.find_all("li")[-1].find("a").get("href") for l in links]
             images.extend(links)
         else:
             videos = media.find_all("div", class_="video-block")
