@@ -27,6 +27,7 @@ import requests
 import selenium
 import tldextract
 import m3u8_To_MP4
+from varname import nameof
 from PIL import Image
 from bs4 import BeautifulSoup
 from natsort import natsorted
@@ -103,7 +104,8 @@ class ImageRipper:
         self.sleep_time: float = 0.2
         self.interrupted: bool = False
         self.logins: dict[str, tuple[str, str]] = {
-            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP'))
+            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP')),
+            "deviantart": (read_config('LOGINS', 'DeviantArtU'), read_config('LOGINS', 'DeviantArtP'))
         }
         global logged_in
         logged_in = os.path.isfile("cookies.pkl")
@@ -151,7 +153,7 @@ class ImageRipper:
         # Save location of this album
         full_path = "".join([self.save_path, self.folder_info[2]])
         if self.interrupted and self.filename_scheme != FilenameScheme.HASH:
-            pass #TODO: self.folder_info[0] = self.get_incomplete_files(full_path)
+            pass  # TODO: self.folder_info[0] = self.get_incomplete_files(full_path)
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
         # Can get the image through numerically ascending url for imhentai and hentairox (hard to account for gifs otherwise)
@@ -181,6 +183,10 @@ class ImageRipper:
                 print("Starting cyberdrop-dl")
                 subprocess.run(cmd)
                 print("Cyberdrop-dl finished")
+            elif "deviantart" == self.site_name:
+                cmd = f'gallery-dl -D {full_path} -u {self.logins["deviantart"][0]} -p {self.logins["deviantart"][1]} --write-log log.txt {self.folder_info[0][0]}'
+                print("Starting Deviantart download")
+                subprocess.run(cmd, stdout=sys.stdout, stderr=subprocess.STDOUT)
             else:
                 cyberdrop_files: list[str] = []
                 m3u8_files: list[tuple[str, str, str]] = []
@@ -314,7 +320,7 @@ class ImageRipper:
                     break
                 if not response.ok and not bad_cert:
                     print(self.site_name)
-                    if response.status_code == 403 and self.site_name == "kemono":
+                    if response.status_code == 403 and self.site_name == "kemono" and not ".psd" in rip_url:
                         bad_subdomain = True
                         break
                     print(response)
@@ -342,7 +348,11 @@ class ImageRipper:
         if bad_subdomain:
             url_parts = tldextract.extract(rip_url)
             subdomain = url_parts.subdomain
-            subdomain_num = int(subdomain[-1])
+            try:
+                subdomain_num = int(subdomain[-1])
+            except:
+                _print_debug_info("bad_subdomain", url_parts, subdomain, rip_url)
+                raise
             if subdomain_num > 20:
                 mark_as_failed(rip_url)
                 return
@@ -559,7 +569,8 @@ class ImageRipper:
             "e-hentai": ehentai_parse,
             "jpg": jpg_parse,
             "artstation": artstation_parse,
-            "porn3dx": porn3dx_parse
+            "porn3dx": porn3dx_parse,
+            "deviantart": deviantart_parse
         }
         site_parser: Callable[[webdriver.Firefox], tuple[list[str] | str, int, str]] = PARSER_SWITCH.get(self.site_name)
         try:
@@ -584,7 +595,7 @@ class ImageRipper:
                 data = json.load(load_file)
                 return data
         except FileNotFoundError:
-            pass # Doesn't matter if the cached data doesn't exist, will regen instead
+            pass  # Doesn't matter if the cached data doesn't exist, will regen instead
 
     def site_check(self) -> str:
         """Check which site the url is from while also updating requests_header['referer'] to match the domain that hosts the files"""
@@ -779,7 +790,8 @@ def babesaround_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for babesaround.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("section", class_="outer-section").find("h2").text # soup.find("div", class_="ctitle2").find("h1").text
+    dir_name = soup.find("section", class_="outer-section").find(
+        "h2").text  # soup.find("div", class_="ctitle2").find("h1").text
     dir_name = clean_dir_name(dir_name)
     images = soup.find_all("div", class_="lightgallery thumbs quadruple fivefold")
     images = [tag for img in images for tag in img.find_all("a", recursive=False)]
@@ -1059,6 +1071,18 @@ def decorativemodels_parse(driver: webdriver.Firefox) -> tuple[list[str], int, s
     images = soup.find("div", class_="list gallery").find_all("div", class_="item")
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
+    return images, num_files, dir_name
+
+
+def deviantart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
+    """Read the html for deviantart.com"""
+    # Parses the html of the site
+    curr = driver.current_url
+    dir_name = curr.split("/")[3]
+    dir_name = clean_dir_name(dir_name)
+    images = [curr]
+    num_files = 1
+    driver.quit()
     return images, num_files, dir_name
 
 
@@ -1770,9 +1794,12 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         soup = soupify(driver)
         links = soup.find_all("a")
         links = [link.get("href") for link in links]
+        psd_links = ["https://kemono.party" + link for link in links if ".psd" in link]
         m_links = [link + "\n" for link in links if "mega.nz" in link]
-        attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in links if any(a in link for a in ATTACHMENTS)]
+        attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in links
+                       if any(a in link for a in ATTACHMENTS)]
         images.extend(attachments)
+        images.extend(psd_links)
         mega_links.extend(m_links)
         image_list = soup.find("div", class_="post__files")
         if image_list is not None:
@@ -1986,7 +2013,7 @@ def nightdreambabe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str
 def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for nonsummerjack.com"""
     # Parses the html of the site
-    lazy_load(driver, True, increment= 1250, backscroll=1)
+    lazy_load(driver, True, increment=1250, backscroll=1)
     ul = driver.find_element_by_class_name("fg-dots")
     while not ul:
         ul = driver.find_element_by_class_name("fg-dots")
@@ -2002,7 +2029,8 @@ def nonsummerjack_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]
             lazy_load(driver, True, increment=1250, backscroll=1)
             soup = soupify(driver)
         image_list = soup.find("div",
-                               class_="foogallery foogallery-container foogallery-justified foogallery-lightbox-foobox fg-justified fg-light fg-shadow-outline fg-loading-default fg-loaded-fade-in fg-caption-always fg-hover-fade fg-hover-zoom2 fg-ready fbx-instance").find_all("a")
+                               class_="foogallery foogallery-container foogallery-justified foogallery-lightbox-foobox fg-justified fg-light fg-shadow-outline fg-loading-default fg-loaded-fade-in fg-caption-always fg-hover-fade fg-hover-zoom2 fg-ready fbx-instance").find_all(
+            "a")
         image_list = [img.get("href") for img in image_list]
         images.extend(image_list)
     num_files = len(images)
@@ -2049,7 +2077,8 @@ def novoporn_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for novoporn.com"""
     # Parses the html of the site
     soup = soupify(driver)
-    dir_name = soup.find("section", class_="outer-section").find("h2").text.split() # find("div", class_="gallery").find("h1").text.split()
+    dir_name = soup.find("section", class_="outer-section").find(
+        "h2").text.split()  # find("div", class_="gallery").find("h1").text.split()
     for i, word in enumerate(dir_name):
         if word == "porn":
             del dir_name[i:]
@@ -2096,6 +2125,7 @@ def pbabes_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
     return images, num_files, dir_name
+
 
 # Seems like all galleries have been deleted
 def _pics_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2181,7 +2211,8 @@ def porn3dx_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     soup = soupify(driver)
     dir_name = soup.find("div", class_="title-wrapper").find("h1").text
     dir_name = clean_dir_name(dir_name)
-    posts = soup.find("div", class_="post-list post-list-popular-monthly position-relative").find_all("a", recursive=False)
+    posts = soup.find("div", class_="post-list post-list-popular-monthly position-relative").find_all("a",
+                                                                                                      recursive=False)
     posts = [p.get("href") for p in posts]
     num_posts = len(posts)
     images = []
@@ -2370,6 +2401,7 @@ def sexybabesart_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
     num_files = len(images)
     return images, num_files, dir_name
+
 
 # TODO: Convert to thotsbay parser since this site moved
 def _sexyegirls_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2625,6 +2657,7 @@ def tikhoe_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     driver.quit()
     return images, num_files, dir_name
 
+
 # TODO: Complete this
 def _titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     """Read the html for titsintops.com"""
@@ -2636,6 +2669,7 @@ def _titsintops_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     num_files = len(images)
     driver.quit()
     return images, num_files, dir_name
+
 
 # TODO: Cert Date Invalid; Build Test Later
 def tuyangyan_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
@@ -2801,6 +2835,13 @@ def _print_html(soup: BeautifulSoup):
         f.write(str(soup))
 
 
+def _print_debug_info(title: str, *data, fd="output.txt", clear=False):
+    with open(fd, "w" if clear else "a") as f:
+        f.write(f"[{title}]\n")
+        for d in data:
+            f.write(f"\t{str(d).strip()}\n")
+
+
 def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
@@ -2881,6 +2922,8 @@ def create_config(config_path: str) -> configparser.ConfigParser:
     config['LOGINS']['Sexy-EgirlsP'] = ''
     config['LOGINS']['Porn3dxU'] = ''
     config['LOGINS']['Porn3dxP'] = ''
+    config['LOGINS']['DeviantArtU'] = ''
+    config['LOGINS']['DeviantArtP'] = ''
     config['KEYS']['Imgur'] = ''
     with open(config_path, 'w') as configfile:  # save
         config.write(configfile)
@@ -2945,7 +2988,8 @@ def url_check(given_url: str) -> bool:
              "https://maturewoman.xyz/", "https://putmega.com/", "https://thotsbay.com/",
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
              "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
-             "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/")
+             "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/",
+             "https://www.deviantart.com/")
     return any(x in given_url for x in sites)
 
 
