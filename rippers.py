@@ -27,7 +27,6 @@ import requests
 import selenium
 import tldextract
 import m3u8_To_MP4
-from varname import nameof
 from PIL import Image
 from bs4 import BeautifulSoup
 from natsort import natsorted
