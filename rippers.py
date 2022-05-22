@@ -2919,10 +2919,13 @@ def create_config(config_path: str) -> configparser.ConfigParser:
     config['LOGINS'] = {}
     config['LOGINS']['Sexy-EgirlsU'] = ''
     config['LOGINS']['Sexy-EgirlsP'] = ''
+    config['LOGINS']['V2PhU'] = ''
+    config['LOGINS']['V2PhP'] = ''
     config['LOGINS']['Porn3dxU'] = ''
     config['LOGINS']['Porn3dxP'] = ''
     config['LOGINS']['DeviantArtU'] = ''
     config['LOGINS']['DeviantArtP'] = ''
+    config['KEYS'] = {}
     config['KEYS']['Imgur'] = ''
     with open(config_path, 'w') as configfile:  # save
         config.write(configfile)
