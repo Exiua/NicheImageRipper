@@ -1786,19 +1786,19 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
     images = []
     mega_links = []
     num_posts = len(image_links)
-    ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm")
+    ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
     for i, link in enumerate(image_links):
         print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
         driver.get(link)
         soup = soupify(driver)
         links = soup.find_all("a")
         links = [link.get("href") for link in links]
-        psd_links = ["https://kemono.party" + link for link in links if ".psd" in link]
+        # psd_links = ["https://kemono.party" + link for link in links if ".psd" in link]
         m_links = [link + "\n" for link in links if "mega.nz" in link]
         attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in links
-                       if any(a in link for a in ATTACHMENTS)]
+                       if any(ext in link for ext in ATTACHMENTS)]
         images.extend(attachments)
-        images.extend(psd_links)
+        # images.extend(psd_links)
         mega_links.extend(m_links)
         image_list = soup.find("div", class_="post__files")
         if image_list is not None:
@@ -2843,7 +2843,7 @@ def _print_debug_info(title: str, *data, fd="output.txt", clear=False):
 
 def clean_dir_name(given_name: str) -> str:
     """Remove forbidden characters from name"""
-    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*'), None)
+    translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*.'), None)
     dir_name = given_name.translate(translation_table).strip().replace("\n", "")
     if dir_name[-1] not in (")", "]", "}"):
         dir_name.rstrip(string.punctuation)
