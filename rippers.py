@@ -1785,6 +1785,7 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
             soup = soupify(driver)
     images = []
     mega_links = []
+    gdrive_links = []
     num_posts = len(image_links)
     ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
     for i, link in enumerate(image_links):
@@ -1793,20 +1794,37 @@ def kemono_parse(driver: webdriver.Firefox) -> tuple[list[str], int, str]:
         soup = soupify(driver)
         links = soup.find_all("a")
         links = [link.get("href") for link in links]
-        # psd_links = ["https://kemono.party" + link for link in links if ".psd" in link]
+        possible_links_p = soup.find_all("p")
+        possible_links = [tag.text for tag in possible_links_p]
+        possible_links_div = soup.find_all("div")
+        possible_links.extend([tag.text for tag in possible_links_div])
         m_links = [link + "\n" for link in links if "mega.nz" in link]
+        gd_links = [link + "\n" for link in links if "drover.google.com" in link]
+        for text in possible_links:
+            if "drive.google.com" in text:
+                parts = text.split()
+                for part in parts:
+                    if "drive.google.com" in part:
+                        gd_links.append(part + "\n")
+            if "mega.nz" in text:
+                parts = text.split()
+                for part in parts:
+                    if "mega.nz" in part:
+                        m_links.append(part + "\n")
         attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in links
                        if any(ext in link for ext in ATTACHMENTS)]
         images.extend(attachments)
-        # images.extend(psd_links)
-        mega_links.extend(m_links)
+        mega_links.extend(list(dict.fromkeys(m_links)))
+        gdrive_links.extend(list(dict.fromkeys(gd_links)))
         image_list = soup.find("div", class_="post__files")
         if image_list is not None:
             image_list = image_list.find_all("a", class_="fileThumb image-link")
             image_list = ["".join(["https://data1.kemono.party", img.get("href").split("?")[0]]) for img in image_list]
             images.extend(image_list)
-    with open("megaLinks.txt", "a") as f:
+    with open("megaLinks.txt", "a", encoding="utf-16") as f:
         f.writelines(mega_links)
+    with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
+        f.writelines(gdrive_links)
     num_files = len(images)
     return images, num_files, dir_name
 
