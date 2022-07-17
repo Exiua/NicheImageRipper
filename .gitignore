@@ -159,7 +159,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-# Custom
+# Visual Studio Code
+.vscode/
+
+# Custom files
 config.ini
 *.json
 *.html
@@ -174,8 +177,12 @@ test_code.py
 NicheRipper.spec
 cookies.pkl
 NicheImageRipper.rar
-.vscode
-Rips
+__init__.py
+
+# Custom folders
+Rips/
+app/
+Tests/
 
 # Don't ignore
 !Wiki/*.md
