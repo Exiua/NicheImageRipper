@@ -172,8 +172,10 @@ config.ini
 *.txt
 *.log
 *.md
+*.mp4
+*.psd
 geckodriver.log
-test_code.py
+testing_code.py
 NicheRipper.spec
 cookies.pkl
 NicheImageRipper.rar
