@@ -81,14 +81,8 @@ class RipperGui:
                 self.close_program()
                 break
             if event == 'Rip':  # Pushes urls into queue
-                if values['-URL-'].count("https://") > 1:  # If multiple urls are entered at once
-                    url_list = values['-URL-'].split("https://")  # Split by protocol
-                    url_list.pop(0)  # Remove initial empty element
-                    url_list = ["".join(["https://", url.strip()]) for url in url_list]
-                    for url in url_list:
-                        # If url is for a supported site and not already queued
-                        if url_check(url) and url not in self.url_list:
-                            self.rip_check(url)
+                if values['-URL-'].count("https://") > 1 or values['-URL-'].count("http://") > 1:  # If multiple urls are entered at once
+                    self.separate_urls(values['-URL-'])
                 # If url is for a supported site and not already queued
                 elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:
                     # If user wants to be prompted and if url is in the history
@@ -118,12 +112,11 @@ class RipperGui:
                     window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file:  # Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
-                # TODO
-                # for url in unfinished_list:
-                #    if url not in self.url_list:
-                #        self.rip_check(url)
-                self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(
-                    url in sublist for sublist in self.table_data)])  # Fix this to allow rerip
+                for url in unfinished_list:
+                    if url not in self.url_list:
+                        self.add_to_url_queue(url)
+                """ self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(
+                    url in sublist for sublist in self.table_data)])  # Fix this to allow rerip """
                 self.loaded_file = True
                 window['-STATUS-']('Urls loaded', text_color='green')
                 if sg.popup_yes_no('Do you want to delete the file?', no_titlebar=True) == 'Yes':
@@ -140,6 +133,23 @@ class RipperGui:
             time.sleep(0.2)
 
         window.close()
+
+    def separate_urls(self, urls: str):
+        """
+            Splits a string into multiple separate urls
+        """
+        url_list = urls.split("https://")  # Split by protocol
+        url_list.pop(0)  # Remove initial empty element
+        url_list = ["".join(["https://", url.strip()]) for url in url_list]
+        for url in url_list:
+            if url.count("http://") > 1:
+                urls = url.split("http://")
+                urls.pop(0)
+                urls = ["".join(["http://", u.strip()]) for u in urls]
+                url_list.extend(urls)
+            else:
+                if url_check(url) and url not in self.url_list:
+                    self.add_to_url_queue(url)
 
     def close_program(self):
         """Saves all the necessary information"""
@@ -163,7 +173,7 @@ class RipperGui:
                 ripper.start()
                 time.sleep(2)
 
-    def rip_check(self, item: str):
+    def add_to_url_queue(self, item: str):
         if self.rerip_ask and any(item in table_entry for table_entry in
                                   self.table_data):  # If user wants to be prompted and if url is in the history
             if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes':  # Ask user to re-rip
@@ -195,7 +205,7 @@ class RipperGui:
             del self.table_data[0]  # Replace with real table value
         duplicate_entry = False
         for i, entry in enumerate(self.table_data):
-            if entry[0] == ripper.folder_info[2]:
+            if entry[0] == ripper.folder_info.dir_name:
                 duplicate_entry = True
                 self.table_data[i][2] = str(datetime.today().strftime('%Y-%m-%d'))
                 self.table_data.append(entry)
@@ -203,7 +213,8 @@ class RipperGui:
                 break
         if not duplicate_entry:
             self.table_data.append(
-                [ripper.folder_info[2], url, str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
+                [ripper.folder_info.dir_name, url, str(datetime.today().strftime('%Y-%m-%d')),
+                 str(ripper.folder_info.num_urls)])
         ripper.folder_info = []
         if update:
             window['-TABLE-'].update(values=self.table_data)
