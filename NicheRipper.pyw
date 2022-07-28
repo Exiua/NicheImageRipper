@@ -81,7 +81,8 @@ class RipperGui:
                 self.close_program()
                 break
             if event == 'Rip':  # Pushes urls into queue
-                if values['-URL-'].count("https://") > 1 or values['-URL-'].count("http://") > 1:  # If multiple urls are entered at once
+                # If multiple urls are entered at once
+                if values['-URL-'].count("https://") > 1 or values['-URL-'].count("http://") > 1:
                     self.separate_urls(values['-URL-'])
                 # If url is for a supported site and not already queued
                 elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:
@@ -101,7 +102,7 @@ class RipperGui:
                     window['-STATUS-']('')
                 else:  # If the url is not supported
                     window['-STATUS-']('Not a supported site', text_color='red')
-                if not checker_thread.is_alive() and self.url_list:  # If thread is not running and there are queued urls
+                if not checker_thread.is_alive() and self.url_list: # If thread is not running and there are queued urls
                     checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
                     checker_thread.start()
                 self.print_queue(window)
