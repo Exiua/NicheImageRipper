@@ -13,20 +13,20 @@ import string
 import subprocess
 import sys
 import time
-from time import sleep
 from enum import Enum, auto
 from math import ceil
 from os import path, walk
 from pathlib import Path
+from time import sleep
 from typing import Callable
 from urllib.parse import urlparse
 
 import PIL
 import bs4
+import m3u8_To_MP4
 import requests
 import selenium
 import tldextract
-import m3u8_To_MP4
 from PIL import Image
 from bs4 import BeautifulSoup
 from natsort import natsorted
@@ -2750,7 +2750,8 @@ def _test_parse(given_url: str) -> RipInfo:
         driver.quit()
 
 
-def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[str] | str:
+def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[
+                                                                                                                 str] | str:
     """Parses the html for links for supported sites used in other sites"""
     curr = driver.current_url
     driver.get(link)
