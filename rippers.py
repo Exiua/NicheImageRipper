@@ -101,14 +101,12 @@ class RipInfo:
         self.urls: list[str] = urls
         self.dir_name: str = dir_name
         self.must_generate_manually: bool = generate
-        self.url_count = num_urls
+        self.url_count = num_urls if generate else len(urls)
         self.clean_dir_name()
 
     @property
     def num_urls(self):
-        if self.must_generate_manually:
-            return self.url_count
-        return len(self.urls)
+        return self.url_count
 
     def clean_dir_name(self):
         """Remove forbidden characters from name"""
