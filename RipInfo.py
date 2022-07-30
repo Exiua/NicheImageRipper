@@ -41,3 +41,7 @@ class RipInfo:
             "must_generate_manually": self.must_generate_manually
         }
         return object_data
+
+
+if __name__ == "__main__":
+    pass
