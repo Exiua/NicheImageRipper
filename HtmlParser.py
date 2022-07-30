@@ -2,6 +2,7 @@ import json
 import pickle
 import re
 from math import ceil
+from os import path
 from time import sleep
 from typing import Callable
 from urllib.parse import urlparse
@@ -11,12 +12,11 @@ import requests
 import selenium
 import tldextract
 from bs4 import BeautifulSoup
+from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
-from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-from ImageRipper import ImageRipper
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain
 from rippers import DRIVER_HEADER, requests_header, PARSER, TEST_PARSER, DEBUG, PROTOCOL, SCHEME, read_config
@@ -32,8 +32,16 @@ class HtmlParser:
         options.headless = site_name != "v2ph" or logged_in
         options.add_argument = DRIVER_HEADER
         self.driver = webdriver.Firefox(options=options)
+        self.interrupted: bool = False
+        self.site_name = site_name
 
-    def parse_site(self, url: str, site_name: str):
+    def parse_site(self, url: str) -> RipInfo:
+        if path.isfile("partial.json"):
+            save_data: dict = self.read_partial_save()
+            if url in save_data:
+                requests_header["cookie"] = save_data["cookies"]
+                self.interrupted = True
+                return save_data[url]
         url = url.replace("members.", "www.")
         self.driver.get(url)
         global PARSER_SWITCH
@@ -149,7 +157,7 @@ class HtmlParser:
             "porn3dx": self.porn3dx_parse,
             "deviantart": self.deviantart_parse
         }
-        site_parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(site_name)
+        site_parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(self.site_name)
         try:
             site_info: RipInfo = site_parser(self.driver)
         finally:
@@ -196,6 +204,80 @@ class HtmlParser:
         image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
         images = [image.get("href") for image in image_list]
         dir_name = image_list[0].find("img").get("alt")
+        return RipInfo(images, dir_name)
+
+    def __dot_party_parse(self, domain_url: str):
+        cookies = self.driver.get_cookies()
+        cookie_str = ''
+        for c in cookies:
+            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+        requests_header["cookie"] = cookie_str
+        base_url = self.driver.current_url
+        base_url = base_url.split("/")
+        source_site = base_url[3]
+        base_url = "/".join(base_url[:6])
+        sleep(5)
+        soup = self.soupify()
+        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+        dir_name = "".join([dir_name, " - (", source_site, ")"])
+        page = 1
+        image_links = []
+        while True:
+            print("".join(["Parsing page ", str(page)]))
+            page += 1
+            image_list = soup.find("div", class_="card-list__items").find_all("article")
+            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+            image_links.extend(image_list)
+            next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
+            if next_page is None:
+                break
+            else:
+                next_page = "".join([base_url, next_page.get("href")])
+                self.driver.get(next_page)
+                soup = self.soupify()
+        images = []
+        mega_links = []
+        gdrive_links = []
+        num_posts = len(image_links)
+        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
+        for i, link in enumerate(image_links):
+            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+            self.driver.get(link)
+            soup = self.soupify()
+            links = soup.find_all("a")
+            links = [link.get("href") for link in links]
+            possible_links_p = soup.find_all("p")
+            possible_links = [tag.text for tag in possible_links_p]
+            possible_links_div = soup.find_all("div")
+            possible_links.extend([tag.text for tag in possible_links_div])
+            m_links = [link + "\n" for link in links if "mega.nz" in link]
+            gd_links = [link + "\n" for link in links if "drive.google.com" in link]
+            for text in possible_links:
+                if "drive.google.com" in text:
+                    parts = text.split()
+                    for part in parts:
+                        if "drive.google.com" in part:
+                            gd_links.append(part + "\n")
+                if "mega.nz" in text:
+                    parts = text.split()
+                    for part in parts:
+                        if "mega.nz" in part:
+                            m_links.append(part + "\n")
+            attachments = [domain_url + link if domain_url not in link else link for link in links
+                           if any(ext in link for ext in ATTACHMENTS)]
+            images.extend(attachments)
+            mega_links.extend(list(dict.fromkeys(m_links)))
+            gdrive_links.extend(list(dict.fromkeys(gd_links)))
+            image_list = soup.find("div", class_="post__files")
+            if image_list is not None:
+                image_list = image_list.find_all("a", class_="fileThumb image-link")
+                image_list = ["".join([domain_url.replace("//", "//data1."), img.get("href").split("?")[0]]) for img in
+                              image_list]
+                images.extend(image_list)
+        with open("megaLinks.txt", "a", encoding="utf-16") as f:
+            f.writelines(mega_links)
+        with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
+            f.writelines(gdrive_links)
         return RipInfo(images, dir_name)
 
     def agirlpic_parse(self) -> RipInfo:
@@ -441,7 +523,7 @@ class HtmlParser:
     def coomer_parse(self) -> RipInfo:
         """Read the html for coomer.party"""
         # Parses the html of the site
-        return self.__dot_party_parser("https://coomer.party")
+        return self.__dot_party_parse("https://coomer.party")
 
     def cupe_parse(self) -> RipInfo:
         """Read the html for cup-e.club"""
@@ -709,7 +791,8 @@ class HtmlParser:
             while mimg is None:
                 sleep(0.5)
                 try:
-                    mimg = self.driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
+                    mimg = self.driver.find_element(By.CLASS_NAME,
+                                                    "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
                 except selenium.common.exceptions.NoSuchElementException:
                     pass
             soup = self.soupify()
@@ -1064,82 +1147,7 @@ class HtmlParser:
     def kemono_parse(self) -> RipInfo:
         """Read the html for kemono.party"""
         # Parses the html of the site
-        return self.__dot_party_parser("https://kemono.party")
-
-    def __dot_party_parser(self, base_url: str):
-        cookies = self.driver.get_cookies()
-        cookie_str = ''
-        for c in cookies:
-            cookie_str += "".join([c['name'], '=', c['value'], ';'])
-        requests_header["cookie"] = cookie_str
-        base_url = self.driver.current_url
-        base_url = base_url.split("/")
-        source_site = base_url[3]
-        base_url = "/".join(base_url[:6])
-        sleep(5)
-        soup = self.soupify()
-        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
-        dir_name = "".join([dir_name, " - (", source_site, ")"])
-        page = 1
-        image_links = []
-        while True:
-            print("".join(["Parsing page ", str(page)]))
-            page += 1
-            image_list = soup.find("div", class_="card-list__items").find_all("article")
-            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
-            image_links.extend(image_list)
-            next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
-            if next_page is None:
-                break
-            else:
-                next_page = "".join([base_url, next_page.get("href")])
-                self.driver.get(next_page)
-                soup = self.soupify()
-        images = []
-        mega_links = []
-        gdrive_links = []
-        num_posts = len(image_links)
-        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
-        for i, link in enumerate(image_links):
-            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
-            self.driver.get(link)
-            soup = self.soupify()
-            links = soup.find_all("a")
-            links = [link.get("href") for link in links]
-            possible_links_p = soup.find_all("p")
-            possible_links = [tag.text for tag in possible_links_p]
-            possible_links_div = soup.find_all("div")
-            possible_links.extend([tag.text for tag in possible_links_div])
-            m_links = [link + "\n" for link in links if "mega.nz" in link]
-            gd_links = [link + "\n" for link in links if "drover.google.com" in link]
-            for text in possible_links:
-                if "drive.google.com" in text:
-                    parts = text.split()
-                    for part in parts:
-                        if "drive.google.com" in part:
-                            gd_links.append(part + "\n")
-                if "mega.nz" in text:
-                    parts = text.split()
-                    for part in parts:
-                        if "mega.nz" in part:
-                            m_links.append(part + "\n")
-            attachments = [base_url + link if base_url not in link else link for link in
-                           links
-                           if any(ext in link for ext in ATTACHMENTS)]
-            images.extend(attachments)
-            mega_links.extend(list(dict.fromkeys(m_links)))
-            gdrive_links.extend(list(dict.fromkeys(gd_links)))
-            image_list = soup.find("div", class_="post__files")
-            if image_list is not None:
-                image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join([base_url.replace("//", "//data1."), img.get("href").split("?")[0]]) for img in
-                              image_list]
-                images.extend(image_list)
-        with open("megaLinks.txt", "a", encoding="utf-16") as f:
-            f.writelines(mega_links)
-        with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
-            f.writelines(gdrive_links)
-        return RipInfo(images, dir_name)
+        return self.__dot_party_parse("https://kemono.party")
 
     def leakedbb_parse(self) -> RipInfo:
         """Read the html for leakedbb.com"""
@@ -2005,7 +2013,8 @@ class HtmlParser:
                 f.write(f"\t{str(d).strip()}\n")
 
     # TODO: Merge the if/else
-    def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5, backscroll: int = 0):
+    def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5,
+                  backscroll: int = 0):
         """Load lazy loaded images by scrolling the page"""
         last_height = self.driver.execute_script("return window.pageYOffset")
         if scroll_by:
