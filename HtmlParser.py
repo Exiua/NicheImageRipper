@@ -441,54 +441,7 @@ class HtmlParser:
     def coomer_parse(self) -> RipInfo:
         """Read the html for coomer.party"""
         # Parses the html of the site
-        cookies = self.driver.get_cookies()
-        cookie_str = ''
-        for c in cookies:
-            cookie_str += "".join([c['name'], '=', c['value'], ';'])
-        requests_header["cookie"] = cookie_str
-        base_url = self.driver.current_url
-        base_url = base_url.split("/")
-        source_site = base_url[3]
-        base_url = "/".join(base_url[:6])
-        sleep(5)
-        soup = self.soupify()
-        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
-        dir_name = "".join([dir_name, " - (", source_site, ")"])
-        page = 1
-        image_links = []
-        while True:
-            print("".join(["Parsing page ", str(page)]))
-            page += 1
-            image_list = soup.find("div", class_="card-list__items").find_all("article")
-            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
-            image_links.extend(image_list)
-            next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
-            if next_page is None:
-                break
-            else:
-                next_page = "".join(["https://coomer.party", next_page.get("href")])
-                print(next_page)
-                self.driver.get(next_page)
-                soup = self.soupify()
-        images = []
-        mega_links = []
-        num_posts = len(image_links)
-        for i, link in enumerate(image_links):
-            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
-            self.driver.get(link)
-            soup = self.soupify()
-            links = soup.find_all("a")
-            links = ["".join([link.get("href"), "\n"]) for link in links if "mega.nz" in link.get("href")]
-            mega_links.extend(links)
-            image_list = soup.find("div", class_="post__files")
-            if image_list is not None:
-                image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join(["https://data1.coomer.party", img.get("href").split("?")[0]]) for img in
-                              image_list]
-                images.extend(image_list)
-        with open("megaLinks.txt", "a") as f:
-            f.writelines(mega_links)
-        return RipInfo(images, dir_name)
+        return self.__dot_party_parser("https://coomer.party")
 
     def cupe_parse(self) -> RipInfo:
         """Read the html for cup-e.club"""
@@ -1111,6 +1064,9 @@ class HtmlParser:
     def kemono_parse(self) -> RipInfo:
         """Read the html for kemono.party"""
         # Parses the html of the site
+        return self.__dot_party_parser("https://kemono.party")
+
+    def __dot_party_parser(self, base_url: str):
         cookies = self.driver.get_cookies()
         cookie_str = ''
         for c in cookies:
@@ -1136,7 +1092,7 @@ class HtmlParser:
             if next_page is None:
                 break
             else:
-                next_page = "".join(["https://kemono.party", next_page.get("href")])
+                next_page = "".join([base_url, next_page.get("href")])
                 self.driver.get(next_page)
                 soup = self.soupify()
         images = []
@@ -1167,7 +1123,7 @@ class HtmlParser:
                     for part in parts:
                         if "mega.nz" in part:
                             m_links.append(part + "\n")
-            attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
+            attachments = [base_url + link if base_url not in link else link for link in
                            links
                            if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
@@ -1176,7 +1132,7 @@ class HtmlParser:
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join(["https://data1.kemono.party", img.get("href").split("?")[0]]) for img in
+                image_list = ["".join([base_url.replace("//", "//data1."), img.get("href").split("?")[0]]) for img in
                               image_list]
                 images.extend(image_list)
         with open("megaLinks.txt", "a", encoding="utf-16") as f:
