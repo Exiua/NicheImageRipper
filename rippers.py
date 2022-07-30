@@ -640,17 +640,21 @@ class ImageRipper:
     def write_partial_save(self, site_info: RipInfo):
         """Saves parsed site data to quickly retrieve in event of a failure"""
         # TODO
-        data = {self.given_url: site_info,
-                "cookies": requests_header["cookie"]}
+        data: dict[str, RipInfo | str] = {self.given_url: site_info.serialize(),
+                                          "cookies": requests_header["cookie"]}
         with open("partial.json", 'w') as save_file:
             json.dump(data, save_file, indent=4)
 
     @staticmethod
-    def read_partial_save() -> dict[str, tuple[list[str] | str, int, str] | str]:
+    def read_partial_save() -> dict[str, RipInfo | str]:
         """Read site_info from partial save file"""
         try:
             with open("partial.json", 'r') as load_file:
-                data = json.load(load_file)
+                data: dict = json.load(load_file)
+                key: str
+                for key in data:
+                    if isinstance(data[key], dict):
+                        data[key] = RipInfo.deserialize(data[key])
                 return data
         except FileNotFoundError:
             pass  # Doesn't matter if the cached data doesn't exist, will regen instead
