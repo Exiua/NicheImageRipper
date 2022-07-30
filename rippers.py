@@ -117,6 +117,24 @@ class RipInfo:
         if self.dir_name[0] not in ("(", "[", "{"):
             self.dir_name.lstrip(string.punctuation)
 
+    @classmethod
+    def deserialize(cls, object_data: dict) -> RipInfo:
+        rip_info = cls([], "", )
+        rip_info.urls = object_data["urls"]
+        rip_info.url_count = object_data["url_count"]
+        rip_info.dir_name = object_data["dir_name"]
+        rip_info.must_generate_manually = object_data["must_generate_manually"]
+        return rip_info
+
+    def serialize(self):
+        object_data = {
+            "urls": self.urls,
+            "url_count": self.url_count,
+            "dir_name": self.dir_name,
+            "must_generate_manually": self.must_generate_manually
+        }
+        return object_data
+
 
 class ImageRipper:
     """Image Ripper Class"""
