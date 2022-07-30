@@ -2087,3 +2087,6 @@ class HtmlParser:
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
+
+if __name__ == "__main__":
+    pass
