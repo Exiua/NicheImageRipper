@@ -20,6 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from tldextract import tldextract
 
+from HtmlParser import HtmlParser
 from RipInfo import RipInfo
 from RipperExceptions import WrongExtension, RipperError
 from rippers import FilenameScheme, read_config, SESSION_HEADERS, DRIVER_HEADER, trim_url, CYBERDROP_DOMAINS, \
@@ -88,7 +89,8 @@ class ImageRipper:
 
     def _image_getter(self):
         """Download images from URL."""
-        self.folder_info = self.html_parse()  # Gets image url, number of images, and name of album
+        html_parser = HtmlParser(self.site_name)
+        self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
 
         # Save location of this album
         full_path = "".join([self.save_path, self.folder_info.dir_name])
@@ -130,7 +132,9 @@ class ImageRipper:
                 subprocess.run(cmd)
                 print("Cyberdrop-dl finished")
             elif "deviantart" == self.site_name:
-                cmd = f'gallery-dl -D {full_path} -u {self.logins["deviantart"][0]} -p {self.logins["deviantart"][1]} --write-log log.txt {self.folder_info.urls[0]}'
+                cmd = ["gallery-dl", "-D", full_path, "-u", self.logins["deviantart"][0], "-p",
+                       self.logins["deviantart"][1], "--write-log", "log.txt", self.folder_info.urls[0]]
+                cmd = " ".join(cmd)
                 print("Starting Deviantart download")
                 subprocess.run(cmd, stdout=sys.stdout, stderr=subprocess.STDOUT)
             else:
@@ -393,142 +397,6 @@ class ImageRipper:
             driver.find_element(By.XPATH, "//button[@type='submit']").click()
         driver.get(curr_url)
 
-    def html_parse(self) -> RipInfo:
-        """Return image URL, number of images, and folder name."""
-        if path.isfile("partial.json"):
-            save_data: dict = self.read_partial_save()
-            if self.given_url in save_data:
-                requests_header["cookie"] = save_data["cookies"]
-                self.interrupted = True
-                return save_data[self.given_url]
-        options = Options()
-        options.headless = self.site_name != "v2ph" or logged_in
-        options.add_argument = DRIVER_HEADER
-        driver = webdriver.Firefox(options=options)
-        driver.get(self.given_url.replace("members.", "www."))
-        self.site_login(driver)
-        global PARSER_SWITCH
-        PARSER_SWITCH = {
-            "imhentai": imhentai_parse,
-            "hotgirl": hotgirl_parse,
-            "cup-e": cupe_parse,
-            "girlsreleased": girlsreleased_parse,
-            "bustybloom": bustybloom_parse,
-            "morazzia": morazzia_parse,
-            "novojoy": novojoy_parse,
-            "hqbabes": hqbabes_parse,
-            "silkengirl": silkengirl_parse,
-            "babesandgirls": babesandgirls_parse,
-            "babeimpact": babeimpact_parse,
-            "100bucksbabes": hundredbucksbabes_parse,
-            "sexykittenporn": sexykittenporn_parse,
-            "babesbang": babesbang_parse,
-            "exgirlfriendmarket": exgirlfriendmarket_parse,
-            "novoporn": novoporn_parse,
-            "hottystop": hottystop_parse,
-            "babeuniversum": babeuniversum_parse,
-            "babesandbitches": babesandbitches_parse,
-            "chickteases": chickteases_parse,
-            "wantedbabes": wantedbabes_parse,
-            "cyberdrop": cyberdrop_parse,
-            "pleasuregirl": pleasuregirl_parse,
-            "sexyaporno": sexyaporno_parse,
-            "theomegaproject": theomegaproject_parse,
-            "babesmachine": babesmachine_parse,
-            "babesinporn": babesinporn_parse,
-            "livejasminbabes": livejasminbabes_parse,
-            "grabpussy": grabpussy_parse,
-            "simply-cosplay": simplycosplay_parse,
-            "simply-porn": simplyporn_parse,
-            "pmatehunter": pmatehunter_parse,
-            "elitebabes": elitebabes_parse,
-            "xarthunter": xarthunter_parse,
-            "joymiihub": joymiihub_parse,
-            "metarthunter": metarthunter_parse,
-            "femjoyhunter": femjoyhunter_parse,
-            "ftvhunter": ftvhunter_parse,
-            "hegrehunter": hegrehunter_parse,
-            "hanime": hanime_parse,
-            "babesaround": babesaround_parse,
-            "8boobs": eightboobs_parse,
-            "decorativemodels": decorativemodels_parse,
-            "girlsofdesire": girlsofdesire_parse,
-            "tuyangyan": tuyangyan_parse,
-            "hqsluts": hqsluts_parse,
-            "foxhq": foxhq_parse,
-            "rabbitsfun": rabbitsfun_parse,
-            "erosberry": erosberry_parse,
-            "novohot": novohot_parse,
-            "eahentai": eahentai_parse,
-            "nightdreambabe": nightdreambabe_parse,
-            "xmissy": xmissy_parse,
-            "glam0ur": glam0ur_parse,
-            "dirtyyoungbitches": dirtyyoungbitches_parse,
-            "rossoporn": rossoporn_parse,
-            "nakedgirls": nakedgirls_parse,
-            "mainbabes": mainbabes_parse,
-            "hotstunners": hotstunners_parse,
-            "sexynakeds": sexynakeds_parse,
-            "nudity911": nudity911_parse,
-            "pbabes": pbabes_parse,
-            "sexybabesart": sexybabesart_parse,
-            "heymanhustle": heymanhustle_parse,
-            "sexhd": sexhd_parse,
-            "gyrls": gyrls_parse,
-            "pinkfineart": pinkfineart_parse,
-            "sensualgirls": sensualgirls_parse,
-            "novoglam": novoglam_parse,
-            "cherrynudes": cherrynudes_parse,
-            "redpornblog": redpornblog_parse,
-            "join2babes": join2babes_parse,
-            "babecentrum": babecentrum_parse,
-            "cutegirlporn": cutegirlporn_parse,
-            "everia": everia_parse,
-            "imgbox": imgbox_parse,
-            "nonsummerjack": nonsummerjack_parse,
-            "myhentaigallery": myhentaigallery_parse,
-            "buondua": buondua_parse,
-            "f5girls": f5girls_parse,
-            "hentairox": hentairox_parse,
-            "gofile": gofile_parse,
-            "redgifs": redgifs_parse,
-            "kemono": kemono_parse,
-            "sankakucomplex": sankakucomplex_parse,
-            "luscious": luscious_parse,
-            "sxchinesegirlz": sxchinesegirlz_parse,
-            "agirlpic": agirlpic_parse,
-            "v2ph": v2ph_parse,
-            "nudebird": nudebird_parse,
-            "bestprettygirl": bestprettygirl_parse,
-            "coomer": coomer_parse,
-            "imgur": imgur_parse,
-            "8kcosplay": eightkcosplay_parse,
-            "inven": inven_parse,
-            "arca": arca_parse,
-            "cool18": cool18_parse,
-            "maturewoman": maturewoman_parse,
-            "putmega": putmega_parse,
-            "thotsbay": thotsbay_parse,
-            "tikhoe": tikhoe_parse,
-            "lovefap": lovefap_parse,
-            "8muses": eightmuses_parse,
-            "jkforum": jkforum_parse,
-            "leakedbb": leakedbb_parse,
-            "e-hentai": ehentai_parse,
-            "jpg": jpg_parse,
-            "artstation": artstation_parse,
-            "porn3dx": porn3dx_parse,
-            "deviantart": deviantart_parse
-        }
-        site_parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(self.site_name)
-        try:
-            site_info: RipInfo = site_parser(driver)
-        finally:
-            driver.quit()
-        self.write_partial_save(site_info)
-        driver.quit()
-        return site_info
-
     def write_partial_save(self, site_info: RipInfo):
         """Saves parsed site data to quickly retrieve in event of a failure"""
         # TODO
@@ -569,3 +437,7 @@ class ImageRipper:
                 self.sleep_time = 5
             return domain
         raise RipperError("Not a support site")
+
+
+if __name__ == "__main__":
+    pass
