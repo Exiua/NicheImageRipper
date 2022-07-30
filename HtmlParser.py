@@ -191,6 +191,13 @@ class HtmlParser:
             self.driver.find_element(By.XPATH, "//button[@type='submit']").click()
         self.driver.get(curr_url)
 
+    def __generic_html_parser_1(self):
+        soup = self.soupify()
+        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
+        images = [image.get("href") for image in image_list]
+        dir_name = image_list[0].find("img").get("alt")
+        return RipInfo(images, dir_name)
+
     def agirlpic_parse(self) -> RipInfo:
         """Read the html for agirlpic.com"""
         # Parses the html of the site
@@ -669,11 +676,7 @@ class HtmlParser:
     def elitebabes_parse(self) -> RipInfo:
         """Read the html for elitebabes.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def erosberry_parse(self) -> RipInfo:
         """Read the html for erosberry.com"""
@@ -774,11 +777,7 @@ class HtmlParser:
     def femjoyhunter_parse(self) -> RipInfo:
         """Read the html for femjoyhunter.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def foxhq_parse(self) -> RipInfo:
         """Read the html for foxhq.com"""
@@ -794,11 +793,7 @@ class HtmlParser:
     def ftvhunter_parse(self) -> RipInfo:
         """Read the html for ftvhunter.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def girlsofdesire_parse(self) -> RipInfo:
         """Read the html for girlsofdesire.org"""
@@ -879,11 +874,7 @@ class HtmlParser:
     def hegrehunter_parse(self) -> RipInfo:
         """Read the html for hegrehunter.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     # Cannot bypass captcha, so it doesn't work
     def __hentaicosplays_parse(self) -> RipInfo:
@@ -1106,11 +1097,7 @@ class HtmlParser:
     def joymiihub_parse(self) -> RipInfo:
         """Read the html for joymiihub.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def jpg_parse(self) -> RipInfo:
         """Read the html for jpg.church"""
@@ -1320,11 +1307,7 @@ class HtmlParser:
     def metarthunter_parse(self) -> RipInfo:
         """Read the html for hetarthunter.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def morazzia_parse(self) -> RipInfo:
         """Read the html for morazzia.com"""
@@ -1496,11 +1479,7 @@ class HtmlParser:
     def pmatehunter_parse(self) -> RipInfo:
         """Read the html for pmatehunter.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def porn3dx_parse(self) -> RipInfo:
         """Read the html for porn3dx.com"""
@@ -2019,11 +1998,7 @@ class HtmlParser:
     def xarthunter_parse(self) -> RipInfo:
         """Read the html for xarthunter.com"""
         # Parses the html of the site
-        soup = self.soupify()
-        image_list = soup.find("ul", class_="list-gallery a css").find_all("a")
-        images = [image.get("href") for image in image_list]
-        dir_name = image_list[0].find("img").get("alt")
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_1()
 
     def xmissy_parse(self) -> RipInfo:
         """Read the html for xmissy.nl"""
