@@ -633,11 +633,11 @@ class ImageRipper:
             site_info: RipInfo = site_parser(driver)
         finally:
             driver.quit()
-        self.partial_save(site_info)
+        self.write_partial_save(site_info)
         driver.quit()
         return site_info
 
-    def partial_save(self, site_info: RipInfo):
+    def write_partial_save(self, site_info: RipInfo):
         """Saves parsed site data to quickly retrieve in event of a failure"""
         # TODO
         data = {self.given_url: site_info,
