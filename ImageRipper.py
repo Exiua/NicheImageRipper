@@ -167,7 +167,8 @@ class ImageRipper:
                         open(path.join(f[1], f[2]), "w").close()
                         for i in range(3):
                             try:
-                                # TODO: Use a different library as this can infinite loop (and filenames don't get assigned properly)
+                                # TODO: Use a different library as this can infinite loop
+                                #  (and filenames don't get assigned properly)
                                 m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2])
                                 break
                             except Exception:
