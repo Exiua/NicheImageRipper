@@ -9,7 +9,8 @@ class RipInfo:
         self.dir_name: str = dir_name
         self.must_generate_manually: bool = generate
         self.url_count = num_urls if generate else len(urls)
-        self.clean_dir_name()
+        if self.dir_name:
+            self.clean_dir_name()
 
     @property
     def num_urls(self):
