@@ -4,19 +4,30 @@ import string
 class RipInfo:
     """Ripped Site Information"""
 
-    def __init__(self, urls: list[str], dir_name: str, generate: bool = False, num_urls: int = 0):
+    def __init__(self, urls: list[str] | str, dir_name: str = "", generate: bool = False, num_urls: int = 0):
+        if isinstance(urls, str):
+            urls = [urls]
         self.urls: list[str] = urls
-        self.dir_name: str = dir_name
+        self._dir_name: str = dir_name
         self.must_generate_manually: bool = generate
         self.url_count = num_urls if generate else len(urls)
-        if self.dir_name:
-            self.clean_dir_name()
+        if self._dir_name:
+            self.__clean_dir_name()
 
     @property
     def num_urls(self):
         return self.url_count
 
-    def clean_dir_name(self):
+    @property
+    def dir_name(self):
+        return self._dir_name
+
+    @dir_name.setter
+    def dir_name(self, value):
+        self._dir_name = value
+        self.__clean_dir_name()
+
+    def __clean_dir_name(self):
         """Remove forbidden characters from name"""
         translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*.'), None)
         self.dir_name = self.dir_name.translate(translation_table).strip().replace("\n", "")
