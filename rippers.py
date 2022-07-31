@@ -1,6 +1,7 @@
 """This module downloads images from given URL"""
 from __future__ import annotations
 
+import argparse
 import configparser
 import functools
 import hashlib
@@ -2863,13 +2864,10 @@ def url_check(given_url: str) -> bool:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        album_url = sys.argv[1]
-    else:
-        raise RipperError("Script requires a link as an argument")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("url", type=str, required=True)
+    args = parser.parse_args()
     start = time.process_time_ns()
-    print(_test_parse(sys.argv[1]))
-    # ripper = ImageRipper(sys.argv[1])
-    # ripper.verify_files("D:\Documents\Programming\Rips\Ashley Tervort")
+    print(_test_parse(args.url))
     end = time.process_time_ns()
     # print("Time Elapsed: " + str(end - start))
