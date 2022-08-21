@@ -30,15 +30,15 @@ class RipInfo:
     def __clean_dir_name(self):
         """Remove forbidden characters from name"""
         translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*.'), None)
-        self.dir_name = self.dir_name.translate(translation_table).strip().replace("\n", "")
-        if self.dir_name[-1] not in (")", "]", "}"):
-            self.dir_name.rstrip(string.punctuation)
-        if self.dir_name[0] not in ("(", "[", "{"):
-            self.dir_name.lstrip(string.punctuation)
+        self._dir_name = self._dir_name.translate(translation_table).strip().replace("\n", "")
+        if self._dir_name[-1] not in (")", "]", "}"):
+            self._dir_name.rstrip(string.punctuation)
+        if self._dir_name[0] not in ("(", "[", "{"):
+            self._dir_name.lstrip(string.punctuation)
 
     @classmethod
     def deserialize(cls, object_data: dict):
-        rip_info = cls([], "", )
+        rip_info = cls([], "")
         rip_info.urls = object_data["urls"]
         rip_info.url_count = object_data["url_count"]
         rip_info.dir_name = object_data["dir_name"]
