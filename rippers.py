@@ -328,7 +328,41 @@ class ImageRipper:
                             for f in rename_files:
                                 file = path.join(dir_path, f)
                                 self.rename_file_to_hash(file, dir_path, ".mp4")
+        self.cleanup()
         print("Download Complete")
+
+    def cleanup(self):
+        self.remove_dup_links(".\megaLinks.txt")
+        self.remove_dup_links(".\gdriveLinks.txt")
+
+    def remove_dup_links(self, file: str):
+        with open(file, "r", encoding="unicode_escape") as f:
+            data = f.readlines()
+        data = [d.replace("\x00", "").replace("\n", "") for d in data]
+        data = [d for d in data if d != ""]
+        for i, d in enumerate(data):
+            if d.count("http") == 0:
+                data[i] = ""
+            elif d.count("http") > 1:
+                links = d.split("http")[1:]
+                data[i] = "http" + links[0]
+                for j in range(1, len(links)):
+                    data.append("http" + links[j])
+            else:
+                link = d.split("http")
+                data[i] = "http" + link[1]
+        seen = set()
+        result = []
+        for item in data:
+            if item not in seen:
+                seen.add(item)
+                result.append(item + "\n")
+        with open(self.rreplace(file, ".", "Out."), "w", encoding="unicode_escape") as f:
+            f.writelines(result)
+
+    def rreplace(self, string: str, old: str, new: str, occurrence: int = 1) -> str:
+        li = string.rsplit(old, occurrence)
+        return new.join(li)
 
     def get_incomplete_files(self, dir_path: str) -> list[str]:
         files = [f for f in os.listdir(dir_path) if path.isfile(path.join(dir_path, f))]
