@@ -19,7 +19,7 @@ from selenium.webdriver.firefox.options import Options
 
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from rippers import DRIVER_HEADER, requests_header, PARSER, TEST_PARSER, DEBUG, HTTPS, SCHEME, read_config, url_check
+from rippers import DRIVER_HEADER, requests_header, PARSER, TEST_PARSER, DEBUG, PROTOCOL, SCHEME, read_config, url_check
 
 logged_in: bool
 PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
@@ -331,10 +331,10 @@ class HtmlParser:
         main_tag = soup.find("div", class_="fr-view article-content")
         images = main_tag.find_all("img")
         images = ["".join([img.get("src").split("?")[0], "?type=orig"]) for img in images]
-        images = [HTTPS + img if HTTPS not in img else img for img in images]
+        images = [PROTOCOL + img if PROTOCOL not in img else img for img in images]
         videos = main_tag.find_all("video")
         videos = [vid.get("src") for vid in videos]
-        videos = [HTTPS + vid if HTTPS not in vid else vid for vid in videos]
+        videos = [PROTOCOL + vid if PROTOCOL not in vid else vid for vid in videos]
         images.extend(videos)
         self.driver.quit()
         return RipInfo(images, dir_name)
@@ -372,7 +372,7 @@ class HtmlParser:
         dir_name = [w.text for w in dir_name]
         dir_name = " ".join(dir_name).strip()
         images = soup.find("table").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def babeimpact_parse(self) -> RipInfo:
@@ -392,7 +392,7 @@ class HtmlParser:
         for image in image_list:
             self.driver.get(image)
             soup = self.soupify()
-            images.append("".join([HTTPS, soup.find(
+            images.append("".join([PROTOCOL, soup.find(
                 "div", class_="image-wrapper").find("img").get("src")]))
         return RipInfo(images, dir_name)
 
@@ -402,7 +402,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="title").find("h1").text
         images = soup.find("div", class_="three-column").find_all("div", class_="thumbnail")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def babesandbitches_parse(self) -> RipInfo:
@@ -416,7 +416,7 @@ class HtmlParser:
                 break
         dir_name = " ".join(dir_name)
         images = soup.find_all("a", class_="gallery-thumb")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def babesandgirls_parse(self) -> RipInfo:
@@ -425,7 +425,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
         images = soup.find("div", class_="block-post album-item").find_all("a", class_="item-post")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def babesaround_parse(self) -> RipInfo:
@@ -436,7 +436,7 @@ class HtmlParser:
             "h2").text  # soup.find("div", class_="ctitle2").find("h1").text
         images = soup.find_all("div", class_="lightgallery thumbs quadruple fivefold")
         images = [tag for img in images for tag in img.find_all("a", recursive=False)]
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def babesbang_parse(self) -> RipInfo:
@@ -445,7 +445,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="main-title").text
         images = soup.find_all("div", class_="gal-block")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
         return RipInfo(images, dir_name)
 
     def babesinporn_parse(self) -> RipInfo:
@@ -454,7 +454,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="blockheader pink center lowercase").text
         images = soup.find_all("div", class_="list gallery")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
         return RipInfo(images, dir_name)
 
     def babesmachine_parse(self) -> RipInfo:
@@ -463,7 +463,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="gallery").find("h2").find("a").text
         images = soup.find("div", id="gallery").find("table").find_all("tr")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def bestprettygirl_parse(self) -> RipInfo:
@@ -510,7 +510,7 @@ class HtmlParser:
                 break
         dir_name = " ".join(dir_name)
         images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def cherrynudes_parse(self) -> RipInfo:
@@ -529,7 +529,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", id="galleryModelName").text
         images = soup.find_all("div", class_="minithumbs")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def cool18_parse(self) -> RipInfo:
@@ -605,7 +605,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="gal-title").text
         images = soup.find("ul", class_="gal-thumbs").find_all("li")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("/t", "/")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("/t", "/")]) for img in images]
         return RipInfo(images, dir_name)
 
     def cyberdrop_parse(self) -> RipInfo:
@@ -624,7 +624,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="center").text
         images = soup.find("div", class_="list gallery").find_all("div", class_="item")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def deviantart_parse(self) -> RipInfo:
@@ -643,7 +643,7 @@ class HtmlParser:
         dir_name = soup.find("div", class_="title-holder").find("h1").text
         images = soup.find("div", class_="container cont-light").find("div", class_="images").find_all("a",
                                                                                                        class_="thumb")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def eahentai_parse(self) -> RipInfo:
@@ -702,7 +702,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="content").find_all("div", class_="title")[1].text
         images = soup.find("div", class_="gallery clear").find_all("a", recursive=False)
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def eightmuses_parse(self) -> RipInfo:
@@ -741,7 +741,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
         images = soup.find("div", class_="block-post three-post flex").find_all("a", recursive=False)
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def everia_parse(self) -> RipInfo:
@@ -759,7 +759,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="title-area").find("h1").text
         images = soup.find("div", class_="gallery").find_all("a", class_="thumb exo")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def f5girls_parse(self) -> RipInfo:
@@ -883,7 +883,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="picnav").find("h1").text
         images = soup.find("div", class_="center").find_all("a", recursive=False)
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         for i, img in enumerate(images):
             if "/banners/" in img:
                 images.pop(i)
@@ -905,7 +905,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="c-title")[1].find("h1").text
         images = soup.find("div", class_="gal own-gallery-images").find_all("a", recursive=False)
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def gyrls_parse(self) -> RipInfo:
@@ -1013,7 +1013,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="title_content").find("h2").text
         images = soup.find("div", class_="gallery_janna2").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def hottystop_parse(self) -> RipInfo:
@@ -1048,7 +1048,7 @@ class HtmlParser:
         for image in image_list:
             image_url = image.find("a").get("href")
             if any(x in image_url for x in ext):
-                images.append("".join([HTTPS, image_url]))
+                images.append("".join([PROTOCOL, image_url]))
         return RipInfo(images, dir_name)
 
     def hqsluts_parse(self) -> RipInfo:
@@ -1073,7 +1073,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="main-col-2").find("h2", class_="heading").text
         images = soup.find("div", class_="main-thumbs").find_all("img")
-        images = ["".join([HTTPS, img.get("data-url")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("data-url")]) for img in images]
         return RipInfo(images, dir_name)
 
     def imgbox_parse(self) -> RipInfo:
@@ -1148,7 +1148,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="gallery_title_div")[1].find("h1").text
         images = soup.find("div", class_="gthumbs").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def joymiihub_parse(self) -> RipInfo:
@@ -1195,7 +1195,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="gallery_header").find("h1").text
         images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def lovefap_parse(self) -> RipInfo:
@@ -1275,7 +1275,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="heading").find("h2", class_="title").text
         images = soup.find("div", class_="thumbs_box").find_all("div", class_="thumb_box")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def maturewoman_parse(self) -> RipInfo:
@@ -1299,7 +1299,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
         images = soup.find("div", class_="block-post album-item").find_all("a")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def myhentaigallery_parse(self) -> RipInfo:
@@ -1326,7 +1326,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("section", class_="outer-section").find("h2", class_="section-title title").text
         images = soup.find("div", class_="lightgallery thumbs quadruple fivefold").find_all("a", class_="gallery-card")
-        images = ["".join([HTTPS, img.find("img").get("src")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src")]) for img in images]
         return RipInfo(images, dir_name)
 
     def nonsummerjack_parse(self) -> RipInfo:
@@ -1360,7 +1360,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="heading").find("h1").text
         images = soup.find("ul", id="myGalleryThumbs").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def novohot_parse(self) -> RipInfo:
@@ -1369,7 +1369,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="viewIMG").find("h1").text
         images = soup.find("div", class_="runout").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def novojoy_parse(self) -> RipInfo:
@@ -1378,7 +1378,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1").text
         images = soup.find_all("img", class_="gallery-image")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def novoporn_parse(self) -> RipInfo:
@@ -1412,7 +1412,7 @@ class HtmlParser:
         dir_name = soup.find("h1").text
         images = soup.find("tr", valign="top").find("td", align="center").find("table", width="650") \
             .find_all("td", width="33%")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def pbabes_parse(self) -> RipInfo:
@@ -1421,7 +1421,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="box_654")[1].find("h1").text
         images = soup.find("div", style="margin-left:35px;").find_all("a", rel="nofollow")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     # Seems like all galleries have been deleted
@@ -1459,7 +1459,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h2", class_="title").text
         images = soup.find("div", class_="lightgallery-wrap").find_all("div", class_="grid-item thumb")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def pmatehunter_parse(self) -> RipInfo:
@@ -1554,7 +1554,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h3", class_="watch-mobTitle").text
         images = soup.find("div", class_="gallery-watch").find_all("li")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def redgifs_parse(self) -> RipInfo:
@@ -1587,7 +1587,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="pic-title").find("h1").text
         images = soup.find("div", id="bigpic-image").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def rossoporn_parse(self) -> RipInfo:
@@ -1596,7 +1596,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="content_right").find("h1").text
         images = soup.find_all("div", class_="wrapper_g")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for tag_list in images for img in
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for tag_list in images for img in
                   tag_list.find_all("img")]
         return RipInfo(images, dir_name)
 
@@ -1606,7 +1606,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").find("a").text
         images = soup.find_all("a", class_="swipebox")
-        images = [img.get("href") if HTTPS in img.get("href") else "".join([HTTPS, img.get("href")]) for img in
+        images = [img.get("href") if PROTOCOL in img.get("href") else "".join([PROTOCOL, img.get("href")]) for img in
                   images[1:]]
         return RipInfo(images, dir_name)
 
@@ -1640,7 +1640,7 @@ class HtmlParser:
                 break
         dir_name = " ".join(dir_name)
         images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def sexybabesart_parse(self) -> RipInfo:
@@ -1649,7 +1649,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="content-title").find("h1").text
         images = soup.find("div", class_="thumbs").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     # TODO: Convert to thotsbay parser since this site moved
@@ -1738,7 +1738,7 @@ class HtmlParser:
         for link in image_link:
             self.driver.get(link)
             soup = self.soupify()
-            images.append("".join([HTTPS, soup.find(
+            images.append("".join([PROTOCOL, soup.find(
                 "div", class_="image-wrapper").find("img").get("src")]))
         return RipInfo(images, dir_name)
 
@@ -1748,7 +1748,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="box").find_all("h1")[1].text
         images = soup.find("div", class_="post_tn").find_all("img")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def silkengirl_parse(self) -> RipInfo:
@@ -1760,7 +1760,7 @@ class HtmlParser:
         else:
             dir_name = soup.find("div", class_="content_main").find("h2").text
         images = soup.find_all("div", class_="thumb_box")
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def simplycosplay_parse(self) -> RipInfo:
@@ -1833,7 +1833,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="omega").text
         images = soup.find("div", class_="postholder").find_all("div", class_="picture", recursive=False)
-        images = ["".join([HTTPS, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
     def thotsbay_parse(self) -> RipInfo:
@@ -1908,7 +1908,7 @@ class HtmlParser:
         else:
             images = soup.find(
                 "div", class_="entry-content clearfix").find_all("img")
-        images = ["".join([HTTPS, img.get("src")]) for img in images]
+        images = ["".join([PROTOCOL, img.get("src")]) for img in images]
         return RipInfo(images, dir_name)
 
     def wantedbabes_parse(self) -> RipInfo:
@@ -1917,7 +1917,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", id="main-content").find("h1").text
         images = soup.find_all("div", class_="gallery")
-        images = ["".join([HTTPS, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
+        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
         return RipInfo(images, dir_name)
 
     # TODO: Work on saving self.driver across sites to avoid relogging in
