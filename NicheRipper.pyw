@@ -9,6 +9,7 @@ from datetime import datetime
 import PySimpleGUI as sg
 import requests
 
+import ImageRipper
 from rippers import ImageRipper, FilenameScheme, read_config, write_config, url_check
 
 
@@ -186,7 +187,7 @@ class RipperGui:
         """Rips files from url"""
         url = self.url_list[0]
         print(url)
-        ripper = ImageRipper(self.filename_scheme)
+        ripper = ImageRipper.ImageRipper(self.filename_scheme)
         ripper.rip(url)
         self.update_table(ripper, url, self.live_history_update, window)
         self.url_list.remove(url)
