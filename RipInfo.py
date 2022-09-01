@@ -14,6 +14,9 @@ class RipInfo:
         if self._dir_name:
             self.__clean_dir_name()
 
+    def __str__(self) -> str:
+        return f"({self.urls}, {self.num_urls}, {self.dir_name})"
+
     @property
     def num_urls(self):
         return self.url_count
