@@ -1,6 +1,7 @@
 import json
 import pickle
 import re
+import sys
 from math import ceil
 from os import path
 from time import sleep
@@ -19,11 +20,11 @@ from selenium.webdriver.firefox.options import Options
 
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from rippers import DRIVER_HEADER, requests_header, PARSER, TEST_PARSER, DEBUG, PROTOCOL, SCHEME, read_config, url_check
+from rippers import DRIVER_HEADER, requests_header, PARSER, DEBUG, PROTOCOL, SCHEME, read_config, url_check
 
 logged_in: bool
 PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
-
+TEST_PARSER: str
 
 class HtmlParser:
     def __init__(self, site_name: str = ""):
@@ -893,12 +894,15 @@ class HtmlParser:
         """Read the html for gofile.io"""
         # Parses the html of the site
         sleep(5)
+        current_url = self.driver.current_url
         soup = self.soupify()
         dir_name = soup.find("span", id="rowFolder-folderName").text
         images = soup.find("div", id="rowFolder-tableContent").find_all("div", recursive=False)
-        images = [img.find("a").get("href") for img in images]
+        images = [img.find("a", target="_blank").get("href") for img in images]
+        images.insert(0, current_url)
         return RipInfo(images, dir_name)
-
+    global TEST_PARSER
+    TEST_PARSER = "gofile_parse"
     def grabpussy_parse(self) -> RipInfo:
         """Read the html for grabpussy.com"""
         # Parses the html of the site
@@ -2011,7 +2015,7 @@ class HtmlParser:
             self.driver.get(given_url.replace("members.", "www."))
             # rip = ImageRipper(given_url)
             # rip.site_login(self.driver)
-            return TEST_PARSER(self.driver)
+            return eval(f"self.{TEST_PARSER}()")
         finally:
             self.driver.quit()
 
@@ -2075,4 +2079,5 @@ class HtmlParser:
 
 
 if __name__ == "__main__":
-    pass
+    parser = HtmlParser()
+    print(parser._test_parse(sys.argv[1]))
