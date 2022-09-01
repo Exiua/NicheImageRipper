@@ -9,8 +9,8 @@ from datetime import datetime
 import PySimpleGUI as sg
 import requests
 
-import ImageRipper
-from rippers import ImageRipper, FilenameScheme, read_config, write_config, url_check
+from ImageRipper import ImageRipper
+from rippers import FilenameScheme, read_config, write_config, url_check
 
 
 # pylint: disable=line-too-long
@@ -187,7 +187,7 @@ class RipperGui:
         """Rips files from url"""
         url = self.url_list[0]
         print(url)
-        ripper = ImageRipper.ImageRipper(self.filename_scheme)
+        ripper = ImageRipper(self.filename_scheme)
         ripper.rip(url)
         self.update_table(ripper, url, self.live_history_update, window)
         self.url_list.remove(url)
@@ -224,17 +224,13 @@ class RipperGui:
     def is_latest_version(self) -> bool:
         v1 = self.version.replace("v", "").split(".")
         v2 = self.latest_version.replace("v", "").split(".")
-        if int(v1[0]) > int(v2[0]):
-            return True
-        elif int(v1[0]) < int(v2[0]):
-            return False
-        else:
-            if int(v1[1]) > int(v2[1]):
-                return True
-            elif int(v1[1]) < int(v2[1]):
-                return False
-            else:
+        if int(v1[0]) == int(v2[0]):
+            if int(v1[1]) == int(v2[1]):
                 return int(v1[2]) >= int(v2[2])
+            else:
+                return int(v1[1]) > int(v2[1])
+        else:
+            return int(v1[0]) > int(v2[0])
 
     @staticmethod
     def string_to_bool(v: str) -> bool:
