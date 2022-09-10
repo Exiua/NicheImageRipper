@@ -240,25 +240,27 @@ class HtmlParser:
         base_url = base_url.split("/")
         source_site = base_url[3]
         base_url = "/".join(base_url[:6])
+        page_url = self.driver.current_url.split("?")[0]
         sleep(5)
         soup = self.soupify()
         dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
         dir_name = "".join([dir_name, " - (", source_site, ")"])
-        page = 1
+        page = 0
         image_links = []
         while True:
-            print("".join(["Parsing page ", str(page)]))
             page += 1
+            print("".join(["Parsing page ", str(page)]))
             image_list = soup.find("div", class_="card-list__items").find_all("article")
             image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
             image_links.extend(image_list)
-            next_page = soup.find("div", id="paginator-top").find("menu").find_all("li")[-1].find("a")
-            if next_page is None:
+            next_page = f"{page_url}?o={str(page * 25)}"
+            print(next_page)
+            self.driver.get(next_page)
+            soup = self.soupify()
+            self._print_html(soup)
+            test_str = soup.find("h2", class_="site-section__subheading")
+            if test_str is not None:
                 break
-            else:
-                next_page = "".join([base_url, next_page.get("href")])
-                self.driver.get(next_page)
-                soup = self.soupify()
         images = []
         mega_links = []
         gdrive_links = []
