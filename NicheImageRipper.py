@@ -37,40 +37,40 @@ class NicheImageRipper(QWidget):
 
         # region Log Tab
 
-        log_tab = QTextEdit()
-        log_tab.setFont(QFont("Arial"))
-        log_tab.setReadOnly(True)
+        self.log_tab = QTextEdit()
+        self.log_tab.setFont(QFont("Arial"))
+        self.log_tab.setReadOnly(True)
 
         # endregion
 
         # region Queue Tab
 
-        queue_tab = QTextEdit()
-        queue_tab.setFont(QFont("Arial"))
-        queue_tab.setReadOnly(True)
+        self.queue_tab = QTextEdit()
+        self.queue_tab.setFont(QFont("Arial"))
+        self.queue_tab.setReadOnly(True)
 
         # endregion
 
         # region History Tab
 
-        history_tab = QTextEdit()
-        history_tab.setFont(QFont("Arial"))
-        history_tab.setReadOnly(True)
+        self.history_tab = QTextEdit()
+        self.history_tab.setFont(QFont("Arial"))
+        self.history_tab.setReadOnly(True)
 
         # endregion
 
         # region Settings Tab
 
-        settings_tab = QTextEdit()
-        settings_tab.setFont(QFont("Arial"))
-        settings_tab.setReadOnly(True)
+        self.settings_tab = QTextEdit()
+        self.settings_tab.setFont(QFont("Arial"))
+        self.settings_tab.setReadOnly(True)
 
         # endregion
 
-        tab_widget.addTab(log_tab, "Logs")
-        tab_widget.addTab(queue_tab, "Queue")
-        tab_widget.addTab(history_tab, "History")
-        tab_widget.addTab(settings_tab, "Settings")
+        tab_widget.addTab(self.log_tab, "Logs")
+        tab_widget.addTab(self.queue_tab, "Queue")
+        tab_widget.addTab(self.history_tab, "History")
+        tab_widget.addTab(self.settings_tab, "Settings")
 
         # endregion
 
