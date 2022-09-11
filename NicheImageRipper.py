@@ -82,6 +82,16 @@ class NicheImageRipper(QWidget):
 
         # endregion
 
+        # region Connect Buttons
+
+        rip_button.clicked.connect(self.queue_url)
+
+        # endregion
+
+    def queue_url(self):
+        self.queue_tab.append(self.url_field.text())
+        self.url_field.clear()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
