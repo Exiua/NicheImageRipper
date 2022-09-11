@@ -1,4 +1,5 @@
 import json
+import os
 import pickle
 import re
 import sys
@@ -25,6 +26,7 @@ from rippers import DRIVER_HEADER, requests_header, PARSER, DEBUG, PROTOCOL, SCH
 logged_in: bool
 PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
 TEST_PARSER: str
+
 
 class HtmlParser:
     def __init__(self, site_name: str = ""):
@@ -162,7 +164,7 @@ class HtmlParser:
             "porn3dx": self.porn3dx_parse,
             "deviantart": self.deviantart_parse
         }
-        site_parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(self.site_name)
+        site_parser: Callable[[], RipInfo] = PARSER_SWITCH.get(self.site_name)
         try:
             site_info: RipInfo = site_parser()
         finally:
@@ -189,6 +191,26 @@ class HtmlParser:
                 self.sleep_time = 5
             return domain
         raise RipperError("Not a support site")
+
+    @staticmethod
+    def sequential_rename(old_name: str, new_name: str):
+        try:
+            os.rename(old_name, new_name)
+        except FileExistsError:
+            new_name = " (1).".join(new_name.rsplit(".", 1))
+            print(f"{old_name} -> {new_name}", end='\r')
+            try:
+                os.rename(old_name, new_name)
+            except FileExistsError:
+                counter = 2
+                while True:
+                    new_name = re.sub(r"\(\d+\)", f"({counter})", new_name)
+                    print(f"{old_name} -> {new_name}", end='\r')
+                    try:
+                        os.rename(old_name, new_name)
+                        break
+                    except FileExistsError:
+                        counter += 1
 
     @staticmethod
     def write_partial_save(site_info: RipInfo, given_url: str):
@@ -903,8 +925,10 @@ class HtmlParser:
         images = [img.find("a", target="_blank").get("href") for img in images]
         images.insert(0, current_url)
         return RipInfo(images, dir_name)
+
     global TEST_PARSER
     TEST_PARSER = "gofile_parse"
+
     def grabpussy_parse(self) -> RipInfo:
         """Read the html for grabpussy.com"""
         # Parses the html of the site
