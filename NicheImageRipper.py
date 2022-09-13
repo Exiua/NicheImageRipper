@@ -79,17 +79,21 @@ class NicheImageRipper(QWidget):
         self.save_folder_label = QLabel()
         self.save_folder_label.setText(self.save_folder)
 
-        self.save_folder_button = QPushButton()
-        self.save_folder_button.setText("Browse")
-        self.save_folder_button.setFixedWidth(75)
+        save_folder_button = QPushButton()
+        save_folder_button.setText("Browse")
+        save_folder_button.setFixedWidth(75)
 
-        self.load_url_button = QPushButton()
-        self.load_url_button.setText("Browse")
-        self.load_url_button.setFixedWidth(75)
+        load_url_button = QPushButton()
+        load_url_button.setText("Browse")
+        load_url_button.setFixedWidth(75)
 
-        self.check_update_button = QPushButton()
-        self.check_update_button.setText("Check")
-        self.check_update_button.setFixedWidth(75)
+        check_update_hbox = QHBoxLayout()
+        check_update_button = QPushButton()
+        check_update_button.setText("Check")
+        check_update_button.setFixedWidth(75)
+        self.check_update_label = QLabel()
+        check_update_hbox.addWidget(check_update_button)
+        check_update_hbox.addWidget(self.check_update_label)
 
         checkbox_row = QHBoxLayout()
         checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
@@ -101,9 +105,9 @@ class NicheImageRipper(QWidget):
         checkbox_row.addWidget(self.live_update_checkbox)
 
         vbox.addRow("Save Location:", self.save_folder_label)
-        vbox.addRow("Select Save Folder:", self.save_folder_button)
-        vbox.addRow("Load Unfinished Urls:", self.load_url_button)
-        vbox.addRow("Check For Updates:", self.check_update_button)
+        vbox.addRow("Select Save Folder:", save_folder_button)
+        vbox.addRow("Load Unfinished Urls:", load_url_button)
+        vbox.addRow("Check For Updates:", check_update_hbox)
         vbox.addRow(checkbox_row)
         self.settings_tab.setLayout(vbox)
 
@@ -127,7 +131,9 @@ class NicheImageRipper(QWidget):
         # region Connect Buttons
 
         rip_button.clicked.connect(self.queue_url)
-        self.save_folder_button.clicked.connect(self.set_save_folder)
+        save_folder_button.clicked.connect(self.set_save_folder)
+        load_url_button.clicked.connect(self.load_json_file)
+        check_update_button.clicked.connect(self.check_latest_version)
 
         # endregion
 
