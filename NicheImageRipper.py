@@ -3,10 +3,10 @@ import os
 import sys
 
 import requests
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QVBoxLayout, \
-    QTabWidget, QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QHeaderView
+from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
+    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog
 
 from rippers import read_config
 
@@ -74,8 +74,38 @@ class NicheImageRipper(QWidget):
 
         # region Settings Tab
 
-        self.settings_tab = QVBoxLayout()
-        self.settings_tab.setFont(QFont("Arial"))
+        self.settings_tab = QWidget()
+        vbox = QFormLayout()
+        self.save_folder_label = QLabel()
+        self.save_folder_label.setText(self.save_folder)
+
+        self.save_folder_button = QPushButton()
+        self.save_folder_button.setText("Browse")
+        self.save_folder_button.setFixedWidth(75)
+
+        self.load_url_button = QPushButton()
+        self.load_url_button.setText("Browse")
+        self.load_url_button.setFixedWidth(75)
+
+        self.check_update_button = QPushButton()
+        self.check_update_button.setText("Check")
+        self.check_update_button.setFixedWidth(75)
+
+        checkbox_row = QHBoxLayout()
+        checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
+        self.rerip_checkbox = QCheckBox()
+        self.rerip_checkbox.setText("Ask to re-rip url")
+        self.live_update_checkbox = QCheckBox()
+        self.live_update_checkbox.setText("Live update history table")
+        checkbox_row.addWidget(self.rerip_checkbox)
+        checkbox_row.addWidget(self.live_update_checkbox)
+
+        vbox.addRow("Save Location:", self.save_folder_label)
+        vbox.addRow("Select Save Folder:", self.save_folder_button)
+        vbox.addRow("Load Unfinished Urls:", self.load_url_button)
+        vbox.addRow("Check For Updates:", self.check_update_button)
+        vbox.addRow(checkbox_row)
+        self.settings_tab.setLayout(vbox)
 
         # endregion
 
