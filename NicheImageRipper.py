@@ -17,6 +17,9 @@ class NicheImageRipper(QWidget):
         super().__init__(parent)
         self.title: str = "NicheImagerRipper"
         self.latest_version: str = self.get_git_version()
+        self.live_update: bool = False
+        self.rerip_ask: bool = True
+        self.file_scheme: FilenameScheme = FilenameScheme.ORIGINAL
         self.version: str = "v3.0.0"
         self.save_folder: str = "."
 
@@ -99,13 +102,17 @@ class NicheImageRipper(QWidget):
         self.file_scheme_combobox = QComboBox()
         self.file_scheme_combobox.addItems(("Original", "Hash", "Chronological"))
         self.file_scheme_combobox.setFixedWidth(100)
+        self.file_scheme_combobox.setCurrentIndex(self.file_scheme.value)
+        self.file_scheme_combobox.currentTextChanged.connect(self.file_scheme_changed)
 
         checkbox_row = QHBoxLayout()
         checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
         self.rerip_checkbox = QCheckBox()
         self.rerip_checkbox.setText("Ask to re-rip url")
+        self.rerip_checkbox.setChecked(self.rerip_ask)
         self.live_update_checkbox = QCheckBox()
         self.live_update_checkbox.setText("Live update history table")
+        self.live_update_checkbox.setChecked(self.live_update)
         checkbox_row.addWidget(self.rerip_checkbox)
         checkbox_row.addWidget(self.live_update_checkbox)
 
@@ -180,9 +187,18 @@ class NicheImageRipper(QWidget):
         with open(file, 'r') as load_file:
             data = json.load(load_file)
 
+    def file_scheme_changed(self, new_value: str):
+        self.file_scheme = FilenameScheme[new_value.upper()]
+        write_config('DEFAULT', 'FilenameScheme', self.file_scheme.name.title())
+
     def load_config(self):
         self.save_folder = read_config('DEFAULT', 'SavePath')
+        self.save_folder_label.setText(self.save_folder)
         self.file_scheme_combobox.setCurrentIndex(FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()].value)
+        self.rerip_ask = read_config('DEFAULT', 'AskToReRip') == "True"
+        self.rerip_checkbox.setChecked(self.rerip_ask)
+        self.live_update = read_config('DEFAULT', 'LiveHistoryUpdate') == "True"
+        self.live_update_checkbox.setChecked(self.live_update)
 
     def check_latest_version(self):
         v1 = self.version.replace("v", "").split(".")
