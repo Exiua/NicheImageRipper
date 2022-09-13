@@ -2,9 +2,9 @@ from enum import Enum
 
 
 class FilenameScheme(Enum):
-    ORIGINAL = 1
-    HASH = 2
-    CHRONOLOGICAL = 3
+    ORIGINAL = 0
+    HASH = 1
+    CHRONOLOGICAL = 2
 
 
 if __name__ == "__main__":
