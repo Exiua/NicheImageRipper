@@ -157,8 +157,31 @@ class NicheImageRipper(QWidget):
         self.url_field.clear()
 
     def set_save_folder(self):
-        file = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
-        self.save_folder_label.setText(file)
+        folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
+        self.save_folder_label.setText(folder)
+
+    def load_json_file(self):
+        file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
+        print(file)
+        
+    def check_latest_version(self):
+        v1 = self.version.replace("v", "").split(".")
+        v2 = self.latest_version.replace("v", "").split(".")
+
+        if int(v1[0]) == int(v2[0]):
+            if int(v1[1]) == int(v2[1]):
+                is_latest_version = int(v1[2]) >= int(v2[2])
+            else:
+                is_latest_version = int(v1[1]) > int(v2[1])
+        else:
+            is_latest_version = int(v1[0]) > int(v2[0])
+
+        if is_latest_version:
+            self.check_update_label.setText(f"{self.version} is the latest version")
+            self.check_update_label.setStyleSheet("color: green")
+        else:
+            self.check_update_label.setText("Update available")
+            self.check_update_label.setStyleSheet("color: red")
 
     @staticmethod
     def get_git_version() -> str:
