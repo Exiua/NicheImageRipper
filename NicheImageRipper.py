@@ -80,9 +80,9 @@ class NicheImageRipper(QWidget):
 
         # endregion
 
-        tab_widget.addTab(self.log_tab, "Logs")
-        tab_widget.addTab(self.queue_tab, "Queue")
-        tab_widget.addTab(self.history_tab, "History")
+        tab_widget.addTab(self.log_field, "Logs")
+        tab_widget.addTab(self.queue_field, "Queue")
+        tab_widget.addTab(self.history_table, "History")
         tab_widget.addTab(self.settings_tab, "Settings")
 
         # endregion
