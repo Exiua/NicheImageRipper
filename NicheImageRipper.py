@@ -97,6 +97,7 @@ class NicheImageRipper(QWidget):
         # region Connect Buttons
 
         rip_button.clicked.connect(self.queue_url)
+        self.save_folder_button.clicked.connect(self.set_save_folder)
 
         # endregion
 
@@ -124,6 +125,10 @@ class NicheImageRipper(QWidget):
     def queue_url(self):
         self.queue_field.append(self.url_field.text())
         self.url_field.clear()
+
+    def set_save_folder(self):
+        file = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
+        self.save_folder_label.setText(file)
 
     @staticmethod
     def get_git_version() -> str:
