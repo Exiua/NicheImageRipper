@@ -123,8 +123,13 @@ class NicheImageRipper(QWidget):
             self.add_row(*entry)
 
     def queue_url(self):
-        self.queue_tab.append(self.url_field.text())
+        self.queue_field.append(self.url_field.text())
         self.url_field.clear()
+
+    @staticmethod
+    def get_git_version() -> str:
+        response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
+        return response.json()['tag_name']
 
 
 if __name__ == "__main__":
