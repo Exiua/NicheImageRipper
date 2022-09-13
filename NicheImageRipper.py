@@ -74,9 +74,8 @@ class NicheImageRipper(QWidget):
 
         # region Settings Tab
 
-        self.settings_tab = QTextEdit()
+        self.settings_tab = QVBoxLayout()
         self.settings_tab.setFont(QFont("Arial"))
-        self.settings_tab.setReadOnly(True)
 
         # endregion
 
