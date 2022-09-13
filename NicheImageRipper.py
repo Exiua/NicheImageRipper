@@ -101,6 +101,27 @@ class NicheImageRipper(QWidget):
 
         # endregion
 
+        # region Load Data
+
+        if os.path.isfile('RipHistory.json'):
+            self.load_history()
+
+        # endregion
+
+    def add_row(self, name: str, url: str, date: str, count: int):
+        row_pos = self.history_table.rowCount()
+        self.history_table.insertRow(row_pos)
+        self.history_table.setItem(row_pos, 0, QTableWidgetItem(name))
+        self.history_table.setItem(row_pos, 1, QTableWidgetItem(url))
+        self.history_table.setItem(row_pos, 2, QTableWidgetItem(date))
+        self.history_table.setItem(row_pos, 3, QTableWidgetItem(str(count)))
+
+    def load_history(self):
+        with open("RipHistory.json", 'r') as load_file:
+            rip_history: list[list[str]] = json.load(load_file)
+        for entry in rip_history:
+            self.add_row(*entry)
+
     def queue_url(self):
         self.queue_tab.append(self.url_field.text())
         self.url_field.clear()
