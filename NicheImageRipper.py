@@ -1,16 +1,25 @@
+import json
+import os
 import sys
 
+import requests
+from PyQt5 import QtWidgets
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QVBoxLayout, \
-    QTabWidget, QDesktopWidget, QTextEdit
+    QTabWidget, QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QHeaderView
+
+from rippers import read_config
 
 
 class NicheImageRipper(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.title = "NicheImagerRipper"
-        self.version = "v3.0.0"
-        self.setGeometry(0, 0, 300, 200)
+        self.title: str = "NicheImagerRipper"
+        self.latest_version: str = self.get_git_version()
+        self.version: str = "v3.0.0"
+        self.save_folder: str = read_config('DEFAULT', 'SavePath')
+
+        self.setGeometry(0, 0, 768, 432)
 
         qtRectangle = self.frameGeometry()
         centerPoint = QDesktopWidget().availableGeometry().center()
