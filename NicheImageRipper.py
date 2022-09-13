@@ -62,9 +62,13 @@ class NicheImageRipper(QWidget):
 
         # region History Tab
 
-        self.history_tab = QTextEdit()
-        self.history_tab.setFont(QFont("Arial"))
-        self.history_tab.setReadOnly(True)
+        self.history_table = QTableWidget()
+        self.history_table.setColumnCount(4)
+        self.history_table.setHorizontalHeaderLabels(["Name", "Url", "Date", "#"])
+        self.history_table.verticalHeader().setVisible(False)
+        self.history_table.setFont(QFont("Arial"))
+        for i, width in enumerate([300, 300, 80, 30]):
+            self.history_table.setColumnWidth(i, width)
 
         # endregion
 
