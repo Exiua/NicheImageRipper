@@ -6,9 +6,10 @@ import requests
 from PyQt5 import QtCore
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
-    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog
+    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox
 
-from rippers import read_config
+from FilenameScheme import FilenameScheme
+from rippers import read_config, write_config
 
 
 class NicheImageRipper(QWidget):
@@ -17,7 +18,7 @@ class NicheImageRipper(QWidget):
         self.title: str = "NicheImagerRipper"
         self.latest_version: str = self.get_git_version()
         self.version: str = "v3.0.0"
-        self.save_folder: str = read_config('DEFAULT', 'SavePath')
+        self.save_folder: str = "."
 
         self.setGeometry(0, 0, 768, 432)
 
@@ -95,6 +96,10 @@ class NicheImageRipper(QWidget):
         check_update_hbox.addWidget(check_update_button)
         check_update_hbox.addWidget(self.check_update_label)
 
+        self.file_scheme_combobox = QComboBox()
+        self.file_scheme_combobox.addItems(("Original", "Hash", "Chronological"))
+        self.file_scheme_combobox.setFixedWidth(100)
+
         checkbox_row = QHBoxLayout()
         checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
         self.rerip_checkbox = QCheckBox()
@@ -108,6 +113,7 @@ class NicheImageRipper(QWidget):
         vbox.addRow("Select Save Folder:", save_folder_button)
         vbox.addRow("Load Unfinished Urls:", load_url_button)
         vbox.addRow("Check For Updates:", check_update_hbox)
+        vbox.addRow("Filename Scheme:", self.file_scheme_combobox)
         vbox.addRow(checkbox_row)
         self.settings_tab.setLayout(vbox)
 
@@ -139,6 +145,8 @@ class NicheImageRipper(QWidget):
 
         # region Load Data
 
+        if os.path.isfile('config.ini'):
+            self.load_config()
         if os.path.isfile('RipHistory.json'):
             self.load_history()
 
@@ -165,11 +173,17 @@ class NicheImageRipper(QWidget):
     def set_save_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
         self.save_folder_label.setText(folder)
+        write_config('DEFAULT', 'SavePath', self.save_folder_label.text())
 
     def load_json_file(self):
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
-        print(file)
-        
+        with open(file, 'r') as load_file:
+            data = json.load(load_file)
+
+    def load_config(self):
+        self.save_folder = read_config('DEFAULT', 'SavePath')
+        self.file_scheme_combobox.setCurrentIndex(FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()].value)
+
     def check_latest_version(self):
         v1 = self.version.replace("v", "").split(".")
         v2 = self.latest_version.replace("v", "").split(".")
