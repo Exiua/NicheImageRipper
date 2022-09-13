@@ -46,17 +46,17 @@ class NicheImageRipper(QWidget):
 
         # region Log Tab
 
-        self.log_tab = QTextEdit()
-        self.log_tab.setFont(QFont("Arial"))
-        self.log_tab.setReadOnly(True)
+        self.log_field = QTextEdit()
+        self.log_field.setFont(QFont("Arial"))
+        self.log_field.setReadOnly(True)
 
         # endregion
 
         # region Queue Tab
 
-        self.queue_tab = QTextEdit()
-        self.queue_tab.setFont(QFont("Arial"))
-        self.queue_tab.setReadOnly(True)
+        self.queue_field = QTextEdit()
+        self.queue_field.setFont(QFont("Arial"))
+        self.queue_field.setReadOnly(True)
 
         # endregion
 
