@@ -5,7 +5,6 @@ from queue import Queue
 
 import requests
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
     QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox
@@ -230,7 +229,9 @@ class NicheImageRipper(QWidget):
     def load_json_file(self):
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
         with open(file, 'r') as load_file:
-            data = json.load(load_file)
+            loaded_urls = json.load(load_file)
+        for url in loaded_urls:
+            self.add_to_url_queue(url)
 
     def file_scheme_changed(self, new_value: str):
         self.file_scheme = FilenameScheme[new_value.upper()]
