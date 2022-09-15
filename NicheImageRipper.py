@@ -240,7 +240,8 @@ class NicheImageRipper(QWidget):
     def load_config(self):
         self.save_folder = read_config('DEFAULT', 'SavePath')
         self.save_folder_label.setText(self.save_folder)
-        self.file_scheme_combobox.setCurrentIndex(FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()].value)
+        saved_filename_scheme = FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()]
+        self.file_scheme_combobox.setCurrentIndex(saved_filename_scheme.value)
         self.rerip_ask = read_config('DEFAULT', 'AskToReRip') == "True"
         self.rerip_checkbox.setChecked(self.rerip_ask)
         self.live_update = read_config('DEFAULT', 'LiveHistoryUpdate') == "True"
