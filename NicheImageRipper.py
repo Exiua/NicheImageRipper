@@ -203,10 +203,7 @@ class NicheImageRipper(QWidget):
         # If user wants to be prompted and if url is in the history
         if self.rerip_ask and item in self.get_column_data(1):
             if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.Yes:  # Ask user to re-rip
-                print("y")
                 self.url_queue.put(item)
-            else:
-                print("n")
         else:  # If user always wants to re-rip or duplicate entry was not found
             self.url_queue.put(item)
 
