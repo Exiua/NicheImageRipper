@@ -1,15 +1,17 @@
 import json
 import os
 import sys
+from queue import Queue
 
 import requests
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
-    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox
+    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox
 
 from FilenameScheme import FilenameScheme
-from rippers import read_config, write_config
+from rippers import read_config, write_config, url_check
 
 
 class NicheImageRipper(QWidget):
@@ -17,6 +19,7 @@ class NicheImageRipper(QWidget):
         super().__init__(parent)
         self.title: str = "NicheImagerRipper"
         self.latest_version: str = self.get_git_version()
+        self.url_queue = Queue()
         self.live_update: bool = False
         self.rerip_ask: bool = True
         self.file_scheme: FilenameScheme = FilenameScheme.ORIGINAL
@@ -143,6 +146,7 @@ class NicheImageRipper(QWidget):
 
         # region Connect Buttons
 
+        self.url_field.returnPressed.connect(self.queue_url)
         rip_button.clicked.connect(self.queue_url)
         save_folder_button.clicked.connect(self.set_save_folder)
         load_url_button.clicked.connect(self.load_json_file)
@@ -159,7 +163,7 @@ class NicheImageRipper(QWidget):
 
         # endregion
 
-    def add_row(self, name: str, url: str, date: str, count: int):
+    def add_history_entry(self, name: str, url: str, date: str, count: int):
         row_pos = self.history_table.rowCount()
         self.history_table.insertRow(row_pos)
         self.history_table.setItem(row_pos, 0, QTableWidgetItem(name))
@@ -171,11 +175,55 @@ class NicheImageRipper(QWidget):
         with open("RipHistory.json", 'r') as load_file:
             rip_history: list[list[str]] = json.load(load_file)
         for entry in rip_history:
-            self.add_row(*entry)
+            self.add_history_entry(*entry)
 
     def queue_url(self):
-        self.queue_field.append(self.url_field.text())
+        raw_urls = self.url_field.text()
+        url_list = self.separate_string(raw_urls, "https://")
+        for url in url_list:
+            if url.count("http://") > 1:
+                urls = self.separate_string(url, "http://")
+                for u in urls:
+                    self.add_to_url_queue(u)
+            else:
+                if url_check(url) and url not in self.url_queue.queue:
+                    self.add_to_url_queue(url)
         self.url_field.clear()
+        self.update_url_queue()
+
+    @staticmethod
+    def separate_string(base_string: str, delimiter: str) -> list[str]:
+        string_list = base_string.split(delimiter)  # Split by delimiter
+        if string_list[0] == "":
+            string_list.pop(0)
+        string_list = ["".join([delimiter, string.strip()]) for string in string_list]
+        return string_list
+
+    def add_to_url_queue(self, item: str):
+        # If user wants to be prompted and if url is in the history
+        if self.rerip_ask and item in self.get_column_data(1):
+            if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.Yes:  # Ask user to re-rip
+                print("y")
+                self.url_queue.put(item)
+            else:
+                print("n")
+        else:  # If user always wants to re-rip or duplicate entry was not found
+            self.url_queue.put(item)
+
+    def popup_yes_no(self, message: str) -> QMessageBox.StandardButton:
+        message_box = QMessageBox()
+        return message_box.question(self, '', message, QMessageBox.Yes | QMessageBox.No)
+
+    def get_column_data(self, column_index: int):
+        data = []
+        for i in range(self.history_table.rowCount()):
+            data.append(self.history_table.item(i, column_index).text())
+        return data
+
+    def update_url_queue(self):
+        self.queue_field.clear()
+        for url in self.url_queue.queue:
+            self.queue_field.append(url)
 
     def set_save_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
@@ -221,7 +269,10 @@ class NicheImageRipper(QWidget):
 
     @staticmethod
     def get_git_version() -> str:
-        response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
+        try:
+            response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
+        except requests.exceptions.ConnectionError:
+            return "v0.0.0"
         return response.json()['tag_name']
 
 
