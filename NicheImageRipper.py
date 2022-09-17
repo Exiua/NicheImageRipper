@@ -232,6 +232,7 @@ class NicheImageRipper(QWidget):
             loaded_urls = json.load(load_file)
         for url in loaded_urls:
             self.add_to_url_queue(url)
+        self.update_url_queue()
 
     def file_scheme_changed(self, new_value: str):
         self.file_scheme = FilenameScheme[new_value.upper()]
