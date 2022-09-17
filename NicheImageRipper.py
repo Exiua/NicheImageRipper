@@ -2,14 +2,16 @@ import json
 import os
 import sys
 from queue import Queue
+from threading import Timer
 
 import requests
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
     QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox
 
 from FilenameScheme import FilenameScheme
+from StatusSync import StatusSync
 from rippers import read_config, write_config, url_check
 
 
@@ -22,6 +24,7 @@ class NicheImageRipper(QWidget):
         self.live_update: bool = False
         self.rerip_ask: bool = True
         self.file_scheme: FilenameScheme = FilenameScheme.ORIGINAL
+        self.status_sync: StatusSync = StatusSync()
         self.version: str = "v3.0.0"
         self.save_folder: str = "."
 
@@ -41,12 +44,12 @@ class NicheImageRipper(QWidget):
         self.url_field = QLineEdit()
         self.url_field.setFont(QFont("Arial"))
         rip_button = QPushButton("Rip")
-        pause_button = QPushButton()
-        pause_button.setIcon(QtGui.QIcon("./Icons/pause.svg"))
-        self.status_label = QLabel("TestingTestingTestingTesting")
+        self.pause_button = QPushButton()
+        self.pause_button.setIcon(QtGui.QIcon("./Icons/pause.svg"))
+        self.status_label = QLabel()
         first_row.addWidget(self.url_field)
         first_row.addWidget(rip_button)
-        first_row.addWidget(pause_button)
+        first_row.addWidget(self.pause_button)
         first_row.addWidget(self.status_label)
 
         # endregion
@@ -152,6 +155,7 @@ class NicheImageRipper(QWidget):
 
         self.url_field.returnPressed.connect(self.queue_url)
         rip_button.clicked.connect(self.queue_url)
+        self.pause_button.clicked.connect(self.toggle_ripper)
         save_folder_button.clicked.connect(self.set_save_folder)
         load_url_button.clicked.connect(self.load_json_file)
         check_update_button.clicked.connect(self.check_latest_version)
@@ -166,6 +170,17 @@ class NicheImageRipper(QWidget):
             self.load_history()
 
         # endregion
+
+    def closeEvent(self, event: QtGui.QCloseEvent):
+        # self.save_to_file('RipHistory.json', self.history_table)  # Save history data
+        if self.url_queue.not_empty:
+            pass # self.save_to_file('UnfinishedRips.json', self.url_queue.queue)  # Save queued urls
+        write_config('DEFAULT', 'SavePath', self.save_folder)  # Update the config
+        # write_config('DEFAULT', 'Theme', self.theme_color)
+        write_config('DEFAULT', 'FilenameScheme', self.file_scheme.name.title())
+        write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
+        write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_update))
+        # write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
     def add_history_entry(self, name: str, url: str, date: str, count: int):
         row_pos = self.history_table.rowCount()
@@ -190,8 +205,13 @@ class NicheImageRipper(QWidget):
                 for u in urls:
                     self.add_to_url_queue(u)
             else:
-                if url_check(url) and url not in self.url_queue.queue:
-                    self.add_to_url_queue(url)
+                if url_check(url):
+                    if url not in self.url_queue.queue:
+                        self.add_to_url_queue(url)
+                    else:
+                        self.set_label_text(self.status_label, "Already queued", "green", 2.5)
+                else:
+                    self.set_label_text(self.status_label, "Not a support site", "red", 2.5)
         self.url_field.clear()
         self.update_url_queue()
 
@@ -225,6 +245,14 @@ class NicheImageRipper(QWidget):
         self.queue_field.clear()
         for url in self.url_queue.queue:
             self.queue_field.append(url)
+
+    def toggle_ripper(self):
+        if self.status_sync.pause:
+            self.pause_button.setIcon(QtGui.QIcon("./Icons/pause.svg"))
+            self.status_sync.pause = False
+        else:
+            self.pause_button.setIcon(QtGui.QIcon("./Icons/play.svg"))
+            self.status_sync.pause = True
 
     def set_save_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
@@ -266,11 +294,21 @@ class NicheImageRipper(QWidget):
             is_latest_version = int(v1[0]) > int(v2[0])
 
         if is_latest_version:
-            self.check_update_label.setText(f"{self.version} is the latest version")
-            self.check_update_label.setStyleSheet("color: green")
+            self.set_label_text(self.check_update_label, f"{self.version} is the latest version", "green", 5)
         else:
-            self.check_update_label.setText("Update available")
-            self.check_update_label.setStyleSheet("color: red")
+            self.set_label_text(self.check_update_label, "Update available", "red", 5)
+
+    def set_label_text(self, label: QLabel, text: str, color: str = None, display_time: float = 0):
+        label.setText(text)
+        if color is not None:
+            label.setStyleSheet(f"color: {color}")
+        if display_time != 0:
+            timer = Timer(display_time, self.clear_label, (label, ))
+            timer.start()
+
+    @staticmethod
+    def clear_label(label: QLabel):
+        label.setText("")
 
     @staticmethod
     def get_git_version() -> str:
