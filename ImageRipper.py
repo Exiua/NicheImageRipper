@@ -23,6 +23,7 @@ from tldextract import tldextract
 from HtmlParser import HtmlParser
 from RipInfo import RipInfo
 from RipperExceptions import WrongExtension, RipperError
+from StatusSync import StatusSync
 from rippers import FilenameScheme, read_config, SESSION_HEADERS, DRIVER_HEADER, trim_url, CYBERDROP_DOMAINS, \
     requests_header, log, mark_as_failed, _print_debug_info, url_check, SCHEME, tail
 
@@ -34,6 +35,7 @@ class ImageRipper:
 
     def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
         self.folder_info: RipInfo = None
+        self.status_sync: StatusSync = None
         self.given_url: str = ""
         self.save_path: str = read_config('DEFAULT', 'SavePath')
         self.filename_scheme: FilenameScheme = filename_scheme
@@ -56,6 +58,17 @@ class ImageRipper:
         flag: int = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
         Path("./Temp").mkdir(parents=True, exist_ok=True)
+
+    @property
+    def pause(self):
+        # TODO: Remove later
+        if self.status_sync is not None:
+            return self.status_sync.pause
+        return False
+
+    @pause.setter
+    def pause(self, value: bool):
+        self.status_sync.pause = value
 
     def rip(self, url: str):
         """Download images from given URL"""
