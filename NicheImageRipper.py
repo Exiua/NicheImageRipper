@@ -172,15 +172,21 @@ class NicheImageRipper(QWidget):
         # endregion
 
     def closeEvent(self, event: QtGui.QCloseEvent):
-        # self.save_to_file('RipHistory.json', self.history_table)  # Save history data
+        # self.save_to_json('RipHistory.json', self.get_history_data())  # Save history data
         if self.url_queue.not_empty:
-            pass # self.save_to_file('UnfinishedRips.json', self.url_queue.queue)  # Save queued urls
+            self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
         write_config('DEFAULT', 'SavePath', self.save_folder)  # Update the config
         # write_config('DEFAULT', 'Theme', self.theme_color)
         write_config('DEFAULT', 'FilenameScheme', self.file_scheme.name.title())
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_update))
         # write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
+
+    @staticmethod
+    def save_to_json(file_name: str, data: any):
+        """Save data to json file"""
+        with open(file_name, 'w') as save_file:
+            json.dump(data, save_file, indent=4)
 
     def add_history_entry(self, name: str, url: str, date: str, count: int):
         row_pos = self.history_table.rowCount()
@@ -189,6 +195,23 @@ class NicheImageRipper(QWidget):
         self.history_table.setItem(row_pos, 1, QTableWidgetItem(url))
         self.history_table.setItem(row_pos, 2, QTableWidgetItem(date))
         self.history_table.setItem(row_pos, 3, QTableWidgetItem(str(count)))
+
+    def get_history_data(self) -> list[list[str]]:
+        row_count = self.history_table.rowCount()
+        column_count = self.history_table.columnCount()
+        table_data = []
+        for row in range(row_count):
+            row_data = []
+            for column in range(column_count):
+                row_data.append(self.history_table.item(row, column).text())
+            table_data.append(row_data)
+        return table_data
+
+    def get_column_data(self, column_index: int):
+        data = []
+        for i in range(self.history_table.rowCount()):
+            data.append(self.history_table.item(i, column_index).text())
+        return data
 
     def load_history(self):
         with open("RipHistory.json", 'r') as load_file:
@@ -234,12 +257,6 @@ class NicheImageRipper(QWidget):
     def popup_yes_no(self, message: str) -> QMessageBox.StandardButton:
         message_box = QMessageBox()
         return message_box.question(self, '', message, QMessageBox.Yes | QMessageBox.No)
-
-    def get_column_data(self, column_index: int):
-        data = []
-        for i in range(self.history_table.rowCount()):
-            data.append(self.history_table.item(i, column_index).text())
-        return data
 
     def update_url_queue(self):
         self.queue_field.clear()
