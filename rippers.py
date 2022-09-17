@@ -2789,7 +2789,7 @@ def lazy_load(driver: webdriver.Firefox, scroll_by: bool = False, increment: int
 
 
 def mark_as_failed(url: str):
-    with open("failed.txt", "a") as f:
+    with open("failed.txt", "a", encoding="unicode_escape") as f:
         f.write("".join([url, "\n"]))
 
 
