@@ -4,7 +4,7 @@ import sys
 from queue import Queue
 
 import requests
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
     QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox
@@ -41,8 +41,13 @@ class NicheImageRipper(QWidget):
         self.url_field = QLineEdit()
         self.url_field.setFont(QFont("Arial"))
         rip_button = QPushButton("Rip")
+        pause_button = QPushButton()
+        pause_button.setIcon(QtGui.QIcon("./Icons/pause.svg"))
+        self.status_label = QLabel("TestingTestingTestingTesting")
         first_row.addWidget(self.url_field)
         first_row.addWidget(rip_button)
+        first_row.addWidget(pause_button)
+        first_row.addWidget(self.status_label)
 
         # endregion
 
