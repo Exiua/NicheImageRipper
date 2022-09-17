@@ -125,6 +125,9 @@ class ImageRipper:
             for index in range(1, int(self.folder_info.num_urls) + 1):
                 file_num = str(index)
 
+                while self.pause:
+                    sleep(1)
+
                 # Go through file extensions to find the correct extension (generally will be jpg)
                 for i, ext in enumerate(exts):
                     try:
@@ -154,6 +157,8 @@ class ImageRipper:
                 cyberdrop_files: list[str] = []
                 m3u8_files: list[tuple[str, str, str]] = []
                 for i, link in enumerate(self.folder_info.urls):
+                    while self.pause:
+                        sleep(1)
                     sleep(self.sleep_time)
                     if any(domain in link for domain in CYBERDROP_DOMAINS):
                         cyberdrop_files.append(link)
@@ -184,7 +189,7 @@ class ImageRipper:
                                 #  (and filenames don't get assigned properly)
                                 m3u8_To_MP4.multithread_download(f[0], mp4_file_dir=f[1], mp4_file_name=f[2])
                                 break
-                            except Exception:
+                            except Exception:  # idk wtf gets thrown from the above method
                                 sleep(5)
                                 if i == 2:
                                     os.remove(path.join(f[1], f[2]))
