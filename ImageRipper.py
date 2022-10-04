@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import hashlib
 import json
@@ -22,7 +24,7 @@ from tldextract import tldextract
 
 from HtmlParser import HtmlParser
 from RipInfo import RipInfo
-from RipperExceptions import WrongExtension, RipperError
+from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl
 from StatusSync import StatusSync
 from rippers import FilenameScheme, read_config, SESSION_HEADERS, DRIVER_HEADER, trim_url, CYBERDROP_DOMAINS, \
     requests_header, log, mark_as_failed, _print_debug_info, url_check, SCHEME, tail
@@ -318,19 +320,46 @@ class ImageRipper:
             url_parts = tldextract.extract(rip_url)
             subdomain = url_parts.subdomain
             try:
-                subdomain_num = int(subdomain[-1])
+                subdomain_num = int(subdomain[-1])  # TODO: Use regex to match number
             except ValueError:
                 _print_debug_info("bad_subdomain", url_parts, subdomain, rip_url)
                 raise
             if subdomain_num > 20:
                 mark_as_failed(rip_url)
                 return
-            rip_url = rip_url.replace(subdomain, "".join(["data", str(subdomain_num + 1)]))
+            rip_url = rip_url.replace(subdomain,
+                                      "".join(["data", str(subdomain_num + 1)]))  # TODO: Use iteration to increment
             print(rip_url)
-            self.download_file(session, image_path, rip_url)
-        # If the downloaded file doesn't have an extension for some reason, append jpg to filename
+            self.download_file(session, image_path, rip_url)  # TODO: Replace with loop
+        # If the downloaded file doesn't have an extension for some reason, default to jpg
         if path.splitext(image_path)[-1] == "":
             os.replace(image_path, image_path + ".jpg")
+
+    def download_party_file(self, session: requests.Session, image_path: str, rip_url: str):
+        sleep(self.sleep_time)
+        try:
+            response = session.get(rip_url, headers=requests_header, stream=True, allow_redirects=True)
+        except requests.exceptions.ConnectionError:
+            log.error("Unable to establish connection to " + rip_url)
+            return
+        if not response.ok:
+            print(self.site_name)
+            if response.status_code == 403 and ".psd" not in rip_url:
+                raise BadSubdomain
+            print(response)
+            if response.status_code == 404:
+                mark_as_failed(rip_url)
+                raise FileNotFoundAtUrl(rip_url)
+        with open(image_path, "wb") as handle:
+            try:
+                for block in response.iter_content(chunk_size=50000):
+                    if not block:
+                        break
+                    handle.write(block)
+                return
+            except ConnectionResetError:
+                print("Connection Reset, Retrying...")
+                sleep(1)
 
     def rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str | int):
         """Rename the given file to the number of the order it was downloaded in"""
