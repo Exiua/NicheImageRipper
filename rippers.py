@@ -438,7 +438,7 @@ class ImageRipper:
                         break
                     print(response)
                     if response.status_code == 404:
-                        mark_as_failed(rip_url)
+                        log_failed_url(rip_url)
                         if self.site_name != "imhentai":
                             return
                         else:
@@ -467,7 +467,7 @@ class ImageRipper:
                 _print_debug_info("bad_subdomain", url_parts, subdomain, rip_url)
                 raise
             if subdomain_num > 20:
-                mark_as_failed(rip_url)
+                log_failed_url(rip_url)
                 return
             rip_url = rip_url.replace(subdomain, "".join(["data", str(subdomain_num + 1)]))
             print(rip_url)
@@ -2788,7 +2788,7 @@ def lazy_load(driver: webdriver.Firefox, scroll_by: bool = False, increment: int
     driver.implicitly_wait(10)
 
 
-def mark_as_failed(url: str):
+def log_failed_url(url: str):
     with open("failed.txt", "a", encoding="unicode_escape") as f:
         f.write("".join([url, "\n"]))
 
