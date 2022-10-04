@@ -18,6 +18,10 @@ class BadSubdomain(RipperError):
     pass
 
 
+class ImproperlyFormattedSubdomain(RipperError):
+    """data##. subdomain not properly formatted for .party sites"""
+
+
 class FileNotFoundAtUrl(RipperError):
     """File was not found at url"""
     pass
