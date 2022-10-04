@@ -200,12 +200,13 @@ class ImageRipper2:
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
 
-        if "https://forum.sexy-egirls.com/" in rip_url and rip_url[-1] == "/":
-            file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
-            ext = file_name.split(".")[-1]
-            file_name = "".join([hashlib.md5(file_name.encode()).hexdigest(), ".", ext])
-        else:
-            file_name = os.path.basename(urlparse(rip_url).path)
+        # if "https://forum.sexy-egirls.com/" in rip_url and rip_url[-1] == "/":  # Site is down
+        #     file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
+        #     ext = file_name.split(".")[-1]
+        #     file_name = "".join([hashlib.md5(file_name.encode()).hexdigest(), ".", ext])
+        # else:
+        file_name = os.path.basename(urlparse(rip_url).path)
+
         image_path = os.path.join(full_path, file_name)
         ext = os.path.splitext(image_path)[1]
         self.__download_file(image_path, rip_url)
