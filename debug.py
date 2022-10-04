@@ -54,7 +54,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         driver.quit()
 
 if __name__ == "__main__":
-    #download_file(sys.argv[1])
+    #__download_file(sys.argv[1])
     #get_latests_repo_version()
     #print(_test_parse(sys.argv[1]))
     ripper = ImageRipper()
