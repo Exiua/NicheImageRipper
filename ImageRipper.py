@@ -27,7 +27,7 @@ from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl
 from StatusSync import StatusSync
 from rippers import FilenameScheme, read_config, SESSION_HEADERS, DRIVER_HEADER, trim_url, CYBERDROP_DOMAINS, \
-    requests_header, log, mark_as_failed, _print_debug_info, url_check, SCHEME, tail
+    requests_header, log, log_failed_url, _print_debug_info, url_check, SCHEME, tail
 
 logged_in: bool
 
@@ -296,7 +296,7 @@ class ImageRipper:
                         break
                     print(response)
                     if response.status_code == 404:
-                        mark_as_failed(rip_url)
+                        log_failed_url(rip_url)
                         if self.site_name != "imhentai":
                             return
                         else:
@@ -325,7 +325,7 @@ class ImageRipper:
                 _print_debug_info("bad_subdomain", url_parts, subdomain, rip_url)
                 raise
             if subdomain_num > 20:
-                mark_as_failed(rip_url)
+                log_failed_url(rip_url)
                 return
             rip_url = rip_url.replace(subdomain,
                                       "".join(["data", str(subdomain_num + 1)]))  # TODO: Use iteration to increment
@@ -348,7 +348,7 @@ class ImageRipper:
                 raise BadSubdomain
             print(response)
             if response.status_code == 404:
-                mark_as_failed(rip_url)
+                log_failed_url(rip_url)
                 raise FileNotFoundAtUrl(rip_url)
         with open(image_path, "wb") as handle:
             try:
