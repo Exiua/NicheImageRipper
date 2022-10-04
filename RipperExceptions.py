@@ -11,3 +11,13 @@ class WrongExtension(RipperError):
 class InvalidSubdomain(RipperError):
     """Url does not have a supported subdomain"""
     pass
+
+
+class BadSubdomain(RipperError):
+    """Incorrect .party subdomain used"""
+    pass
+
+
+class FileNotFoundAtUrl(RipperError):
+    """File was not found at url"""
+    pass
