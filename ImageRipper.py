@@ -30,7 +30,7 @@ from rippers import FilenameScheme, read_config, SESSION_HEADERS, trim_url, CYBE
 class ImageRipper:
     """Image Ripper Class"""
 
-    status_sync: StatusSync
+    status_sync: StatusSync = None
 
     def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
         self.cookies: dict[str, list[str]] = {
@@ -256,8 +256,6 @@ class ImageRipper:
             return False
 
         if not response.ok and not bad_cert:
-            print(self.site_name)
-
             if response.status_code == 403 and self.site_name == "kemono" and ".psd" not in url:
                 raise BadSubdomain
 
@@ -295,6 +293,7 @@ class ImageRipper:
             try:
                 self.__download_party_file(image_path, rip_url)
             except BadSubdomain:
+                print(f"\rTrying subdomain data{str(i)}...", end="")
                 if i == 99:
                     log_failed_url(re.sub(r"data\d+", f"data{str(subdomain_num)}", url))
                     return
@@ -310,8 +309,6 @@ class ImageRipper:
             return
 
         if not response.ok:
-            print(self.site_name)
-
             if response.status_code == 403 and ".psd" not in rip_url:
                 raise BadSubdomain
 
