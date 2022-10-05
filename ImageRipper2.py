@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -13,6 +14,7 @@ from urllib.parse import urlparse
 import PIL
 import requests
 from PIL import Image
+from natsort import natsorted
 from requests import Response
 from selenium.webdriver.firefox import webdriver
 from tldextract import tldextract
@@ -23,7 +25,7 @@ from RipInfo import RipInfo
 from RipperExceptions import ImproperlyFormattedSubdomain, FileNotFoundAtUrl, BadSubdomain
 from StatusSync import StatusSync
 from rippers import read_config, SESSION_HEADERS, url_check, requests_header, SCHEME, RipperError, WrongExtension, \
-    trim_url, CYBERDROP_DOMAINS, log, log_failed_url, _print_debug_info
+    trim_url, CYBERDROP_DOMAINS, log, log_failed_url, _print_debug_info, tail
 
 
 class ImageRipper2:
@@ -102,8 +104,8 @@ class ImageRipper2:
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
 
         # Save location of this album
-        full_path = os.path.join(self.save_path,
-                                 self.folder_info.dir_name)  # "".join([self.save_path, self.folder_info.dir_name])
+        full_path = os.path.join(self.save_path, self.folder_info.dir_name)
+        # "".join([self.save_path, self.folder_info.dir_name])
         if self.interrupted and self.filename_scheme != FilenameScheme.HASH:
             pass  # TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
 
@@ -128,7 +130,7 @@ class ImageRipper2:
                 # Go through file extensions to find the correct extension (generally will be jpg)
                 for i, ext in enumerate(extensions):
                     try:
-                        self.__download_from_url(self.session, trimmed_url, file_num, full_path, ext)
+                        self.__download_from_url(trimmed_url, file_num, full_path, ext)
                         break  # Correct extension was found
                     except (PIL.UnidentifiedImageError, WrongExtension):
                         image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
@@ -381,6 +383,73 @@ class ImageRipper2:
             else:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
                 return ".jpg"
+
+    def __write_partial_save(self, site_info: RipInfo):
+        """Saves parsed site data to quickly retrieve in event of a failure"""
+        # TODO
+        data: dict[str, dict | str] = {
+            self.given_url: site_info.serialize(),
+            "cookies": requests_header["cookie"]
+        }
+        with open("partial.json", 'w') as save_file:
+            json.dump(data, save_file, indent=4)
+
+    @staticmethod
+    def read_partial_save() -> dict[str, RipInfo | str]:
+        """Read site_info from partial save file"""
+        try:
+            with open("partial.json", 'r') as load_file:
+                data: dict = json.load(load_file)
+                key: str
+                for key in data:
+                    if isinstance(data[key], dict):
+                        data[key] = RipInfo.deserialize(data[key])
+                return data
+        except FileNotFoundError:
+            pass  # Doesn't matter if the cached data doesn't exist, will regen instead
+
+    def __verify_files(self, full_path: str):
+        """Check for truncated and corrupted files"""
+        _, _, files = next(os.walk(full_path))
+        files = natsorted(files)
+        image_links = self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
+        log_file = open("error.log", "w")
+        log_file.close()
+        vid_ext = (".m4v", ".mp4", ".mov", ".webm")
+        vid_cmd = ["ffmpeg.exe", "-v", "error", "-i", None, "-f", "null", "-", ">error.log", "2>&1"]  # Change idx 4
+        for i, f in enumerate(files):
+            filename = os.path.join(full_path, f)
+            vid_cmd[4] = "".join(['', filename, ''])
+            stat_file = os.stat(filename)
+            filesize = stat_file.st_size
+            if filesize == 0:
+                print("0b filesize")
+                print(f)
+                self.__redownload_files(filename, image_links[i])
+            else:
+                if any(ext in f for ext in vid_ext):
+                    subprocess.call(vid_cmd, stderr=open("error.log", "a"))
+                    with open("error.log", "rb") as log_file:
+                        cmd_out = tail(log_file).decode()
+                        if "[NULL @" not in cmd_out:
+                            print(cmd_out)
+                            print(f)
+                            self.__redownload_files(filename, image_links[i])
+                else:
+                    try:
+                        with Image.open(filename) as im:
+                            im.verify()
+                        with Image.open(filename) as im:  # Image reloading may be needed
+                            im.transpose(PIL.Image.FLIP_LEFT_RIGHT)
+                    except Exception as e:
+                        print(e)
+                        print(f)
+                        self.__redownload_files(filename, image_links[i])
+
+    def __redownload_files(self, filename: str, url: str):
+        """Redownload damaged files"""
+        response = requests.get(url, headers=requests_header, stream=True)
+        self.__write_to_file(response, filename)
 
 
 if __name__ == "__main__":
