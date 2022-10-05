@@ -5,30 +5,25 @@ import hashlib
 import json
 import os
 import re
-from os import path, walk
 import subprocess
 import sys
 from pathlib import Path
 from time import sleep
-from typing import Callable
 from urllib.parse import urlparse
 
 import PIL
-import m3u8_To_MP4
 import requests
 from PIL import Image
 from natsort import natsorted
 from requests import Response
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
-from tldextract import tldextract
 
 from HtmlParser import HtmlParser
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from rippers import FilenameScheme, read_config, SESSION_HEADERS, DRIVER_HEADER, trim_url, CYBERDROP_DOMAINS, \
+from rippers import FilenameScheme, read_config, SESSION_HEADERS, trim_url, CYBERDROP_DOMAINS, \
     requests_header, log, log_failed_url, _print_debug_info, url_check, SCHEME, tail
 
 
