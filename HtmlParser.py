@@ -1681,7 +1681,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     # TODO: Convert to thotsbay parser since this site moved
-    def _sexyegirls_parse(self) -> RipInfo:
+    def __sexyegirls_parse(self) -> RipInfo:
         """Read the html for sexy-egirls.com"""
         # Parses the html of the site
         sleep(1)  # Wait so images can load
@@ -2051,11 +2051,13 @@ class HtmlParser:
         self.driver.get(curr)
         return images
 
-    def _print_html(self, soup: BeautifulSoup):
+    @staticmethod
+    def _print_html(soup: BeautifulSoup):
         with open("html.html", "w", encoding="utf-8") as f:
             f.write(str(soup))
 
-    def _print_debug_info(self, title: str, *data, fd="output.txt", clear=False):
+    @staticmethod
+    def _print_debug_info(title: str, *data, fd="output.txt", clear=False):
         with open(fd, "w" if clear else "a") as f:
             f.write(f"[{title}]\n")
             for d in data:
@@ -2092,7 +2094,8 @@ class HtmlParser:
                 last_height = new_height
         self.driver.implicitly_wait(10)
 
-    def mark_as_failed(self, url: str):
+    @staticmethod
+    def mark_as_failed(url: str):
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
