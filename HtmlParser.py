@@ -261,6 +261,19 @@ class HtmlParser:
         dir_name = image_list[0].find("img").get("alt")
         return RipInfo(images, dir_name)
 
+    def __generic_html_parser_2(self):
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+        for i in range(len(dir_name)):
+            if dir_name[i] == '-':
+                del dir_name[i:]
+                break
+        dir_name = " ".join(dir_name)
+        images = soup.find_all("div", class_="gallery_thumb")
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name)
+
     def __dot_party_parse(self, domain_url: str):
         cookies = self.driver.get_cookies()
         cookie_str = ''
@@ -531,17 +544,7 @@ class HtmlParser:
 
     def bustybloom_parse(self) -> RipInfo:
         """Read the html for bustybloom.com"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
-        for i in range(len(dir_name)):
-            if dir_name[i] == '-':
-                del dir_name[i:]
-                break
-        dir_name = " ".join(dir_name)
-        images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_2()
 
     def cherrynudes_parse(self) -> RipInfo:
         """Read the html for cherrynudes.com"""
@@ -1666,17 +1669,7 @@ class HtmlParser:
 
     def sexyaporno_parse(self) -> RipInfo:
         """Read the html for sexyaporno.com"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
-        for i in range(len(dir_name)):
-            if dir_name[i] == '-':
-                del dir_name[i:]
-                break
-        dir_name = " ".join(dir_name)
-        images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_2()
 
     def sexybabesart_parse(self) -> RipInfo:
         """Read the html for sexybabesart.com"""
