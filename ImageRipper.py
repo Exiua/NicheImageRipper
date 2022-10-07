@@ -24,7 +24,7 @@ from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
 from rippers import FilenameScheme, read_config, SESSION_HEADERS, trim_url, CYBERDROP_DOMAINS, \
-    requests_header, log, log_failed_url, _print_debug_info, url_check, SCHEME, tail
+    log, log_failed_url, _print_debug_info, url_check, SCHEME, tail
 
 
 class ImageRipper:
@@ -36,6 +36,14 @@ class ImageRipper:
         self.cookies: dict[str, list[str]] = {
             "v2ph": [],
             "fantia": []
+        }
+        self.requests_header: dict[str, str] = {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+            'referer':
+                'https://imhentai.xxx/',
+            'cookie':
+                ''
         }
         self.filename_scheme: FilenameScheme = filename_scheme
         self.folder_info: RipInfo = RipInfo("")
@@ -86,13 +94,13 @@ class ImageRipper:
         """
         if url_check(self.given_url):
             domain = urlparse(self.given_url).netloc
-            requests_header['referer'] = "".join([SCHEME, domain, "/"])
+            self.requests_header['referer'] = "".join([SCHEME, domain, "/"])
             domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
             # Hosts images on a different domain
             if any(url in self.given_url for url in ("https://members.hanime.tv/", "https://hanime.tv/")):
-                requests_header['referer'] = "https://cdn.discordapp.com/"
+                self.requests_header['referer'] = "https://cdn.discordapp.com/"
             elif "https://kemono.party/" in self.given_url:
-                requests_header['referer'] = "https://kemono.party/"
+                self.requests_header['referer'] = "https://kemono.party/"
             elif "https://e-hentai.org/" in self.given_url:
                 self.sleep_time = 5
             return domain
@@ -100,7 +108,7 @@ class ImageRipper:
 
     def _image_getter(self):
         """Download images from URL."""
-        html_parser = HtmlParser(self.site_name)
+        html_parser = HtmlParser(self.requests_header, self.site_name)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
 
         # Save location of this album
@@ -247,9 +255,9 @@ class ImageRipper:
         sleep(self.sleep_time)
 
         try:
-            response = self.session.get(url, headers=requests_header, stream=True, allow_redirects=True)
+            response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
         except requests.exceptions.SSLError:
-            response = self.session.get(url, headers=requests_header, stream=True, verify=False)
+            response = self.session.get(url, headers=self.requests_header, stream=True, verify=False)
             bad_cert = True
         except requests.exceptions.ConnectionError:
             log.error("Unable to establish connection to " + url)
@@ -303,7 +311,7 @@ class ImageRipper:
         sleep(self.sleep_time)
 
         try:
-            response = self.session.get(rip_url, headers=requests_header, stream=True, allow_redirects=True)
+            response = self.session.get(rip_url, headers=self.requests_header, stream=True, allow_redirects=True)
         except requests.exceptions.ConnectionError:
             log.error("Unable to establish connection to " + rip_url)
             return
@@ -386,7 +394,7 @@ class ImageRipper:
         # TODO
         data: dict[str, dict | str] = {
             self.given_url: site_info.serialize(),
-            "cookies": requests_header["cookie"]
+            "cookies": self.requests_header["cookie"]
         }
         with open("partial.json", 'w') as save_file:
             json.dump(data, save_file, indent=4)
@@ -445,7 +453,7 @@ class ImageRipper:
 
     def __redownload_files(self, filename: str, url: str):
         """Redownload damaged files"""
-        response = requests.get(url, headers=requests_header, stream=True)
+        response = requests.get(url, headers=self.requests_header, stream=True)
         self.__write_to_file(response, filename)
 
 

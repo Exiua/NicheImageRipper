@@ -31,7 +31,7 @@ TEST_PARSER: str
 
 
 class HtmlParser:
-    def __init__(self, site_name: str = ""):
+    def __init__(self, header: dict[str, str], site_name: str = ""):
         global logged_in
         options = Options()
         options.headless = site_name != "v2ph" or logged_in
@@ -43,6 +43,7 @@ class HtmlParser:
         self.site_name: str = site_name
         self.sleep_time: float = 0.2
         self.given_url: str = ""
+        self.requests_header: dict[str, str] = header
 
     def parse_site(self, url: str) -> RipInfo:
         if path.isfile("partial.json"):
@@ -2109,5 +2110,13 @@ class HtmlParser:
 
 
 if __name__ == "__main__":
-    parser = HtmlParser()
+    requests_header: dict[str, str] = {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+        'referer':
+            'https://imhentai.xxx/',
+        'cookie':
+            ''
+    }
+    parser = HtmlParser(requests_header)
     print(parser._test_parse(sys.argv[1]))
