@@ -309,16 +309,13 @@ class HtmlParser:
             m_links = [link + "\n" for link in links if "mega.nz" in link]
             gd_links = [link + "\n" for link in links if "drive.google.com" in link]
             for text in possible_links:
-                if "drive.google.com" in text:
+                for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
+                    if domain_list[0] not in text:
+                        continue
                     parts = text.split()
                     for part in parts:
-                        if "drive.google.com" in part:
-                            gd_links.append(part + "\n")
-                if "mega.nz" in text:
-                    parts = text.split()
-                    for part in parts:
-                        if "mega.nz" in part:
-                            m_links.append(part + "\n")
+                        if domain_list[0] in part:
+                            domain_list[1].append(part + "\n")
             attachments = [domain_url + link if domain_url not in link else link for link in links
                            if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
