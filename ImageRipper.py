@@ -92,7 +92,7 @@ class ImageRipper:
             if any(url in self.given_url for url in ("https://members.hanime.tv/", "https://hanime.tv/")):
                 requests_header['referer'] = "https://cdn.discordapp.com/"
             elif "https://kemono.party/" in self.given_url:
-                requests_header['referer'] = ""
+                requests_header['referer'] = "https://kemono.party/"
             elif "https://e-hentai.org/" in self.given_url:
                 self.sleep_time = 5
             return domain
