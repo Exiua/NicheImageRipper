@@ -38,6 +38,7 @@ from selenium.webdriver.firefox.options import Options
 
 from RipInfo import RipInfo
 
+
 class RipperError(Exception):
     """General Ripper Exceptions"""
     pass
@@ -2736,7 +2737,8 @@ def _test_parse(given_url: str) -> RipInfo:
         driver.quit()
 
 
-def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[str] | str:
+def secondary_parse(driver: webdriver.Firefox, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[
+                                                                                                                 str] | str:
     """Parses the html for links for supported sites used in other sites"""
     curr = driver.current_url
     driver.get(link)
@@ -2895,7 +2897,7 @@ def url_check(given_url: str) -> bool:
              "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
              "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/",
              "https://www.deviantart.com/")
-    return any(x in given_url for x in sites)
+    return any(given_url.startswith(x) for x in sites)
 
 
 if __name__ == "__main__":
