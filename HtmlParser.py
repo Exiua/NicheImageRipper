@@ -27,7 +27,7 @@ from rippers import DRIVER_HEADER, requests_header, PARSER, DEBUG, PROTOCOL, SCH
 
 logged_in: bool
 PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
-TEST_PARSER: str
+TEST_PARSER: str = ""
 
 
 class HtmlParser:
@@ -1205,9 +1205,6 @@ class HtmlParser:
         # Parses the html of the site
         return self.__dot_party_parse("https://kemono.party")
 
-    global TEST_PARSER
-    TEST_PARSER = "kemono_parse"
-
     def leakedbb_parse(self) -> RipInfo:
         """Read the html for leakedbb.com"""
         # Parses the html of the site
@@ -1315,6 +1312,25 @@ class HtmlParser:
         images = soup.find("div", class_="thumbs_box").find_all("div", class_="thumb_box")
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
+
+    def manganato_parse(self) -> RipInfo:
+        """Read the html for manganato.com"""
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="story-info-right").find("h1").text
+        next_chapter = soup.find("ul", class_="row-content-chapter").find_all("li", recursive=False)[-1].find("a")
+        images = []
+        while next_chapter:
+            self.driver.get(next_chapter.get("href"))
+            soup = self.soupify()
+            self._print_html(soup)
+            chapter_images = soup.find("div", class_="container-chapter-reader").find_all("img")
+            images.extend([img.get("src") for img in chapter_images])
+            next_chapter = soup.find("a", class_="navi-change-chapter-btn-next a-h")
+        return RipInfo(images, dir_name)
+
+    global TEST_PARSER
+    TEST_PARSER = "manganato_parse"
 
     def maturewoman_parse(self) -> RipInfo:
         """Read the html for maturewoman.xyz"""
