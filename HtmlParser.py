@@ -930,9 +930,6 @@ class HtmlParser:
         images.insert(0, current_url)
         return RipInfo(images, dir_name)
 
-    global TEST_PARSER
-    TEST_PARSER = "gofile_parse"
-
     def grabpussy_parse(self) -> RipInfo:
         """Read the html for grabpussy.com"""
         # Parses the html of the site
@@ -1203,6 +1200,9 @@ class HtmlParser:
         """Read the html for kemono.party"""
         # Parses the html of the site
         return self.__dot_party_parse("https://kemono.party")
+
+    global TEST_PARSER
+    TEST_PARSER = "kemono_parse"
 
     def leakedbb_parse(self) -> RipInfo:
         """Read the html for leakedbb.com"""
