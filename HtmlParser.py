@@ -324,8 +324,7 @@ class HtmlParser:
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join([domain_url.replace("//", "//data1."), img.get("href").split("?")[0]]) for img in
-                              image_list]
+                image_list = ["".join([domain_url.replace("//", "//data1."), img.get("href")]) for img in image_list]
                 images.extend(image_list)
         with open("megaLinks.txt", "a", encoding="utf-16") as f:
             f.writelines(mega_links)
