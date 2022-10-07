@@ -1,4 +1,4 @@
-"""This module downloads images from given URL"""
+"""DO NOT USE, THIS MODULE IS DEPRECATED; WORKING ON REFACTORING CODE INTO SEPARATE MODULES"""
 from __future__ import annotations
 
 import argparse
@@ -10,11 +10,9 @@ import logging.handlers
 import os
 import pickle
 import re
-import string
 import subprocess
 import sys
 import time
-from enum import Enum, auto
 from math import ceil
 from os import path, walk
 from pathlib import Path
@@ -36,23 +34,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 
+from FilenameScheme import FilenameScheme
 from RipInfo import RipInfo
-
-
-class RipperError(Exception):
-    """General Ripper Exceptions"""
-    pass
-
-
-class WrongExtension(RipperError):
-    """File not found due to using incorrect extension"""
-    pass
-
-
-class InvalidSubdomain(RipperError):
-    """Url does not have a supported subdomain"""
-    pass
-
+from RipperExceptions import WrongExtension, InvalidSubdomain, RipperError
 
 PROTOCOL: str = "https:"
 SCHEME: str = "https://"
@@ -89,13 +73,6 @@ log.addHandler(handler)
 
 # Global Variables
 logged_in: bool
-
-
-class FilenameScheme(Enum):
-    ORIGINAL = auto()
-    HASH = auto()
-    CHRONOLOGICAL = auto()
-
 
 # class RipInfo:
 #     """Ripped Site Information"""
