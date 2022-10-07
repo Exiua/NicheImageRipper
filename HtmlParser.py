@@ -34,6 +34,8 @@ class HtmlParser:
         options = Options()
         options.headless = site_name != "v2ph" or logged_in
         options.add_argument = DRIVER_HEADER
+        options.set_preference("dom.disable_beforeunload", True)
+        options.set_preference("browser.tabs.warnOnClose", False)
         self.driver = webdriver.Firefox(options=options)
         self.interrupted: bool = False
         self.site_name: str = site_name
