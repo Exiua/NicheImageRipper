@@ -274,7 +274,7 @@ class HtmlParser:
         sleep(5)
         soup = self.soupify()
         dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
-        dir_name = "".join([dir_name, " - (", source_site, ")"])
+        dir_name = f"{dir_name} - ({source_site})"
         page = 0
         image_links = []
         while True:
