@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import pickle
@@ -47,6 +49,7 @@ class HtmlParser:
             save_data: dict = self.read_partial_save()
             if url in save_data:
                 requests_header["cookie"] = save_data["cookies"]
+                requests_header["referer"] = save_data["referer"]
                 self.interrupted = True
                 return save_data[url]
         url = url.replace("members.", "www.")
@@ -218,8 +221,11 @@ class HtmlParser:
     def write_partial_save(site_info: RipInfo, given_url: str):
         """Saves parsed site data to quickly retrieve in event of a failure"""
         # TODO
-        data: dict[str, RipInfo | str] = {given_url: site_info.serialize(),
-                                          "cookies": requests_header["cookie"]}
+        data: dict[str, RipInfo | str] = {
+            given_url: site_info.serialize(),
+            "cookies": requests_header["cookie"],
+            "referer": requests_header["referer"]
+        }
         with open("partial.json", 'w') as save_file:
             json.dump(data, save_file, indent=4)
 
