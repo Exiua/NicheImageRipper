@@ -218,6 +218,12 @@ class NicheImageRipper(QWidget):
             data.append(self.history_table.item(i, column_index).text())
         return data
 
+    def get_row_data(self, row_index: int) -> list[str]:
+        data = []
+        for i in range(self.history_table.columnCount()):
+            data.append(self.history_table.item(row_index, i).text())
+        return data
+
     def load_history(self):
         with open("RipHistory.json", 'r') as load_file:
             rip_history: list[list[str]] = json.load(load_file)
