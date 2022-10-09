@@ -44,21 +44,7 @@ class HtmlParser:
         self.sleep_time: float = 0.2
         self.given_url: str = ""
         self.requests_header: dict[str, str] = header
-
-    def parse_site(self, url: str) -> RipInfo:
-        if path.isfile("partial.json"):
-            save_data: dict = self.read_partial_save()
-            if url in save_data:
-                requests_header["cookie"] = save_data["cookies"]
-                requests_header["referer"] = save_data["referer"]
-                self.interrupted = True
-                return save_data[url]
-        url = url.replace("members.", "www.")
-        self.given_url = url
-        self.driver.get(url)
-        self.site_name = self.site_check()
-        global PARSER_SWITCH
-        PARSER_SWITCH = {
+        self.parser_jump_table: dict[str, Callable[[], RipInfo]] = {
             "imhentai": self.imhentai_parse,
             "hotgirl": self.hotgirl_parse,
             "cup-e": self.cupe_parse,
@@ -168,9 +154,24 @@ class HtmlParser:
             "jpg": self.jpg_parse,
             "artstation": self.artstation_parse,
             "porn3dx": self.porn3dx_parse,
-            "deviantart": self.deviantart_parse
+            "deviantart": self.deviantart_parse,
+            "readmanganato": self.manganato_parse,
+            "manganato": self.manganato_parse
         }
-        site_parser: Callable[[], RipInfo] = PARSER_SWITCH.get(self.site_name)
+
+    def parse_site(self, url: str) -> RipInfo:
+        if path.isfile("partial.json"):
+            save_data: dict = self.read_partial_save()
+            if url in save_data:
+                requests_header["cookie"] = save_data["cookies"]
+                requests_header["referer"] = save_data["referer"]
+                self.interrupted = True
+                return save_data[url]
+        url = url.replace("members.", "www.")
+        self.given_url = url
+        self.driver.get(url)
+        self.site_name = self.site_check()
+        site_parser: Callable[[], RipInfo] = self.parser_jump_table.get(self.site_name)
         try:
             site_info: RipInfo = site_parser()
         finally:
@@ -1320,7 +1321,10 @@ class HtmlParser:
         dir_name = soup.find("div", class_="story-info-right").find("h1").text
         next_chapter = soup.find("ul", class_="row-content-chapter").find_all("li", recursive=False)[-1].find("a")
         images = []
+        counter = 1
         while next_chapter:
+            print(f"Parsing Chapter {counter}")
+            counter += 1
             self.driver.get(next_chapter.get("href"))
             soup = self.soupify()
             self._print_html(soup)
@@ -1758,8 +1762,7 @@ class HtmlParser:
             for link in images:
                 if any(p in link for p in parsable_links):
                     site_name = urlparse(link).netloc
-                    global PARSER_SWITCH
-                    parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(site_name)
+                    parser: Callable[[], RipInfo] = self.parser_jump_table.get(site_name)
                     image_list = self.secondary_parse(link, parser)
                     images.extend(image_list)
                     images.remove(link)
