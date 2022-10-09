@@ -249,6 +249,37 @@ class NicheImageRipper(QWidget):
         self.url_field.clear()
         self.update_url_queue()
 
+    def rip_urls_starter(self):
+        if not self.ripper_thread.is_alive() and self.url_queue.qsize() != 0:
+            self.ripper_thread = threading.Thread(target=self.rip_urls(), daemon=True)
+
+    def rip_urls(self):
+        """Rips files from urls"""
+        while self.url_queue.qsize() != 0:
+            url = self.url_queue.queue[0]
+            print(url)
+            ripper = ImageRipper(self.filename_scheme)
+            ripper.rip(url)
+            self.update_history(ripper, url)
+            self.url_queue.get()
+            self.update_url_queue()
+
+    def update_history(self, ripper: ImageRipper, url: str):
+        """Update the table with new values"""
+        duplicate_entry = False
+        ripped_urls = self.get_column_data(0)
+        for i, entry in enumerate(ripped_urls):
+            if entry == ripper.folder_info.dir_name:
+                duplicate_entry = True
+                row_data = self.get_row_data(i)
+                self.add_history_entry(*row_data)
+                self.history_table.removeRow(i)
+                break
+        if not duplicate_entry:
+            self.add_history_entry(ripper.folder_info.dir_name, url, str(datetime.today().strftime('%Y-%m-%d')),
+                                   ripper.folder_info.num_urls)
+        ripper.folder_info = []
+
     @staticmethod
     def separate_string(base_string: str, delimiter: str) -> list[str]:
         string_list = base_string.split(delimiter)  # Split by delimiter
