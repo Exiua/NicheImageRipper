@@ -2873,7 +2873,7 @@ def url_check(given_url: str) -> bool:
              "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
              "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
              "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/",
-             "https://www.deviantart.com/")
+             "https://www.deviantart.com/", "https://readmanganato.com/", "https://manganato.com/")
     return any(given_url.startswith(x) for x in sites)
 
 
