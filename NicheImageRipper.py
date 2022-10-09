@@ -212,7 +212,7 @@ class NicheImageRipper(QWidget):
             table_data.append(row_data)
         return table_data
 
-    def get_column_data(self, column_index: int):
+    def get_column_data(self, column_index: int) -> list[str]:
         data = []
         for i in range(self.history_table.rowCount()):
             data.append(self.history_table.item(i, column_index).text())
