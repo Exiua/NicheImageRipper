@@ -28,8 +28,9 @@ class NicheImageRipper(QWidget):
         self.url_queue = Queue()
         self.live_update: bool = False
         self.rerip_ask: bool = True
-        self.file_scheme: FilenameScheme = FilenameScheme.ORIGINAL
+        self.filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL
         self.status_sync: StatusSync = StatusSync()
+        self.ripper_thread: threading.Thread = threading.Thread()
         self.version: str = "v3.0.0"
         self.save_folder: str = "."
 
@@ -117,7 +118,7 @@ class NicheImageRipper(QWidget):
         self.file_scheme_combobox = QComboBox()
         self.file_scheme_combobox.addItems(("Original", "Hash", "Chronological"))
         self.file_scheme_combobox.setFixedWidth(100)
-        self.file_scheme_combobox.setCurrentIndex(self.file_scheme.value)
+        self.file_scheme_combobox.setCurrentIndex(self.filename_scheme.value)
         self.file_scheme_combobox.currentTextChanged.connect(self.file_scheme_changed)
 
         checkbox_row = QHBoxLayout()
@@ -182,7 +183,7 @@ class NicheImageRipper(QWidget):
             self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
         write_config('DEFAULT', 'SavePath', self.save_folder)  # Update the config
         # write_config('DEFAULT', 'Theme', self.theme_color)
-        write_config('DEFAULT', 'FilenameScheme', self.file_scheme.name.title())
+        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
         write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_update))
         # write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
@@ -327,8 +328,8 @@ class NicheImageRipper(QWidget):
         self.update_url_queue()
 
     def file_scheme_changed(self, new_value: str):
-        self.file_scheme = FilenameScheme[new_value.upper()]
-        write_config('DEFAULT', 'FilenameScheme', self.file_scheme.name.title())
+        self.filename_scheme = FilenameScheme[new_value.upper()]
+        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
 
     def load_config(self):
         self.save_folder = read_config('DEFAULT', 'SavePath')
