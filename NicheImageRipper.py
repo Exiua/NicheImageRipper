@@ -249,6 +249,7 @@ class NicheImageRipper(QWidget):
                     self.set_label_text(self.status_label, "Not a support site", "red", 2.5)
         self.url_field.clear()
         self.update_url_queue()
+        self.rip_urls_starter()
 
     def rip_urls_starter(self):
         if not self.ripper_thread.is_alive() and self.url_queue.qsize() != 0:
