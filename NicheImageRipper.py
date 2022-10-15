@@ -10,9 +10,10 @@ from threading import Timer
 
 import requests
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QTextCursor
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
-    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox
+    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
+    QTextBrowser
 
 from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
@@ -20,7 +21,40 @@ from StatusSync import StatusSync
 from rippers import read_config, write_config, url_check
 
 
+class OutputRedirect(QtCore.QObject):
+    outputWritten = QtCore.pyqtSignal(str, bool)
+
+    def __init__(self, parent, stdout=True):
+        super().__init__(parent)
+        if stdout:
+            self._stream = sys.stdout
+            sys.stdout = self
+        else:
+            self._stream = sys.stderr
+            sys.stderr = self
+        self._stdout = stdout
+
+    def write(self, text):
+        self._stream.write(text)
+        self.outputWritten.emit(text, self._stdout)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+    def __del__(self):
+        try:
+            if self._stdout:
+                sys.stdout = self._stream
+            else:
+                sys.stderr = self._stream
+        except AttributeError:
+            pass
+
+
 class NicheImageRipper(QWidget):
+    display_sync: threading.Semaphore = threading.Semaphore(0)
+    update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.title: str = "NicheImagerRipper"
@@ -33,6 +67,15 @@ class NicheImageRipper(QWidget):
         self.ripper_thread: threading.Thread = threading.Thread()
         self.version: str = "v3.0.0"
         self.save_folder: str = "."
+
+        ImageRipper.status_sync = self.status_sync
+
+        stdout = OutputRedirect(self, True)
+        stderr = OutputRedirect(self, False)
+
+        stdout.outputWritten.connect(self.redirect_output)
+        stderr.outputWritten.connect(self.redirect_output)
+        self.update_display.connect(self.update_display_sequence)
 
         self.setGeometry(0, 0, 768, 432)
 
@@ -66,9 +109,8 @@ class NicheImageRipper(QWidget):
 
         # region Log Tab
 
-        self.log_field = QTextEdit()
+        self.log_field = QTextBrowser()
         self.log_field.setFont(QFont("Arial"))
-        self.log_field.setReadOnly(True)
 
         # endregion
 
@@ -188,6 +230,10 @@ class NicheImageRipper(QWidget):
         write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_update))
         # write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
 
+    def redirect_output(self, text: str, stderr: bool):
+        self.log_field.moveCursor(QTextCursor.End)
+        self.log_field.insertPlainText(text)
+
     @staticmethod
     def save_to_json(file_name: str, data: any):
         """Save data to json file"""
@@ -253,7 +299,8 @@ class NicheImageRipper(QWidget):
 
     def rip_urls_starter(self):
         if not self.ripper_thread.is_alive() and self.url_queue.qsize() != 0:
-            self.ripper_thread = threading.Thread(target=self.rip_urls(), daemon=True)
+            self.ripper_thread = threading.Thread(target=self.rip_urls, daemon=True)
+            self.ripper_thread.start()
 
     def rip_urls(self):
         """Rips files from urls"""
@@ -262,9 +309,14 @@ class NicheImageRipper(QWidget):
             print(url)
             ripper = ImageRipper(self.filename_scheme)
             ripper.rip(url)
-            self.update_history(ripper, url)
             self.url_queue.get()
-            self.update_url_queue()
+            self.update_display.emit(ripper, url)
+            self.display_sync.acquire()
+
+    def update_display_sequence(self, ripper: ImageRipper, url: str):
+        self.update_history(ripper, url)
+        self.update_url_queue()
+        self.display_sync.release()
 
     def update_history(self, ripper: ImageRipper, url: str):
         """Update the table with new values"""
@@ -364,7 +416,7 @@ class NicheImageRipper(QWidget):
         if color is not None:
             label.setStyleSheet(f"color: {color}")
         if display_time != 0:
-            timer = Timer(display_time, self.clear_label, (label, ))
+            timer = Timer(display_time, self.clear_label, (label,))
             timer.start()
 
     @staticmethod
