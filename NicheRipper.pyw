@@ -1,13 +1,16 @@
 """This is the GUI for the image ripper"""
-from datetime import datetime
-import threading
+import collections
 import json
 import os
+import threading
 import time
-import collections
-import requests
+from datetime import datetime
+
 import PySimpleGUI as sg
-from rippers import ImageRipper, FilenameScheme, read_config, write_config, url_check
+import requests
+
+from ImageRipper import ImageRipper
+from rippers import FilenameScheme, read_config, write_config, url_check
 
 
 # pylint: disable=line-too-long
@@ -30,7 +33,7 @@ class RipperGui:
         self.url_list_size: int = len(self.url_list)
         self.loaded_file: bool = False
         self.latest_version: str = self.get_git_version()
-        self.version: str = 'v1.10.0'
+        self.version: str = 'v2.0.0'
 
     def app_gui(self):
         """Run the GUI for the Image Ripper"""
@@ -79,30 +82,28 @@ class RipperGui:
                 self.close_program()
                 break
             if event == 'Rip':  # Pushes urls into queue
-                if values['-URL-'].count("https://") > 1:  # If multiple urls are entered at once
-                    url_list = values['-URL-'].split("https://")  # Split by protocol
-                    url_list.pop(0)  # Remove initial empty element
-                    url_list = ["".join(["https://", url.strip()]) for url in url_list]
-                    for url in url_list:
-                        if url_check(
-                                url) and url not in self.url_list:  # If url is for a supported site and not already queued
-                            self.rip_check(url)
-                elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:  # If url is for a supported site and not already queued
-                    if self.rerip_ask and any(values['-URL-'] in sublist for sublist in self.table_data):  # If user wants to be prompted and if url is in the history
-                        if sg.popup_yes_no('Do you want to re-rip URL?',
-                                           no_titlebar=True) == 'Yes':  # Ask user to re-rip
+                # If multiple urls are entered at once
+                if values['-URL-'].count("https://") > 1 or values['-URL-'].count("http://") > 1:
+                    self.separate_urls(values['-URL-'])
+                # If url is for a supported site and not already queued
+                elif url_check(values['-URL-']) and not values['-URL-'] in self.url_list:
+                    # If user wants to be prompted and if url is in the history
+                    if self.rerip_ask and any(values['-URL-'] in sublist for sublist in self.table_data):
+                        # Ask user to re-rip
+                        if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes':
                             self.url_list.append(values['-URL-'])
                     else:  # If user always wants to re-rip
                         self.url_list.append(values['-URL-'])
                 elif values['-URL-'] in self.url_list:  # If url is already queued
                     window['-STATUS-']('Already queued', text_color='green')
-                elif values['-URL-'] == "" and self.url_list:  # If not url is entered but there are queued urls (loading from UnfinishedRips.json)
+                # If not url is entered but there are queued urls (loading from UnfinishedRips.json)
+                elif values['-URL-'] == "" and self.url_list:
                     window['-STATUS-']('Starting rip', text_color='green')
                 elif values['-URL-'] == "" and not self.url_list:  # If no input and no queue
                     window['-STATUS-']('')
                 else:  # If the url is not supported
                     window['-STATUS-']('Not a supported site', text_color='red')
-                if not checker_thread.is_alive() and self.url_list:  # If thread is not running and there are queued urls
+                if not checker_thread.is_alive() and self.url_list: # If thread is not running and there are queued urls
                     checker_thread = threading.Thread(target=self.list_checker, args=(window,), daemon=True)
                     checker_thread.start()
                 self.print_queue(window)
@@ -113,11 +114,11 @@ class RipperGui:
                     window['-UPDATE-']('Update available', text_color='red')
             if values['-LOADFILE-'] and not self.loaded_file:  # Load unfinished urls once
                 unfinished_list = self.read_from_file(values['-LOADFILE-'])
-                # for url in unfinished_list:
-                #    if url not in self.url_list:
-                #        self.rip_check(url)
-                self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(
-                    url in sublist for sublist in self.table_data)])  # Fix this to allow rerip
+                for url in unfinished_list:
+                    if url not in self.url_list:
+                        self.add_to_url_queue(url)
+                """ self.url_list.extend([url for url in unfinished_list if url not in self.url_list and not any(
+                    url in sublist for sublist in self.table_data)])  # Fix this to allow rerip """
                 self.loaded_file = True
                 window['-STATUS-']('Urls loaded', text_color='green')
                 if sg.popup_yes_no('Do you want to delete the file?', no_titlebar=True) == 'Yes':
@@ -127,13 +128,30 @@ class RipperGui:
             self.save_folder = values['-SAVEFOLDER-']
             self.filename_scheme = FilenameScheme[values['-SAVESCHEME-'].upper()]
             self.theme_color = values['-THEME-']
-            if not self.save_folder[-1] == '/':  # Makes sure the save path ends with '/'
-                self.save_folder += '/'
+            if not self.save_folder[-1] == '\\':  # Makes sure the save path ends with '\'
+                self.save_folder += '\\'
             window['-FOLDER-'].update(self.save_folder)
             window['-THREADS-'].update(threading.active_count())
             time.sleep(0.2)
 
         window.close()
+
+    def separate_urls(self, urls: str):
+        """
+            Splits a string into multiple separate urls
+        """
+        url_list = urls.split("https://")  # Split by protocol
+        url_list.pop(0)  # Remove initial empty element
+        url_list = ["".join(["https://", url.strip()]) for url in url_list]
+        for url in url_list:
+            if url.count("http://") > 1:
+                urls = url.split("http://")
+                urls.pop(0)
+                urls = ["".join(["http://", u.strip()]) for u in urls]
+                url_list.extend(urls)
+            else:
+                if url_check(url) and url not in self.url_list:
+                    self.add_to_url_queue(url)
 
     def close_program(self):
         """Saves all the necessary information"""
@@ -157,7 +175,7 @@ class RipperGui:
                 ripper.start()
                 time.sleep(2)
 
-    def rip_check(self, item: str):
+    def add_to_url_queue(self, item: str):
         if self.rerip_ask and any(item in table_entry for table_entry in
                                   self.table_data):  # If user wants to be prompted and if url is in the history
             if sg.popup_yes_no('Do you want to re-rip URL?', no_titlebar=True) == 'Yes':  # Ask user to re-rip
@@ -189,7 +207,7 @@ class RipperGui:
             del self.table_data[0]  # Replace with real table value
         duplicate_entry = False
         for i, entry in enumerate(self.table_data):
-            if entry[0] == ripper.folder_info[2]:
+            if entry[0] == ripper.folder_info.dir_name:
                 duplicate_entry = True
                 self.table_data[i][2] = str(datetime.today().strftime('%Y-%m-%d'))
                 self.table_data.append(entry)
@@ -197,7 +215,8 @@ class RipperGui:
                 break
         if not duplicate_entry:
             self.table_data.append(
-                [ripper.folder_info[2], url, str(datetime.today().strftime('%Y-%m-%d')), str(ripper.folder_info[1])])
+                [ripper.folder_info.dir_name, url, str(datetime.today().strftime('%Y-%m-%d')),
+                 str(ripper.folder_info.num_urls)])
         ripper.folder_info = []
         if update:
             window['-TABLE-'].update(values=self.table_data)
@@ -205,18 +224,13 @@ class RipperGui:
     def is_latest_version(self) -> bool:
         v1 = self.version.replace("v", "").split(".")
         v2 = self.latest_version.replace("v", "").split(".")
-        if int(v1[0]) > int(v2[0]):
-            return True
-        elif int(v1[0]) < int(v2[0]):
-            return False
-        else:
-            if int(v1[1]) > int(v2[1]):
-                return True
-            elif int(v1[1]) < int(v2[1]):
-                return False
-            else:
+        if int(v1[0]) == int(v2[0]):
+            if int(v1[1]) == int(v2[1]):
                 return int(v1[2]) >= int(v2[2])
-
+            else:
+                return int(v1[1]) > int(v2[1])
+        else:
+            return int(v1[0]) > int(v2[0])
 
     @staticmethod
     def string_to_bool(v: str) -> bool:
