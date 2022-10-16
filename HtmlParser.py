@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import pickle
 import re
 import sys
+import time
 from math import ceil
 from os import path
 from time import sleep
@@ -21,13 +23,30 @@ from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
+from NicheImageRipper import NicheImageRipper
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from rippers import DRIVER_HEADER, requests_header, PARSER, DEBUG, PROTOCOL, SCHEME, read_config, url_check
+from util import SCHEME, url_check, Config
 
-logged_in: bool
-PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
+PROTOCOL: str = "https:"
+PARSER: str = "lxml"  # "html.parser" lxml is faster
+DRIVER_HEADER: str = (
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64"
+    "; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+# Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+# Chrome/W.X.Y.Z‡ Safari/537.36")
 TEST_PARSER: str = ""
+DEBUG: bool = False
+
+requests_header: dict[str, str] = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+    'referer':
+        'https://imhentai.xxx/',
+    'cookie':
+        ''
+}
+logged_in: bool
 
 
 class HtmlParser:
@@ -1026,7 +1045,7 @@ class HtmlParser:
             for index in range(2, int(num_pages) + 1):
                 page_url = "".join([url, str(index), '/'])
                 self.driver.get(page_url)
-                soup = BeautifulSoup(self.driver.page_source, PARSER)
+                soup = self.soupify()
                 images_list = soup.find_all("img", itemprop="image")
                 del images_list[0]  # First image is just the thumbnail
                 images_html.extend(images_list)
@@ -1125,7 +1144,7 @@ class HtmlParser:
     def imgur_parse(self) -> RipInfo:
         """Read the html for imgur.com"""
         # Parses the html of the site
-        client_id = read_config('KEYS', 'Imgur')
+        client_id = NicheImageRipper.config['KEYS', 'Imgur']
         if client_id == '':
             print("Client Id not properly set")
             print("Follow to generate Client Id: https://apidocs.imgur.com/#intro")
@@ -1528,8 +1547,8 @@ class HtmlParser:
     def porn3dx_parse(self) -> RipInfo:
         """Read the html for porn3dx.com"""
         # Parses the html of the site
-        username = read_config("LOGINS", "Porn3dxU")
-        password = read_config("LOGINS", "Porn3dxP")
+        username = NicheImageRipper.config["LOGINS", "Porn3dxU"]
+        password = NicheImageRipper.config["LOGINS", "Porn3dxP"]
         curr_url = self.driver.current_url
         logged_in_to_site = False
         if username and password:
@@ -2114,7 +2133,7 @@ class HtmlParser:
         self.driver.implicitly_wait(10)
 
     @staticmethod
-    def mark_as_failed(url: str):
+    def log_failed_url(url: str):
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
@@ -2125,13 +2144,23 @@ class HtmlParser:
 
 
 if __name__ == "__main__":
+    NicheImageRipper.config = Config()
     requests_header: dict[str, str] = {
         'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x'
+            '64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
         'referer':
             'https://imhentai.xxx/',
         'cookie':
             ''
     }
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("url", type=str, required=True)
+    args = parser.parse_args()
+
     parser = HtmlParser(requests_header)
-    print(parser._test_parse(sys.argv[1]))
+
+    start = time.process_time_ns()
+    print(parser._test_parse(args.url))
+    end = time.process_time_ns()

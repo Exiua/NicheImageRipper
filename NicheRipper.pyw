@@ -9,8 +9,10 @@ from datetime import datetime
 import PySimpleGUI as sg
 import requests
 
+from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
-from rippers import FilenameScheme, read_config, write_config, url_check
+from NicheImageRipper import NicheImageRipper
+from util import read_config, write_config, url_check
 
 
 # pylint: disable=line-too-long
@@ -18,12 +20,12 @@ class RipperGui:
     """GUI Object"""
 
     def __init__(self):
-        self.theme_color: str = read_config('DEFAULT', 'Theme')
-        self.save_folder: str = read_config('DEFAULT', 'SavePath')
-        self.live_history_update: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'LiveHistoryUpdate'))
-        self.filename_scheme: FilenameScheme = FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()]
-        self.rerip_ask: bool = RipperGui.string_to_bool(read_config('DEFAULT', 'AskToReRip'))
-        self.max_threads: int = int(read_config('DEFAULT', 'NumberOfThreads'))
+        self.theme_color: str = NicheImageRipper.config['DEFAULT', 'Theme']
+        self.save_folder: str = NicheImageRipper.config['DEFAULT', 'SavePath']
+        self.live_history_update: bool = RipperGui.string_to_bool(NicheImageRipper.config['DEFAULT', 'LiveHistoryUpdate'])
+        self.filename_scheme: FilenameScheme = FilenameScheme[NicheImageRipper.config['DEFAULT', 'FilenameScheme'].upper()]
+        self.rerip_ask: bool = RipperGui.string_to_bool(NicheImageRipper.config['DEFAULT', 'AskToReRip'])
+        self.max_threads: int = int(NicheImageRipper.config['DEFAULT', 'NumberOfThreads'])
         if os.path.isfile('RipHistory.json'):
             self.table_data: list[list[str]] = self.read_from_file('RipHistory.json')
         else:
@@ -158,12 +160,12 @@ class RipperGui:
         RipperGui.save_to_file('RipHistory.json', self.table_data)  # Save history data
         if self.url_list:
             RipperGui.save_to_file('UnfinishedRips.json', self.url_list)  # Save queued urls
-        write_config('DEFAULT', 'SavePath', self.save_folder)  # Update the config
-        write_config('DEFAULT', 'Theme', self.theme_color)
-        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
-        write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
-        write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_history_update))
-        write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
+        NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder  # Update the config
+        NicheImageRipper.config['DEFAULT', 'Theme'] = self.theme_color
+        NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
+        NicheImageRipper.config['DEFAULT', 'AskToReRip'] = str(self.rerip_ask)
+        NicheImageRipper.config['DEFAULT', 'LiveHistoryUpdate'] = str(self.live_history_update)
+        NicheImageRipper.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
 
     def list_checker(self, window: sg.Window):
         """Run the ripper thread if the url list is not empty"""

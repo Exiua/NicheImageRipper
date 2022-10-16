@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPush
 from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
 from StatusSync import StatusSync
-from rippers import read_config, write_config, url_check
+from util import url_check, Config
 
 
 class OutputRedirect(QtCore.QObject):
@@ -54,6 +54,7 @@ class OutputRedirect(QtCore.QObject):
 class NicheImageRipper(QWidget):
     display_sync: threading.Semaphore = threading.Semaphore(0)
     update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
+    config: Config = Config()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -223,12 +224,12 @@ class NicheImageRipper(QWidget):
         # self.save_to_json('RipHistory.json', self.get_history_data())  # Save history data
         if self.url_queue.not_empty:
             self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
-        write_config('DEFAULT', 'SavePath', self.save_folder)  # Update the config
-        # write_config('DEFAULT', 'Theme', self.theme_color)
-        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
-        write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
-        write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_update))
-        # write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
+        NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder  # Update the config
+        # NicheImageRipper.config['DEFAULT', 'Theme'] = self.theme_color
+        NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
+        NicheImageRipper.config['DEFAULT', 'AskToReRip'] = str(self.rerip_ask)
+        NicheImageRipper.config['DEFAULT', 'LiveHistoryUpdate'] = str(self.live_update)
+        # NicheImageRipper.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
 
     def redirect_output(self, text: str, stderr: bool):
         self.log_field.moveCursor(QTextCursor.End)
@@ -370,7 +371,7 @@ class NicheImageRipper(QWidget):
     def set_save_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
         self.save_folder_label.setText(folder)
-        write_config('DEFAULT', 'SavePath', self.save_folder_label.text())
+        NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder_label.text()
 
     def load_json_file(self):
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
@@ -382,16 +383,16 @@ class NicheImageRipper(QWidget):
 
     def file_scheme_changed(self, new_value: str):
         self.filename_scheme = FilenameScheme[new_value.upper()]
-        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
+        NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
 
     def load_config(self):
-        self.save_folder = read_config('DEFAULT', 'SavePath')
+        self.save_folder = self.config['DEFAULT', 'SavePath']
         self.save_folder_label.setText(self.save_folder)
-        saved_filename_scheme = FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()]
+        saved_filename_scheme = FilenameScheme[self.config['DEFAULT', 'FilenameScheme'].upper()]
         self.file_scheme_combobox.setCurrentIndex(saved_filename_scheme.value)
-        self.rerip_ask = read_config('DEFAULT', 'AskToReRip') == "True"
+        self.rerip_ask = self.config['DEFAULT', 'AskToReRip'] == "True"
         self.rerip_checkbox.setChecked(self.rerip_ask)
-        self.live_update = read_config('DEFAULT', 'LiveHistoryUpdate') == "True"
+        self.live_update = self.config['DEFAULT', 'LiveHistoryUpdate'] == "True"
         self.live_update_checkbox.setChecked(self.live_update)
 
     def check_latest_version(self):
