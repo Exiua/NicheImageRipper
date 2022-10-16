@@ -6,11 +6,11 @@ import pytest
 import json
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-import rippers
+import util
 from HtmlParser import HtmlParser
-from rippers import ImageRipper
+from util import ImageRipper
 
-rippers.CONFIG = '../config.ini'
+util.CONFIG = '../config.ini'
 
 with open("parameters.json", "r", encoding='utf-8') as f:
     test_data = json.load(f)

@@ -2,7 +2,7 @@ from platform import version
 import sys
 from bs4 import BeautifulSoup
 import requests
-from rippers import ImageRipper
+from util import ImageRipper
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
