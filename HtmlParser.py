@@ -26,7 +26,7 @@ from selenium.webdriver.firefox.options import Options
 from NicheImageRipper import NicheImageRipper
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from util import SCHEME, url_check, Config
+from Util import SCHEME, url_check, Config
 
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # "html.parser" lxml is faster

@@ -12,7 +12,7 @@ import requests
 from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
 from NicheImageRipper import NicheImageRipper
-from util import read_config, write_config, url_check
+from Util import read_config, write_config, url_check
 
 
 # pylint: disable=line-too-long

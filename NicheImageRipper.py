@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPush
 from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
 from StatusSync import StatusSync
-from util import url_check, Config
+from Util import url_check, Config
 
 
 class OutputRedirect(QtCore.QObject):

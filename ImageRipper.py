@@ -27,7 +27,7 @@ from NicheImageRipper import NicheImageRipper
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from util import url_check, SCHEME
+from Util import url_check, SCHEME
 
 
 SESSION_HEADERS: dict[str, str] = {

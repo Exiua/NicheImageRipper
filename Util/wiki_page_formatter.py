@@ -28,7 +28,7 @@ class WikiPageFormatter():
             self.save()
 
     def update(self):
-        with open("util.py", "r") as f:
+        with open("Util.py", "r") as f:
             data = f.readlines()
         start = 0
         end = 0
