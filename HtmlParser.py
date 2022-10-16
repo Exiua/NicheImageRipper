@@ -23,7 +23,6 @@ from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
-from NicheImageRipper import NicheImageRipper
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
 from Util import SCHEME, url_check, Config
@@ -1144,7 +1143,7 @@ class HtmlParser:
     def imgur_parse(self) -> RipInfo:
         """Read the html for imgur.com"""
         # Parses the html of the site
-        client_id = NicheImageRipper.config['KEYS', 'Imgur']
+        client_id = Config.config['KEYS', 'Imgur']
         if client_id == '':
             print("Client Id not properly set")
             print("Follow to generate Client Id: https://apidocs.imgur.com/#intro")
@@ -1547,8 +1546,8 @@ class HtmlParser:
     def porn3dx_parse(self) -> RipInfo:
         """Read the html for porn3dx.com"""
         # Parses the html of the site
-        username = NicheImageRipper.config["LOGINS", "Porn3dxU"]
-        password = NicheImageRipper.config["LOGINS", "Porn3dxP"]
+        username = Config.config["LOGINS", "Porn3dxU"]
+        password = Config.config["LOGINS", "Porn3dxP"]
         curr_url = self.driver.current_url
         logged_in_to_site = False
         if username and password:
@@ -2144,7 +2143,6 @@ class HtmlParser:
 
 
 if __name__ == "__main__":
-    NicheImageRipper.config = Config()
     requests_header: dict[str, str] = {
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x'

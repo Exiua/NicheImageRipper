@@ -8,6 +8,7 @@ import time
 from os import path
 from typing import Callable
 
+from _pytest.config import Config
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -21,6 +22,8 @@ logged_in: bool
 
 
 class Config:
+    config: Config = None
+
     def __init__(self, config_path: str = CONFIG):
         self._config: configparser.ConfigParser = configparser.ConfigParser()
         self._config_path: str = config_path
@@ -107,5 +110,5 @@ def url_check(given_url: str) -> bool:
     return any(given_url.startswith(x) for x in sites)
 
 
-if __name__ == "__main__":
-    pass
+if __name__ != "__main__":
+    Config.config = Config()

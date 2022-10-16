@@ -23,12 +23,10 @@ from selenium.webdriver.common.by import By
 
 from FilenameScheme import FilenameScheme
 from HtmlParser import HtmlParser
-from NicheImageRipper import NicheImageRipper
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from Util import url_check, SCHEME
-
+from Util import url_check, SCHEME, Config
 
 SESSION_HEADERS: dict[str, str] = {
     "User-Agent":
@@ -69,20 +67,20 @@ class ImageRipper:
         self.interrupted: bool = False
         self.logins: dict[str, tuple[str, str]] = {
             "sexy-egirls": (
-                NicheImageRipper.config['LOGINS', 'Sexy-EgirlsU'],
-                NicheImageRipper.config['LOGINS', 'Sexy-EgirlsP']
+                Config.config['LOGINS', 'Sexy-EgirlsU'],
+                Config.config['LOGINS', 'Sexy-EgirlsP']
             ),
             "deviantart": (
-                NicheImageRipper.config['LOGINS', 'DeviantArtU'],
-                NicheImageRipper.config['LOGINS', 'DeviantArtP']
+                Config.config['LOGINS', 'DeviantArtU'],
+                Config.config['LOGINS', 'DeviantArtP']
             ),
             "porn3dxu": (
-                NicheImageRipper.config["LOGINS", "Porn3dxU"],
-                NicheImageRipper.config["LOGINS", "Porn3dxP"]
+                Config.config["LOGINS", "Porn3dxU"],
+                Config.config["LOGINS", "Porn3dxP"]
             )
         }
         self.logged_in: bool = os.path.isfile("cookies.pkl")
-        self.save_path: str = NicheImageRipper.config['DEFAULT', 'SavePath']
+        self.save_path: str = Config.config['DEFAULT', 'SavePath']
         self.session: requests.Session = requests.Session()
         self.site_name: str = ""
         self.sleep_time: float = 0.2
