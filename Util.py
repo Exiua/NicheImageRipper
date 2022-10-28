@@ -1,18 +1,8 @@
 """DO NOT USE, THIS MODULE IS DEPRECATED; WORKING ON REFACTORING CODE INTO SEPARATE MODULES"""
 from __future__ import annotations
 
-import argparse
 import configparser
 import os
-import time
-from os import path
-from typing import Callable
-
-from _pytest.config import Config
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-
-from RipInfo import RipInfo
 
 SCHEME: str = "https://"
 CONFIG: str = 'config.ini'
