@@ -166,8 +166,8 @@ class ImageRipper:
                         self.__download_from_url(trimmed_url, file_num, full_path, ext)
                         break  # Correct extension was found
                     except (PIL.UnidentifiedImageError, WrongExtension):
-                        image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
-                        os.remove(image_path)  # Remove temp file if wrong file extension
+                        #image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
+                        #os.remove(image_path)  # Remove temp file if wrong file extension
                         if i == 3:
                             print("Image not found")
         # Easier to put all image url in a list and then download for these sites
