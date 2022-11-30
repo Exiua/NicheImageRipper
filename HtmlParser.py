@@ -34,8 +34,6 @@ DRIVER_HEADER: str = (
     "; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
-TEST_PARSER: str = ""
-DEBUG: bool = False
 
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -174,7 +172,8 @@ class HtmlParser:
             "porn3dx": self.porn3dx_parse,
             "deviantart": self.deviantart_parse,
             "readmanganato": self.manganato_parse,
-            "manganato": self.manganato_parse
+            "manganato": self.manganato_parse,
+            "sfmcompile": self.sfmcompile_parse
         }
 
     def parse_site(self, url: str) -> RipInfo:
@@ -1351,9 +1350,6 @@ class HtmlParser:
             next_chapter = soup.find("a", class_="navi-change-chapter-btn-next a-h")
         return RipInfo(images, dir_name)
 
-    global TEST_PARSER
-    TEST_PARSER = "manganato_parse"
-
     def maturewoman_parse(self) -> RipInfo:
         """Read the html for maturewoman.xyz"""
         # Parses the html of the site
@@ -1816,6 +1812,35 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
+    def sfmcompile_parse(self) -> RipInfo:
+        """Read the html for sfmcompile.club"""
+        # Parses the html of the site
+        soup = self.soupify()
+        self._print_html(soup)
+        dir_name = soup.find("h1", class_="g1-alpha g1-alpha-2nd page-title archive-title").text.replace("\"", "")
+        elements = []
+        images = []
+        while True:
+            elements.extend(soup.find("ul", class_="g1-collection-items").find_all("li", class_="g1-collection-item"))
+            next_page = soup.find("a", class_="g1-link g1-link-m g1-link-right next")
+            if next_page:
+                next_page = next_page.get("href")
+                soup = self.soupify(next_page)
+            else:
+                break
+        for element in elements:
+            media = element.find("video")
+            with open("test.html", "w") as f:
+                f.write(str(element))
+            if media:
+                video_src = media.find("a").get("href")
+            else:
+                video_link = element.find("a", class_="g1-frame").get("href")
+                soup = self.soupify(video_link)
+                video_src = soup.find("video").find("source").get("src")
+            images.append(video_src)
+        return RipInfo(images, dir_name)
+
     def silkengirl_parse(self) -> RipInfo:
         """Read the html for silkengirl.com and silkengirl.net"""
         # Parses the html of the site
@@ -2062,7 +2087,7 @@ class HtmlParser:
             for img in images]
         return RipInfo(images, dir_name)
 
-    def _test_parse(self, given_url: str) -> RipInfo:
+    def _test_parse(self, given_url: str, debug: bool) -> RipInfo:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
         # ripper = ImageRipper()
@@ -2070,15 +2095,27 @@ class HtmlParser:
         # return
         try:
             options = Options()
-            options.headless = not DEBUG
+            options.headless = not debug
             options.add_argument(DRIVER_HEADER)
             self.driver = webdriver.Firefox(options=options)
             self.driver.get(given_url.replace("members.", "www."))
             # rip = ImageRipper(given_url)
             # rip.site_login(self.driver)
-            return eval(f"self.{TEST_PARSER}()")
+            site_name = self._test_site_check(given_url)
+            return eval(f"self.{site_name}_parse()")
         finally:
             self.driver.quit()
+
+    def _test_site_check(self, url: str) -> str:
+        domain = urlparse(url).netloc
+        requests_header['referer'] = "".join([SCHEME, domain, "/"])
+        domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+        # Hosts images on a different domain
+        if "https://members.hanime.tv/" in url or "https://hanime.tv/" in url:
+            requests_header['referer'] = "https://cdn.discordapp.com/"
+        elif "https://kemono.party/" in url:
+            requests_header['referer'] = ""
+        return domain
 
     def secondary_parse(self, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[str] | str:
         """Parses the html for links for supported sites used in other sites"""
@@ -2136,8 +2173,10 @@ class HtmlParser:
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
-    def soupify(self) -> BeautifulSoup:
+    def soupify(self, url: str | None = None) -> BeautifulSoup:
         """Return BeautifulSoup object of html from driver"""
+        if url:
+            self.driver.get(url)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
@@ -2154,11 +2193,12 @@ if __name__ == "__main__":
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("url", type=str, required=True)
+    parser.add_argument("url", type=str)
+    parser.add_argument("-d", "--debug", action="store_true")
     args = parser.parse_args()
 
     parser = HtmlParser(requests_header)
 
     start = time.process_time_ns()
-    print(parser._test_parse(args.url))
+    print(parser._test_parse(args.url, args.debug))
     end = time.process_time_ns()
