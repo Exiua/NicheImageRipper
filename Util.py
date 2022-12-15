@@ -48,6 +48,8 @@ class Config:
         self._config['LOGINS']['Porn3dxP'] = ''
         self._config['LOGINS']['DeviantArtU'] = ''
         self._config['LOGINS']['DeviantArtP'] = ''
+        self._config['LOGINS']['MegaU'] = ''
+        self._config['LOGINS']['MegaP'] = ''
         self._config['KEYS'] = {}
         self._config['KEYS']['Imgur'] = ''
         self.__save_config()
