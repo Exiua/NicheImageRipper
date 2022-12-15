@@ -1,7 +1,9 @@
+import base64
 import collections
 import json
 import os
 import re
+import struct
 import subprocess
 from urllib.parse import urlparse
 
@@ -10,8 +12,6 @@ from PIL import Image
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-
-from Util import DRIVER_HEADER
 
 
 def string_join_test():
@@ -541,10 +541,51 @@ def sc_merge():
         json.dump(combo, f)
 
 
+def mega_test():
+    file_key = "-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"# "kAoS2QqT"
+    file_key = base64_to_a32(file_key)
+    print(file_key)
+
+
+def base64_to_a32(s):
+    return str_to_a32(base64_url_decode(s))
+
+
+def base64_url_decode(data):
+    data += '=='[(2 - len(data) * 3) % 4:]
+    for search, replace in (('-', '+'), ('_', '/'), (',', '')):
+        data = data.replace(search, replace)
+    return base64.b64decode(data)
+
+
+def str_to_a32(b):
+    if isinstance(b, str):
+        b = makebyte(b)
+    if len(b) % 4:
+        # pad to multiple of 4
+        b += b'\0' * (4 - len(b) % 4)
+    return struct.unpack('>%dI' % (len(b) / 4), b)
+
+
+def makebyte(x):
+    import codecs
+    return codecs.latin_1_encode(x)[0]
+
+
+def parse_url(url: str):
+    url = url.replace(' ', '')
+    file_id = re.findall(r'\W\w\w\w\w\w\w\w\w\W', url)[0][1:-1]
+    id_index = re.search(file_id, url).end()
+    key = url[id_index + 1:]
+    return f'{file_id}!{key}'
+
+
 if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
-    parse_pixiv_links()
+    # parse_pixiv_links()
+    mega_test()
+    #print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()
     # selenium_testing()
