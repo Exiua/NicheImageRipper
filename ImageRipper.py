@@ -74,16 +74,21 @@ class ImageRipper:
                 Config.config['LOGINS', 'DeviantArtU'],
                 Config.config['LOGINS', 'DeviantArtP']
             ),
-            "porn3dxu": (
+            "porn3dx": (
                 Config.config["LOGINS", "Porn3dxU"],
                 Config.config["LOGINS", "Porn3dxP"]
-            )
+            ),
+            "mega": (
+                Config.config["LOGINS", "MegaU"],
+                Config.config["LOGINS", "MegaP"]
+            ),
         }
         self.logged_in: bool = os.path.isfile("cookies.pkl")
         self.save_path: str = Config.config['DEFAULT', 'SavePath']
         self.session: requests.Session = requests.Session()
         self.site_name: str = ""
         self.sleep_time: float = 0.2
+        self.current_index: int = 0
 
         # region Extra Initialization
 
@@ -145,6 +150,16 @@ class ImageRipper:
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
 
+        if os.path.exists(".ripIndex"):
+            with open(".ripIndex", "r") as f:
+                start = int(f.read())
+            os.remove(".ripIndex")
+        else:
+            if self.folder_info.must_generate_manually:
+                start = 1
+            else:
+                start = 0
+
         # Can get the image through numerically ascending url for imhentai and hentairox
         #   (hard to account for gifs otherwise)
         if self.folder_info.must_generate_manually:
@@ -154,7 +169,8 @@ class ImageRipper:
 
             # Downloads all images from the general url by incrementing the file number
             #   (eg. https://domain/gallery/##.jpg)
-            for index in range(1, int(self.folder_info.num_urls) + 1):
+            for index in range(start, int(self.folder_info.num_urls) + 1):
+                self.current_index = index
                 file_num = str(index)
 
                 while self.pause:
@@ -179,7 +195,8 @@ class ImageRipper:
                 self.__deviantart_download(full_path, self.folder_info.urls[0])
             else:
                 cyberdrop_files: list[str] = []
-                for i, link in enumerate(self.folder_info.urls):
+                for i, link in enumerate(self.folder_info.urls[start:]):
+                    self.current_index = i
                     while self.pause:
                         sleep(1)
                     sleep(self.sleep_time)
@@ -414,35 +431,11 @@ class ImageRipper:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
                 return ".jpg"
 
-    def __write_partial_save(self, site_info: RipInfo):
-        """Saves parsed site data to quickly retrieve in event of a failure"""
-        # TODO
-        data: dict[str, dict | str] = {
-            self.given_url: site_info.serialize(),
-            "cookies": self.requests_header["cookie"]
-        }
-        with open("partial.json", 'w') as save_file:
-            json.dump(data, save_file, indent=4)
-
-    @staticmethod
-    def read_partial_save() -> dict[str, RipInfo | str]:
-        """Read site_info from partial save file"""
-        try:
-            with open("partial.json", 'r') as load_file:
-                data: dict = json.load(load_file)
-                key: str
-                for key in data:
-                    if isinstance(data[key], dict):
-                        data[key] = RipInfo.deserialize(data[key])
-                return data
-        except FileNotFoundError:
-            pass  # Doesn't matter if the cached data doesn't exist, will regen instead
-
     def __verify_files(self, full_path: str):
         """Check for truncated and corrupted files"""
         _, _, files = next(os.walk(full_path))
         files = natsorted(files)
-        image_links = self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
+        image_links = []  # self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
         log_file = open("error.log", "w")
         log_file.close()
         vid_ext = (".m4v", ".mp4", ".mov", ".webm")

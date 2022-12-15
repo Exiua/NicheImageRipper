@@ -63,6 +63,9 @@ class NicheImageRipper(QWidget):
         self.url_queue = Queue()
         self.live_update: bool = False
         self.rerip_ask: bool = True
+        self.interrupted: bool = False
+        # noinspection PyTypeChecker
+        self.ripper: ImageRipper = None
         self.filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL
         self.status_sync: StatusSync = StatusSync()
         self.ripper_thread: threading.Thread = threading.Thread()
@@ -224,6 +227,9 @@ class NicheImageRipper(QWidget):
         # self.save_to_json('RipHistory.json', self.get_history_data())  # Save history data
         if self.url_queue.not_empty:
             self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
+        if self.interrupted and self.ripper.current_index > 1:
+            with open(".ripIndex", "w") as f:
+                f.write(str(self.ripper.current_index))
         NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder  # Update the config
         # NicheImageRipper.config['DEFAULT', 'Theme'] = self.theme_color
         NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
@@ -308,10 +314,12 @@ class NicheImageRipper(QWidget):
         while self.url_queue.qsize() != 0:
             url = self.url_queue.queue[0]
             print(url)
-            ripper = ImageRipper(self.filename_scheme)
-            ripper.rip(url)
+            self.ripper = ImageRipper(self.filename_scheme)
+            self.interrupted = True
+            self.ripper.rip(url)
+            self.interrupted = False
             self.url_queue.get()
-            self.update_display.emit(ripper, url)
+            self.update_display.emit(self.ripper, url)
             self.display_sync.acquire()
 
     def update_display_sequence(self, ripper: ImageRipper, url: str):
