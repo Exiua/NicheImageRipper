@@ -10,13 +10,15 @@ import time
 from math import ceil
 from os import path
 from time import sleep
-from typing import Callable
+from typing import Callable, Tuple
 from urllib.parse import urlparse
 
 import bs4
 import requests
 import selenium
 import tldextract
+from mega import Mega
+from mega.crypto import base64_to_a32, base64_url_decode, decrypt_attr, decrypt_key
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -254,11 +256,11 @@ class HtmlParser:
         try:
             with open("partial.json", 'r') as load_file:
                 data: dict = json.load(load_file)
-                key: str
-                for key in data:
-                    if isinstance(data[key], dict):
-                        data[key] = RipInfo.deserialize(data[key])
-                return data
+            key: str
+            for key in data:
+                if isinstance(data[key], dict):
+                    data[key] = RipInfo.deserialize(data[key])
+            return data
         except FileNotFoundError:
             pass  # Doesn't matter if the cached data doesn't exist, will regen instead
 
@@ -1221,7 +1223,85 @@ class HtmlParser:
     def kemono_parse(self) -> RipInfo:
         """Read the html for kemono.party"""
         # Parses the html of the site
-        return self.__dot_party_parse("https://kemono.party")
+        cookies = self.driver.get_cookies()
+        cookie_str = ''
+        for c in cookies:
+            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+        requests_header["cookie"] = cookie_str
+        base_url = self.driver.current_url
+        base_url = base_url.split("/")
+        source_site = base_url[3]
+        base_url = "/".join(base_url[:6])
+        page_url = self.driver.current_url.split("?")[0]
+        sleep(5)
+        soup = self.soupify()
+        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+        dir_name = f"{dir_name} - ({source_site})"
+
+        # region Get All Posts
+        page = 0
+        image_links = []
+        while True:
+            page += 1
+            print("".join(["Parsing page ", str(page)]))
+            image_list = soup.find("div", class_="card-list__items").find_all("article")
+            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+            image_links.extend(image_list)
+            next_page = f"{page_url}?o={str(page * 50)}"
+            print(next_page)
+            soup = self.soupify(next_page)
+            self._print_html(soup)
+            test_str = soup.find("h2", class_="site-section__subheading")
+            if test_str is not None:
+                break
+
+        # endregion
+
+        # region Parse All Posts
+        images = []
+        mega_links = []
+        gdrive_links = []
+        num_posts = len(image_links)
+        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
+        for i, link in enumerate(image_links):
+            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+            soup = self.soupify(link)
+            links = soup.find_all("a")
+            links = [link.get("href") for link in links]
+            possible_links_p = soup.find_all("p")
+            possible_links = [tag.text for tag in possible_links_p]
+            possible_links_div = soup.find_all("div")
+            possible_links.extend([tag.text for tag in possible_links_div])
+            m_links = [link + "\n" for link in links if "mega.nz" in link]
+            gd_links = [link + "\n" for link in links if "drive.google.com" in link]
+            for text in possible_links:
+                for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
+                    if domain_list[0] not in text:
+                        continue
+                    parts = text.split()
+                    for part in parts:
+                        if domain_list[0] in part:
+                            domain_list[1].append(part + "\n")
+            attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
+                           links
+                           if any(ext in link for ext in ATTACHMENTS)]
+            images.extend(attachments)
+            mega_links.extend(list(dict.fromkeys(m_links)))
+            gdrive_links.extend(list(dict.fromkeys(gd_links)))
+            image_list = soup.find("div", class_="post__files")
+            if image_list is not None:
+                image_list = image_list.find_all("a", class_="fileThumb image-link")
+                image_list = ["".join(["https://kemono.party".replace("//", "//data1."), img.get("href")]) for img in
+                              image_list]
+                images.extend(image_list)
+
+        # endregion
+
+        with open("megaLinks.txt", "a", encoding="utf-16") as f:
+            f.writelines(mega_links)
+        with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
+            f.writelines(gdrive_links)
+        return RipInfo(images, dir_name)
 
     def leakedbb_parse(self) -> RipInfo:
         """Read the html for leakedbb.com"""
@@ -2106,7 +2186,8 @@ class HtmlParser:
         finally:
             self.driver.quit()
 
-    def _test_site_check(self, url: str) -> str:
+    @staticmethod
+    def _test_site_check(url: str) -> str:
         domain = urlparse(url).netloc
         requests_header['referer'] = "".join([SCHEME, domain, "/"])
         domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
@@ -2136,6 +2217,81 @@ class HtmlParser:
             f.write(f"[{title}]\n")
             for d in data:
                 f.write(f"\t{str(d).strip()}\n")
+
+    @staticmethod
+    def _download_from_mega(url: str, dest_path: str):
+        username = Config.config["LOGINS", "MegaU"]
+        password = Config.config["LOGINS", "MegaP"]
+
+        mega = Mega()
+        m = mega.login()#username, password)
+        if "/file/" not in url:
+            (root_folder, shared_enc_key) = HtmlParser.__parse_folder_url(url)
+            shared_key = base64_to_a32(shared_enc_key)
+            nodes = HtmlParser.__get_nodes_in_shared_folder(root_folder)
+            for node in nodes:
+                key = HtmlParser.__decrypt_node_key(node["k"], shared_key)
+                if node["t"] == 0:  # Is a file
+                    k = (key[0] ^ key[4], key[1] ^ key[5], key[2] ^ key[6], key[3] ^ key[7])
+                elif node["t"] == 1:  # Is a folder
+                    k = key
+                    continue
+                else:
+                    raise Exception("Not file or folder")
+                attrs = decrypt_attr(base64_url_decode(node["a"]), k)
+                file_name = attrs["n"]
+                file_id = node["h"]
+                print(f"{file_name} | {file_id}")
+                file_url = f"{url}/file/{file_id}"
+                #print(HtmlParser.__get_file_info(root_folder, node))
+                #p = m._download_file(file_handle=file_id, file_key=key, dest_path=dest_path, dest_filename=file_name, is_public=True)
+                m.download_url(file_url, dest_path, file_name)
+
+    @staticmethod
+    def __get_file_info(root_folder: str, node: dict):
+        data = [{"a": "g", "g": 1, "n": node["h"]}]
+        response = requests.post(
+            "https://g.api.mega.co.nz/cs",
+            params={"id": 0,  # self.sequence_num
+                    "n": root_folder},
+            data=json.dumps(data)
+        )
+        json_resp = response.json()
+        return json_resp[0]["g"]
+
+    @staticmethod
+    def __get_nodes_in_shared_folder(root_folder: str) -> dict:
+        data = [{"a": "f", "c": 1, "ca": 1, "r": 1}]
+        response = requests.post(
+            "https://g.api.mega.co.nz/cs",
+            params={"id": 0,  # self.sequence_num
+                    "n": root_folder},
+            data=json.dumps(data)
+        )
+        json_resp = response.json()
+        return json_resp[0]["f"]
+
+    @staticmethod
+    def __parse_folder_url(url: str) -> Tuple[str, str] | None:
+        """Returns (public_handle, key) if valid. If not returns None."""
+        REGEXP1 = re.compile(r"mega.[^/]+/folder/([0-z-_]+)#([0-z-_]+)(?:/folder/([0-z-_]+))*")
+        REGEXP2 = re.compile(r"mega.[^/]+/#F!([0-z-_]+)[!#]([0-z-_]+)(?:/folder/([0-z-_]+))*")
+        m = re.search(REGEXP1, url)
+        if not m:
+            m = re.search(REGEXP2, url)
+        if not m:
+            print("Not a valid URL")
+            return None
+        root_folder = m.group(1)
+        key = m.group(2)
+        # You may want to use m.groups()[-1]
+        # to get the id of the subfolder
+        return root_folder, key
+
+    @staticmethod
+    def __decrypt_node_key(key_str: str, shared_key: str) -> Tuple[int, ...]:
+        encrypted_key = base64_to_a32(key_str.split(":")[1])
+        return decrypt_key(encrypted_key, shared_key)
 
     # TODO: Merge the if/else
     def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5,
@@ -2200,5 +2356,6 @@ if __name__ == "__main__":
     parser = HtmlParser(requests_header)
 
     start = time.process_time_ns()
-    print(parser._test_parse(args.url, args.debug))
+    HtmlParser._download_from_mega("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg", "./Temp")
+    # print(parser._test_parse(args.url, args.debug))
     end = time.process_time_ns()
