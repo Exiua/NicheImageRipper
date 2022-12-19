@@ -2,7 +2,7 @@ from platform import version
 import sys
 from bs4 import BeautifulSoup
 import requests
-from rippers import ImageRipper
+from Util import ImageRipper
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
@@ -54,7 +54,7 @@ def _test_parse(given_url: str) -> tuple[list[str], int, str]:
         driver.quit()
 
 if __name__ == "__main__":
-    #download_file(sys.argv[1])
+    #__download_file(sys.argv[1])
     #get_latests_repo_version()
     #print(_test_parse(sys.argv[1]))
     ripper = ImageRipper()

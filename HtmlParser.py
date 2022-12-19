@@ -1,17 +1,24 @@
+from __future__ import annotations
+
+import argparse
 import json
+import os
 import pickle
 import re
 import sys
+import time
 from math import ceil
 from os import path
 from time import sleep
-from typing import Callable
+from typing import Callable, Tuple
 from urllib.parse import urlparse
 
 import bs4
 import requests
 import selenium
 import tldextract
+from mega import Mega
+from mega.crypto import base64_to_a32, base64_url_decode, decrypt_attr, decrypt_key
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -20,37 +27,42 @@ from selenium.webdriver.firefox.options import Options
 
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from rippers import DRIVER_HEADER, requests_header, PARSER, DEBUG, PROTOCOL, SCHEME, read_config, url_check
+from Util import SCHEME, url_check, Config
 
+PROTOCOL: str = "https:"
+PARSER: str = "lxml"  # "html.parser" lxml is faster
+DRIVER_HEADER: str = (
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64"
+    "; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+# Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+# Chrome/W.X.Y.Z‡ Safari/537.36")
+
+requests_header: dict[str, str] = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+    'referer':
+        'https://imhentai.xxx/',
+    'cookie':
+        ''
+}
 logged_in: bool
-PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
-TEST_PARSER: str
+
 
 class HtmlParser:
-    def __init__(self, site_name: str = ""):
+    def __init__(self, header: dict[str, str], site_name: str = ""):
         global logged_in
         options = Options()
         options.headless = site_name != "v2ph" or logged_in
         options.add_argument = DRIVER_HEADER
+        options.set_preference("dom.disable_beforeunload", True)
+        options.set_preference("browser.tabs.warnOnClose", False)
         self.driver = webdriver.Firefox(options=options)
         self.interrupted: bool = False
         self.site_name: str = site_name
         self.sleep_time: float = 0.2
         self.given_url: str = ""
-
-    def parse_site(self, url: str) -> RipInfo:
-        if path.isfile("partial.json"):
-            save_data: dict = self.read_partial_save()
-            if url in save_data:
-                requests_header["cookie"] = save_data["cookies"]
-                self.interrupted = True
-                return save_data[url]
-        url = url.replace("members.", "www.")
-        self.given_url = url
-        self.driver.get(url)
-        self.site_name = self.site_check()
-        global PARSER_SWITCH
-        PARSER_SWITCH = {
+        self.requests_header: dict[str, str] = header
+        self.parser_jump_table: dict[str, Callable[[], RipInfo]] = {
             "imhentai": self.imhentai_parse,
             "hotgirl": self.hotgirl_parse,
             "cup-e": self.cupe_parse,
@@ -160,9 +172,25 @@ class HtmlParser:
             "jpg": self.jpg_parse,
             "artstation": self.artstation_parse,
             "porn3dx": self.porn3dx_parse,
-            "deviantart": self.deviantart_parse
+            "deviantart": self.deviantart_parse,
+            "readmanganato": self.manganato_parse,
+            "manganato": self.manganato_parse,
+            "sfmcompile": self.sfmcompile_parse
         }
-        site_parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(self.site_name)
+
+    def parse_site(self, url: str) -> RipInfo:
+        if path.isfile("partial.json"):
+            save_data: dict = self.read_partial_save()
+            if url in save_data:
+                requests_header["cookie"] = save_data["cookies"]
+                requests_header["referer"] = save_data["referer"]
+                self.interrupted = True
+                return save_data[url]
+        url = url.replace("members.", "www.")
+        self.given_url = url
+        self.driver.get(url)
+        self.site_name = self.site_check()
+        site_parser: Callable[[], RipInfo] = self.parser_jump_table.get(self.site_name)
         try:
             site_info: RipInfo = site_parser()
         finally:
@@ -191,11 +219,34 @@ class HtmlParser:
         raise RipperError("Not a support site")
 
     @staticmethod
+    def sequential_rename(old_name: str, new_name: str):
+        try:
+            os.rename(old_name, new_name)
+        except FileExistsError:
+            new_name = " (1).".join(new_name.rsplit(".", 1))
+            print(f"{old_name} -> {new_name}", end='\r')
+            try:
+                os.rename(old_name, new_name)
+            except FileExistsError:
+                counter = 2
+                while True:
+                    new_name = re.sub(r"\(\d+\)", f"({counter})", new_name)
+                    print(f"{old_name} -> {new_name}", end='\r')
+                    try:
+                        os.rename(old_name, new_name)
+                        break
+                    except FileExistsError:
+                        counter += 1
+
+    @staticmethod
     def write_partial_save(site_info: RipInfo, given_url: str):
         """Saves parsed site data to quickly retrieve in event of a failure"""
         # TODO
-        data: dict[str, RipInfo | str] = {given_url: site_info.serialize(),
-                                          "cookies": requests_header["cookie"]}
+        data: dict[str, RipInfo | str] = {
+            given_url: site_info.serialize(),
+            "cookies": requests_header["cookie"],
+            "referer": requests_header["referer"]
+        }
         with open("partial.json", 'w') as save_file:
             json.dump(data, save_file, indent=4)
 
@@ -205,11 +256,11 @@ class HtmlParser:
         try:
             with open("partial.json", 'r') as load_file:
                 data: dict = json.load(load_file)
-                key: str
-                for key in data:
-                    if isinstance(data[key], dict):
-                        data[key] = RipInfo.deserialize(data[key])
-                return data
+            key: str
+            for key in data:
+                if isinstance(data[key], dict):
+                    data[key] = RipInfo.deserialize(data[key])
+            return data
         except FileNotFoundError:
             pass  # Doesn't matter if the cached data doesn't exist, will regen instead
 
@@ -230,6 +281,19 @@ class HtmlParser:
         dir_name = image_list[0].find("img").get("alt")
         return RipInfo(images, dir_name)
 
+    def __generic_html_parser_2(self):
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+        for i in range(len(dir_name)):
+            if dir_name[i] == '-':
+                del dir_name[i:]
+                break
+        dir_name = " ".join(dir_name)
+        images = soup.find_all("div", class_="gallery_thumb")
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name)
+
     def __dot_party_parse(self, domain_url: str):
         cookies = self.driver.get_cookies()
         cookie_str = ''
@@ -244,7 +308,7 @@ class HtmlParser:
         sleep(5)
         soup = self.soupify()
         dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
-        dir_name = "".join([dir_name, " - (", source_site, ")"])
+        dir_name = f"{dir_name} - ({source_site})"
         page = 0
         image_links = []
         while True:
@@ -279,16 +343,13 @@ class HtmlParser:
             m_links = [link + "\n" for link in links if "mega.nz" in link]
             gd_links = [link + "\n" for link in links if "drive.google.com" in link]
             for text in possible_links:
-                if "drive.google.com" in text:
+                for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
+                    if domain_list[0] not in text:
+                        continue
                     parts = text.split()
                     for part in parts:
-                        if "drive.google.com" in part:
-                            gd_links.append(part + "\n")
-                if "mega.nz" in text:
-                    parts = text.split()
-                    for part in parts:
-                        if "mega.nz" in part:
-                            m_links.append(part + "\n")
+                        if domain_list[0] in part:
+                            domain_list[1].append(part + "\n")
             attachments = [domain_url + link if domain_url not in link else link for link in links
                            if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
@@ -297,8 +358,7 @@ class HtmlParser:
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join([domain_url.replace("//", "//data1."), img.get("href").split("?")[0]]) for img in
-                              image_list]
+                image_list = ["".join([domain_url.replace("//", "//data1."), img.get("href")]) for img in image_list]
                 images.extend(image_list)
         with open("megaLinks.txt", "a", encoding="utf-16") as f:
             f.writelines(mega_links)
@@ -504,17 +564,7 @@ class HtmlParser:
 
     def bustybloom_parse(self) -> RipInfo:
         """Read the html for bustybloom.com"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
-        for i in range(len(dir_name)):
-            if dir_name[i] == '-':
-                del dir_name[i:]
-                break
-        dir_name = " ".join(dir_name)
-        images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_2()
 
     def cherrynudes_parse(self) -> RipInfo:
         """Read the html for cherrynudes.com"""
@@ -903,8 +953,7 @@ class HtmlParser:
         images = [img.find("a", target="_blank").get("href") for img in images]
         images.insert(0, current_url)
         return RipInfo(images, dir_name)
-    global TEST_PARSER
-    TEST_PARSER = "gofile_parse"
+
     def grabpussy_parse(self) -> RipInfo:
         """Read the html for grabpussy.com"""
         # Parses the html of the site
@@ -996,7 +1045,7 @@ class HtmlParser:
             for index in range(2, int(num_pages) + 1):
                 page_url = "".join([url, str(index), '/'])
                 self.driver.get(page_url)
-                soup = BeautifulSoup(self.driver.page_source, PARSER)
+                soup = self.soupify()
                 images_list = soup.find_all("img", itemprop="image")
                 del images_list[0]  # First image is just the thumbnail
                 images_html.extend(images_list)
@@ -1095,7 +1144,7 @@ class HtmlParser:
     def imgur_parse(self) -> RipInfo:
         """Read the html for imgur.com"""
         # Parses the html of the site
-        client_id = read_config('KEYS', 'Imgur')
+        client_id = Config.config['KEYS', 'Imgur']
         if client_id == '':
             print("Client Id not properly set")
             print("Follow to generate Client Id: https://apidocs.imgur.com/#intro")
@@ -1174,7 +1223,85 @@ class HtmlParser:
     def kemono_parse(self) -> RipInfo:
         """Read the html for kemono.party"""
         # Parses the html of the site
-        return self.__dot_party_parse("https://kemono.party")
+        cookies = self.driver.get_cookies()
+        cookie_str = ''
+        for c in cookies:
+            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+        requests_header["cookie"] = cookie_str
+        base_url = self.driver.current_url
+        base_url = base_url.split("/")
+        source_site = base_url[3]
+        base_url = "/".join(base_url[:6])
+        page_url = self.driver.current_url.split("?")[0]
+        sleep(5)
+        soup = self.soupify()
+        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+        dir_name = f"{dir_name} - ({source_site})"
+
+        # region Get All Posts
+        page = 0
+        image_links = []
+        while True:
+            page += 1
+            print("".join(["Parsing page ", str(page)]))
+            image_list = soup.find("div", class_="card-list__items").find_all("article")
+            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+            image_links.extend(image_list)
+            next_page = f"{page_url}?o={str(page * 50)}"
+            print(next_page)
+            soup = self.soupify(next_page)
+            self._print_html(soup)
+            test_str = soup.find("h2", class_="site-section__subheading")
+            if test_str is not None:
+                break
+
+        # endregion
+
+        # region Parse All Posts
+        images = []
+        mega_links = []
+        gdrive_links = []
+        num_posts = len(image_links)
+        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
+        for i, link in enumerate(image_links):
+            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+            soup = self.soupify(link)
+            links = soup.find_all("a")
+            links = [link.get("href") for link in links]
+            possible_links_p = soup.find_all("p")
+            possible_links = [tag.text for tag in possible_links_p]
+            possible_links_div = soup.find_all("div")
+            possible_links.extend([tag.text for tag in possible_links_div])
+            m_links = [link + "\n" for link in links if "mega.nz" in link]
+            gd_links = [link + "\n" for link in links if "drive.google.com" in link]
+            for text in possible_links:
+                for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
+                    if domain_list[0] not in text:
+                        continue
+                    parts = text.split()
+                    for part in parts:
+                        if domain_list[0] in part:
+                            domain_list[1].append(part + "\n")
+            attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
+                           links
+                           if any(ext in link for ext in ATTACHMENTS)]
+            images.extend(attachments)
+            mega_links.extend(list(dict.fromkeys(m_links)))
+            gdrive_links.extend(list(dict.fromkeys(gd_links)))
+            image_list = soup.find("div", class_="post__files")
+            if image_list is not None:
+                image_list = image_list.find_all("a", class_="fileThumb image-link")
+                image_list = ["".join(["https://kemono.party".replace("//", "//data1."), img.get("href")]) for img in
+                              image_list]
+                images.extend(image_list)
+
+        # endregion
+
+        with open("megaLinks.txt", "a", encoding="utf-16") as f:
+            f.writelines(mega_links)
+        with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
+            f.writelines(gdrive_links)
+        return RipInfo(images, dir_name)
 
     def leakedbb_parse(self) -> RipInfo:
         """Read the html for leakedbb.com"""
@@ -1282,6 +1409,25 @@ class HtmlParser:
         dir_name = soup.find("div", class_="heading").find("h2", class_="title").text
         images = soup.find("div", class_="thumbs_box").find_all("div", class_="thumb_box")
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name)
+
+    def manganato_parse(self) -> RipInfo:
+        """Read the html for manganato.com"""
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="story-info-right").find("h1").text
+        next_chapter = soup.find("ul", class_="row-content-chapter").find_all("li", recursive=False)[-1].find("a")
+        images = []
+        counter = 1
+        while next_chapter:
+            print(f"Parsing Chapter {counter}")
+            counter += 1
+            self.driver.get(next_chapter.get("href"))
+            soup = self.soupify()
+            self._print_html(soup)
+            chapter_images = soup.find("div", class_="container-chapter-reader").find_all("img")
+            images.extend([img.get("src") for img in chapter_images])
+            next_chapter = soup.find("a", class_="navi-change-chapter-btn-next a-h")
         return RipInfo(images, dir_name)
 
     def maturewoman_parse(self) -> RipInfo:
@@ -1476,8 +1622,8 @@ class HtmlParser:
     def porn3dx_parse(self) -> RipInfo:
         """Read the html for porn3dx.com"""
         # Parses the html of the site
-        username = read_config("LOGINS", "Porn3dxU")
-        password = read_config("LOGINS", "Porn3dxP")
+        username = Config.config["LOGINS", "Porn3dxU"]
+        password = Config.config["LOGINS", "Porn3dxP"]
         curr_url = self.driver.current_url
         logged_in_to_site = False
         if username and password:
@@ -1637,17 +1783,7 @@ class HtmlParser:
 
     def sexyaporno_parse(self) -> RipInfo:
         """Read the html for sexyaporno.com"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
-        for i in range(len(dir_name)):
-            if dir_name[i] == '-':
-                del dir_name[i:]
-                break
-        dir_name = " ".join(dir_name)
-        images = soup.find_all("div", class_="gallery_thumb")
-        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
-        return RipInfo(images, dir_name)
+        return self.__generic_html_parser_2()
 
     def sexybabesart_parse(self) -> RipInfo:
         """Read the html for sexybabesart.com"""
@@ -1659,7 +1795,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     # TODO: Convert to thotsbay parser since this site moved
-    def _sexyegirls_parse(self) -> RipInfo:
+    def __sexyegirls_parse(self) -> RipInfo:
         """Read the html for sexy-egirls.com"""
         # Parses the html of the site
         sleep(1)  # Wait so images can load
@@ -1720,8 +1856,7 @@ class HtmlParser:
             for link in images:
                 if any(p in link for p in parsable_links):
                     site_name = urlparse(link).netloc
-                    global PARSER_SWITCH
-                    parser: Callable[[webdriver.Firefox], RipInfo] = PARSER_SWITCH.get(site_name)
+                    parser: Callable[[], RipInfo] = self.parser_jump_table.get(site_name)
                     image_list = self.secondary_parse(link, parser)
                     images.extend(image_list)
                     images.remove(link)
@@ -1755,6 +1890,35 @@ class HtmlParser:
         dir_name = soup.find("div", class_="box").find_all("h1")[1].text
         images = soup.find("div", class_="post_tn").find_all("img")
         images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name)
+
+    def sfmcompile_parse(self) -> RipInfo:
+        """Read the html for sfmcompile.club"""
+        # Parses the html of the site
+        soup = self.soupify()
+        self._print_html(soup)
+        dir_name = soup.find("h1", class_="g1-alpha g1-alpha-2nd page-title archive-title").text.replace("\"", "")
+        elements = []
+        images = []
+        while True:
+            elements.extend(soup.find("ul", class_="g1-collection-items").find_all("li", class_="g1-collection-item"))
+            next_page = soup.find("a", class_="g1-link g1-link-m g1-link-right next")
+            if next_page:
+                next_page = next_page.get("href")
+                soup = self.soupify(next_page)
+            else:
+                break
+        for element in elements:
+            media = element.find("video")
+            with open("test.html", "w") as f:
+                f.write(str(element))
+            if media:
+                video_src = media.find("a").get("href")
+            else:
+                video_link = element.find("a", class_="g1-frame").get("href")
+                soup = self.soupify(video_link)
+                video_src = soup.find("video").find("source").get("src")
+            images.append(video_src)
         return RipInfo(images, dir_name)
 
     def silkengirl_parse(self) -> RipInfo:
@@ -2003,7 +2167,7 @@ class HtmlParser:
             for img in images]
         return RipInfo(images, dir_name)
 
-    def _test_parse(self, given_url: str) -> RipInfo:
+    def _test_parse(self, given_url: str, debug: bool) -> RipInfo:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
         # ripper = ImageRipper()
@@ -2011,15 +2175,28 @@ class HtmlParser:
         # return
         try:
             options = Options()
-            options.headless = not DEBUG
+            options.headless = not debug
             options.add_argument(DRIVER_HEADER)
             self.driver = webdriver.Firefox(options=options)
             self.driver.get(given_url.replace("members.", "www."))
             # rip = ImageRipper(given_url)
             # rip.site_login(self.driver)
-            return eval(f"self.{TEST_PARSER}()")
+            site_name = self._test_site_check(given_url)
+            return eval(f"self.{site_name}_parse()")
         finally:
             self.driver.quit()
+
+    @staticmethod
+    def _test_site_check(url: str) -> str:
+        domain = urlparse(url).netloc
+        requests_header['referer'] = "".join([SCHEME, domain, "/"])
+        domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+        # Hosts images on a different domain
+        if "https://members.hanime.tv/" in url or "https://hanime.tv/" in url:
+            requests_header['referer'] = "https://cdn.discordapp.com/"
+        elif "https://kemono.party/" in url:
+            requests_header['referer'] = ""
+        return domain
 
     def secondary_parse(self, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[str] | str:
         """Parses the html for links for supported sites used in other sites"""
@@ -2029,15 +2206,92 @@ class HtmlParser:
         self.driver.get(curr)
         return images
 
-    def _print_html(self, soup: BeautifulSoup):
+    @staticmethod
+    def _print_html(soup: BeautifulSoup):
         with open("html.html", "w", encoding="utf-8") as f:
             f.write(str(soup))
 
-    def _print_debug_info(self, title: str, *data, fd="output.txt", clear=False):
+    @staticmethod
+    def _print_debug_info(title: str, *data, fd="output.txt", clear=False):
         with open(fd, "w" if clear else "a") as f:
             f.write(f"[{title}]\n")
             for d in data:
                 f.write(f"\t{str(d).strip()}\n")
+
+    @staticmethod
+    def _download_from_mega(url: str, dest_path: str):
+        username = Config.config["LOGINS", "MegaU"]
+        password = Config.config["LOGINS", "MegaP"]
+
+        mega = Mega()
+        m = mega.login()#username, password)
+        if "/file/" not in url:
+            (root_folder, shared_enc_key) = HtmlParser.__parse_folder_url(url)
+            shared_key = base64_to_a32(shared_enc_key)
+            nodes = HtmlParser.__get_nodes_in_shared_folder(root_folder)
+            for node in nodes:
+                key = HtmlParser.__decrypt_node_key(node["k"], shared_key)
+                if node["t"] == 0:  # Is a file
+                    k = (key[0] ^ key[4], key[1] ^ key[5], key[2] ^ key[6], key[3] ^ key[7])
+                elif node["t"] == 1:  # Is a folder
+                    k = key
+                    continue
+                else:
+                    raise Exception("Not file or folder")
+                attrs = decrypt_attr(base64_url_decode(node["a"]), k)
+                file_name = attrs["n"]
+                file_id = node["h"]
+                print(f"{file_name} | {file_id}")
+                file_url = f"{url}/file/{file_id}"
+                #print(HtmlParser.__get_file_info(root_folder, node))
+                #p = m._download_file(file_handle=file_id, file_key=key, dest_path=dest_path, dest_filename=file_name, is_public=True)
+                m.download_url(file_url, dest_path, file_name)
+
+    @staticmethod
+    def __get_file_info(root_folder: str, node: dict):
+        data = [{"a": "g", "g": 1, "n": node["h"]}]
+        response = requests.post(
+            "https://g.api.mega.co.nz/cs",
+            params={"id": 0,  # self.sequence_num
+                    "n": root_folder},
+            data=json.dumps(data)
+        )
+        json_resp = response.json()
+        return json_resp[0]["g"]
+
+    @staticmethod
+    def __get_nodes_in_shared_folder(root_folder: str) -> dict:
+        data = [{"a": "f", "c": 1, "ca": 1, "r": 1}]
+        response = requests.post(
+            "https://g.api.mega.co.nz/cs",
+            params={"id": 0,  # self.sequence_num
+                    "n": root_folder},
+            data=json.dumps(data)
+        )
+        json_resp = response.json()
+        return json_resp[0]["f"]
+
+    @staticmethod
+    def __parse_folder_url(url: str) -> Tuple[str, str] | None:
+        """Returns (public_handle, key) if valid. If not returns None."""
+        REGEXP1 = re.compile(r"mega.[^/]+/folder/([0-z-_]+)#([0-z-_]+)(?:/folder/([0-z-_]+))*")
+        REGEXP2 = re.compile(r"mega.[^/]+/#F!([0-z-_]+)[!#]([0-z-_]+)(?:/folder/([0-z-_]+))*")
+        m = re.search(REGEXP1, url)
+        if not m:
+            m = re.search(REGEXP2, url)
+        if not m:
+            print("Not a valid URL")
+            return None
+        root_folder = m.group(1)
+        key = m.group(2)
+        # You may want to use m.groups()[-1]
+        # to get the id of the subfolder
+        return root_folder, key
+
+    @staticmethod
+    def __decrypt_node_key(key_str: str, shared_key: str) -> Tuple[int, ...]:
+        encrypted_key = base64_to_a32(key_str.split(":")[1])
+        return decrypt_key(encrypted_key, shared_key)
 
     # TODO: Merge the if/else
     def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5,
@@ -2070,16 +2324,38 @@ class HtmlParser:
                 last_height = new_height
         self.driver.implicitly_wait(10)
 
-    def mark_as_failed(self, url: str):
+    @staticmethod
+    def log_failed_url(url: str):
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
-    def soupify(self) -> BeautifulSoup:
+    def soupify(self, url: str | None = None) -> BeautifulSoup:
         """Return BeautifulSoup object of html from driver"""
+        if url:
+            self.driver.get(url)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
 
 if __name__ == "__main__":
-    parser = HtmlParser()
-    print(parser._test_parse(sys.argv[1]))
+    requests_header: dict[str, str] = {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x'
+            '64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+        'referer':
+            'https://imhentai.xxx/',
+        'cookie':
+            ''
+    }
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("url", type=str)
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+
+    parser = HtmlParser(requests_header)
+
+    start = time.process_time_ns()
+    HtmlParser._download_from_mega("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg", "./Temp")
+    # print(parser._test_parse(args.url, args.debug))
+    end = time.process_time_ns()
