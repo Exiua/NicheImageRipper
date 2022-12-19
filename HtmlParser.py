@@ -175,7 +175,8 @@ class HtmlParser:
             "deviantart": self.deviantart_parse,
             "readmanganato": self.manganato_parse,
             "manganato": self.manganato_parse,
-            "sfmcompile": self.sfmcompile_parse
+            "sfmcompile": self.sfmcompile_parse,
+            "tsumino": self.tsumino_parse
         }
 
     def parse_site(self, url: str) -> RipInfo:
@@ -2053,6 +2054,20 @@ class HtmlParser:
         self.driver.quit()
         return RipInfo(images, dir_name)
 
+    def tsumino_parse(self) -> RipInfo:
+        """Read the html for tsumino.com"""
+        #Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="book-title").text
+        num_pages = int(soup.find("div", id="Pages").text.strip())
+        pager_url = self.driver.current_url.replace("/entry/", "/Read/Index/") + "?page="
+        images = []
+        for i in range(1, num_pages + 1):
+            soup = self.soupify(pager_url + str(i), 3)
+            src = soup.find("img", class_="img-responsive reader-img").get("src")
+            images.append(src)
+        return RipInfo(images, dir_name)
+
     # TODO: Cert Date Invalid; Build Test Later
     def tuyangyan_parse(self) -> RipInfo:
         """Read the html for tuyangyan.com"""
@@ -2329,10 +2344,12 @@ class HtmlParser:
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
-    def soupify(self, url: str | None = None) -> BeautifulSoup:
+    def soupify(self, url: str | None = None, delay: float = 0) -> BeautifulSoup:
         """Return BeautifulSoup object of html from driver"""
         if url:
             self.driver.get(url)
+            if delay != 0:
+                sleep(delay)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
@@ -2356,6 +2373,6 @@ if __name__ == "__main__":
     parser = HtmlParser(requests_header)
 
     start = time.process_time_ns()
-    HtmlParser._download_from_mega("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg", "./Temp")
-    # print(parser._test_parse(args.url, args.debug))
+    # HtmlParser._download_from_mega("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg", "./Temp")
+    print(parser._test_parse(args.url, args.debug))
     end = time.process_time_ns()
