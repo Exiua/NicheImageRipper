@@ -99,7 +99,7 @@ def url_check(given_url: str) -> bool:
              "https://www.jkforum.net/", "https://leakedbb.com/", "https://e-hentai.org/",
              "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/",
              "https://www.deviantart.com/", "https://readmanganato.com/", "https://manganato.com/",
-             "https://sfmcompile.club/", "https://www.tsumino.com/")
+             "https://sfmcompile.club/", "https://www.tsumino.com/", "https://danbooru.donmai.us/")
     return any(given_url.startswith(x) for x in sites)
 
 

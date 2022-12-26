@@ -20,6 +20,7 @@ import tldextract
 from mega import Mega
 from mega.crypto import base64_to_a32, base64_url_decode, decrypt_attr, decrypt_key
 from bs4 import BeautifulSoup
+from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
@@ -176,7 +177,8 @@ class HtmlParser:
             "readmanganato": self.manganato_parse,
             "manganato": self.manganato_parse,
             "sfmcompile": self.sfmcompile_parse,
-            "tsumino": self.tsumino_parse
+            "tsumino": self.tsumino_parse,
+            "danbooru": self.danbooru_parse
         }
 
     def parse_site(self, url: str) -> RipInfo:
@@ -206,9 +208,11 @@ class HtmlParser:
             hosts the files
         """
         if url_check(self.given_url):
+            special_domains = ("inven.co.kr", "danbooru.donmai.us")
             domain = urlparse(self.given_url).netloc
             requests_header['referer'] = "".join([SCHEME, domain, "/"])
-            domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+            domain_parts = domain.split(".")
+            domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else domain_parts[-2]
             # Hosts images on a different domain
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
                 requests_header['referer'] = "https://cdn.discordapp.com/"
@@ -670,6 +674,26 @@ class HtmlParser:
         image_list = soup.find_all("div", class_="image-container column")
         images = [image.find("a", class_="image").get("href")
                   for image in image_list]
+        return RipInfo(images, dir_name)
+
+    def danbooru_parse(self) -> RipInfo:
+        """Read the html for danbooru.donmai.us"""
+        # Parses the html of the site
+        url = self.driver.current_url
+        tags = url.split("tags=")[-1]
+        tags = tags.split("&")[0]
+        tags = tags.replace("+", " ")
+        dir_name = tags
+        images = []
+        client = Danbooru('danbooru')
+        i = 0
+        while True:
+            posts = client.post_list(tags=tags, page=i)
+            i += 1
+            if len(posts) == 0:
+                break
+            images.extend([post["file_url"] for post in posts if "file_url" in post])
+            sleep(0.1)
         return RipInfo(images, dir_name)
 
     def decorativemodels_parse(self) -> RipInfo:
@@ -2224,17 +2248,31 @@ class HtmlParser:
         finally:
             self.driver.quit()
 
-    @staticmethod
-    def _test_site_check(url: str) -> str:
+    def _test_site_check(self, url: str) -> str:
         domain = urlparse(url).netloc
         requests_header['referer'] = "".join([SCHEME, domain, "/"])
-        domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+        domain = self._domain_name_override(domain)
+        # if not domain:
+        #     domain = domain.split(".")[-2]
+        #domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
         # Hosts images on a different domain
         if "https://members.hanime.tv/" in url or "https://hanime.tv/" in url:
             requests_header['referer'] = "https://cdn.discordapp.com/"
         elif "https://kemono.party/" in url:
             requests_header['referer'] = ""
         return domain
+
+    @staticmethod
+    def _domain_name_override(url: str) -> str:
+        special_domains = ("inven.co.kr", "danbooru.donmai.us")
+        url_split = url.split(".")
+        return url_split[-3] if any(domain in url for domain in special_domains) else url_split[-2]
+        # if "inven.co.kr" in url:
+        #     return "inven"
+        # if "danbooru.donmai.us" in url:
+        #     return "danbooru"
+        # else:
+        #     return None
 
     def secondary_parse(self, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[str] | str:
         """Parses the html for links for supported sites used in other sites"""

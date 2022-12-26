@@ -580,11 +580,28 @@ def parse_url(url: str):
     return f'{file_id}!{key}'
 
 
+def danbooru_parse():
+    from pybooru import Danbooru
+    from time import sleep
+
+    client = Danbooru('danbooru')
+    links = []
+    i = 0
+    while True:
+        posts = client.post_list(tags="deaver -navel", page=i)
+        i += 1
+        if len(posts) == 0:
+            break
+        links.extend([post["file_url"] for post in posts if "file_url" in post])
+        sleep(0.1)
+    print(links, len(links))
+
+
 if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
     # parse_pixiv_links()
-    mega_test()
+    danbooru_parse()
     #print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()
