@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
 
 from RipInfo import RipInfo
@@ -32,8 +33,7 @@ from Util import SCHEME, url_check, Config
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # "html.parser" lxml is faster
 DRIVER_HEADER: str = (
-    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64"
-    "; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36")
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
 
@@ -53,10 +53,10 @@ class HtmlParser:
         global logged_in
         options = Options()
         options.headless = site_name != "v2ph" or logged_in
-        options.add_argument = DRIVER_HEADER
+        options.add_argument(DRIVER_HEADER)
         options.set_preference("dom.disable_beforeunload", True)
         options.set_preference("browser.tabs.warnOnClose", False)
-        self.driver = webdriver.Firefox(options=options)
+        self.driver: webdriver.Firefox = webdriver.Firefox(options=options)
         self.interrupted: bool = False
         self.site_name: str = site_name
         self.sleep_time: float = 0.2
@@ -263,7 +263,7 @@ class HtmlParser:
                     data[key] = RipInfo.deserialize(data[key])
             return data
         except FileNotFoundError:
-            pass  # Doesn't matter if the cached data doesn't exist, will regen instead
+            return {"": ""}  # Doesn't matter if the cached data doesn't exist, will regen instead
 
     def site_login(self, site_name: str, given_url: str, logins: dict[str, str]):
         curr_url = self.driver.current_url
@@ -1302,6 +1302,29 @@ class HtmlParser:
             f.writelines(mega_links)
         with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
             f.writelines(gdrive_links)
+        return RipInfo(images, dir_name)
+
+    # unable to load closed shadow DOM
+    def __koushoku_parse(self) -> RipInfo:
+        """Read the html for koushoku.org"""
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("h2").text
+        num_images = int(soup.find_all("tr")[1].find_all("td")[1].text.split()[0])
+        base_url = self.driver.current_url
+        images = []
+        for i in range(1, num_images + 1):
+            self.driver.get(f"{base_url}/{str(i)}")
+            #input(".")
+            shadow_host = self.driver.find_element(By.XPATH, '//div[@class="main"]/a').click()
+            action = ActionChains(self.driver)
+            action.send_keys(Keys.TAB)
+            action.click()
+            input("1")
+            soup = BeautifulSoup(shadow_host.get_attribute("inner_html"), PARSER)
+            self._print_html(soup)
+            img = soup.find("img").get("src")
+            images.append(img)
         return RipInfo(images, dir_name)
 
     def leakedbb_parse(self) -> RipInfo:
