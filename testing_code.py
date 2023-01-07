@@ -5,6 +5,7 @@ import os
 import re
 import struct
 import subprocess
+import urllib.request
 from urllib.parse import urlparse
 
 import requests
@@ -13,6 +14,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+from Config import Config
 from HtmlParser import DRIVER_HEADER
 
 
@@ -202,12 +204,11 @@ def basename_test():
 
 
 def imgur_request():
-    response = requests.get("https://api.imgur.com/3/album/BEJ5oFZ",
-                            headers={'Authorization': 'Client-ID eb3193efe167c8e'})
+    client_id = Config.config.keys["Imgur"]
+    response = requests.get("https://api.imgur.com/3/image/gNJPnhT",
+                            headers={'Authorization': f'Client-ID {client_id}'})
     json_data = response.json()
-    print(len(json_data["data"]["images"]))
-    print([img.get("link")
-           for img in response.json().get("data").get("images")])
+    print(json_data["data"]["link"])
 
 
 def luscious_endpoint():
@@ -544,7 +545,7 @@ def sc_merge():
 
 
 def mega_test():
-    file_key = "-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"# "kAoS2QqT"
+    file_key = "-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"  # "kAoS2QqT"
     file_key = base64_to_a32(file_key)
     print(file_key)
 
@@ -607,20 +608,52 @@ def rule34_parse():
     while len(data) != 0:
         urls = [post["file_url"] for post in data]
         images.extend(urls)
-        response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&tags=todding")
+        response = requests.get(
+            f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&tags=todding")
         pid += 1
         data = response.json()
     print(len(images))
     with open("test.json", "w") as f:
         json.dump(images, f, indent=4)
-    #print(json)
+    # print(json)
+
+
+class CredentialsTest:
+    def __init__(self):
+        self.username = ""
+        self.password = ""
+
+
+def object_serialization_test():
+    cred = CredentialsTest()
+    with open("test.json", "w") as f:
+        json.dump(vars(cred), f, indent=4)
+
+
+def object_deserialization_test():
+    with open("test.json", "r") as f:
+        cred: CredentialsTest = json.load(f)
+    print(cred.username, cred.password)
+
+
+def iframe_test():
+    import urllib
+
+    #response = urllib.request.urlopen("https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
+    response = requests.get("https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
+    print(response.content)
+    with open("test.html", "wb") as f:
+        f.write(response.content)
+    soup = BeautifulSoup(response.content, "lxml")
+    print(soup.find("a", id="image-link").get("href"))
+
 
 if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
     # parse_pixiv_links()
-    rule34_parse()
-    #print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
+    imgur_request()
+    # print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()
     # selenium_testing()

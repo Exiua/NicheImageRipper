@@ -60,7 +60,11 @@ class Config:
                 "Mega": {
                     "Username": "",
                     "Password": ""
-                }
+                },
+                "TitsInTops": {
+                    "Username": "",
+                    "Password": ""
+                },
             },
             "Keys": {
                 "Imgur": ""

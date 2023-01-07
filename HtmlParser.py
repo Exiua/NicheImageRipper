@@ -26,6 +26,7 @@ from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
 from RipInfo import RipInfo
@@ -182,7 +183,8 @@ class HtmlParser:
             "tsumino": self.tsumino_parse,
             "danbooru": self.danbooru_parse,
             "flickr": self.flickr_parse,
-            "rule34": self.rule34_parse
+            "rule34": self.rule34_parse,
+            "titsintops": self.titsintops_parse
         }
 
     @property
@@ -220,7 +222,8 @@ class HtmlParser:
             domain = urlparse(self.given_url).netloc
             requests_header['referer'] = "".join([SCHEME, domain, "/"])
             domain_parts = domain.split(".")
-            domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else domain_parts[-2]
+            domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
+            domain_parts[-2]
             # Hosts images on a different domain
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
                 requests_header['referer'] = "https://cdn.discordapp.com/"
@@ -939,7 +942,8 @@ class HtmlParser:
         while True:
             print(f"Parsing page {page_count}")
             page_count += 1
-            posts = soup.select_one("div.view.photo-list-view.photostream").select("div.view.photo-list-photo-view.photostream")
+            posts = soup.select_one("div.view.photo-list-view.photostream").select(
+                "div.view.photo-list-photo-view.photostream")
             posts = [p.select_one("a.overlay").get("href") for p in posts]
             posts = [f"https://www.flickr.com{p}" for p in posts]
             image_posts.extend(posts)
@@ -950,22 +954,22 @@ class HtmlParser:
             else:
                 break
         for i, post in enumerate(image_posts):
-            print(f"Parsing post {i+1}: {post}")
+            print(f"Parsing post {i + 1}: {post}")
             delay = 0.1
             soup = self.soupify(post, delay=delay)
             script = soup.find("script", class_="modelExport").text
             while True:
                 try:
-                    params = '{"photoModel"' + script.split('{"photoModel"')[1] #("params: ")[1]
+                    params = '{"photoModel"' + script.split('{"photoModel"')[1]  # ("params: ")[1]
                     break
                 except IndexError:
                     delay *= 2
                     soup = self.soupify(post, delay=delay)
                     script = soup.find("script", class_="modelExport").text
             params = self._extract_json_object(params)
-            #print(params)
+            # print(params)
             params_json: dict = json.loads(params)
-            #print(params_json)
+            # print(params_json)
             img_url = params_json["photoModel"]["descendingSizes"][0]["url"]
             images.append(f"{PROTOCOL}{img_url}")
         return RipInfo(images, dir_name)
@@ -1396,7 +1400,7 @@ class HtmlParser:
         images = []
         for i in range(1, num_images + 1):
             self.driver.get(f"{base_url}/{str(i)}")
-            #input(".")
+            # input(".")
             shadow_host = self.driver.find_element(By.XPATH, '//div[@class="main"]/a').click()
             action = ActionChains(self.driver)
             action.send_keys(Keys.TAB)
@@ -1874,7 +1878,8 @@ class HtmlParser:
         while len(data) != 0:
             urls = [post["file_url"] for post in data]
             images.extend(urls)
-            response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            response = requests.get(
+                f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
             pid += 1
             data = response.json()
         return RipInfo(images, dir_name)
@@ -2171,18 +2176,52 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     # TODO: Complete this
-    def _titsintops_parse(self) -> RipInfo:
-        """Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site"""
+    def titsintops_parse(self) -> RipInfo:
+        """
+            Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
+        # noinspection PyPep8Naming
+        SITE_URL = "https://titsintops.com"
+        self.login()
         soup = self.soupify()
         dir_name = soup.find("h1", class_="p-title-value").text
-        images = soup.find()
-        self.driver.quit()
+        images = []
+        page_count = 1
+        while True:
+            print(f"Parsing page {page_count}")
+            page_count += 1
+            posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("div",
+                                                                                               class_="message-content js-messageContent")
+            for post in posts:
+                videos = post.find_all("video")
+                if videos:
+                    video_urls = [f"{SITE_URL}{vid.find('source').get('src')}" for vid in videos]
+                    images.extend(video_urls)
+                iframes = post.find_all("iframe")
+                if iframes:
+                    # with open("test.html", "w") as f:
+                    #     f.write(str(iframes))
+                    embedded_urls = [em.get("src") for em in iframes]
+                    embedded_urls = self.parse_embedded_urls(embedded_urls)
+                    images.extend(embedded_urls)
+                attachments = post.find("ul", class_="attachmentList")
+                if attachments:
+                    attachments = attachments.find_all("a", class_="file-preview js-lbImage")
+                    if attachments:
+                        attachment_urls = [f"{SITE_URL}{attach.get('href')}" for attach in attachments]
+                        images.extend(attachment_urls)
+            next_page = soup.find("a", class_="pageNav-jump pageNav-jump--next")
+            if next_page:
+                next_page = next_page.get("href")
+                soup = self.soupify(f"{SITE_URL}{next_page}")
+            else:
+                break
         return RipInfo(images, dir_name)
 
     def tsumino_parse(self) -> RipInfo:
         """Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site"""
-        #Parses the html of the site
+        # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="book-title").text
         num_pages = int(soup.find("div", id="Pages").text.strip())
@@ -2335,7 +2374,7 @@ class HtmlParser:
         domain = self._domain_name_override(domain)
         # if not domain:
         #     domain = domain.split(".")[-2]
-        #domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+        # domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
         # Hosts images on a different domain
         if "https://members.hanime.tv/" in url or "https://hanime.tv/" in url:
             requests_header['referer'] = "https://cdn.discordapp.com/"
@@ -2357,6 +2396,21 @@ class HtmlParser:
         self.driver.get(curr)
         return images
 
+    def parse_embedded_urls(self, urls: list[str]) -> list[str]:
+        parsed_urls = []
+        imgur_key = Config.config.keys["Imgur"]
+        for url in urls:
+            if "imgur" in url:
+                response = requests.get(url)
+                soup = self.soupify(response=response)
+                imgur_url = soup.find("a", id="image-link").get("href")
+                image_hash = imgur_url.split("#")[-1]
+                response = requests.get(f"https://api.imgur.com/3/image/{image_hash}",
+                                        headers={"Authorization": f"Client-ID {imgur_key}"})
+                response_json = response.json()
+                parsed_urls.append(response_json["data"]["link"])
+        return parsed_urls
+
     @staticmethod
     def _print_html(soup: BeautifulSoup):
         with open("html.html", "w", encoding="utf-8") as f:
@@ -2369,13 +2423,15 @@ class HtmlParser:
             for d in data:
                 f.write(f"\t{str(d).strip()}\n")
 
+    # region Testing Mega Downloading
+
     @staticmethod
     def _download_from_mega(url: str, dest_path: str):
         username = Config.config.logins["Mega"]["Username"]
         password = Config.config.logins["Mega"]["Password"]
 
         mega = Mega()
-        m = mega.login()#username, password)
+        m = mega.login()  # username, password)
         if "/file/" not in url:
             (root_folder, shared_enc_key) = HtmlParser.__parse_folder_url(url)
             shared_key = base64_to_a32(shared_enc_key)
@@ -2394,8 +2450,8 @@ class HtmlParser:
                 file_id = node["h"]
                 print(f"{file_name} | {file_id}")
                 file_url = f"{url}/file/{file_id}"
-                #print(HtmlParser.__get_file_info(root_folder, node))
-                #p = m._download_file(file_handle=file_id, file_key=key, dest_path=dest_path, dest_filename=file_name, is_public=True)
+                # print(HtmlParser.__get_file_info(root_folder, node))
+                # p = m._download_file(file_handle=file_id, file_key=key, dest_path=dest_path, dest_filename=file_name, is_public=True)
                 m.download_url(file_url, dest_path, file_name)
 
     @staticmethod
@@ -2444,6 +2500,8 @@ class HtmlParser:
         encrypted_key = base64_to_a32(key_str.split(":")[1])
         return decrypt_key(encrypted_key, shared_key)
 
+    # endregion
+
     @staticmethod
     def _extract_json_object(json: str) -> str:
         depth = 0
@@ -2462,7 +2520,7 @@ class HtmlParser:
                 elif char == '"':
                     string = not string
             if depth == 0:
-                return json[:i+1]
+                return json[:i + 1]
         raise Exception("Improperly formatted json: " + json)
 
     # TODO: Merge the if/else
@@ -2501,8 +2559,36 @@ class HtmlParser:
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
-    def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False) -> BeautifulSoup:
+    def login(self):
+        download_url = self.current_url
+        logins = Config.config.logins
+        if self.site_name == "titsintops":
+            self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
+            #self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
+            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+            while not login_input:
+                sleep(0.1)
+                login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+            login_input.send_keys(logins["TitsInTops"]["Username"])
+            password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
+            password_input.send_keys(logins["TitsInTops"]["Password"])
+            button = self.driver.find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]')
+            button.click()
+            while self.try_find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]'):
+                sleep(0.1)
+            self.driver.get(download_url)
+
+    def try_find_element(self, by: str, value: str) -> WebElement | None:
+        try:
+            return self.driver.find_element(by, value)
+        except selenium.common.exceptions.NoSuchElementException:
+            return None
+
+    def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False,
+                response: requests.Response = None) -> BeautifulSoup:
         """Return BeautifulSoup object of html from driver"""
+        if response:
+            return BeautifulSoup(response.content, PARSER)
         if url:
             self.driver.get(url)
             if delay != 0:
