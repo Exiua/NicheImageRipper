@@ -83,10 +83,10 @@ class NicheImageRipper(QWidget):
 
         self.setGeometry(0, 0, 768, 432)
 
-        qtRectangle = self.frameGeometry()
-        centerPoint = QDesktopWidget().availableGeometry().center()
-        qtRectangle.moveCenter(centerPoint)
-        self.move(qtRectangle.topLeft())
+        qt_rectangle = self.frameGeometry()
+        center_point = QDesktopWidget().availableGeometry().center()
+        qt_rectangle.moveCenter(center_point)
+        self.move(qt_rectangle.topLeft())
 
         # region UI Construction
 
@@ -230,6 +230,7 @@ class NicheImageRipper(QWidget):
         if self.interrupted and self.ripper.current_index > 1:
             with open(".ripIndex", "w") as f:
                 f.write(str(self.ripper.current_index))
+        self.save_to_json('RipHistory.json', self.get_history_data())
         NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder  # Update the config
         # NicheImageRipper.config['DEFAULT', 'Theme'] = self.theme_color
         NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
