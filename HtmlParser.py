@@ -179,8 +179,13 @@ class HtmlParser:
             "sfmcompile": self.sfmcompile_parse,
             "tsumino": self.tsumino_parse,
             "danbooru": self.danbooru_parse,
-            "flickr": self.flickr_parse
+            "flickr": self.flickr_parse,
+            "rule34": self.rule34_parse
         }
+
+    @property
+    def current_url(self):
+        return self.driver.current_url
 
     def parse_site(self, url: str) -> RipInfo:
         if path.isfile("partial.json"):
@@ -279,6 +284,8 @@ class HtmlParser:
             self.driver.find_element(By.XPATH, "//input[@type='password']").send_keys(logins["sexy-egirls"][1])
             self.driver.find_element(By.XPATH, "//button[@type='submit']").click()
         self.driver.get(curr_url)
+
+    # region Parsers
 
     def __generic_html_parser_1(self):
         soup = self.soupify()
@@ -684,7 +691,7 @@ class HtmlParser:
         tags = url.split("tags=")[-1]
         tags = tags.split("&")[0]
         tags = tags.replace("+", " ")
-        dir_name = tags
+        dir_name = "[Danbooru] " + tags
         images = []
         client = Danbooru('danbooru')
         i = 0
@@ -1015,12 +1022,11 @@ class HtmlParser:
         """Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(5)
-        current_url = self.driver.current_url
         soup = self.soupify()
         dir_name = soup.find("span", id="rowFolder-folderName").text
         images = soup.find("div", id="rowFolder-tableContent").find_all("div", recursive=False)
         images = [img.find("a", target="_blank").get("href") for img in images]
-        images.insert(0, current_url)
+        images.insert(0, self.current_url)
         return RipInfo(images, dir_name)
 
     def grabpussy_parse(self) -> RipInfo:
@@ -1844,6 +1850,25 @@ class HtmlParser:
                   tag_list.find_all("img")]
         return RipInfo(images, dir_name)
 
+    def rule34_parse(self) -> RipInfo:
+        """Read the html for rule34.xxx"""
+        # Parses the html of the site
+        soup = self.soupify()
+        tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
+        dir_name = "[Rule34] " + tags.replace("+", " ").replace("tags=", "")
+        images = soup.find()
+        response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
+        data = response.json()
+        images = []
+        pid = 1
+        while len(data) != 0:
+            urls = [post["file_url"] for post in data]
+            images.extend(urls)
+            response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            pid += 1
+            data = response.json()
+        return RipInfo(images, dir_name)
+
     def sankakucomplex_parse(self) -> RipInfo:
         """Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2272,6 +2297,8 @@ class HtmlParser:
                 "src")
             for img in images]
         return RipInfo(images, dir_name)
+
+    # endregion
 
     def _test_parse(self, given_url: str, debug: bool) -> RipInfo:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""

@@ -13,6 +13,8 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+from HtmlParser import DRIVER_HEADER
+
 
 def string_join_test():
     """Test"""
@@ -379,11 +381,11 @@ def deviantart_requests():
     print(response)
 
 
-def psd_to_png():
-    from psd_tools import PSDImage
+# def psd_to_png():
+#     from psd_tools import PSDImage
 
-    image = PSDImage.open("test.psd")
-    image.composite(force=True).save("test.png")
+#     image = PSDImage.open("test.psd")
+#     image.composite(force=True).save("test.png")
 
 
 def get_webdriver() -> webdriver.Firefox:
@@ -597,11 +599,27 @@ def danbooru_parse():
     print(links, len(links))
 
 
+def rule34_parse():
+    response = requests.get("https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&tags=todding")
+    data = response.json()
+    images = []
+    pid = 1
+    while len(data) != 0:
+        urls = [post["file_url"] for post in data]
+        images.extend(urls)
+        response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&tags=todding")
+        pid += 1
+        data = response.json()
+    print(len(images))
+    with open("test.json", "w") as f:
+        json.dump(images, f, indent=4)
+    #print(json)
+
 if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
     # parse_pixiv_links()
-    danbooru_parse()
+    rule34_parse()
     #print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()
