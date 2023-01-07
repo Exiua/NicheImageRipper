@@ -17,3 +17,5 @@ pyparsing~=3.0.9
 idna~=3.3
 PyQt5~=5.15.7
 pathlib~=1.0.1
+configparser~=5.1.0
+Pybooru~=4.2.2

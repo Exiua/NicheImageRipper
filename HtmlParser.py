@@ -27,9 +27,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
 
+from Config import Config
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from Util import SCHEME, url_check, Config
+from Util import SCHEME, url_check
 
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # "html.parser" lxml is faster
@@ -40,7 +41,8 @@ DRIVER_HEADER: str = (
 
 requests_header: dict[str, str] = {
     'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 '
+        'Safari/537.36',
     'referer':
         'https://imhentai.xxx/',
     'cookie':
@@ -416,7 +418,9 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def artstation_parse(self) -> RipInfo:
-        """Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         self.lazy_load()
         soup = self.soupify()

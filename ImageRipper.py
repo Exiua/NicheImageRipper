@@ -22,11 +22,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 from FilenameScheme import FilenameScheme
+from Config import Config
 from HtmlParser import HtmlParser
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from Util import url_check, SCHEME, Config
+from Util import url_check, SCHEME
 
 SESSION_HEADERS: dict[str, str] = {
     "User-Agent":

@@ -15,10 +15,11 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPush
     QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
     QTextBrowser
 
+from Config import Config
 from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
 from StatusSync import StatusSync
-from Util import url_check, Config
+from Util import url_check
 
 
 class OutputRedirect(QtCore.QObject):
