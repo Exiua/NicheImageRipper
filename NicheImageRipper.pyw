@@ -55,7 +55,6 @@ class OutputRedirect(QtCore.QObject):
 class NicheImageRipper(QWidget):
     display_sync: threading.Semaphore = threading.Semaphore(0)
     update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
-    config: Config = Config()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -215,9 +214,16 @@ class NicheImageRipper(QWidget):
 
         # endregion
 
+        # region Connect CheckBoxes
+
+        self.rerip_checkbox.toggled.connect(self.set_rerip)
+        self.live_update_checkbox.toggled.connect(self.set_live_update)
+
+        # endregion
+
         # region Load Data
 
-        if os.path.isfile('config.ini'):
+        if os.path.isfile('config.json'):
             self.load_config()
         if os.path.isfile('RipHistory.json'):
             self.load_history()
@@ -232,12 +238,12 @@ class NicheImageRipper(QWidget):
             with open(".ripIndex", "w") as f:
                 f.write(str(self.ripper.current_index))
         self.save_to_json('RipHistory.json', self.get_history_data())
-        NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder  # Update the config
-        # NicheImageRipper.config['DEFAULT', 'Theme'] = self.theme_color
-        NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
-        NicheImageRipper.config['DEFAULT', 'AskToReRip'] = str(self.rerip_ask)
-        NicheImageRipper.config['DEFAULT', 'LiveHistoryUpdate'] = str(self.live_update)
-        # NicheImageRipper.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
+        Config.config['SavePath'] = self.save_folder  # Update the config
+        # Config.config['DEFAULT', 'Theme'] = self.theme_color
+        Config.config['FilenameScheme'] = self.filename_scheme.name.title()
+        Config.config['AskToReRip'] = self.rerip_ask
+        Config.config['LiveHistoryUpdate'] = self.live_update
+        # Config.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
 
     def redirect_output(self, text: str, stderr: bool):
         self.log_field.moveCursor(QTextCursor.End)
@@ -378,10 +384,16 @@ class NicheImageRipper(QWidget):
             self.pause_button.setIcon(QtGui.QIcon("./Icons/play.svg"))
             self.status_sync.pause = True
 
+    def set_rerip(self, value: bool):
+        self.rerip_ask = value
+
+    def set_live_update(self, value: bool):
+        self.live_update = value
+
     def set_save_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
         self.save_folder_label.setText(folder)
-        NicheImageRipper.config['DEFAULT', 'SavePath'] = self.save_folder_label.text()
+        Config.config['SavePath'] = folder
 
     def load_json_file(self):
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
@@ -393,16 +405,16 @@ class NicheImageRipper(QWidget):
 
     def file_scheme_changed(self, new_value: str):
         self.filename_scheme = FilenameScheme[new_value.upper()]
-        NicheImageRipper.config['DEFAULT', 'FilenameScheme'] = self.filename_scheme.name.title()
+        Config.config['FilenameScheme'] = self.filename_scheme.name.title()
 
     def load_config(self):
-        self.save_folder = self.config['DEFAULT', 'SavePath']
+        self.save_folder = Config.config['SavePath']
         self.save_folder_label.setText(self.save_folder)
-        saved_filename_scheme = FilenameScheme[self.config['DEFAULT', 'FilenameScheme'].upper()]
+        saved_filename_scheme = FilenameScheme[Config.config['FilenameScheme'].upper()]
         self.file_scheme_combobox.setCurrentIndex(saved_filename_scheme.value)
-        self.rerip_ask = self.config['DEFAULT', 'AskToReRip'] == "True"
+        self.rerip_ask = Config.config['AskToReRip']
         self.rerip_checkbox.setChecked(self.rerip_ask)
-        self.live_update = self.config['DEFAULT', 'LiveHistoryUpdate'] == "True"
+        self.live_update = Config.config['LiveHistoryUpdate']
         self.live_update_checkbox.setChecked(self.live_update)
 
     def check_latest_version(self):

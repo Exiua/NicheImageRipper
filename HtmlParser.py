@@ -1221,13 +1221,16 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def imgur_parse(self) -> RipInfo:
-        """Parses the html for imgur.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+        Parse the html for imgur.com and extracts the relevant information necessary for downloading images from the
+        site
+        """
         # Parses the html of the site
-        client_id = Config.config['KEYS', 'Imgur']
+        client_id = Config.config.keys["Imgur"]
         if client_id == '':
             print("Client Id not properly set")
             print("Follow to generate Client Id: https://apidocs.imgur.com/#intro")
-            print("Then add Client Id to imgur in config.ini under KEYS")
+            print("Then add Client Id to Imgur in config.json under Keys")
             raise RuntimeError("Client Id Not Set")
         else:
             requests_header['Authorization'] = 'Client-ID ' + client_id
@@ -1722,10 +1725,13 @@ class HtmlParser:
         return self.__generic_html_parser_1()
 
     def porn3dx_parse(self) -> RipInfo:
-        """Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+        Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
+        the site
+        """
         # Parses the html of the site
-        username = Config.config["LOGINS", "Porn3dxU"]
-        password = Config.config["LOGINS", "Porn3dxP"]
+        username = Config.config.logins["Porn3dxU"]["Username"]
+        password = Config.config.logins["Porn3dxU"]["Password"]
         curr_url = self.driver.current_url
         logged_in_to_site = False
         if username and password:
@@ -2365,8 +2371,8 @@ class HtmlParser:
 
     @staticmethod
     def _download_from_mega(url: str, dest_path: str):
-        username = Config.config["LOGINS", "MegaU"]
-        password = Config.config["LOGINS", "MegaP"]
+        username = Config.config.logins["Mega"]["Username"]
+        password = Config.config.logins["Mega"]["Password"]
 
         mega = Mega()
         m = mega.login()#username, password)

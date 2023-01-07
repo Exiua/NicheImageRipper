@@ -66,26 +66,9 @@ class ImageRipper:
         self.folder_info: RipInfo = RipInfo("")
         self.given_url: str = ""
         self.interrupted: bool = False
-        self.logins: dict[str, tuple[str, str]] = {
-            "sexy-egirls": (
-                Config.config['LOGINS', 'Sexy-EgirlsU'],
-                Config.config['LOGINS', 'Sexy-EgirlsP']
-            ),
-            "deviantart": (
-                Config.config['LOGINS', 'DeviantArtU'],
-                Config.config['LOGINS', 'DeviantArtP']
-            ),
-            "porn3dx": (
-                Config.config["LOGINS", "Porn3dxU"],
-                Config.config["LOGINS", "Porn3dxP"]
-            ),
-            "mega": (
-                Config.config["LOGINS", "MegaU"],
-                Config.config["LOGINS", "MegaP"]
-            ),
-        }
+        self.logins: dict[str, dict[str, str]] = Config.config.logins
         self.logged_in: bool = os.path.isfile("cookies.pkl")
-        self.save_path: str = Config.config['DEFAULT', 'SavePath']
+        self.save_path: str = Config.config['SavePath']
         self.session: requests.Session = requests.Session()
         self.site_name: str = ""
         self.sleep_time: float = 0.2
