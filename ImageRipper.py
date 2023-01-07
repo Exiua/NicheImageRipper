@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import pickle
 from pathlib import Path
 from time import sleep
 from typing import BinaryIO
@@ -77,6 +78,18 @@ class ImageRipper:
         # region Extra Initialization
 
         self.session.headers.update(SESSION_HEADERS)
+        if os.path.isfile("cookies.pkl"):
+            cookies = pickle.load(open("cookies.pkl", "rb"))
+            cookie: dict
+            for cookie in cookies:
+                # if 'httpOnly' in cookie:
+                #     httpO = cookie.pop('httpOnly')
+                #     cookie['rest'] = {'httpOnly': httpO}
+                # if 'expiry' in cookie:
+                #     cookie['expires'] = cookie.pop('expiry')
+                # if 'sameSite' in cookie:
+                #     cookie.pop('sameSite')
+                self.session.cookies.set(cookie['name'], cookie['value'], expires=cookie['expiry'])
         flag: int = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
         Path("./Temp").mkdir(parents=True, exist_ok=True)
@@ -127,7 +140,6 @@ class ImageRipper:
 
         # Save location of this album
         full_path = os.path.join(self.save_path, self.folder_info.dir_name)
-        # "".join([self.save_path, self.folder_info.dir_name])
         if self.interrupted and self.filename_scheme != FilenameScheme.HASH:
             pass  # TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
 
@@ -236,12 +248,11 @@ class ImageRipper:
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
 
-        # if "https://forum.sexy-egirls.com/" in rip_url and rip_url[-1] == "/":  # Site is down
-        #     file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
-        #     ext = file_name.split(".")[-1]
-        #     file_name = "".join([hashlib.md5(file_name.encode()).hexdigest(), ".", ext])
-        # else:
-        file_name = os.path.basename(urlparse(rip_url).path)
+        if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
+            file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
+            file_name = re.sub(r"-(jpg|png|webp)\.\d+\/", r".\1", file_name)
+        else:
+            file_name = os.path.basename(urlparse(rip_url).path)
 
         image_path = os.path.join(full_path, file_name)
         ext = os.path.splitext(image_path)[1]

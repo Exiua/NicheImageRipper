@@ -648,11 +648,45 @@ def iframe_test():
     print(soup.find("a", id="image-link").get("href"))
 
 
+def cookie_test():
+    import pickle
+
+    cookies = pickle.load(open("cookies.pkl", "rb"))
+    for cookie in cookies:
+        print(cookie)
+
+
+def session_test():
+    r = requests.get("https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/")
+    for c in r.cookies:
+        print(f"{c.name}: {c.value}")
+
+def tnt_login_test():
+    r = requests.get("https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/")
+    name, value = r.cookies.items()[0]
+    requests_header: dict[str, str] = {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+        'referer':
+            'https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/',
+        'cookie':
+            f'{name}={value};'
+    }
+    logins = Config.config.logins
+    payload = {
+        "login": logins["TitsInTops"]["Username"],
+        "password": logins["TitsInTops"]["Password"],
+        "remember": 1
+    }
+    r = requests.post("https://titsintops.com/phpBB2/index.php?login/login", json=payload, headers=requests_header)
+    with open("test.html", "wb") as f:
+        f.write(r.content)
+
 if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
     # parse_pixiv_links()
-    imgur_request()
+    tnt_login_test()
     # print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()

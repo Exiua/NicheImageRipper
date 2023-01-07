@@ -161,6 +161,12 @@ class NicheImageRipper(QWidget):
         check_update_hbox.addWidget(check_update_button)
         check_update_hbox.addWidget(self.check_update_label)
 
+        clear_cache_hbox = QHBoxLayout()
+        clear_cache_button = QPushButton()
+        clear_cache_button.setText("Check")
+        clear_cache_button.setFixedWidth(75)
+        clear_cache_hbox.addWidget(clear_cache_button)
+
         self.file_scheme_combobox = QComboBox()
         self.file_scheme_combobox.addItems(("Original", "Hash", "Chronological"))
         self.file_scheme_combobox.setFixedWidth(100)
@@ -182,6 +188,7 @@ class NicheImageRipper(QWidget):
         vbox.addRow("Select Save Folder:", save_folder_button)
         vbox.addRow("Load Unfinished Urls:", load_url_button)
         vbox.addRow("Check For Updates:", check_update_hbox)
+        vbox.addRow("Clear Cache:", clear_cache_hbox)
         vbox.addRow("Filename Scheme:", self.file_scheme_combobox)
         vbox.addRow(checkbox_row)
         self.settings_tab.setLayout(vbox)
@@ -211,6 +218,7 @@ class NicheImageRipper(QWidget):
         save_folder_button.clicked.connect(self.set_save_folder)
         load_url_button.clicked.connect(self.load_json_file)
         check_update_button.clicked.connect(self.check_latest_version)
+        clear_cache_button.clicked.connect(self.clear_cache)
 
         # endregion
 
@@ -383,6 +391,10 @@ class NicheImageRipper(QWidget):
         else:
             self.pause_button.setIcon(QtGui.QIcon("./Icons/play.svg"))
             self.status_sync.pause = True
+
+    def clear_cache(self):
+        os.remove(".ripIndex")
+        os.remove("partial.json")
 
     def set_rerip(self, value: bool):
         self.rerip_ask = value

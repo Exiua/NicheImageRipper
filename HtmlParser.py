@@ -199,17 +199,24 @@ class HtmlParser:
                 requests_header["referer"] = save_data["referer"]
                 self.interrupted = True
                 return save_data[url]
+        # if os.path.isfile("cookies.pkl"):
+        #     cookies = pickle.load(open("cookies.pkl", "rb"))
+        #     for cookie in cookies:
+        #         self.driver.add_cookie(cookie)
         url = url.replace("members.", "www.")
         self.given_url = url
         self.driver.get(url)
         self.site_name = self.site_check()
         site_parser: Callable[[], RipInfo] = self.parser_jump_table.get(self.site_name)
+        success = False
         try:
             site_info: RipInfo = site_parser()
+            success = True
         finally:
+            if success:
+                self.write_partial_save(site_info, url)
+                pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             self.driver.quit()
-        self.write_partial_save(site_info, url)
-        self.driver.quit()
         return site_info
 
     def site_check(self) -> str:
