@@ -69,7 +69,7 @@ class NicheImageRipper(QWidget):
         self.filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL
         self.status_sync: StatusSync = StatusSync()
         self.ripper_thread: threading.Thread = threading.Thread()
-        self.version: str = "v2.0.0"
+        self.version: str = "v2.1.0"
         self.save_folder: str = "."
 
         ImageRipper.status_sync = self.status_sync
