@@ -682,11 +682,30 @@ def tnt_login_test():
     with open("test.html", "wb") as f:
         f.write(r.content)
 
+def gelbooru_parse():
+    response = requests.get("https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&tags=stelarhoshi")
+    data: dict = response.json()
+    images = []
+    pid = 1
+    posts = data["post"]
+    while len(posts) != 0:
+        urls = [post["file_url"] for post in posts]
+        images.extend(urls)
+        response = requests.get(
+            f"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&tags=stelarhoshi")
+        pid += 1
+        data = response.json()
+        posts = data.get("post", [])
+    print(len(images))
+    with open("test.json", "w") as f:
+        json.dump(images, f, indent=4)
+    # print(json)
+
 if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
     # parse_pixiv_links()
-    tnt_login_test()
+    gelbooru_parse()
     # print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()

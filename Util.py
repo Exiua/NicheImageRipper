@@ -51,7 +51,8 @@ def url_check(given_url: str) -> bool:
              "https://jpg.church/", "https://www.artstation.com/", "https://porn3dx.com/",
              "https://www.deviantart.com/", "https://readmanganato.com/", "https://manganato.com/",
              "https://sfmcompile.club/", "https://www.tsumino.com/", "https://danbooru.donmai.us/",
-             "https://www.flickr.com/", "https://rule34.xxx/", "https://titsintops.com/")
+             "https://www.flickr.com/", "https://rule34.xxx/", "https://titsintops.com/",
+             "https://gelbooru.com/")
     return any(given_url.startswith(x) for x in sites)
 
 

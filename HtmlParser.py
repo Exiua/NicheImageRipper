@@ -184,7 +184,8 @@ class HtmlParser:
             "danbooru": self.danbooru_parse,
             "flickr": self.flickr_parse,
             "rule34": self.rule34_parse,
-            "titsintops": self.titsintops_parse
+            "titsintops": self.titsintops_parse,
+            "gelbooru": self.gelbooru_parse
         }
 
     @property
@@ -996,6 +997,26 @@ class HtmlParser:
         """Parses the html for ftvhunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
+
+    def gelbooru_parse(self) -> RipInfo:
+        """Read the html for gelbooru.com"""
+        # Parses the html of the site
+        tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
+        dir_name = "[Gelbooru] " + tags.replace("+", " ").replace("tags=", "")
+        response = requests.get(f"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
+        data: dict = response.json()
+        images = []
+        pid = 1
+        posts = data["post"]
+        while len(posts) != 0:
+            urls = [post["file_url"] for post in posts]
+            images.extend(urls)
+            response = requests.get(
+                f"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            pid += 1
+            data = response.json()
+            posts = data.get("post", [])
+        return RipInfo(images, dir_name)
 
     def girlsofdesire_parse(self) -> RipInfo:
         """Parses the html for girlsofdesire.org and extracts the relevant information necessary for downloading images from the site"""
@@ -1874,10 +1895,8 @@ class HtmlParser:
     def rule34_parse(self) -> RipInfo:
         """Read the html for rule34.xxx"""
         # Parses the html of the site
-        soup = self.soupify()
         tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
         dir_name = "[Rule34] " + tags.replace("+", " ").replace("tags=", "")
-        images = soup.find()
         response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
         data = response.json()
         images = []
