@@ -180,6 +180,7 @@ NicheRipper.spec
 cookies.pkl
 NicheImageRipper.rar
 __init__.py
+.ripindex
 
 # Custom folders
 Rips/
