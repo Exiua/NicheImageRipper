@@ -1,8 +1,6 @@
-"""DO NOT USE, THIS MODULE IS DEPRECATED; WORKING ON REFACTORING CODE INTO SEPARATE MODULES"""
 from __future__ import annotations
 
-import configparser
-import os
+from urllib.parse import urlparse
 
 SCHEME: str = "https://"
 
@@ -12,7 +10,9 @@ logged_in: bool
 
 def url_check(given_url: str) -> bool:
     """Check the url to make sure it is from valid site"""
-    sites = ("https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/",
+    parsed_uri = urlparse(given_url)
+    base_url = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+    sites = set(("https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/",
              "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/",
              "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
              "https://www.silkengirl.com/", "https://www.babesandgirls.com/", "https://www.babeimpact.com/",
@@ -52,8 +52,8 @@ def url_check(given_url: str) -> bool:
              "https://www.deviantart.com/", "https://readmanganato.com/", "https://manganato.com/",
              "https://sfmcompile.club/", "https://www.tsumino.com/", "https://danbooru.donmai.us/",
              "https://www.flickr.com/", "https://rule34.xxx/", "https://titsintops.com/",
-             "https://gelbooru.com/")
-    return any(given_url.startswith(x) for x in sites)
+             "https://gelbooru.com/"))
+    return base_url in sites
 
 
 if __name__ == "__main__":

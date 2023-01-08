@@ -78,20 +78,6 @@ class ImageRipper:
         # region Extra Initialization
 
         self.session.headers.update(SESSION_HEADERS)
-        needs_cookies = False
-        if needs_cookies:
-            if os.path.isfile("cookies.pkl"):
-                cookies = pickle.load(open("cookies.pkl", "rb"))
-                cookie: dict
-                for cookie in cookies:
-                    # if 'httpOnly' in cookie:
-                    #     httpO = cookie.pop('httpOnly')
-                    #     cookie['rest'] = {'httpOnly': httpO}
-                    # if 'expiry' in cookie:
-                    #     cookie['expires'] = cookie.pop('expiry')
-                    # if 'sameSite' in cookie:
-                    #     cookie.pop('sameSite')
-                    self.session.cookies.set(cookie['name'], cookie['value'], expires=cookie['expiry'])
         flag: int = 0x08000000  # No-Window flag
         webdriver.common.service.subprocess.Popen = functools.partial(subprocess.Popen, creationflags=flag)
         Path("./Temp").mkdir(parents=True, exist_ok=True)
@@ -100,10 +86,7 @@ class ImageRipper:
 
     @property
     def pause(self):
-        # TODO: Remove later
-        if ImageRipper.status_sync is not None:
-            return ImageRipper.status_sync.pause
-        return False
+        return ImageRipper.status_sync.pause
 
     @pause.setter
     def pause(self, value: bool):
@@ -114,7 +97,25 @@ class ImageRipper:
         self.sleep_time = 0.2  # Reset sleep time to 0.2
         self.given_url = url.replace("members.", "www.")  # Replace is done to properly parse hanime pages
         self.site_name = self.__site_check()
+        if self.__cookies_needed():
+            self.__add_cookies()
         self._image_getter()
+
+    def __add_cookies(self):
+        if not os.path.isfile("cookies.pkl"):
+            return
+        cookies = pickle.load(open("cookies.pkl", "rb"))
+        cookie: dict
+        for cookie in cookies:
+            if cookie['name'] != 'xf_user':
+                continue
+            if self.requests_header["cookie"] and self.requests_header["cookie"][-1] != ";":
+                self.requests_header["cookie"][-1] += ";"
+            self.requests_header["cookie"] += f'{cookie["name"]}={cookie["value"]};'
+            self.session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])
+
+    def __cookies_needed(self) -> bool:
+        return self.site_name == "titsintops"
 
     def __site_check(self) -> str:
         """
@@ -133,7 +134,7 @@ class ImageRipper:
             elif "https://e-hentai.org/" in self.given_url:
                 self.sleep_time = 5
             return domain
-        raise RipperError("Not a support site")
+        raise RipperError(f"Not a support site: {self.given_url}")
 
     def _image_getter(self):
         """Download images from URL."""
@@ -252,7 +253,9 @@ class ImageRipper:
 
         if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
             file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
-            file_name = re.sub(r"-(jpg|png|webp)\.\d+\/", r".\1", file_name)
+            #print(file_name)
+            file_name = re.sub(r"-(jpg|png|webp)\.\d+\/?", r".\1", file_name)
+            #print(file_name)
         else:
             file_name = os.path.basename(urlparse(rip_url).path)
 

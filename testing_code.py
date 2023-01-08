@@ -7,12 +7,18 @@ import struct
 import subprocess
 import urllib.request
 from urllib.parse import urlparse
+from time import sleep
 
 import requests
 from PIL import Image
 from bs4 import BeautifulSoup
+import selenium
 from selenium import webdriver
+from selenium.webdriver import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
 from HtmlParser import DRIVER_HEADER
@@ -620,8 +626,8 @@ def rule34_parse():
 
 class CredentialsTest:
     def __init__(self):
-        self.username = ""
-        self.password = ""
+        username = ""
+        password = ""
 
 
 def object_serialization_test():
@@ -661,26 +667,92 @@ def session_test():
     for c in r.cookies:
         print(f"{c.name}: {c.value}")
 
+
+def create_driver(headless: bool) -> webdriver.Firefox:
+    options = Options()
+    options.headless = headless
+    options.add_argument(DRIVER_HEADER)
+    driver = webdriver.Firefox(options=options)
+    return driver
+
+def try_find_element(driver: webdriver.Firefox, by: str, value: str) -> WebElement | None:
+        try:
+            return driver.find_element(by, value)
+        except selenium.common.exceptions.NoSuchElementException:
+            return None
+
+
+def tnt_login_helper(driver: webdriver.Firefox):
+    download_url = driver.current_url
+    logins = Config.config.logins
+    driver.get("https://titsintops.com/phpBB2/index.php?login/login")
+    #driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
+    login_input = try_find_element(driver, By.XPATH, '//input[@name="login"]')
+    while not login_input:
+        sleep(0.1)
+        login_input = try_find_element(driver, By.XPATH, '//input[@name="login"]')
+    login_input.send_keys(logins["TitsInTops"]["Username"])
+    password_input = driver.find_element(By.XPATH, '//input[@name="password"]')
+    password_input.send_keys(logins["TitsInTops"]["Password"])
+    button = driver.find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]')
+    button.click()
+    while try_find_element(driver, By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]'):
+        sleep(0.1)
+    driver.get(download_url)
+
+def download_file(response: requests.Response, file_path: str):
+    with open(file_path, "wb") as f:
+        for block in response.iter_content(chunk_size=50000):
+            if block:
+                f.write(block)
+
 def tnt_login_test():
-    r = requests.get("https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/")
-    name, value = r.cookies.items()[0]
     requests_header: dict[str, str] = {
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
         'referer':
-            'https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/',
+            'https://titsintops.com/phpBB2/index.php?login/login',
         'cookie':
-            f'{name}={value};'
+            'tnt0=1;',#'xf_csrf=l_TJPttw0YbmvBpf; yuo1={"objName":"uXqakQEuIfNAb","request_id":0,"zones":[{"idzone":"4717830","here":{}},{"idzone":"4717830","here":{}},{"idzone":"4717830"}]}'
+        'origin':
+            'titsintops.com'
     }
-    logins = Config.config.logins
-    payload = {
-        "login": logins["TitsInTops"]["Username"],
-        "password": logins["TitsInTops"]["Password"],
-        "remember": 1
-    }
-    r = requests.post("https://titsintops.com/phpBB2/index.php?login/login", json=payload, headers=requests_header)
+    driver = create_driver(True)
+    driver.get("https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/")
+    tnt_login_helper(driver)
+    cookies = driver.get_cookies()
+    with open("test.json", "w") as f:
+        json.dump(cookies, f, indent=4)
+    driver.quit()
+    s = requests.Session()
+    for c in cookies:
+        print(c)
+        if c["name"] == "xf_user":
+            requests_header["cookie"] += f'{c["name"]}={c["value"]};'
+        s.cookies.set(c["name"], c["value"], domain=c["domain"])
+    r = s.get("https://titsintops.com/phpBB2/index.php?attachments/c49492b2-944b-42cb-8c51-d0d7843182ab-jpg.2424014/", headers=requests_header)
+    print(r)
+    print(s.cookies.items())
+    print(r.cookies.items())
+    download_file(r, "test.jpg")
     with open("test.html", "wb") as f:
         f.write(r.content)
+    return
+    r = s.get("https://titsintops.com/phpBB2/index.php?login/login", headers=requests_header)
+    print(r.cookies.items())
+    soup = BeautifulSoup(r.content, "lxml")
+    xf_token = soup.find("input", attrs={'name':'_xfToken', 'type':'hidden'}).get("value")
+    print(xf_token)
+    logins = Config.config.logins
+    payload = {
+        "_xfToken": xf_token,
+        "login": logins["TitsInTops"]["Username"],
+        "password": logins["TitsInTops"]["Password"],
+        "remember": "1"
+    }
+    print(payload)
+    r = s.post("https://titsintops.com/phpBB2/index.php?login/login", data=payload, headers=requests_header)
+    print(r)
 
 def gelbooru_parse():
     response = requests.get("https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&tags=stelarhoshi")
@@ -705,7 +777,7 @@ if __name__ == "__main__":
     # remove_dup_links(sys.argv[1])
     # nonlocal_test()
     # parse_pixiv_links()
-    gelbooru_parse()
+    tnt_login_test()
     # print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
     # remove_dup_links("gdriveLinks.txt", False)
     # progress_bar()

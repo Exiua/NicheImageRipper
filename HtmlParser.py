@@ -1342,7 +1342,7 @@ class HtmlParser:
         for c in cookies:
             cookie_str += "".join([c['name'], '=', c['value'], ';'])
         requests_header["cookie"] = cookie_str
-        base_url = self.driver.current_url
+        base_url = self.current_url
         base_url = base_url.split("/")
         source_site = base_url[3]
         base_url = "/".join(base_url[:6])
@@ -2210,6 +2210,11 @@ class HtmlParser:
         # noinspection PyPep8Naming
         SITE_URL = "https://titsintops.com"
         self.login()
+        cookies = self.driver.get_cookies()
+        cookie_str = ''
+        for c in cookies:
+            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+        requests_header["cookie"] = cookie_str
         soup = self.soupify()
         dir_name = soup.find("h1", class_="p-title-value").text
         images = []
@@ -2378,17 +2383,12 @@ class HtmlParser:
     def _test_parse(self, given_url: str, debug: bool) -> RipInfo:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
-        # ripper = ImageRipper()
-        # ripper.rip(given_url)
-        # return
         try:
             options = Options()
             options.headless = not debug
             options.add_argument(DRIVER_HEADER)
             self.driver = webdriver.Firefox(options=options)
             self.driver.get(given_url.replace("members.", "www."))
-            # rip = ImageRipper(given_url)
-            # rip.site_login(self.driver)
             site_name = self._test_site_check(given_url)
             return eval(f"self.{site_name}_parse()")
         finally:

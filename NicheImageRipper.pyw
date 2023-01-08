@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import errno
 import threading
 from datetime import datetime
 from queue import Queue
@@ -393,8 +394,17 @@ class NicheImageRipper(QWidget):
             self.status_sync.pause = True
 
     def clear_cache(self):
-        os.remove(".ripIndex")
-        os.remove("partial.json")
+        self.__silently_remove_files(".ripIndex", "partial.json")
+
+    def __silently_remove_files(self, *filepaths: list[str]):
+        for filepath in filepaths:
+            self.__silently_remove_file(filepath)
+
+    def __silently_remove_file(self, filepath: str):
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
 
     def set_rerip(self, value: bool):
         self.rerip_ask = value
