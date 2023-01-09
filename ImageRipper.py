@@ -251,17 +251,24 @@ class ImageRipper:
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
 
+        m3u8: bool = False
         if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
             file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
             #print(file_name)
             file_name = re.sub(r"-(jpg|png|webp|mp4|mov)\.\d+\/?", r".\1", file_name)
             #print(file_name)
+        elif "sendvid.com" in rip_url and ".m3u8" in rip_url:
+            file_name = rip_url.split("/")[6]
+            m3u8 = True
         else:
             file_name = os.path.basename(urlparse(rip_url).path)
 
         image_path = os.path.join(full_path, file_name)
         ext = os.path.splitext(image_path)[1]
-        self.__download_file(image_path, rip_url)
+        if m3u8:
+            self.__download_m3u8_to_mp4(image_path, rip_url)
+        else:
+            self.__download_file(image_path, rip_url)
 
         if self.filename_scheme == FilenameScheme.HASH:
             self.__rename_file_to_hash(image_path, full_path, ext)
@@ -269,6 +276,10 @@ class ImageRipper:
             self.__rename_file_chronologically(image_path, full_path, ext, current_file_num)
 
         sleep(0.05)
+
+    def __download_m3u8_to_mp4(self, video_path: str, video_url: str):
+        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy", video_path]
+        subprocess.run(cmd)
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""

@@ -756,13 +756,23 @@ def gelbooru_parse():
         json.dump(images, f, indent=4)
     # print(json)
 
+def m3u8_to_mp4():
+    import subprocess
+
+    video_path = "test.mp4"
+    video_url = "https://videos2-h.sendvid.com/hls/fa/54/cfhnmfob.mp4/master.m3u8?validfrom=1673236358&validto=1673243558&rate=200k&ip=24.15.25.190&hdl=-1&hash=JE18dpCujZO71mpCcxMK8em24nI%3D"
+
+    cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy", video_path]
+    subprocess.run(cmd)
+
+def write_response(r: requests.Response, filepath: str):
+    with open(filepath, "wb") as f:
+        f.write(r.content)
+
+def send_video_parse():
+    r = requests.get("https://sendvid.com/cfhnmfob")
+    soup = BeautifulSoup(r.content, "lxml")
+    print(soup.find("source", id="video_source").get("src"))
+
 if __name__ == "__main__":
-    # remove_dup_links(sys.argv[1])
-    # nonlocal_test()
-    # parse_pixiv_links()
-    tnt_login_test()
-    # print(parse_url("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg/file/EAohUKxD"))
-    # remove_dup_links("gdriveLinks.txt", False)
-    # progress_bar()
-    # selenium_testing()
-    # sc_merge()
+    m3u8_to_mp4()
