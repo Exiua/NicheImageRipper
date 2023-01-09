@@ -1373,8 +1373,12 @@ class HtmlParser:
 
         # region Parse All Posts
         images = []
-        mega_links = []
-        gdrive_links = []
+        # mega_links = []
+        # gdrive_links = []
+        external_links = {}
+        external_sites = ("drive.google.com", "mega.nz")
+        for site in external_sites:
+            external_links[site] = []
         num_posts = len(image_links)
         ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
         for i, link in enumerate(image_links):
@@ -1386,22 +1390,31 @@ class HtmlParser:
             possible_links = [tag.text for tag in possible_links_p]
             possible_links_div = soup.find_all("div")
             possible_links.extend([tag.text for tag in possible_links_div])
-            m_links = [link + "\n" for link in links if "mega.nz" in link]
-            gd_links = [link + "\n" for link in links if "drive.google.com" in link]
-            for text in possible_links:
-                for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
-                    if domain_list[0] not in text:
+            # m_links = [link + "\n" for link in links if "mega.nz" in link]
+            # gd_links = [link + "\n" for link in links if "drive.google.com" in link]
+            for site in external_links.keys():
+                ext_links = [HtmlParser._extract_url(link) + "\n" for link in links if site in link]
+                external_links[site].extend(ext_links)
+                for text in possible_links:
+                    if site not in text:
                         continue
                     parts = text.split()
                     for part in parts:
-                        if domain_list[0] in part:
-                            domain_list[1].append(part + "\n")
+                        if site in part:
+                            external_links[site].append(part + "\n")
+                    # for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
+                    #     if domain_list[0] not in text:
+                    #         continue
+                    #     parts = text.split()
+                    #     for part in parts:
+                    #         if domain_list[0] in part:
+                    #             domain_list[1].append(part + "\n")
             attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
                            links
                            if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
-            mega_links.extend(list(dict.fromkeys(m_links)))
-            gdrive_links.extend(list(dict.fromkeys(gd_links)))
+            # mega_links.extend(list(dict.fromkeys(m_links)))
+            # gdrive_links.extend(list(dict.fromkeys(gd_links)))
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
@@ -1411,10 +1424,13 @@ class HtmlParser:
 
         # endregion
 
-        with open("megaLinks.txt", "a", encoding="utf-16") as f:
-            f.writelines(mega_links)
-        with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
-            f.writelines(gdrive_links)
+        for site in external_links.keys():
+            with open(f"{site}_links.txt", "a", encoding="utf-16") as f:
+                f.writelines(external_links[site])
+        # with open("megaLinks.txt", "a", encoding="utf-16") as f:
+        #     f.writelines(mega_links)
+        # with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
+        #     f.writelines(gdrive_links)
         return RipInfo(images, dir_name)
 
     # unable to load closed shadow DOM
@@ -2450,6 +2466,15 @@ class HtmlParser:
                 f.write(f"\t{str(d).strip()}\n")
 
     # region Testing Mega Downloading
+
+    @staticmethod
+    def _extract_url(text: str) -> str:
+        protocol_index = text.find("https:")
+        if protocol_index == -1:
+            return ""
+        url = text[protocol_index:]
+        url.replace("</a>", "")
+        return url
 
     @staticmethod
     def _download_from_mega(url: str, dest_path: str):
