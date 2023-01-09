@@ -681,7 +681,6 @@ def try_find_element(driver: webdriver.Firefox, by: str, value: str) -> WebEleme
         except selenium.common.exceptions.NoSuchElementException:
             return None
 
-
 def tnt_login_helper(driver: webdriver.Firefox):
     download_url = driver.current_url
     logins = Config.config.logins
@@ -737,22 +736,6 @@ def tnt_login_test():
     download_file(r, "test.jpg")
     with open("test.html", "wb") as f:
         f.write(r.content)
-    return
-    r = s.get("https://titsintops.com/phpBB2/index.php?login/login", headers=requests_header)
-    print(r.cookies.items())
-    soup = BeautifulSoup(r.content, "lxml")
-    xf_token = soup.find("input", attrs={'name':'_xfToken', 'type':'hidden'}).get("value")
-    print(xf_token)
-    logins = Config.config.logins
-    payload = {
-        "_xfToken": xf_token,
-        "login": logins["TitsInTops"]["Username"],
-        "password": logins["TitsInTops"]["Password"],
-        "remember": "1"
-    }
-    print(payload)
-    r = s.post("https://titsintops.com/phpBB2/index.php?login/login", data=payload, headers=requests_header)
-    print(r)
 
 def gelbooru_parse():
     response = requests.get("https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&tags=stelarhoshi")
