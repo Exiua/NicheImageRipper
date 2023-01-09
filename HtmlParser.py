@@ -39,7 +39,7 @@ DRIVER_HEADER: str = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
-EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com")
+EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
 
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -1376,9 +1376,7 @@ class HtmlParser:
         # region Parse All Posts
 
         images = []
-        external_links: dict[str, list[str]] = {}
-        for site in EXTERNAL_SITES:
-            external_links[site] = []
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
         num_posts = len(image_links)
         ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
         for i, link in enumerate(image_links):
@@ -1408,9 +1406,7 @@ class HtmlParser:
 
         # endregion
 
-        for site in external_links.keys():
-            with open(f"{site}_links.txt", "a", encoding="utf-16") as f:
-                f.writelines(external_links[site])
+        self.__save_external_links(external_links)
         return RipInfo(images, dir_name)
 
     # unable to load closed shadow DOM
@@ -2197,7 +2193,6 @@ class HtmlParser:
         self.driver.quit()
         return RipInfo(images, dir_name)
 
-    # TODO: Complete this
     def titsintops_parse(self) -> RipInfo:
         """
             Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
@@ -2214,6 +2209,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="p-title-value").text
         images = []
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
         page_count = 1
         while True:
             print(f"Parsing page {page_count}")
@@ -2221,6 +2217,10 @@ class HtmlParser:
             posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("div",
                                                                                                class_="message-content js-messageContent")
             for post in posts:
+                imgs = post.find("article", class_="message-body js-selectToQuote").find_all("img")
+                if imgs:
+                    imgs = [im.get("src") for im in imgs if "http" in im]
+                    images.extend(imgs)
                 videos = post.find_all("video")
                 if videos:
                     video_urls = [f"{SITE_URL}{vid.find('source').get('src')}" for vid in videos]
@@ -2238,11 +2238,18 @@ class HtmlParser:
                     if attachments:
                         attachment_urls = [f"{SITE_URL}{attach.get('href')}" for attach in attachments]
                         images.extend(attachment_urls)
+                links = post.find_all("a")
+                if links:
+                    links = [link.get("href") for link in links]
+                    filtered_links = self.__extract_external_urls(links)
+                    downloadable_links = self.__extract_downloadable_links(filtered_links, external_links)
+                    images.extend(downloadable_links)
             next_page = soup.find("a", class_="pageNav-jump pageNav-jump--next")
             if next_page:
                 next_page = next_page.get("href")
                 soup = self.soupify(f"{SITE_URL}{next_page}")
             else:
+                self.__save_external_links(external_links)
                 break
         return RipInfo(images, dir_name)
 
@@ -2434,10 +2441,15 @@ class HtmlParser:
         return parsed_urls
 
     @staticmethod
-    def __extract_external_urls(urls: list[str]) -> dict[str, list[str]]:
+    def __create_external_link_dict() -> dict[str, list[str]]:
         external_links: dict[str, list[str]] = {}
         for site in EXTERNAL_SITES:
             external_links[site] = []
+        return external_links
+
+    @staticmethod
+    def __extract_external_urls(urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
         for site in external_links.keys():
             ext_links = [HtmlParser._extract_url(url) + "\n" for url in urls if site in url]
             external_links[site].extend(ext_links)
@@ -2445,9 +2457,7 @@ class HtmlParser:
 
     @staticmethod
     def __extract_possible_external_urls(possible_urls: list[str]) -> dict[str, list[str]]:
-        external_links: dict[str, list[str]] = {}
-        for site in EXTERNAL_SITES:
-            external_links[site] = []
+        external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
         for site in external_links.keys():
             for text in possible_urls:
                 if site not in text:
@@ -2457,6 +2467,41 @@ class HtmlParser:
                     if site in part:
                         external_links[site].append(part + "\n")
         return external_links
+
+    @staticmethod
+    def __save_external_links(links: dict[str, list[str]]):
+        for site in links:
+            if not links[site]:
+                continue
+            with open(f"{site}_links.txt", "a", encoding="utf-16") as f:
+                f.writelines(links[site])
+
+    def __extract_downloadable_links(self, src_dict: dict[str, list[str]], dst_dict: dict[str, list[str]]) -> list[str]:
+        """
+            Extract links that can be downloaded while copying links that cannot be downloaded to dst_dict.
+            Returns list of links that can be downloaded.
+        """
+        downloadable_links = []
+        downloadable_sites = ("sendvid.com", )
+        for site in src_dict:
+            if any(s == site for s in downloadable_sites):
+                downloadable_links.extend(src_dict[site])
+                src_dict[site].clear()
+            else:
+                dst_dict[site].extend(src_dict[site])
+        return self.__resolve_downloadable_links(downloadable_links)
+
+    def __resolve_downloadable_links(self, links: list[str]) -> list[str]:
+        resolved_links = []
+        for link in links:
+            if "sendvid.com" in link:
+                r = requests.get(link)
+                soup = BeautifulSoup(r.content, "lxml")
+                l = soup.find("source", id="video_source").get("src")
+                resolved_links.append(l)
+            else:
+                resolved_links.append(link)
+        return resolved_links
 
     @staticmethod
     def _print_html(soup: BeautifulSoup):
