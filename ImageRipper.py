@@ -99,7 +99,7 @@ class ImageRipper:
         self.site_name = self.__site_check()
         if self.__cookies_needed():
             self.__add_cookies()
-        self._image_getter()
+        self.__image_getter()
 
     def __add_cookies(self):
         if not os.path.isfile("cookies.pkl"):
@@ -136,7 +136,7 @@ class ImageRipper:
             return domain
         raise RipperError(f"Not a support site: {self.given_url}")
 
-    def _image_getter(self):
+    def __image_getter(self):
         """Download images from URL."""
         html_parser = HtmlParser(self.requests_header, self.site_name)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
