@@ -34,11 +34,12 @@ from RipperExceptions import InvalidSubdomain, RipperError
 from Util import SCHEME, url_check
 
 PROTOCOL: str = "https:"
-PARSER: str = "lxml"  # "html.parser" lxml is faster
+PARSER: str = "lxml"  # The XML parsing engine to be used by BeautifulSoup
 DRIVER_HEADER: str = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
+EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com")
 
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -1353,6 +1354,7 @@ class HtmlParser:
         dir_name = f"{dir_name} - ({source_site})"
 
         # region Get All Posts
+
         page = 0
         image_links = []
         while True:
@@ -1372,12 +1374,10 @@ class HtmlParser:
         # endregion
 
         # region Parse All Posts
+
         images = []
-        # mega_links = []
-        # gdrive_links = []
-        external_links = {}
-        external_sites = ("drive.google.com", "mega.nz")
-        for site in external_sites:
+        external_links: dict[str, list[str]] = {}
+        for site in EXTERNAL_SITES:
             external_links[site] = []
         num_posts = len(image_links)
         ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
@@ -1390,31 +1390,15 @@ class HtmlParser:
             possible_links = [tag.text for tag in possible_links_p]
             possible_links_div = soup.find_all("div")
             possible_links.extend([tag.text for tag in possible_links_div])
-            # m_links = [link + "\n" for link in links if "mega.nz" in link]
-            # gd_links = [link + "\n" for link in links if "drive.google.com" in link]
-            for site in external_links.keys():
-                ext_links = [HtmlParser._extract_url(link) + "\n" for link in links if site in link]
-                external_links[site].extend(ext_links)
-                for text in possible_links:
-                    if site not in text:
-                        continue
-                    parts = text.split()
-                    for part in parts:
-                        if site in part:
-                            external_links[site].append(part + "\n")
-                    # for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
-                    #     if domain_list[0] not in text:
-                    #         continue
-                    #     parts = text.split()
-                    #     for part in parts:
-                    #         if domain_list[0] in part:
-                    #             domain_list[1].append(part + "\n")
+            ext_links = self.__extract_external_urls(links)
+            for site in ext_links:
+                external_links[site].extend(ext_links[site])
+            ext_links = self.__extract_possible_external_urls(possible_links)
+            for site in ext_links:
+                external_links[site].extend(ext_links[site])
             attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
-                           links
-                           if any(ext in link for ext in ATTACHMENTS)]
+                           links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
-            # mega_links.extend(list(dict.fromkeys(m_links)))
-            # gdrive_links.extend(list(dict.fromkeys(gd_links)))
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
@@ -1427,10 +1411,6 @@ class HtmlParser:
         for site in external_links.keys():
             with open(f"{site}_links.txt", "a", encoding="utf-16") as f:
                 f.writelines(external_links[site])
-        # with open("megaLinks.txt", "a", encoding="utf-16") as f:
-        #     f.writelines(mega_links)
-        # with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
-        #     f.writelines(gdrive_links)
         return RipInfo(images, dir_name)
 
     # unable to load closed shadow DOM
@@ -2452,6 +2432,31 @@ class HtmlParser:
                 response_json = response.json()
                 parsed_urls.append(response_json["data"]["link"])
         return parsed_urls
+
+    @staticmethod
+    def __extract_external_urls(urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = {}
+        for site in EXTERNAL_SITES:
+            external_links[site] = []
+        for site in external_links.keys():
+            ext_links = [HtmlParser._extract_url(url) + "\n" for url in urls if site in url]
+            external_links[site].extend(ext_links)
+        return external_links
+
+    @staticmethod
+    def __extract_possible_external_urls(possible_urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = {}
+        for site in EXTERNAL_SITES:
+            external_links[site] = []
+        for site in external_links.keys():
+            for text in possible_urls:
+                if site not in text:
+                    continue
+                parts = text.split()
+                for part in parts:
+                    if site in part:
+                        external_links[site].append(part + "\n")
+        return external_links
 
     @staticmethod
     def _print_html(soup: BeautifulSoup):
