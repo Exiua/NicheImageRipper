@@ -1,33 +1,56 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import pickle
 import re
 import sys
+import time
 from math import ceil
 from os import path
 from time import sleep
-from typing import Callable
+from typing import Callable, Tuple
 from urllib.parse import urlparse
 
 import bs4
 import requests
 import selenium
 import tldextract
+from mega import Mega
+from mega.crypto import base64_to_a32, base64_url_decode, decrypt_attr, decrypt_key
 from bs4 import BeautifulSoup
+from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.remote.webelement import WebElement
 
+from Config import Config
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
-from rippers import DRIVER_HEADER, requests_header, PARSER, DEBUG, PROTOCOL, SCHEME, read_config, url_check
+from Util import SCHEME, url_check
 
+PROTOCOL: str = "https:"
+PARSER: str = "lxml"  # The XML parsing engine to be used by BeautifulSoup
+DRIVER_HEADER: str = (
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0")
+# Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
+# Chrome/W.X.Y.Z‡ Safari/537.36")
+EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
+
+requests_header: dict[str, str] = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 '
+        'Safari/537.36',
+    'referer':
+        'https://imhentai.xxx/',
+    'cookie':
+        ''
+}
 logged_in: bool
-PARSER_SWITCH: dict[str, Callable[[], RipInfo]]
-TEST_PARSER: str = ""
 
 
 class HtmlParser:
@@ -35,10 +58,10 @@ class HtmlParser:
         global logged_in
         options = Options()
         options.headless = site_name != "v2ph" or logged_in
-        options.add_argument = DRIVER_HEADER
+        options.add_argument(DRIVER_HEADER)
         options.set_preference("dom.disable_beforeunload", True)
         options.set_preference("browser.tabs.warnOnClose", False)
-        self.driver = webdriver.Firefox(options=options)
+        self.driver: webdriver.Firefox = webdriver.Firefox(options=options)
         self.interrupted: bool = False
         self.site_name: str = site_name
         self.sleep_time: float = 0.2
@@ -156,8 +179,19 @@ class HtmlParser:
             "porn3dx": self.porn3dx_parse,
             "deviantart": self.deviantart_parse,
             "readmanganato": self.manganato_parse,
-            "manganato": self.manganato_parse
+            "manganato": self.manganato_parse,
+            "sfmcompile": self.sfmcompile_parse,
+            "tsumino": self.tsumino_parse,
+            "danbooru": self.danbooru_parse,
+            "flickr": self.flickr_parse,
+            "rule34": self.rule34_parse,
+            "titsintops": self.titsintops_parse,
+            "gelbooru": self.gelbooru_parse
         }
+
+    @property
+    def current_url(self):
+        return self.driver.current_url
 
     def parse_site(self, url: str) -> RipInfo:
         if path.isfile("partial.json"):
@@ -167,17 +201,24 @@ class HtmlParser:
                 requests_header["referer"] = save_data["referer"]
                 self.interrupted = True
                 return save_data[url]
+        # if os.path.isfile("cookies.pkl"):
+        #     cookies = pickle.load(open("cookies.pkl", "rb"))
+        #     for cookie in cookies:
+        #         self.driver.add_cookie(cookie)
         url = url.replace("members.", "www.")
         self.given_url = url
         self.driver.get(url)
         self.site_name = self.site_check()
         site_parser: Callable[[], RipInfo] = self.parser_jump_table.get(self.site_name)
+        success = False
         try:
             site_info: RipInfo = site_parser()
+            success = True
         finally:
+            if success:
+                self.write_partial_save(site_info, url)
+                pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             self.driver.quit()
-        self.write_partial_save(site_info, url)
-        self.driver.quit()
         return site_info
 
     def site_check(self) -> str:
@@ -186,9 +227,12 @@ class HtmlParser:
             hosts the files
         """
         if url_check(self.given_url):
+            special_domains = ("inven.co.kr", "danbooru.donmai.us")
             domain = urlparse(self.given_url).netloc
             requests_header['referer'] = "".join([SCHEME, domain, "/"])
-            domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+            domain_parts = domain.split(".")
+            domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
+            domain_parts[-2]
             # Hosts images on a different domain
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
                 requests_header['referer'] = "https://cdn.discordapp.com/"
@@ -237,13 +281,13 @@ class HtmlParser:
         try:
             with open("partial.json", 'r') as load_file:
                 data: dict = json.load(load_file)
-                key: str
-                for key in data:
-                    if isinstance(data[key], dict):
-                        data[key] = RipInfo.deserialize(data[key])
-                return data
+            key: str
+            for key in data:
+                if isinstance(data[key], dict):
+                    data[key] = RipInfo.deserialize(data[key])
+            return data
         except FileNotFoundError:
-            pass  # Doesn't matter if the cached data doesn't exist, will regen instead
+            return {"": ""}  # Doesn't matter if the cached data doesn't exist, will regen instead
 
     def site_login(self, site_name: str, given_url: str, logins: dict[str, str]):
         curr_url = self.driver.current_url
@@ -254,6 +298,8 @@ class HtmlParser:
             self.driver.find_element(By.XPATH, "//input[@type='password']").send_keys(logins["sexy-egirls"][1])
             self.driver.find_element(By.XPATH, "//button[@type='submit']").click()
         self.driver.get(curr_url)
+
+    # region Parsers
 
     def __generic_html_parser_1(self):
         soup = self.soupify()
@@ -348,7 +394,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def agirlpic_parse(self) -> RipInfo:
-        """Read the html for agirlpic.com"""
+        """Parses the html for agirlpic.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
@@ -368,7 +414,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def arca_parse(self) -> RipInfo:
-        """Read the html for arca.live"""
+        """Parses the html for arca.live and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title").text
@@ -384,7 +430,9 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def artstation_parse(self) -> RipInfo:
-        """Read the html for artstation.com"""
+        """
+            Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         self.lazy_load()
         soup = self.soupify()
@@ -409,7 +457,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babecentrum_parse(self) -> RipInfo:
-        """Read the html for babecentrum.com"""
+        """Parses the html for babecentrum.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="pageHeading").find_all("cufontext")
@@ -420,7 +468,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babeimpact_parse(self) -> RipInfo:
-        """Read the html for babeimpact.com"""
+        """Parses the html for babeimpact.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         title = soup.find("h1", class_="blockheader pink center lowercase").text
@@ -441,7 +489,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babeuniversum_parse(self) -> RipInfo:
-        """Read the html for babeuniversum.com"""
+        """Parses the html for babeuniversum.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title").find("h1").text
@@ -450,7 +498,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babesandbitches_parse(self) -> RipInfo:
-        """Read the html for babesandbitches.net"""
+        """Parses the html for babesandbitches.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", id="title").text.split()
@@ -464,7 +512,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babesandgirls_parse(self) -> RipInfo:
-        """Read the html for babesandgirls.com"""
+        """Parses the html for babesandgirls.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
@@ -473,7 +521,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babesaround_parse(self) -> RipInfo:
-        """Read the html for babesaround.com"""
+        """Parses the html for babesaround.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("section", class_="outer-section").find(
@@ -484,7 +532,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babesbang_parse(self) -> RipInfo:
-        """Read the html for babesbang.com"""
+        """Parses the html for babesbang.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="main-title").text
@@ -493,7 +541,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babesinporn_parse(self) -> RipInfo:
-        """Read the html for babesinporn.com"""
+        """Parses the html for babesinporn.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="blockheader pink center lowercase").text
@@ -502,7 +550,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def babesmachine_parse(self) -> RipInfo:
-        """Read the html for babesmachine.com"""
+        """Parses the html for babesmachine.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="gallery").find("h2").find("a").text
@@ -511,7 +559,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def bestprettygirl_parse(self) -> RipInfo:
-        """Read the html for bestprettygirl.com"""
+        """Parses the html for bestprettygirl.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
@@ -520,7 +568,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def buondua_parse(self) -> RipInfo:
-        """Read the html for buondua.com"""
+        """Parses the html for buondua.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         self.lazy_load(True)
         soup = self.soupify()
@@ -544,11 +592,11 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def bustybloom_parse(self) -> RipInfo:
-        """Read the html for bustybloom.com"""
+        """Parses the html for bustybloom.com and extracts the relevant information necessary for downloading images from the site"""
         return self.__generic_html_parser_2()
 
     def cherrynudes_parse(self) -> RipInfo:
-        """Read the html for cherrynudes.com"""
+        """Parses the html for cherrynudes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("title").text.split("-")[0].strip()
@@ -558,7 +606,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def chickteases_parse(self) -> RipInfo:
-        """Read the html for chickteases.com"""
+        """Parses the html for chickteases.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", id="galleryModelName").text
@@ -567,7 +615,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def cool18_parse(self) -> RipInfo:
-        """Read the html for cool18.com"""
+        """Parses the html for cool18.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("td", class_="show_content").find("b").text
@@ -577,12 +625,12 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def coomer_parse(self) -> RipInfo:
-        """Read the html for coomer.party"""
+        """Parses the html for coomer.party and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__dot_party_parse("https://coomer.party")
 
     def cupe_parse(self) -> RipInfo:
-        """Read the html for cup-e.club"""
+        """Parses the html for cup-e.club and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         image_list = soup.find_all("img", {"class": ["alignnone", "size-full"]})
@@ -634,7 +682,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def cutegirlporn_parse(self) -> RipInfo:
-        """Read the html for cutegirlporn.com"""
+        """Parses the html for cutegirlporn.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="gal-title").text
@@ -643,7 +691,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def cyberdrop_parse(self) -> RipInfo:
-        """Read the html for cyberdrop.me"""
+        """Parses the html for cyberdrop.me and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", id="title").text
@@ -652,8 +700,28 @@ class HtmlParser:
                   for image in image_list]
         return RipInfo(images, dir_name)
 
+    def danbooru_parse(self) -> RipInfo:
+        """Parses the html for danbooru.donmai.us and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        url = self.driver.current_url
+        tags = url.split("tags=")[-1]
+        tags = tags.split("&")[0]
+        tags = tags.replace("+", " ")
+        dir_name = "[Danbooru] " + tags
+        images = []
+        client = Danbooru('danbooru')
+        i = 0
+        while True:
+            posts = client.post_list(tags=tags, page=i)
+            i += 1
+            if len(posts) == 0:
+                break
+            images.extend([post["file_url"] for post in posts if "file_url" in post])
+            sleep(0.1)
+        return RipInfo(images, dir_name)
+
     def decorativemodels_parse(self) -> RipInfo:
-        """Read the html for decorativemodels.com"""
+        """Parses the html for decorativemodels.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="center").text
@@ -662,7 +730,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def deviantart_parse(self) -> RipInfo:
-        """Read the html for deviantart.com"""
+        """Parses the html for deviantart.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         curr = self.driver.current_url
         dir_name = curr.split("/")[3]
@@ -671,7 +739,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def dirtyyoungbitches_parse(self) -> RipInfo:
-        """Read the html for dirtyyoungbitches.com"""
+        """Parses the html for dirtyyoungbitches.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title-holder").find("h1").text
@@ -681,7 +749,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def eahentai_parse(self) -> RipInfo:
-        """Read the html for eahentai.com"""
+        """Parses the html for eahentai.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(1)
         # Load lazy loaded images
@@ -693,7 +761,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def ehentai_parse(self) -> RipInfo:
-        """Read the html for e-hentai.org"""
+        """Parses the html for e-hentai.org and extracts the relevant information necessary for downloading images from the site"""
         sleep(5)  # To prevent ip ban; This is going to be a slow process
         # Parses the html of the site
         soup = self.soupify()
@@ -731,7 +799,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def eightboobs_parse(self) -> RipInfo:
-        """Read the html for 8boobs.com"""
+        """Parses the html for 8boobs.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="content").find_all("div", class_="title")[1].text
@@ -740,7 +808,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def eightmuses_parse(self) -> RipInfo:
-        """Read the html for 8muses.com"""
+        """Parses the html for 8muses.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         gallery = self.driver.find_element(By.CLASS_NAME, "gallery")
         while gallery is None:
@@ -755,7 +823,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def eightkcosplay_parse(self) -> RipInfo:
-        """Read the html for 8kcosplay.com"""
+        """Parses the html for 8kcosplay.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
@@ -765,12 +833,12 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def elitebabes_parse(self) -> RipInfo:
-        """Read the html for elitebabes.com"""
+        """Parses the html for elitebabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     def erosberry_parse(self) -> RipInfo:
-        """Read the html for erosberry.com"""
+        """Parses the html for erosberry.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
@@ -779,7 +847,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def everia_parse(self) -> RipInfo:
-        """Read the html for everia.club"""
+        """Parses the html for everia.club and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
@@ -788,7 +856,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def exgirlfriendmarket_parse(self) -> RipInfo:
-        """Read the html for exgirlfriendmarket.com"""
+        """Parses the html for exgirlfriendmarket.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title-area").find("h1").text
@@ -797,7 +865,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def f5girls_parse(self) -> RipInfo:
-        """Read the html for f5girls.com"""
+        """Parses the html for f5girls.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="container")[2].find("h1").text
@@ -816,7 +884,7 @@ class HtmlParser:
 
     # Started working on support for fantia.com
     def __fantia_parse(self) -> RipInfo:
-        """Read the html for fantia.com"""
+        """Parses the html for fantia.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="fanclub-name").find("a").text
@@ -867,12 +935,56 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def femjoyhunter_parse(self) -> RipInfo:
-        """Read the html for femjoyhunter.com"""
+        """Parses the html for femjoyhunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
+    def flickr_parse(self) -> RipInfo:
+        """Parses the html for flickr.com and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        self.lazy_load(True)
+        soup = self.soupify()
+        dir_name = soup.find("h1").text.strip()
+        images = []
+        image_posts = []
+        page_count = 1
+        while True:
+            print(f"Parsing page {page_count}")
+            page_count += 1
+            posts = soup.select_one("div.view.photo-list-view.photostream").select(
+                "div.view.photo-list-photo-view.photostream")
+            posts = [p.select_one("a.overlay").get("href") for p in posts]
+            posts = [f"https://www.flickr.com{p}" for p in posts]
+            image_posts.extend(posts)
+            next_button = soup.find("a", rel="next")
+            if next_button:
+                next_url = next_button.get("href")
+                soup = self.soupify(f"https://www.flickr.com{next_url}", lazy_load=True)
+            else:
+                break
+        for i, post in enumerate(image_posts):
+            print(f"Parsing post {i + 1}: {post}")
+            delay = 0.1
+            soup = self.soupify(post, delay=delay)
+            script = soup.find("script", class_="modelExport").text
+            while True:
+                try:
+                    params = '{"photoModel"' + script.split('{"photoModel"')[1]  # ("params: ")[1]
+                    break
+                except IndexError:
+                    delay *= 2
+                    soup = self.soupify(post, delay=delay)
+                    script = soup.find("script", class_="modelExport").text
+            params = self._extract_json_object(params)
+            # print(params)
+            params_json: dict = json.loads(params)
+            # print(params_json)
+            img_url = params_json["photoModel"]["descendingSizes"][0]["url"]
+            images.append(f"{PROTOCOL}{img_url}")
+        return RipInfo(images, dir_name)
+
     def foxhq_parse(self) -> RipInfo:
-        """Read the html for foxhq.com"""
+        """Parses the html for foxhq.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1").text
@@ -883,12 +995,32 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def ftvhunter_parse(self) -> RipInfo:
-        """Read the html for ftvhunter.com"""
+        """Parses the html for ftvhunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
+    def gelbooru_parse(self) -> RipInfo:
+        """Read the html for gelbooru.com"""
+        # Parses the html of the site
+        tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
+        dir_name = "[Gelbooru] " + tags.replace("+", " ").replace("tags=", "")
+        response = requests.get(f"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
+        data: dict = response.json()
+        images = []
+        pid = 1
+        posts = data["post"]
+        while len(posts) != 0:
+            urls = [post["file_url"] for post in posts]
+            images.extend(urls)
+            response = requests.get(
+                f"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            pid += 1
+            data = response.json()
+            posts = data.get("post", [])
+        return RipInfo(images, dir_name)
+
     def girlsofdesire_parse(self) -> RipInfo:
-        """Read the html for girlsofdesire.org"""
+        """Parses the html for girlsofdesire.org and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("a", class_="albumName").text
@@ -898,7 +1030,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def girlsreleased_parse(self) -> RipInfo:
-        """Read the html for girlsreleased.com"""
+        """Parses the html for girlsreleased.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(5)
         soup = self.soupify()
@@ -912,7 +1044,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def glam0ur_parse(self) -> RipInfo:
-        """Read the html for glam0ur.com"""
+        """Parses the html for glam0ur.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="picnav").find("h1").text
@@ -924,19 +1056,18 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def gofile_parse(self) -> RipInfo:
-        """Read the html for gofile.io"""
+        """Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(5)
-        current_url = self.driver.current_url
         soup = self.soupify()
         dir_name = soup.find("span", id="rowFolder-folderName").text
         images = soup.find("div", id="rowFolder-tableContent").find_all("div", recursive=False)
         images = [img.find("a", target="_blank").get("href") for img in images]
-        images.insert(0, current_url)
+        images.insert(0, self.current_url)
         return RipInfo(images, dir_name)
 
     def grabpussy_parse(self) -> RipInfo:
-        """Read the html for grabpussy.com"""
+        """Parses the html for grabpussy.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="c-title")[1].find("h1").text
@@ -945,7 +1076,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def gyrls_parse(self) -> RipInfo:
-        """Read the html for gyrls.com"""
+        """Parses the html for gyrls.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="single_title").text
@@ -954,7 +1085,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hanime_parse(self) -> RipInfo:
-        """Read the html for hanime.tv"""
+        """Parses the html for hanime.tv and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(1)  # Wait so images can load
         soup = self.soupify()
@@ -965,13 +1096,13 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hegrehunter_parse(self) -> RipInfo:
-        """Read the html for hegrehunter.com"""
+        """Parses the html for hegrehunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     # Cannot bypass captcha, so it doesn't work
     def __hentaicosplays_parse(self) -> RipInfo:
-        """Read the html for hentai-cosplays.com"""
+        """Parses the html for hentai-cosplays.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="main_contents").find("h2").text
@@ -989,7 +1120,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hentairox_parse(self) -> RipInfo:
-        """Read the html for hentairox.com"""
+        """Parses the html for hentairox.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="col-md-7 col-sm-7 col-lg-8 right_details").find("h1").text
@@ -998,7 +1129,7 @@ class HtmlParser:
         return RipInfo([images], dir_name, True, num_files)
 
     def heymanhustle_parse(self) -> RipInfo:
-        """Read the html for heymanhustle.com"""
+        """Parses the html for heymanhustle.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
@@ -1007,7 +1138,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hotgirl_parse(self) -> RipInfo:
-        """Read the html for hotgirl.asia"""
+        """Parses the html for hotgirl.asia and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         url = self.driver.current_url
@@ -1026,7 +1157,7 @@ class HtmlParser:
             for index in range(2, int(num_pages) + 1):
                 page_url = "".join([url, str(index), '/'])
                 self.driver.get(page_url)
-                soup = BeautifulSoup(self.driver.page_source, PARSER)
+                soup = self.soupify()
                 images_list = soup.find_all("img", itemprop="image")
                 del images_list[0]  # First image is just the thumbnail
                 images_html.extend(images_list)
@@ -1034,7 +1165,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hotpornpics_parse(self) -> RipInfo:
-        """Read the html for hotpornpics.com"""
+        """Parses the html for hotpornpics.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="hotpornpics_h1player").text
@@ -1044,7 +1175,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hotstunners_parse(self) -> RipInfo:
-        """Read the html for hotstunners.com"""
+        """Parses the html for hotstunners.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title_content").find("h2").text
@@ -1053,7 +1184,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hottystop_parse(self) -> RipInfo:
-        """Read the html for hottystop.com"""
+        """Parses the html for hottystop.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         url = self.driver.current_url
@@ -1066,7 +1197,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hqbabes_parse(self) -> RipInfo:
-        """Read the html for hqbabes.com"""
+        """Parses the html for hqbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         model = soup.find("p", class_="desc").find("a").text
@@ -1088,7 +1219,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hqsluts_parse(self) -> RipInfo:
-        """Read the html for hqsluts.com"""
+        """Parses the html for hqsluts.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         model = soup.find("p", class_="desc").find("a").text
@@ -1104,7 +1235,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def hundredbucksbabes_parse(self) -> RipInfo:
-        """Read the html for 100bucksbabes.com"""
+        """Parses the html for 100bucksbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="main-col-2").find("h2", class_="heading").text
@@ -1113,7 +1244,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def imgbox_parse(self) -> RipInfo:
-        """Read the html for imgbox.com"""
+        """Parses the html for imgbox.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="gallery-view").find("h1").text
@@ -1123,13 +1254,16 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def imgur_parse(self) -> RipInfo:
-        """Read the html for imgur.com"""
+        """
+        Parse the html for imgur.com and extracts the relevant information necessary for downloading images from the
+        site
+        """
         # Parses the html of the site
-        client_id = read_config('KEYS', 'Imgur')
+        client_id = Config.config.keys["Imgur"]
         if client_id == '':
             print("Client Id not properly set")
             print("Follow to generate Client Id: https://apidocs.imgur.com/#intro")
-            print("Then add Client Id to imgur in config.ini under KEYS")
+            print("Then add Client Id to Imgur in config.json under Keys")
             raise RuntimeError("Client Id Not Set")
         else:
             requests_header['Authorization'] = 'Client-ID ' + client_id
@@ -1145,7 +1279,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def imhentai_parse(self) -> RipInfo:
-        """Read the html for imhentai.xxx"""
+        """Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
 
@@ -1161,7 +1295,7 @@ class HtmlParser:
         return RipInfo([images], dir_name, True, num_pages)
 
     def inven_parse(self) -> RipInfo:
-        """Read the html for inven.co.kr"""
+        """Parses the html for inven.co.kr and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="articleTitle").find("h1").text
@@ -1170,7 +1304,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def jkforum_parse(self) -> RipInfo:
-        """Read the html for jkforum.net"""
+        """Parses the html for jkforum.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title-cont").find("h1").text
@@ -1179,7 +1313,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def join2babes_parse(self) -> RipInfo:
-        """Read the html for join2babes.com"""
+        """Parses the html for join2babes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="gallery_title_div")[1].find("h1").text
@@ -1188,12 +1322,12 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def joymiihub_parse(self) -> RipInfo:
-        """Read the html for joymiihub.com"""
+        """Parses the html for joymiihub.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     def jpg_parse(self) -> RipInfo:
-        """Read the html for jpg.church"""
+        """Parses the html for jpg.church and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="text-overflow-ellipsis").find("a").text
@@ -1202,12 +1336,104 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def kemono_parse(self) -> RipInfo:
-        """Read the html for kemono.party"""
+        """Parses the html for kemono.party and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
-        return self.__dot_party_parse("https://kemono.party")
+        cookies = self.driver.get_cookies()
+        cookie_str = ''
+        for c in cookies:
+            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+        requests_header["cookie"] = cookie_str
+        base_url = self.current_url
+        base_url = base_url.split("/")
+        source_site = base_url[3]
+        base_url = "/".join(base_url[:6])
+        page_url = self.driver.current_url.split("?")[0]
+        sleep(5)
+        soup = self.soupify()
+        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
+        dir_name = f"{dir_name} - ({source_site})"
+
+        # region Get All Posts
+
+        page = 0
+        image_links = []
+        while True:
+            page += 1
+            print("".join(["Parsing page ", str(page)]))
+            image_list = soup.find("div", class_="card-list__items").find_all("article")
+            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
+            image_links.extend(image_list)
+            next_page = f"{page_url}?o={str(page * 50)}"
+            print(next_page)
+            soup = self.soupify(next_page)
+            self._print_html(soup)
+            test_str = soup.find("h2", class_="site-section__subheading")
+            if test_str is not None:
+                break
+
+        # endregion
+
+        # region Parse All Posts
+
+        images = []
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
+        num_posts = len(image_links)
+        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
+        for i, link in enumerate(image_links):
+            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
+            soup = self.soupify(link)
+            links = soup.find_all("a")
+            links = [link.get("href") for link in links]
+            possible_links_p = soup.find_all("p")
+            possible_links = [tag.text for tag in possible_links_p]
+            possible_links_div = soup.find_all("div")
+            possible_links.extend([tag.text for tag in possible_links_div])
+            ext_links = self.__extract_external_urls(links)
+            for site in ext_links:
+                external_links[site].extend(ext_links[site])
+            ext_links = self.__extract_possible_external_urls(possible_links)
+            for site in ext_links:
+                external_links[site].extend(ext_links[site])
+            attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
+                           links if any(ext in link for ext in ATTACHMENTS)]
+            images.extend(attachments)
+            image_list = soup.find("div", class_="post__files")
+            if image_list is not None:
+                image_list = image_list.find_all("a", class_="fileThumb image-link")
+                image_list = ["".join(["https://kemono.party".replace("//", "//data1."), img.get("href")]) for img in
+                              image_list]
+                images.extend(image_list)
+
+        # endregion
+
+        self.__save_external_links(external_links)
+        return RipInfo(images, dir_name)
+
+    # unable to load closed shadow DOM
+    def __koushoku_parse(self) -> RipInfo:
+        """Parses the html for koushoku.org and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("h2").text
+        num_images = int(soup.find_all("tr")[1].find_all("td")[1].text.split()[0])
+        base_url = self.driver.current_url
+        images = []
+        for i in range(1, num_images + 1):
+            self.driver.get(f"{base_url}/{str(i)}")
+            # input(".")
+            shadow_host = self.driver.find_element(By.XPATH, '//div[@class="main"]/a').click()
+            action = ActionChains(self.driver)
+            action.send_keys(Keys.TAB)
+            action.click()
+            input("1")
+            soup = BeautifulSoup(shadow_host.get_attribute("inner_html"), PARSER)
+            self._print_html(soup)
+            img = soup.find("img").get("src")
+            images.append(img)
+        return RipInfo(images, dir_name)
 
     def leakedbb_parse(self) -> RipInfo:
-        """Read the html for leakedbb.com"""
+        """Parses the html for leakedbb.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="flow-text left").find("strong").text
@@ -1226,7 +1452,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def livejasminbabes_parse(self) -> RipInfo:
-        """Read the html for livejasminbabes.net"""
+        """Parses the html for livejasminbabes.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="gallery_header").find("h1").text
@@ -1235,7 +1461,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def lovefap_parse(self) -> RipInfo:
-        """Read the html for lovefap.com"""
+        """Parses the html for lovefap.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="albums-content-header").find("span").text
@@ -1253,7 +1479,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def luscious_parse(self) -> RipInfo:
-        """Read the html for luscious.net"""
+        """Parses the html for luscious.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         if "members." in self.driver.current_url:
             self.driver.get(self.driver.current_url.replace("members.", "www."))
@@ -1306,7 +1532,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def mainbabes_parse(self) -> RipInfo:
-        """Read the html for mainbabes.com"""
+        """Parses the html for mainbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="heading").find("h2", class_="title").text
@@ -1315,7 +1541,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def manganato_parse(self) -> RipInfo:
-        """Read the html for manganato.com"""
+        """Parses the html for manganato.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="story-info-right").find("h1").text
@@ -1333,11 +1559,8 @@ class HtmlParser:
             next_chapter = soup.find("a", class_="navi-change-chapter-btn-next a-h")
         return RipInfo(images, dir_name)
 
-    global TEST_PARSER
-    TEST_PARSER = "manganato_parse"
-
     def maturewoman_parse(self) -> RipInfo:
-        """Read the html for maturewoman.xyz"""
+        """Parses the html for maturewoman.xyz and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
@@ -1347,12 +1570,12 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def metarthunter_parse(self) -> RipInfo:
-        """Read the html for hetarthunter.com"""
+        """Parses the html for hetarthunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     def morazzia_parse(self) -> RipInfo:
-        """Read the html for morazzia.com"""
+        """Parses the html for morazzia.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
@@ -1361,7 +1584,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def myhentaigallery_parse(self) -> RipInfo:
-        """Read the html for myhentaigallery.com"""
+        """Parses the html for myhentaigallery.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="comic-description").find("h1").text
@@ -1370,7 +1593,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def nakedgirls_parse(self) -> RipInfo:
-        """Read the html for nakedgirls.xxx"""
+        """Parses the html for nakedgirls.xxx and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="content").find("h1").text
@@ -1379,7 +1602,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def nightdreambabe_parse(self) -> RipInfo:
-        """Read the html for nightdreambabe.com"""
+        """Parses the html for nightdreambabe.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("section", class_="outer-section").find("h2", class_="section-title title").text
@@ -1388,7 +1611,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def nonsummerjack_parse(self) -> RipInfo:
-        """Read the html for nonsummerjack.com"""
+        """Parses the html for nonsummerjack.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         self.lazy_load(True, increment=1250, backscroll=1)
         ul = self.driver.find_element(By.CLASS_NAME, "fg-dots")
@@ -1413,7 +1636,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def novoglam_parse(self) -> RipInfo:
-        """Read the html for novoglam.com"""
+        """Parses the html for novoglam.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="heading").find("h1").text
@@ -1422,7 +1645,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def novohot_parse(self) -> RipInfo:
-        """Read the html for novohot.com"""
+        """Parses the html for novohot.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="viewIMG").find("h1").text
@@ -1431,7 +1654,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def novojoy_parse(self) -> RipInfo:
-        """Read the html for novojoy.com"""
+        """Parses the html for novojoy.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1").text
@@ -1440,7 +1663,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def novoporn_parse(self) -> RipInfo:
-        """Read the html for novoporn.com"""
+        """Parses the html for novoporn.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("section", class_="outer-section").find(
@@ -1455,7 +1678,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def nudebird_parse(self) -> RipInfo:
-        """Read the html for nudebird.biz"""
+        """Parses the html for nudebird.biz and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title single-title entry-title").text
@@ -1464,7 +1687,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def nudity911_parse(self) -> RipInfo:
-        """Read the html for nudity911.com"""
+        """Parses the html for nudity911.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1").text
@@ -1474,7 +1697,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def pbabes_parse(self) -> RipInfo:
-        """Read the html for pbabes.com"""
+        """Parses the html for pbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find_all("div", class_="box_654")[1].find("h1").text
@@ -1484,7 +1707,7 @@ class HtmlParser:
 
     # Seems like all galleries have been deleted
     def _pics_parse(self) -> RipInfo:
-        """Read the html for pics.vc"""
+        """Parses the html for pics.vc and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="gall_header").find("h2").text.split("-")[1].strip()
@@ -1502,7 +1725,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def pinkfineart_parse(self) -> RipInfo:
-        """Read the html for pinkfineart.com"""
+        """Parses the html for pinkfineart.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h5", class_="d-none d-sm-block text-center my-2")
@@ -1512,7 +1735,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def pleasuregirl_parse(self) -> RipInfo:
-        """Read the html for pleasuregirl.net"""
+        """Parses the html for pleasuregirl.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h2", class_="title").text
@@ -1521,15 +1744,18 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def pmatehunter_parse(self) -> RipInfo:
-        """Read the html for pmatehunter.com"""
+        """Parses the html for pmatehunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     def porn3dx_parse(self) -> RipInfo:
-        """Read the html for porn3dx.com"""
+        """
+        Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
+        the site
+        """
         # Parses the html of the site
-        username = read_config("LOGINS", "Porn3dxU")
-        password = read_config("LOGINS", "Porn3dxP")
+        username = Config.config.logins["Porn3dxU"]["Username"]
+        password = Config.config.logins["Porn3dxU"]["Password"]
         curr_url = self.driver.current_url
         logged_in_to_site = False
         if username and password:
@@ -1583,7 +1809,7 @@ class HtmlParser:
 
     # TODO: Site may be down permanently
     def putmega_parse(self) -> RipInfo:
-        """Read the html for putmega.com"""
+        """Parses the html for putmega.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("a", {"data-text": "album-name"}).text
@@ -1606,7 +1832,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def rabbitsfun_parse(self) -> RipInfo:
-        """Read the html for rabbitsfun.com"""
+        """Parses the html for rabbitsfun.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(1)
         soup = self.soupify()
@@ -1616,7 +1842,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def redgifs_parse(self) -> RipInfo:
-        """Read the html for redgifs.com"""
+        """Parses the html for redgifs.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(3)
         self.lazy_load(True, 1250)
@@ -1640,7 +1866,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def redpornblog_parse(self) -> RipInfo:
-        """Read the html for redpornblog.com"""
+        """Parses the html for redpornblog.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="pic-title").find("h1").text
@@ -1649,7 +1875,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def rossoporn_parse(self) -> RipInfo:
-        """Read the html for rossoporn.com"""
+        """Parses the html for rossoporn.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="content_right").find("h1").text
@@ -1658,8 +1884,26 @@ class HtmlParser:
                   tag_list.find_all("img")]
         return RipInfo(images, dir_name)
 
+    def rule34_parse(self) -> RipInfo:
+        """Read the html for rule34.xxx"""
+        # Parses the html of the site
+        tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
+        dir_name = "[Rule34] " + tags.replace("+", " ").replace("tags=", "")
+        response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
+        data = response.json()
+        images = []
+        pid = 1
+        while len(data) != 0:
+            urls = [post["file_url"] for post in data]
+            images.extend(urls)
+            response = requests.get(
+                f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            pid += 1
+            data = response.json()
+        return RipInfo(images, dir_name)
+
     def sankakucomplex_parse(self) -> RipInfo:
-        """Read the html for sankakucomplex.com"""
+        """Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").find("a").text
@@ -1669,7 +1913,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def sensualgirls_parse(self) -> RipInfo:
-        """Read the html for sensualgirls.org"""
+        """Parses the html for sensualgirls.org and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("a", class_="albumName").text
@@ -1679,7 +1923,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def sexhd_parse(self) -> RipInfo:
-        """Read the html for sexhd.pics"""
+        """Parses the html for sexhd.pics and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="photobig").find("h4").text.split(":")[1].strip()
@@ -1688,11 +1932,11 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def sexyaporno_parse(self) -> RipInfo:
-        """Read the html for sexyaporno.com"""
+        """Parses the html for sexyaporno.com and extracts the relevant information necessary for downloading images from the site"""
         return self.__generic_html_parser_2()
 
     def sexybabesart_parse(self) -> RipInfo:
-        """Read the html for sexybabesart.com"""
+        """Parses the html for sexybabesart.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="content-title").find("h1").text
@@ -1702,7 +1946,7 @@ class HtmlParser:
 
     # TODO: Convert to thotsbay parser since this site moved
     def __sexyegirls_parse(self) -> RipInfo:
-        """Read the html for sexy-egirls.com"""
+        """Parses the html for sexy-egirls.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(1)  # Wait so images can load
         soup = self.soupify()
@@ -1771,7 +2015,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def sexykittenporn_parse(self) -> RipInfo:
-        """Read the html for sexykittenporn.com"""
+        """Parses the html for sexykittenporn.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="blockheader").text
@@ -1790,7 +2034,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def sexynakeds_parse(self) -> RipInfo:
-        """Read the html for sexynakeds.com"""
+        """Parses the html for sexynakeds.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="box").find_all("h1")[1].text
@@ -1798,8 +2042,37 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name)
 
+    def sfmcompile_parse(self) -> RipInfo:
+        """Parses the html for sfmcompile.club and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        soup = self.soupify()
+        self._print_html(soup)
+        dir_name = soup.find("h1", class_="g1-alpha g1-alpha-2nd page-title archive-title").text.replace("\"", "")
+        elements = []
+        images = []
+        while True:
+            elements.extend(soup.find("ul", class_="g1-collection-items").find_all("li", class_="g1-collection-item"))
+            next_page = soup.find("a", class_="g1-link g1-link-m g1-link-right next")
+            if next_page:
+                next_page = next_page.get("href")
+                soup = self.soupify(next_page)
+            else:
+                break
+        for element in elements:
+            media = element.find("video")
+            with open("test.html", "w") as f:
+                f.write(str(element))
+            if media:
+                video_src = media.find("a").get("href")
+            else:
+                video_link = element.find("a", class_="g1-frame").get("href")
+                soup = self.soupify(video_link)
+                video_src = soup.find("video").find("source").get("src")
+            images.append(video_src)
+        return RipInfo(images, dir_name)
+
     def silkengirl_parse(self) -> RipInfo:
-        """Read the html for silkengirl.com and silkengirl.net"""
+        """Parses the html for silkengirl.com and silkengirl.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         if ".com" in self.driver.current_url:
@@ -1811,7 +2084,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def simplycosplay_parse(self) -> RipInfo:
-        """Read the html for simply-cosplay.com"""
+        """Parses the html for simply-cosplay.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(5)  # Wait so images can load
         soup = self.soupify()
@@ -1831,7 +2104,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def simplyporn_parse(self) -> RipInfo:
-        """Read the html for simply-porn.com"""
+        """Parses the html for simply-porn.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         # sleep(5) #Wait so images can load
         soup = self.soupify()
@@ -1850,7 +2123,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def sxchinesegirlz_parse(self) -> RipInfo:
-        """Read the html for sxchinesegirlz.one"""
+        """Parses the html for sxchinesegirlz.one and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         regp = re.compile(r'\d+x\d')
         soup = self.soupify()
@@ -1875,7 +2148,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def theomegaproject_parse(self) -> RipInfo:
-        """Read the html for theomegaproject.org"""
+        """Parses the html for theomegaproject.org and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="omega").text
@@ -1884,7 +2157,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def thotsbay_parse(self) -> RipInfo:
-        """Read the html for thotsbay.com"""
+        """Parses the html for thotsbay.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="album-info-title").find("h1").text
@@ -1907,7 +2180,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def tikhoe_parse(self) -> RipInfo:
-        """Read the html for tikhoe.com"""
+        """Parses the html for tikhoe.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="album-title").find("h1").text
@@ -1920,19 +2193,84 @@ class HtmlParser:
         self.driver.quit()
         return RipInfo(images, dir_name)
 
-    # TODO: Complete this
-    def _titsintops_parse(self) -> RipInfo:
-        """Read the html for titsintops.com"""
+    def titsintops_parse(self) -> RipInfo:
+        """
+            Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
+        # noinspection PyPep8Naming
+        SITE_URL = "https://titsintops.com"
+        self.login()
+        cookies = self.driver.get_cookies()
+        cookie_str = ''
+        for c in cookies:
+            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+        requests_header["cookie"] = cookie_str
         soup = self.soupify()
         dir_name = soup.find("h1", class_="p-title-value").text
-        images = soup.find()
-        self.driver.quit()
+        images = []
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
+        page_count = 1
+        while True:
+            print(f"Parsing page {page_count}")
+            page_count += 1
+            posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("div",
+                                                                                               class_="message-content js-messageContent")
+            for post in posts:
+                imgs = post.find("article", class_="message-body js-selectToQuote").find_all("img")
+                if imgs:
+                    imgs = [im.get("src") for im in imgs if "http" in im]
+                    images.extend(imgs)
+                videos = post.find_all("video")
+                if videos:
+                    video_urls = [f"{SITE_URL}{vid.find('source').get('src')}" for vid in videos]
+                    images.extend(video_urls)
+                iframes = post.find_all("iframe")
+                if iframes:
+                    # with open("test.html", "w") as f:
+                    #     f.write(str(iframes))
+                    embedded_urls = [em.get("src") for em in iframes]
+                    embedded_urls = self.parse_embedded_urls(embedded_urls)
+                    images.extend(embedded_urls)
+                attachments = post.find("ul", class_="attachmentList")
+                if attachments:
+                    attachments = attachments.find_all("a", class_="file-preview js-lbImage")
+                    if attachments:
+                        attachment_urls = [f"{SITE_URL}{attach.get('href')}" for attach in attachments]
+                        images.extend(attachment_urls)
+                links = post.find("article", class_="message-body js-selectToQuote").find_all("a")
+                if links:
+                    links = [link.get("href") for link in links]
+                    #print(links)
+                    filtered_links = self.__extract_external_urls(links)
+                    downloadable_links = self.__extract_downloadable_links(filtered_links, external_links)
+                    images.extend(downloadable_links)
+            next_page = soup.find("a", class_="pageNav-jump pageNav-jump--next")
+            if next_page:
+                next_page = next_page.get("href")
+                soup = self.soupify(f"{SITE_URL}{next_page}")
+            else:
+                self.__save_external_links(external_links)
+                break
+        return RipInfo(images, dir_name)
+
+    def tsumino_parse(self) -> RipInfo:
+        """Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="book-title").text
+        num_pages = int(soup.find("div", id="Pages").text.strip())
+        pager_url = self.driver.current_url.replace("/entry/", "/Read/Index/") + "?page="
+        images = []
+        for i in range(1, num_pages + 1):
+            soup = self.soupify(pager_url + str(i), 3)
+            src = soup.find("img", class_="img-responsive reader-img").get("src")
+            images.append(src)
         return RipInfo(images, dir_name)
 
     # TODO: Cert Date Invalid; Build Test Later
     def tuyangyan_parse(self) -> RipInfo:
-        """Read the html for tuyangyan.com"""
+        """Parses the html for tuyangyan.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="post-title entry-title").find("a").text
@@ -1959,7 +2297,7 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def wantedbabes_parse(self) -> RipInfo:
-        """Read the html for wantedbabes.com"""
+        """Parses the html for wantedbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", id="main-content").find("h1").text
@@ -1969,7 +2307,7 @@ class HtmlParser:
 
     # TODO: Work on saving self.driver across sites to avoid relogging in
     def v2ph_parse(self) -> RipInfo:
-        """Read the html for v2ph.com"""
+        """Parses the html for v2ph.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         global logged_in
         try:
@@ -2028,12 +2366,12 @@ class HtmlParser:
         return RipInfo(images, dir_name)
 
     def xarthunter_parse(self) -> RipInfo:
-        """Read the html for xarthunter.com"""
+        """Parses the html for xarthunter.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     def xmissy_parse(self) -> RipInfo:
-        """Read the html for xmissy.nl"""
+        """Parses the html for xmissy.nl and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", id="pagetitle").text
@@ -2044,23 +2382,41 @@ class HtmlParser:
             for img in images]
         return RipInfo(images, dir_name)
 
-    def _test_parse(self, given_url: str) -> RipInfo:
+    # endregion
+
+    def _test_parse(self, given_url: str, debug: bool) -> RipInfo:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
-        # ripper = ImageRipper()
-        # ripper.rip(given_url)
-        # return
         try:
             options = Options()
-            options.headless = not DEBUG
+            options.headless = not debug
             options.add_argument(DRIVER_HEADER)
             self.driver = webdriver.Firefox(options=options)
             self.driver.get(given_url.replace("members.", "www."))
-            # rip = ImageRipper(given_url)
-            # rip.site_login(self.driver)
-            return eval(f"self.{TEST_PARSER}()")
+            site_name = self._test_site_check(given_url)
+            return eval(f"self.{site_name}_parse()")
         finally:
             self.driver.quit()
+
+    def _test_site_check(self, url: str) -> str:
+        domain = urlparse(url).netloc
+        requests_header['referer'] = "".join([SCHEME, domain, "/"])
+        domain = self._domain_name_override(domain)
+        # if not domain:
+        #     domain = domain.split(".")[-2]
+        # domain = "inven" if "inven.co.kr" in domain else domain.split(".")[-2]
+        # Hosts images on a different domain
+        if "https://members.hanime.tv/" in url or "https://hanime.tv/" in url:
+            requests_header['referer'] = "https://cdn.discordapp.com/"
+        elif "https://kemono.party/" in url:
+            requests_header['referer'] = ""
+        return domain
+
+    @staticmethod
+    def _domain_name_override(url: str) -> str:
+        special_domains = ("inven.co.kr", "danbooru.donmai.us")
+        url_split = url.split(".")
+        return url_split[-3] if any(domain in url for domain in special_domains) else url_split[-2]
 
     def secondary_parse(self, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[str] | str:
         """Parses the html for links for supported sites used in other sites"""
@@ -2069,6 +2425,84 @@ class HtmlParser:
         images = parser(self.driver).urls
         self.driver.get(curr)
         return images
+
+    def parse_embedded_urls(self, urls: list[str]) -> list[str]:
+        parsed_urls = []
+        imgur_key = Config.config.keys["Imgur"]
+        for url in urls:
+            if "imgur" in url:
+                response = requests.get(url)
+                soup = self.soupify(response=response)
+                imgur_url = soup.find("a", id="image-link").get("href")
+                image_hash = imgur_url.split("#")[-1]
+                response = requests.get(f"https://api.imgur.com/3/image/{image_hash}",
+                                        headers={"Authorization": f"Client-ID {imgur_key}"})
+                response_json = response.json()
+                parsed_urls.append(response_json["data"]["link"])
+        return parsed_urls
+
+    @staticmethod
+    def __create_external_link_dict() -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = {}
+        for site in EXTERNAL_SITES:
+            external_links[site] = []
+        return external_links
+
+    @staticmethod
+    def __extract_external_urls(urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
+        for site in external_links.keys():
+            ext_links = [HtmlParser._extract_url(url) + "\n" for url in urls if url and site in url]
+            external_links[site].extend(ext_links)
+        return external_links
+
+    @staticmethod
+    def __extract_possible_external_urls(possible_urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
+        for site in external_links.keys():
+            for text in possible_urls:
+                if site not in text:
+                    continue
+                parts = text.split()
+                for part in parts:
+                    if site in part:
+                        external_links[site].append(part + "\n")
+        return external_links
+
+    @staticmethod
+    def __save_external_links(links: dict[str, list[str]]):
+        for site in links:
+            if not links[site]:
+                continue
+            with open(f"{site}_links.txt", "a", encoding="utf-16") as f:
+                f.writelines(links[site])
+
+    def __extract_downloadable_links(self, src_dict: dict[str, list[str]], dst_dict: dict[str, list[str]]) -> list[str]:
+        """
+            Extract links that can be downloaded while copying links that cannot be downloaded to dst_dict.
+            Returns list of links that can be downloaded.
+        """
+        downloadable_links = []
+        downloadable_sites = ("sendvid.com", )
+        for site in src_dict:
+            if any(s == site for s in downloadable_sites):
+                downloadable_links.extend(src_dict[site])
+                src_dict[site].clear()
+            else:
+                dst_dict[site].extend(src_dict[site])
+        return self.__resolve_downloadable_links(downloadable_links)
+
+    def __resolve_downloadable_links(self, links: list[str]) -> list[str]:
+        resolved_links = []
+        for link in links:
+            if "sendvid.com" in link:
+                r = requests.get(link)
+                soup = BeautifulSoup(r.content, "lxml")
+                l = soup.find("source", id="video_source").get("src")
+                resolved_links.append(l)
+            else:
+                resolved_links.append(link)
+        return resolved_links
 
     @staticmethod
     def _print_html(soup: BeautifulSoup):
@@ -2081,6 +2515,115 @@ class HtmlParser:
             f.write(f"[{title}]\n")
             for d in data:
                 f.write(f"\t{str(d).strip()}\n")
+
+    # region Testing Mega Downloading
+
+    @staticmethod
+    def _extract_url(text: str) -> str:
+        protocol_index = text.find("https:")
+        if protocol_index == -1:
+            return ""
+        url = text[protocol_index:]
+        url.replace("</a>", "")
+        return url
+
+    @staticmethod
+    def _download_from_mega(url: str, dest_path: str):
+        username = Config.config.logins["Mega"]["Username"]
+        password = Config.config.logins["Mega"]["Password"]
+
+        mega = Mega()
+        m = mega.login()  # username, password)
+        if "/file/" not in url:
+            (root_folder, shared_enc_key) = HtmlParser.__parse_folder_url(url)
+            shared_key = base64_to_a32(shared_enc_key)
+            nodes = HtmlParser.__get_nodes_in_shared_folder(root_folder)
+            for node in nodes:
+                key = HtmlParser.__decrypt_node_key(node["k"], shared_key)
+                if node["t"] == 0:  # Is a file
+                    k = (key[0] ^ key[4], key[1] ^ key[5], key[2] ^ key[6], key[3] ^ key[7])
+                elif node["t"] == 1:  # Is a folder
+                    k = key
+                    continue
+                else:
+                    raise Exception("Not file or folder")
+                attrs = decrypt_attr(base64_url_decode(node["a"]), k)
+                file_name = attrs["n"]
+                file_id = node["h"]
+                print(f"{file_name} | {file_id}")
+                file_url = f"{url}/file/{file_id}"
+                # print(HtmlParser.__get_file_info(root_folder, node))
+                # p = m._download_file(file_handle=file_id, file_key=key, dest_path=dest_path, dest_filename=file_name, is_public=True)
+                m.download_url(file_url, dest_path, file_name)
+
+    @staticmethod
+    def __get_file_info(root_folder: str, node: dict):
+        data = [{"a": "g", "g": 1, "n": node["h"]}]
+        response = requests.post(
+            "https://g.api.mega.co.nz/cs",
+            params={"id": 0,  # self.sequence_num
+                    "n": root_folder},
+            data=json.dumps(data)
+        )
+        json_resp = response.json()
+        return json_resp[0]["g"]
+
+    @staticmethod
+    def __get_nodes_in_shared_folder(root_folder: str) -> dict:
+        data = [{"a": "f", "c": 1, "ca": 1, "r": 1}]
+        response = requests.post(
+            "https://g.api.mega.co.nz/cs",
+            params={"id": 0,  # self.sequence_num
+                    "n": root_folder},
+            data=json.dumps(data)
+        )
+        json_resp = response.json()
+        return json_resp[0]["f"]
+
+    @staticmethod
+    def __parse_folder_url(url: str) -> Tuple[str, str] | None:
+        """Returns (public_handle, key) if valid. If not returns None."""
+        REGEXP1 = re.compile(r"mega.[^/]+/folder/([0-z-_]+)#([0-z-_]+)(?:/folder/([0-z-_]+))*")
+        REGEXP2 = re.compile(r"mega.[^/]+/#F!([0-z-_]+)[!#]([0-z-_]+)(?:/folder/([0-z-_]+))*")
+        m = re.search(REGEXP1, url)
+        if not m:
+            m = re.search(REGEXP2, url)
+        if not m:
+            print("Not a valid URL")
+            return None
+        root_folder = m.group(1)
+        key = m.group(2)
+        # You may want to use m.groups()[-1]
+        # to get the id of the subfolder
+        return root_folder, key
+
+    @staticmethod
+    def __decrypt_node_key(key_str: str, shared_key: str) -> Tuple[int, ...]:
+        encrypted_key = base64_to_a32(key_str.split(":")[1])
+        return decrypt_key(encrypted_key, shared_key)
+
+    # endregion
+
+    @staticmethod
+    def _extract_json_object(json: str) -> str:
+        depth = 0
+        escape = False
+        string = False
+        for i, char in enumerate(json):
+            if escape:
+                escape = False
+            else:
+                if char == '\\':
+                    escape = True
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                elif char == '"':
+                    string = not string
+            if depth == 0:
+                return json[:i + 1]
+        raise Exception("Improperly formatted json: " + json)
 
     # TODO: Merge the if/else
     def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5,
@@ -2114,12 +2657,46 @@ class HtmlParser:
         self.driver.implicitly_wait(10)
 
     @staticmethod
-    def mark_as_failed(url: str):
+    def log_failed_url(url: str):
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
 
-    def soupify(self) -> BeautifulSoup:
+    def login(self):
+        download_url = self.current_url
+        logins = Config.config.logins
+        if self.site_name == "titsintops":
+            self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
+            #self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
+            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+            while not login_input:
+                sleep(0.1)
+                login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+            login_input.send_keys(logins["TitsInTops"]["Username"])
+            password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
+            password_input.send_keys(logins["TitsInTops"]["Password"])
+            button = self.driver.find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]')
+            button.click()
+            while self.try_find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]'):
+                sleep(0.1)
+            self.driver.get(download_url)
+
+    def try_find_element(self, by: str, value: str) -> WebElement | None:
+        try:
+            return self.driver.find_element(by, value)
+        except selenium.common.exceptions.NoSuchElementException:
+            return None
+
+    def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False,
+                response: requests.Response = None) -> BeautifulSoup:
         """Return BeautifulSoup object of html from driver"""
+        if response:
+            return BeautifulSoup(response.content, PARSER)
+        if url:
+            self.driver.get(url)
+            if delay != 0:
+                sleep(delay)
+            if lazy_load:
+                self.lazy_load(True)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
@@ -2127,11 +2704,22 @@ class HtmlParser:
 if __name__ == "__main__":
     requests_header: dict[str, str] = {
         'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x'
+            '64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
         'referer':
             'https://imhentai.xxx/',
         'cookie':
             ''
     }
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("url", type=str)
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+
     parser = HtmlParser(requests_header)
-    print(parser._test_parse(sys.argv[1]))
+
+    start = time.process_time_ns()
+    # HtmlParser._download_from_mega("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg", "./Temp")
+    print(parser._test_parse(args.url, args.debug))
+    end = time.process_time_ns()

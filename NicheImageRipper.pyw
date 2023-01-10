@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import errno
 import threading
 from datetime import datetime
 from queue import Queue
@@ -15,10 +16,11 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPush
     QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
     QTextBrowser
 
+from Config import Config
 from FilenameScheme import FilenameScheme
 from ImageRipper import ImageRipper
 from StatusSync import StatusSync
-from rippers import read_config, write_config, url_check
+from Util import url_check
 
 
 class OutputRedirect(QtCore.QObject):
@@ -62,10 +64,13 @@ class NicheImageRipper(QWidget):
         self.url_queue = Queue()
         self.live_update: bool = False
         self.rerip_ask: bool = True
+        self.interrupted: bool = False
+        # noinspection PyTypeChecker
+        self.ripper: ImageRipper = None
         self.filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL
         self.status_sync: StatusSync = StatusSync()
         self.ripper_thread: threading.Thread = threading.Thread()
-        self.version: str = "v2.0.0"
+        self.version: str = "v2.1.0"
         self.save_folder: str = "."
 
         ImageRipper.status_sync = self.status_sync
@@ -79,10 +84,10 @@ class NicheImageRipper(QWidget):
 
         self.setGeometry(0, 0, 768, 432)
 
-        qtRectangle = self.frameGeometry()
-        centerPoint = QDesktopWidget().availableGeometry().center()
-        qtRectangle.moveCenter(centerPoint)
-        self.move(qtRectangle.topLeft())
+        qt_rectangle = self.frameGeometry()
+        center_point = QDesktopWidget().availableGeometry().center()
+        qt_rectangle.moveCenter(center_point)
+        self.move(qt_rectangle.topLeft())
 
         # region UI Construction
 
@@ -157,6 +162,12 @@ class NicheImageRipper(QWidget):
         check_update_hbox.addWidget(check_update_button)
         check_update_hbox.addWidget(self.check_update_label)
 
+        clear_cache_hbox = QHBoxLayout()
+        clear_cache_button = QPushButton()
+        clear_cache_button.setText("Check")
+        clear_cache_button.setFixedWidth(75)
+        clear_cache_hbox.addWidget(clear_cache_button)
+
         self.file_scheme_combobox = QComboBox()
         self.file_scheme_combobox.addItems(("Original", "Hash", "Chronological"))
         self.file_scheme_combobox.setFixedWidth(100)
@@ -178,6 +189,7 @@ class NicheImageRipper(QWidget):
         vbox.addRow("Select Save Folder:", save_folder_button)
         vbox.addRow("Load Unfinished Urls:", load_url_button)
         vbox.addRow("Check For Updates:", check_update_hbox)
+        vbox.addRow("Clear Cache:", clear_cache_hbox)
         vbox.addRow("Filename Scheme:", self.file_scheme_combobox)
         vbox.addRow(checkbox_row)
         self.settings_tab.setLayout(vbox)
@@ -207,12 +219,20 @@ class NicheImageRipper(QWidget):
         save_folder_button.clicked.connect(self.set_save_folder)
         load_url_button.clicked.connect(self.load_json_file)
         check_update_button.clicked.connect(self.check_latest_version)
+        clear_cache_button.clicked.connect(self.clear_cache)
+
+        # endregion
+
+        # region Connect CheckBoxes
+
+        self.rerip_checkbox.toggled.connect(self.set_rerip)
+        self.live_update_checkbox.toggled.connect(self.set_live_update)
 
         # endregion
 
         # region Load Data
 
-        if os.path.isfile('config.ini'):
+        if os.path.isfile('config.json'):
             self.load_config()
         if os.path.isfile('RipHistory.json'):
             self.load_history()
@@ -223,12 +243,16 @@ class NicheImageRipper(QWidget):
         # self.save_to_json('RipHistory.json', self.get_history_data())  # Save history data
         if self.url_queue.not_empty:
             self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
-        write_config('DEFAULT', 'SavePath', self.save_folder)  # Update the config
-        # write_config('DEFAULT', 'Theme', self.theme_color)
-        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
-        write_config('DEFAULT', 'AskToReRip', str(self.rerip_ask))
-        write_config('DEFAULT', 'LiveHistoryUpdate', str(self.live_update))
-        # write_config('DEFAULT', 'NumberOfThreads', str(self.max_threads))
+        if self.interrupted and self.ripper.current_index > 1:
+            with open(".ripIndex", "w") as f:
+                f.write(str(self.ripper.current_index))
+        self.save_to_json('RipHistory.json', self.get_history_data())
+        Config.config['SavePath'] = self.save_folder  # Update the config
+        # Config.config['DEFAULT', 'Theme'] = self.theme_color
+        Config.config['FilenameScheme'] = self.filename_scheme.name.title()
+        Config.config['AskToReRip'] = self.rerip_ask
+        Config.config['LiveHistoryUpdate'] = self.live_update
+        # Config.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
 
     def redirect_output(self, text: str, stderr: bool):
         self.log_field.moveCursor(QTextCursor.End)
@@ -307,10 +331,12 @@ class NicheImageRipper(QWidget):
         while self.url_queue.qsize() != 0:
             url = self.url_queue.queue[0]
             print(url)
-            ripper = ImageRipper(self.filename_scheme)
-            ripper.rip(url)
+            self.ripper = ImageRipper(self.filename_scheme)
+            self.interrupted = True
+            self.ripper.rip(url)
+            self.interrupted = False
             self.url_queue.get()
-            self.update_display.emit(ripper, url)
+            self.update_display.emit(self.ripper, url)
             self.display_sync.acquire()
 
     def update_display_sequence(self, ripper: ImageRipper, url: str):
@@ -367,10 +393,29 @@ class NicheImageRipper(QWidget):
             self.pause_button.setIcon(QtGui.QIcon("./Icons/play.svg"))
             self.status_sync.pause = True
 
+    def clear_cache(self):
+        self.__silently_remove_files(".ripIndex", "partial.json")
+
+    def __silently_remove_files(self, *filepaths: list[str]):
+        for filepath in filepaths:
+            self.__silently_remove_file(filepath)
+
+    def __silently_remove_file(self, filepath: str):
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
+
+    def set_rerip(self, value: bool):
+        self.rerip_ask = value
+
+    def set_live_update(self, value: bool):
+        self.live_update = value
+
     def set_save_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
         self.save_folder_label.setText(folder)
-        write_config('DEFAULT', 'SavePath', self.save_folder_label.text())
+        Config.config['SavePath'] = folder
 
     def load_json_file(self):
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
@@ -382,16 +427,16 @@ class NicheImageRipper(QWidget):
 
     def file_scheme_changed(self, new_value: str):
         self.filename_scheme = FilenameScheme[new_value.upper()]
-        write_config('DEFAULT', 'FilenameScheme', self.filename_scheme.name.title())
+        Config.config['FilenameScheme'] = self.filename_scheme.name.title()
 
     def load_config(self):
-        self.save_folder = read_config('DEFAULT', 'SavePath')
+        self.save_folder = Config.config['SavePath']
         self.save_folder_label.setText(self.save_folder)
-        saved_filename_scheme = FilenameScheme[read_config('DEFAULT', 'FilenameScheme').upper()]
+        saved_filename_scheme = FilenameScheme[Config.config['FilenameScheme'].upper()]
         self.file_scheme_combobox.setCurrentIndex(saved_filename_scheme.value)
-        self.rerip_ask = read_config('DEFAULT', 'AskToReRip') == "True"
+        self.rerip_ask = Config.config['AskToReRip']
         self.rerip_checkbox.setChecked(self.rerip_ask)
-        self.live_update = read_config('DEFAULT', 'LiveHistoryUpdate') == "True"
+        self.live_update = Config.config['LiveHistoryUpdate']
         self.live_update_checkbox.setChecked(self.live_update)
 
     def check_latest_version(self):

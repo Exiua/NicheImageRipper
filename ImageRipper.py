@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import logging.handlers
 import json
 import os
 import re
 import subprocess
 import sys
+import pickle
 from pathlib import Path
 from time import sleep
+from typing import BinaryIO
 from urllib.parse import urlparse
 
 import PIL
@@ -19,12 +22,27 @@ from requests import Response
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+from FilenameScheme import FilenameScheme
+from Config import Config
 from HtmlParser import HtmlParser
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from rippers import FilenameScheme, read_config, SESSION_HEADERS, trim_url, CYBERDROP_DOMAINS, \
-    log, log_failed_url, _print_debug_info, url_check, SCHEME, tail
+from Util import url_check, SCHEME
+
+SESSION_HEADERS: dict[str, str] = {
+    "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.104 Safari/537.36"
+}
+CYBERDROP_DOMAINS: tuple[str, str, str, str] = ("cyberdrop.me", "cyberdrop.cc", "cyberdrop.to", "cyberdrop.nl")
+
+# Setup Logging
+handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "error.log"))
+formatter = logging.Formatter(logging.BASIC_FORMAT)
+handler.setFormatter(formatter)
+log = logging.getLogger()
+log.setLevel(os.environ.get("LOGLEVEL", "INFO"))
+log.addHandler(handler)
 
 
 class ImageRipper:
@@ -49,16 +67,13 @@ class ImageRipper:
         self.folder_info: RipInfo = RipInfo("")
         self.given_url: str = ""
         self.interrupted: bool = False
-        self.logins: dict[str, tuple[str, str]] = {
-            "sexy-egirls": (read_config('LOGINS', 'Sexy-EgirlsU'), read_config('LOGINS', 'Sexy-EgirlsP')),
-            "deviantart": (read_config('LOGINS', 'DeviantArtU'), read_config('LOGINS', 'DeviantArtP')),
-            "porn3dxu": (read_config("LOGINS", "Porn3dxU"), read_config("LOGINS", "Porn3dxP"))
-        }
+        self.logins: dict[str, dict[str, str]] = Config.config.logins
         self.logged_in: bool = os.path.isfile("cookies.pkl")
-        self.save_path: str = read_config('DEFAULT', 'SavePath')
+        self.save_path: str = Config.config['SavePath']
         self.session: requests.Session = requests.Session()
         self.site_name: str = ""
         self.sleep_time: float = 0.2
+        self.current_index: int = 0
 
         # region Extra Initialization
 
@@ -71,10 +86,7 @@ class ImageRipper:
 
     @property
     def pause(self):
-        # TODO: Remove later
-        if ImageRipper.status_sync is not None:
-            return ImageRipper.status_sync.pause
-        return False
+        return ImageRipper.status_sync.pause
 
     @pause.setter
     def pause(self, value: bool):
@@ -85,7 +97,25 @@ class ImageRipper:
         self.sleep_time = 0.2  # Reset sleep time to 0.2
         self.given_url = url.replace("members.", "www.")  # Replace is done to properly parse hanime pages
         self.site_name = self.__site_check()
-        self._image_getter()
+        if self.__cookies_needed():
+            self.__add_cookies()
+        self.__image_getter()
+
+    def __add_cookies(self):
+        if not os.path.isfile("cookies.pkl"):
+            return
+        cookies = pickle.load(open("cookies.pkl", "rb"))
+        cookie: dict
+        for cookie in cookies:
+            if cookie['name'] != 'xf_user':
+                continue
+            if self.requests_header["cookie"] and self.requests_header["cookie"][-1] != ";":
+                self.requests_header["cookie"][-1] += ";"
+            self.requests_header["cookie"] += f'{cookie["name"]}={cookie["value"]};'
+            self.session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])
+
+    def __cookies_needed(self) -> bool:
+        return self.site_name == "titsintops"
 
     def __site_check(self) -> str:
         """
@@ -104,32 +134,42 @@ class ImageRipper:
             elif "https://e-hentai.org/" in self.given_url:
                 self.sleep_time = 5
             return domain
-        raise RipperError("Not a support site")
+        raise RipperError(f"Not a support site: {self.given_url}")
 
-    def _image_getter(self):
+    def __image_getter(self):
         """Download images from URL."""
         html_parser = HtmlParser(self.requests_header, self.site_name)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
 
         # Save location of this album
         full_path = os.path.join(self.save_path, self.folder_info.dir_name)
-        # "".join([self.save_path, self.folder_info.dir_name])
         if self.interrupted and self.filename_scheme != FilenameScheme.HASH:
             pass  # TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
 
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
 
+        if os.path.exists(".ripIndex"):
+            with open(".ripIndex", "r") as f:
+                start = int(f.read())
+            os.remove(".ripIndex")
+        else:
+            if self.folder_info.must_generate_manually:
+                start = 1
+            else:
+                start = 0
+
         # Can get the image through numerically ascending url for imhentai and hentairox
         #   (hard to account for gifs otherwise)
         if self.folder_info.must_generate_manually:
             # Gets the general url of all images in this album
-            trimmed_url = trim_url(self.folder_info.urls[0])
+            trimmed_url = self.__trim_url(self.folder_info.urls[0])
             extensions = (".jpg", ".gif", ".png", "t.jpg")
 
             # Downloads all images from the general url by incrementing the file number
             #   (eg. https://domain/gallery/##.jpg)
-            for index in range(1, int(self.folder_info.num_urls) + 1):
+            for index in range(start, int(self.folder_info.num_urls) + 1):
+                self.current_index = index
                 file_num = str(index)
 
                 while self.pause:
@@ -141,8 +181,8 @@ class ImageRipper:
                         self.__download_from_url(trimmed_url, file_num, full_path, ext)
                         break  # Correct extension was found
                     except (PIL.UnidentifiedImageError, WrongExtension):
-                        image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
-                        os.remove(image_path)  # Remove temp file if wrong file extension
+                        #image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
+                        #os.remove(image_path)  # Remove temp file if wrong file extension
                         if i == 3:
                             print("Image not found")
         # Easier to put all image url in a list and then download for these sites
@@ -154,7 +194,8 @@ class ImageRipper:
                 self.__deviantart_download(full_path, self.folder_info.urls[0])
             else:
                 cyberdrop_files: list[str] = []
-                for i, link in enumerate(self.folder_info.urls):
+                for i, link in enumerate(self.folder_info.urls[start:]):
+                    self.current_index = i
                     while self.pause:
                         sleep(1)
                     sleep(self.sleep_time)
@@ -210,16 +251,24 @@ class ImageRipper:
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
 
-        # if "https://forum.sexy-egirls.com/" in rip_url and rip_url[-1] == "/":  # Site is down
-        #     file_name = rip_url.split("/")[-2].split(".")[0].replace("-", ".")
-        #     ext = file_name.split(".")[-1]
-        #     file_name = "".join([hashlib.md5(file_name.encode()).hexdigest(), ".", ext])
-        # else:
-        file_name = os.path.basename(urlparse(rip_url).path)
+        m3u8: bool = False
+        if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
+            file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
+            #print(file_name)
+            file_name = re.sub(r"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+\/?", r".\1", file_name)
+            #print(file_name)
+        elif "sendvid.com" in rip_url and ".m3u8" in rip_url:
+            file_name = rip_url.split("/")[6]
+            m3u8 = True
+        else:
+            file_name = os.path.basename(urlparse(rip_url).path)
 
         image_path = os.path.join(full_path, file_name)
         ext = os.path.splitext(image_path)[1]
-        self.__download_file(image_path, rip_url)
+        if m3u8:
+            self.__download_m3u8_to_mp4(image_path, rip_url)
+        else:
+            self.__download_file(image_path, rip_url)
 
         if self.filename_scheme == FilenameScheme.HASH:
             self.__rename_file_to_hash(image_path, full_path, ext)
@@ -227,6 +276,10 @@ class ImageRipper:
             self.__rename_file_chronologically(image_path, full_path, ext, current_file_num)
 
         sleep(0.05)
+
+    def __download_m3u8_to_mp4(self, video_path: str, video_url: str):
+        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy", video_path]
+        subprocess.run(cmd)
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""
@@ -270,7 +323,7 @@ class ImageRipper:
             print(response)
 
             if response.status_code == 404:
-                log_failed_url(url)
+                self.__log_failed_url(url)
 
                 if self.site_name != "imhentai":
                     return False
@@ -278,7 +331,7 @@ class ImageRipper:
                     raise WrongExtension
 
         if not self.__write_to_file(response, image_path):
-            log_failed_url(url)
+            self.__log_failed_url(url)
             return False
 
         return True
@@ -289,7 +342,7 @@ class ImageRipper:
         if subdomain_search:
             subdomain_num = int(subdomain_search.group(1))
         else:
-            _print_debug_info("bad_subdomain", url)
+            self.__print_debug_info("bad_subdomain", url)
             raise ImproperlyFormattedSubdomain
 
         for i in range(1, 100):
@@ -303,7 +356,7 @@ class ImageRipper:
             except BadSubdomain:
                 print(f"\rTrying subdomain data{str(i)}...", end="")
                 if i == 99:
-                    log_failed_url(re.sub(r"data\d+", f"data{str(subdomain_num)}", url))
+                    self.__log_failed_url(re.sub(r"data\d+", f"data{str(subdomain_num)}", url))
                     return
         print(url)
 
@@ -323,11 +376,11 @@ class ImageRipper:
             print(response)
 
             if response.status_code == 404:
-                log_failed_url(rip_url)
+                self.__log_failed_url(rip_url)
                 raise FileNotFoundAtUrl(rip_url)
 
         if not self.__write_to_file(response, image_path):
-            log_failed_url(rip_url)
+            self.__log_failed_url(rip_url)
 
     def __rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str | int):
         """Rename the given file to the number of the order it was downloaded in"""
@@ -389,35 +442,11 @@ class ImageRipper:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
                 return ".jpg"
 
-    def __write_partial_save(self, site_info: RipInfo):
-        """Saves parsed site data to quickly retrieve in event of a failure"""
-        # TODO
-        data: dict[str, dict | str] = {
-            self.given_url: site_info.serialize(),
-            "cookies": self.requests_header["cookie"]
-        }
-        with open("partial.json", 'w') as save_file:
-            json.dump(data, save_file, indent=4)
-
-    @staticmethod
-    def read_partial_save() -> dict[str, RipInfo | str]:
-        """Read site_info from partial save file"""
-        try:
-            with open("partial.json", 'r') as load_file:
-                data: dict = json.load(load_file)
-                key: str
-                for key in data:
-                    if isinstance(data[key], dict):
-                        data[key] = RipInfo.deserialize(data[key])
-                return data
-        except FileNotFoundError:
-            pass  # Doesn't matter if the cached data doesn't exist, will regen instead
-
     def __verify_files(self, full_path: str):
         """Check for truncated and corrupted files"""
         _, _, files = next(os.walk(full_path))
         files = natsorted(files)
-        image_links = self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
+        image_links = []  # self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
         log_file = open("error.log", "w")
         log_file.close()
         vid_ext = (".m4v", ".mp4", ".mov", ".webm")
@@ -435,7 +464,7 @@ class ImageRipper:
                 if any(ext in f for ext in vid_ext):
                     subprocess.call(vid_cmd, stderr=open("error.log", "a"))
                     with open("error.log", "rb") as log_file:
-                        cmd_out = tail(log_file).decode()
+                        cmd_out = self.__tail(log_file).decode()
                         if "[NULL @" not in cmd_out:
                             print(cmd_out)
                             print(f)
@@ -455,6 +484,48 @@ class ImageRipper:
         """Redownload damaged files"""
         response = requests.get(url, headers=self.requests_header, stream=True)
         self.__write_to_file(response, filename)
+
+    @staticmethod
+    def __tail(f: BinaryIO, lines=2) -> bytes:
+        total_lines_wanted = lines
+
+        BLOCK_SIZE = 1024
+        f.seek(0, 2)
+        block_end_byte = f.tell()
+        lines_to_go = total_lines_wanted
+        block_number = -1
+        blocks = []
+        while lines_to_go > 0 and block_end_byte > 0:
+            if block_end_byte - BLOCK_SIZE > 0:
+                f.seek(block_number * BLOCK_SIZE, 2)
+                blocks.append(f.read(BLOCK_SIZE))
+            else:
+                f.seek(0, 0)
+                blocks.append(f.read(block_end_byte))
+            lines_found = blocks[-1].count(b'\n')
+            lines_to_go -= lines_found
+            block_end_byte -= BLOCK_SIZE
+            block_number -= 1
+        all_read_text = b''.join(reversed(blocks))
+        return b'\n'.join(all_read_text.splitlines()[-total_lines_wanted:])
+
+    @staticmethod
+    def __print_debug_info(title: str, *data, fd="output.txt", clear=False):
+        with open(fd, "w" if clear else "a") as f:
+            f.write(f"[{title}]\n")
+            for d in data:
+                f.write(f"\t{str(d).strip()}\n")
+
+    @staticmethod
+    def __log_failed_url(url: str):
+        with open("failed.txt", "a", encoding="unicode_escape") as f:
+            f.write("".join([url, "\n"]))
+
+    @staticmethod
+    def __trim_url(given_url: str) -> str:
+        """Return the URL without the filename attached."""
+        given_url = "".join([str("/".join(given_url.split("/")[0:-1])), "/"])
+        return given_url
 
 
 if __name__ == "__main__":
