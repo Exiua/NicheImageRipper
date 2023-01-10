@@ -774,5 +774,45 @@ def send_video_parse():
     soup = BeautifulSoup(r.content, "lxml")
     print(soup.find("source", id="video_source").get("src"))
 
+def dead_link_test():
+    r = requests.get("https://drive.google.com/file/d/1pxG_u7GfDbHzNGVa3c3OaqeWTc8EDdTj/view?usp=sharing")
+    print(r)
+    r = requests.get("https://mega.nz/folder/jPwnQCQD#P4SvKxHQsJzmWZXALSQPgg")
+    print(r)
+    write_response(r, "test.html")
+
+class EventHandler:
+    def __init__(self):
+        self.events = []
+    
+    def add_listener(self, function):
+        self.events.append(function)
+    
+    def invoke(self):
+        for event in self.events:
+            event()
+
+class Foo:
+    def __init__(self):
+        pass
+    
+    def print(self):
+        print("foo")
+
+class Bar:
+    def __init__(self):
+        pass
+
+    def baz(self):
+        print("bar")
+
+def event_test():
+    event = EventHandler()
+    foo = Foo()
+    bar = Bar()
+    event.add_listener(foo.print)
+    event.add_listener(bar.baz)
+    event.invoke()
+
 if __name__ == "__main__":
-    m3u8_to_mp4()
+    event_test()

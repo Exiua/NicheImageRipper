@@ -255,7 +255,7 @@ class ImageRipper:
         if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
             file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
             #print(file_name)
-            file_name = re.sub(r"-(jpg|png|webp|mp4|mov)\.\d+\/?", r".\1", file_name)
+            file_name = re.sub(r"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+\/?", r".\1", file_name)
             #print(file_name)
         elif "sendvid.com" in rip_url and ".m3u8" in rip_url:
             file_name = rip_url.split("/")[6]

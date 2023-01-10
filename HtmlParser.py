@@ -2238,9 +2238,10 @@ class HtmlParser:
                     if attachments:
                         attachment_urls = [f"{SITE_URL}{attach.get('href')}" for attach in attachments]
                         images.extend(attachment_urls)
-                links = post.find_all("a")
+                links = post.find("article", class_="message-body js-selectToQuote").find_all("a")
                 if links:
                     links = [link.get("href") for link in links]
+                    #print(links)
                     filtered_links = self.__extract_external_urls(links)
                     downloadable_links = self.__extract_downloadable_links(filtered_links, external_links)
                     images.extend(downloadable_links)
@@ -2451,7 +2452,7 @@ class HtmlParser:
     def __extract_external_urls(urls: list[str]) -> dict[str, list[str]]:
         external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
         for site in external_links.keys():
-            ext_links = [HtmlParser._extract_url(url) + "\n" for url in urls if site in url]
+            ext_links = [HtmlParser._extract_url(url) + "\n" for url in urls if url and site in url]
             external_links[site].extend(ext_links)
         return external_links
 
