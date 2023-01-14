@@ -17,8 +17,6 @@ import bs4
 import requests
 import selenium
 import tldextract
-from mega import Mega
-from mega.crypto import base64_to_a32, base64_url_decode, decrypt_attr, decrypt_key
 from bs4 import BeautifulSoup
 from pybooru import Danbooru
 from selenium import webdriver
@@ -2518,94 +2516,6 @@ class HtmlParser:
             f.write(f"[{title}]\n")
             for d in data:
                 f.write(f"\t{str(d).strip()}\n")
-
-    # region Testing Mega Downloading
-
-    @staticmethod
-    def _extract_url(text: str) -> str:
-        protocol_index = text.find("https:")
-        if protocol_index == -1:
-            return ""
-        url = text[protocol_index:]
-        url.replace("</a>", "")
-        return url
-
-    @staticmethod
-    def _download_from_mega(url: str, dest_path: str):
-        username = Config.config.logins["Mega"]["Username"]
-        password = Config.config.logins["Mega"]["Password"]
-
-        mega = Mega()
-        m = mega.login()  # username, password)
-        if "/file/" not in url:
-            (root_folder, shared_enc_key) = HtmlParser.__parse_folder_url(url)
-            shared_key = base64_to_a32(shared_enc_key)
-            nodes = HtmlParser.__get_nodes_in_shared_folder(root_folder)
-            for node in nodes:
-                key = HtmlParser.__decrypt_node_key(node["k"], shared_key)
-                if node["t"] == 0:  # Is a file
-                    k = (key[0] ^ key[4], key[1] ^ key[5], key[2] ^ key[6], key[3] ^ key[7])
-                elif node["t"] == 1:  # Is a folder
-                    k = key
-                    continue
-                else:
-                    raise Exception("Not file or folder")
-                attrs = decrypt_attr(base64_url_decode(node["a"]), k)
-                file_name = attrs["n"]
-                file_id = node["h"]
-                print(f"{file_name} | {file_id}")
-                file_url = f"{url}/file/{file_id}"
-                # print(HtmlParser.__get_file_info(root_folder, node))
-                # p = m._download_file(file_handle=file_id, file_key=key, dest_path=dest_path, dest_filename=file_name, is_public=True)
-                m.download_url(file_url, dest_path, file_name)
-
-    @staticmethod
-    def __get_file_info(root_folder: str, node: dict):
-        data = [{"a": "g", "g": 1, "n": node["h"]}]
-        response = requests.post(
-            "https://g.api.mega.co.nz/cs",
-            params={"id": 0,  # self.sequence_num
-                    "n": root_folder},
-            data=json.dumps(data)
-        )
-        json_resp = response.json()
-        return json_resp[0]["g"]
-
-    @staticmethod
-    def __get_nodes_in_shared_folder(root_folder: str) -> dict:
-        data = [{"a": "f", "c": 1, "ca": 1, "r": 1}]
-        response = requests.post(
-            "https://g.api.mega.co.nz/cs",
-            params={"id": 0,  # self.sequence_num
-                    "n": root_folder},
-            data=json.dumps(data)
-        )
-        json_resp = response.json()
-        return json_resp[0]["f"]
-
-    @staticmethod
-    def __parse_folder_url(url: str) -> Tuple[str, str] | None:
-        """Returns (public_handle, key) if valid. If not returns None."""
-        REGEXP1 = re.compile(r"mega.[^/]+/folder/([0-z-_]+)#([0-z-_]+)(?:/folder/([0-z-_]+))*")
-        REGEXP2 = re.compile(r"mega.[^/]+/#F!([0-z-_]+)[!#]([0-z-_]+)(?:/folder/([0-z-_]+))*")
-        m = re.search(REGEXP1, url)
-        if not m:
-            m = re.search(REGEXP2, url)
-        if not m:
-            print("Not a valid URL")
-            return None
-        root_folder = m.group(1)
-        key = m.group(2)
-        # You may want to use m.groups()[-1]
-        # to get the id of the subfolder
-        return root_folder, key
-
-    @staticmethod
-    def __decrypt_node_key(key_str: str, shared_key: str) -> Tuple[int, ...]:
-        encrypted_key = base64_to_a32(key_str.split(":")[1])
-        return decrypt_key(encrypted_key, shared_key)
-
-    # endregion
 
     @staticmethod
     def _extract_json_object(json: str) -> str:
