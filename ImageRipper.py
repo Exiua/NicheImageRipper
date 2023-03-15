@@ -25,6 +25,7 @@ from selenium.webdriver.common.by import By
 from FilenameScheme import FilenameScheme
 from Config import Config
 from HtmlParser import HtmlParser
+from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
@@ -64,7 +65,7 @@ class ImageRipper:
                 ''
         }
         self.filename_scheme: FilenameScheme = filename_scheme
-        self.folder_info: RipInfo = RipInfo("")
+        self.folder_info: RipInfo = None
         self.given_url: str = ""
         self.interrupted: bool = False
         self.logins: dict[str, dict[str, str]] = Config.config.logins
@@ -160,11 +161,11 @@ class ImageRipper:
                 start = 0
 
         # Can get the image through numerically ascending url for imhentai and hentairox
-        #   (hard to account for gifs otherwise)
+        #   (hard to account for gifs and other extensions otherwise)
         if self.folder_info.must_generate_manually:
             # Gets the general url of all images in this album
-            trimmed_url = self.__trim_url(self.folder_info.urls[0])
-            extensions = (".jpg", ".gif", ".png", "t.jpg")
+            trimmed_url = self.__trim_url(self.folder_info.urls[0].url)
+            extensions = (".jpg", ".gif", ".png", "mp4", "t.jpg")
 
             # Downloads all images from the general url by incrementing the file number
             #   (eg. https://domain/gallery/##.jpg)
@@ -181,8 +182,6 @@ class ImageRipper:
                         self.__download_from_url(trimmed_url, file_num, full_path, ext)
                         break  # Correct extension was found
                     except (PIL.UnidentifiedImageError, WrongExtension):
-                        #image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
-                        #os.remove(image_path)  # Remove temp file if wrong file extension
                         if i == 3:
                             print("Image not found")
         # Easier to put all image url in a list and then download for these sites
@@ -191,15 +190,15 @@ class ImageRipper:
             if "cyberdrop" == self.site_name:
                 self.__cyberdrop_download(full_path, self.folder_info.urls)
             elif "deviantart" == self.site_name:
-                self.__deviantart_download(full_path, self.folder_info.urls[0])
+                self.__deviantart_download(full_path, self.folder_info.urls[0].url)
             else:
-                cyberdrop_files: list[str] = []
+                cyberdrop_files: list[ImageLink] = []
                 for i, link in enumerate(self.folder_info.urls[start:]):
                     self.current_index = i
                     while self.pause:
                         sleep(1)
                     sleep(self.sleep_time)
-                    if any(domain in link for domain in CYBERDROP_DOMAINS):
+                    if any(domain in link.url for domain in CYBERDROP_DOMAINS):
                         cyberdrop_files.append(link)
                         continue
                     try:
@@ -214,16 +213,16 @@ class ImageRipper:
         print("Download Complete")
 
     @staticmethod
-    def __cyberdrop_download(full_path: str, cyberdrop_files: list[str]):
+    def __cyberdrop_download(full_path: str, cyberdrop_files: list[ImageLink]):
         cmd = ["cyberdrop-dl", "-o", full_path]
-        cmd.extend(cyberdrop_files)
+        cmd.extend([file.url for file in cyberdrop_files])
         print("Starting cyberdrop-dl")
         subprocess.run(cmd)
         print("Cyberdrop-dl finished")
 
     def __deviantart_download(self, full_path: str, url: str):
-        cmd = ["gallery-dl", "-D", full_path, "-u", self.logins["deviantart"][0], "-p",
-               self.logins["deviantart"][1], "--write-log", "log.txt", url]
+        cmd = ["gallery-dl", "-D", full_path, "-u", self.logins["DeviantArt"]["Username"], "-p",
+               self.logins["DeviantArt"]["Password"], "--write-log", "log.txt", url]
         cmd = " ".join(cmd)
         print("Starting Deviantart download")
         subprocess.run(cmd, stdout=sys.stdout, stderr=subprocess.STDOUT)
@@ -238,47 +237,38 @@ class ImageRipper:
         image_path = os.path.join(full_path, file_name + ext)  # "".join([full_path, "/", str(file_name), ext])
         self.__download_file(image_path, rip_url)
 
-        if self.filename_scheme == FilenameScheme.HASH:
-            self.__rename_file_to_hash(image_path, full_path, ext)
+        # Should already be handled by the ImageLink class, so no need to rename
+        # if self.filename_scheme == FilenameScheme.HASH:
+        #     self.__rename_file_to_hash(image_path, full_path, ext)
 
         # Filenames are chronological by default on imhentai
         sleep(0.05)
 
-    def __download_from_list(self, image_url: str, full_path: str, current_file_num: int):
+    def __download_from_list(self, image_url: ImageLink, full_path: str, current_file_num: int):
         """Download images from url supplied from a list of image urls"""
         num_files = self.folder_info.num_urls
-        rip_url = image_url.strip('\n')
+        rip_url = image_url.url
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
-
-        m3u8: bool = False
-        if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
-            file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
-            #print(file_name)
-            file_name = re.sub(r"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+\/?", r".\1", file_name)
-            #print(file_name)
-        elif "sendvid.com" in rip_url and ".m3u8" in rip_url:
-            file_name = rip_url.split("/")[6]
-            m3u8 = True
-        else:
-            file_name = os.path.basename(urlparse(rip_url).path)
-
+        file_name = image_url.filename
         image_path = os.path.join(full_path, file_name)
-        ext = os.path.splitext(image_path)[1]
-        if m3u8:
+        if image_url.is_m3u8:
             self.__download_m3u8_to_mp4(image_path, rip_url)
         else:
             self.__download_file(image_path, rip_url)
 
-        if self.filename_scheme == FilenameScheme.HASH:
-            self.__rename_file_to_hash(image_path, full_path, ext)
-        elif self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
-            self.__rename_file_chronologically(image_path, full_path, ext, current_file_num)
+        # Should already be handled by the ImageLink class, so no need to rename
+        # if self.filename_scheme == FilenameScheme.HASH:
+        #     self.__rename_file_to_hash(image_path, full_path, ext)
+        # elif self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
+        #     self.__rename_file_chronologically(image_path, full_path, ext, current_file_num)
 
         sleep(0.05)
 
-    def __download_m3u8_to_mp4(self, video_path: str, video_url: str):
-        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy", video_path]
+    @staticmethod
+    def __download_m3u8_to_mp4(video_path: str, video_url: str):
+        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy",
+               video_path]
         subprocess.run(cmd)
 
     def __download_file(self, image_path: str, rip_url: str):
@@ -391,7 +381,7 @@ class ImageRipper:
             os.replace(image_path, chronological_image_name)
         except OSError:
             with open("failed.txt", "a") as f:
-                f.write("".join([url + "\n" for url in self.folder_info.urls[int(curr_num)]]))
+                f.write(self.folder_info.urls[int(curr_num)].url + "\n")
 
     @staticmethod
     def __rename_file_to_hash(image_path: str, full_path: str, ext: str):

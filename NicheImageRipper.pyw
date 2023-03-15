@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -396,11 +397,12 @@ class NicheImageRipper(QWidget):
     def clear_cache(self):
         self.__silently_remove_files(".ripIndex", "partial.json")
 
-    def __silently_remove_files(self, *filepaths: list[str]):
+    def __silently_remove_files(self, *filepaths: str):
         for filepath in filepaths:
             self.__silently_remove_file(filepath)
 
-    def __silently_remove_file(self, filepath: str):
+    @staticmethod
+    def __silently_remove_file(filepath: str):
         try:
             os.remove(filepath)
         except FileNotFoundError:
@@ -478,7 +480,15 @@ class NicheImageRipper(QWidget):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    win = NicheImageRipper()
-    win.show()
-    sys.exit(app.exec_())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-h", "--headless", action="STORE_TRUE")
+
+    args = parser.parse_args()
+
+    if args.headless:
+        print("This feature is not yet supported")
+    else:
+        app = QApplication(sys.argv)
+        win = NicheImageRipper()
+        win.show()
+        sys.exit(app.exec_())
