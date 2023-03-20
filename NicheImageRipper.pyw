@@ -4,7 +4,6 @@ import argparse
 import json
 import os
 import sys
-import errno
 import threading
 from datetime import datetime
 from queue import Queue
@@ -12,7 +11,7 @@ from threading import Timer
 
 import requests
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QFont, QTextCursor
+from PyQt5.QtGui import QFont, QTextCursor, QColor
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
     QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
     QTextBrowser
@@ -54,6 +53,17 @@ class OutputRedirect(QtCore.QObject):
             pass
 
 
+# region pyqt helper functions
+
+def create_button(text: str, width: int = 75) -> QPushButton:
+    button = QPushButton()
+    button.setText(text)
+    button.setFixedWidth(width)
+    return button
+
+# endregion
+
+
 class NicheImageRipper(QWidget):
     display_sync: threading.Semaphore = threading.Semaphore(0)
     update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
@@ -62,7 +72,7 @@ class NicheImageRipper(QWidget):
         super().__init__(parent)
         self.title: str = "NicheImagerRipper"
         self.latest_version: str = self.get_git_version()
-        self.url_queue = Queue()
+        self.url_queue: Queue = Queue()
         self.live_update: bool = False
         self.rerip_ask: bool = True
         self.interrupted: bool = False
@@ -147,26 +157,18 @@ class NicheImageRipper(QWidget):
         self.save_folder_label = QLabel()
         self.save_folder_label.setText(self.save_folder)
 
-        save_folder_button = QPushButton()
-        save_folder_button.setText("Browse")
-        save_folder_button.setFixedWidth(75)
+        save_folder_button = create_button("Browse")
 
-        load_url_button = QPushButton()
-        load_url_button.setText("Browse")
-        load_url_button.setFixedWidth(75)
+        load_url_button = create_button("Browse")
 
         check_update_hbox = QHBoxLayout()
-        check_update_button = QPushButton()
-        check_update_button.setText("Check")
-        check_update_button.setFixedWidth(75)
+        check_update_button = create_button("Check")
         self.check_update_label = QLabel()
         check_update_hbox.addWidget(check_update_button)
         check_update_hbox.addWidget(self.check_update_label)
 
         clear_cache_hbox = QHBoxLayout()
-        clear_cache_button = QPushButton()
-        clear_cache_button.setText("Check")
-        clear_cache_button.setFixedWidth(75)
+        clear_cache_button = create_button("Clear")
         clear_cache_hbox.addWidget(clear_cache_button)
 
         self.file_scheme_combobox = QComboBox()
@@ -241,13 +243,12 @@ class NicheImageRipper(QWidget):
         # endregion
 
     def closeEvent(self, event: QtGui.QCloseEvent):
-        # self.save_to_json('RipHistory.json', self.get_history_data())  # Save history data
         if self.url_queue.not_empty:
             self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
         if self.interrupted and self.ripper.current_index > 1:
             with open(".ripIndex", "w") as f:
                 f.write(str(self.ripper.current_index))
-        self.save_to_json('RipHistory.json', self.get_history_data())
+        self.save_to_json('RipHistory.json', self.get_history_data()) # Save history data
         Config.config['SavePath'] = self.save_folder  # Update the config
         # Config.config['DEFAULT', 'Theme'] = self.theme_color
         Config.config['FilenameScheme'] = self.filename_scheme.name.title()
@@ -255,9 +256,24 @@ class NicheImageRipper(QWidget):
         Config.config['LiveHistoryUpdate'] = self.live_update
         # Config.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
 
-    def redirect_output(self, text: str, stderr: bool):
+    def redirect_output(self, raw_text: str, stderr: bool):
         self.log_field.moveCursor(QTextCursor.End)
+        text, color = self.extract_color(raw_text)
+        self.log_field.setTextColor(color)
         self.log_field.insertPlainText(text)
+
+    @staticmethod
+    def extract_color(raw_text: str) -> tuple[str, QColor]:
+        if raw_text.startswith("{#"):
+            parts = raw_text.split("}")
+            text = "}".join(parts[1:])
+            color_str = parts[0].replace("{#", "")
+            color_value = int(color_str, 16)
+            color = QColor.fromRgb(color_value)
+            return text, color
+        else:
+            color = QColor.fromRgb(0)
+            return raw_text, color
 
     @staticmethod
     def save_to_json(file_name: str, data: any):
@@ -274,11 +290,11 @@ class NicheImageRipper(QWidget):
         self.history_table.setItem(row_pos, 3, QTableWidgetItem(str(count)))
 
     def get_history_data(self) -> list[list[str]]:
-        row_count = self.history_table.rowCount()
-        column_count = self.history_table.columnCount()
-        table_data = []
+        row_count: int = self.history_table.rowCount()
+        column_count: int = self.history_table.columnCount()
+        table_data: list[list[str]] = []
         for row in range(row_count):
-            row_data = []
+            row_data: list[str] = []
             for column in range(column_count):
                 row_data.append(self.history_table.item(row, column).text())
             table_data.append(row_data)
@@ -323,17 +339,22 @@ class NicheImageRipper(QWidget):
         self.rip_urls_starter()
 
     def rip_urls_starter(self):
+        """
+        Start a new thread for ripping all images from urls in the url queue
+        """
         if not self.ripper_thread.is_alive() and self.url_queue.qsize() != 0:
             self.ripper_thread = threading.Thread(target=self.rip_urls, daemon=True)
             self.ripper_thread.start()
 
     def rip_urls(self):
-        """Rips files from urls"""
+        """
+        Rip files from all urls in the url queue
+        """
         while self.url_queue.qsize() != 0:
             url = self.url_queue.queue[0]
             print(url)
             self.ripper = ImageRipper(self.filename_scheme)
-            self.interrupted = True
+            self.interrupted = True  # Flag to indicate ripper was running when close event executes
             self.ripper.rip(url)
             self.interrupted = False
             self.url_queue.get()
@@ -341,12 +362,23 @@ class NicheImageRipper(QWidget):
             self.display_sync.acquire()
 
     def update_display_sequence(self, ripper: ImageRipper, url: str):
+        """
+        Update url queue and rip history displays
+
+        :param ripper: ImageRipper that stores information of the completed rip job
+        :param url: url of the completed rip job
+        """
         self.update_history(ripper, url)
         self.update_url_queue()
         self.display_sync.release()
 
     def update_history(self, ripper: ImageRipper, url: str):
-        """Update the table with new values"""
+        """
+        Update the history table with a new entry
+
+        :param ripper: ImageRipper that stores information of the completed rip job
+        :param url: url of the completed rip job
+        """
         duplicate_entry = False
         ripped_urls = self.get_column_data(0)
         for i, entry in enumerate(ripped_urls):
@@ -363,6 +395,13 @@ class NicheImageRipper(QWidget):
 
     @staticmethod
     def separate_string(base_string: str, delimiter: str) -> list[str]:
+        """
+        Split a string while keeping the delimiter attached to each part
+
+        :param base_string: string to spilt
+        :param delimiter: delimiter to split the string by
+        :return: list of split elements of the base_string with delimiters still attached
+        """
         string_list = base_string.split(delimiter)  # Split by delimiter
         if string_list[0] == "":
             string_list.pop(0)
@@ -370,6 +409,11 @@ class NicheImageRipper(QWidget):
         return string_list
 
     def add_to_url_queue(self, item: str):
+        """
+        Add a url to the url queue
+
+        :param item: url to add to the url queue
+        """
         # If user wants to be prompted and if url is in the history
         if self.rerip_ask and item in self.get_column_data(1):
             if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.Yes:  # Ask user to re-rip
@@ -378,15 +422,27 @@ class NicheImageRipper(QWidget):
             self.url_queue.put(item)
 
     def popup_yes_no(self, message: str) -> QMessageBox.StandardButton:
+        """
+        Create a popup with yes or no options
+
+        :param message: message to be displayed by the popup
+        :return: user selection of QMessageBox.Yes or QMessageBox.No based on option selected
+        """
         message_box = QMessageBox()
         return message_box.question(self, '', message, QMessageBox.Yes | QMessageBox.No)
 
     def update_url_queue(self):
+        """
+        Update the visual display of the url queue
+        """
         self.queue_field.clear()
         for url in self.url_queue.queue:
             self.queue_field.append(url)
 
     def toggle_ripper(self):
+        """
+        Toggle the ripper's run/pause state
+        """
         if self.status_sync.pause:
             self.pause_button.setIcon(QtGui.QIcon("./Icons/pause.svg"))
             self.status_sync.pause = False
@@ -395,31 +451,59 @@ class NicheImageRipper(QWidget):
             self.status_sync.pause = True
 
     def clear_cache(self):
+        """
+        Removed the cache files .ripIndex and partial.json
+        """
         self.__silently_remove_files(".ripIndex", "partial.json")
 
     def __silently_remove_files(self, *filepaths: str):
+        """
+        Remove files without raise an exception
+        :param filepaths: filepaths to remove
+        """
         for filepath in filepaths:
             self.__silently_remove_file(filepath)
 
     @staticmethod
     def __silently_remove_file(filepath: str):
+        """
+        Remove a filepath without raising an exception
+
+        :param filepath: filepath to remove
+        """
         try:
             os.remove(filepath)
         except FileNotFoundError:
             pass
 
     def set_rerip(self, value: bool):
+        """
+        Update the rerip_ask value
+
+        :param value: new value of rerip_ask
+        """
         self.rerip_ask = value
 
     def set_live_update(self, value: bool):
+        """
+        Update the live_update value
+
+        :param value: new value of live_update
+        """
         self.live_update = value
 
     def set_save_folder(self):
+        """
+        Set directory where all rips will be saved
+        """
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
         self.save_folder_label.setText(folder)
         Config.config['SavePath'] = folder
 
     def load_json_file(self):
+        """
+        Queue urls from user selected .json file
+        """
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
         with open(file, 'r') as load_file:
             loaded_urls = json.load(load_file)
@@ -428,10 +512,17 @@ class NicheImageRipper(QWidget):
         self.update_url_queue()
 
     def file_scheme_changed(self, new_value: str):
+        """
+        Update rip filename scheme
+        :param new_value: new value for filename_scheme
+        """
         self.filename_scheme = FilenameScheme[new_value.upper()]
         Config.config['FilenameScheme'] = self.filename_scheme.name.title()
 
     def load_config(self):
+        """
+        Load application configuration file
+        """
         self.save_folder = Config.config['SavePath']
         self.save_folder_label.setText(self.save_folder)
         saved_filename_scheme = FilenameScheme[Config.config['FilenameScheme'].upper()]
@@ -442,6 +533,9 @@ class NicheImageRipper(QWidget):
         self.live_update_checkbox.setChecked(self.live_update)
 
     def check_latest_version(self):
+        """
+        Check current version against latest version of application
+        """
         v1 = self.version.replace("v", "").split(".")
         v2 = self.latest_version.replace("v", "").split(".")
 
@@ -459,6 +553,14 @@ class NicheImageRipper(QWidget):
             self.set_label_text(self.check_update_label, "Update available", "red", 5)
 
     def set_label_text(self, label: QLabel, text: str, color: str = None, display_time: float = 0):
+        """
+        Set text of a given QLabel. If display_time is specified, the label text will be set for display_time seconds
+
+        :param label: QLabel to update the text of
+        :param text: New text to display
+        :param color: Color of the new text
+        :param display_time: How long (in seconds) the text should be displayed for before being cleared
+        """
         label.setText(text)
         if color is not None:
             label.setStyleSheet(f"color: {color}")
@@ -468,10 +570,20 @@ class NicheImageRipper(QWidget):
 
     @staticmethod
     def clear_label(label: QLabel):
+        """
+        Clear the text of the given label
+
+        :param label: QLabel to clear the text of
+        """
         label.setText("")
 
     @staticmethod
     def get_git_version() -> str:
+        """
+        Retrieve the version tag from the remote git repo
+
+        :return: latest version tag from the remote git repo or v0.0.0 if unable to connect to the repo
+        """
         try:
             response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
         except requests.exceptions.ConnectionError:
@@ -481,9 +593,14 @@ class NicheImageRipper(QWidget):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-h", "--headless", action="STORE_TRUE")
+    parser.add_argument("-c", "--headless", action="store_true")
 
     args = parser.parse_args()
+
+    if not sys.stdout.isatty():
+        # .pyw file is running, no console
+        sys.stdout = open("temp.txt", "w")
+        sys.stderr = open("temp.txt", "a")
 
     if args.headless:
         print("This feature is not yet supported")

@@ -210,7 +210,7 @@ class ImageRipper:
                         self.__download_from_list(link, full_path, i)
                 if cyberdrop_files:
                     self.__cyberdrop_download(full_path, cyberdrop_files)
-        print("Download Complete")
+        print("{#00FF00}Download Complete")
 
     @staticmethod
     def __cyberdrop_download(full_path: str, cyberdrop_files: list[ImageLink]):
