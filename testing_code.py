@@ -868,23 +868,24 @@ def sankaku_test():
 
     response = requests.post(url, headers=headers, json=data)
     print(response.content)
-    #data = response.json()
+    # data = response.json()
     return
     headers = {
-        "Accept" : "application/vnd.sankaku.api+json;v=2",
-        "Origin" : "https://beta.sankakucomplex.com",
+        "Accept": "application/vnd.sankaku.api+json;v=2",
+        "Origin": "https://beta.sankakucomplex.com",
         "Referer": "https://beta.sankakucomplex.com/",
     }
     params = {
-        "lang" : "en",
-        "page" : "1",
+        "lang": "en",
+        "page": "1",
         "limit": "1",
-        "tags" : "cai_pi_jun",
+        "tags": "cai_pi_jun",
     }
     response = requests.get("https://capi-v2.sankakucomplex.com/posts/keyset", params=params, headers=headers)
     print(response.content)
 
+
 if __name__ == "__main__":
     color_print_test()
-    #sankaku_test()
+    # sankaku_test()
     parse_pixiv_links()
