@@ -814,5 +814,35 @@ def event_test():
     event.add_listener(bar.baz)
     event.invoke()
 
+def sankaku_test():
+    logins = Config.config.logins
+    username = logins["SankakuComplex"]["Username"]
+    password = logins["SankakuComplex"]["Password"]
+    url = "https://capi-v2.sankakucomplex.com/auth/token"
+    headers = {
+        "Accept": "application/vnd.sankaku.api+json;v=2",
+        "origin": "https://login.sankakucomplex.com"
+    }
+    data = {"login": username, "password": password}
+
+    response = requests.post(url, headers=headers, json=data)
+    print(response.content)
+    #data = response.json()
+    return
+    headers = {
+        "Accept" : "application/vnd.sankaku.api+json;v=2",
+        "Origin" : "https://beta.sankakucomplex.com",
+        "Referer": "https://beta.sankakucomplex.com/",
+    }
+    params = {
+        "lang" : "en",
+        "page" : "1",
+        "limit": "1",
+        "tags" : "cai_pi_jun",
+    }
+    response = requests.get("https://capi-v2.sankakucomplex.com/posts/keyset", params=params, headers=headers)
+    print(response.content)
+
 if __name__ == "__main__":
-    event_test()
+    #sankaku_test()
+    parse_pixiv_links()

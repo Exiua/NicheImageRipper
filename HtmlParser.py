@@ -5,12 +5,11 @@ import json
 import os
 import pickle
 import re
-import sys
 import time
 from math import ceil
 from os import path
 from time import sleep
-from typing import Callable, Tuple
+from typing import Callable
 from urllib.parse import urlparse, unquote
 
 import bs4
@@ -21,14 +20,14 @@ from bs4 import BeautifulSoup
 from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
-from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
 from RipInfo import RipInfo
-from RipperExceptions import InvalidSubdomain, RipperError
+from RipperExceptions import InvalidSubdomain, RipperError, SiteParseError
 from Util import SCHEME, url_check
 
 PROTOCOL: str = "https:"
@@ -209,15 +208,18 @@ class HtmlParser:
         self.site_name = self.site_check()
         site_parser: Callable[[], RipInfo] = self.parser_jump_table.get(self.site_name)
         success = False
+        site_info: RipInfo = None
         try:
-            site_info: RipInfo = site_parser()
+            site_info = site_parser()
             success = True
         finally:
             if success:
                 self.write_partial_save(site_info, url)
                 pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             self.driver.quit()
-        return site_info
+        if success:
+            return site_info
+        raise SiteParseError()
 
     def site_check(self) -> str:
         """
@@ -230,7 +232,7 @@ class HtmlParser:
             requests_header['referer'] = "".join([SCHEME, domain, "/"])
             domain_parts = domain.split(".")
             domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
-            domain_parts[-2]
+                domain_parts[-2]
             # Hosts images on a different domain
             if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
                 requests_header['referer'] = "https://cdn.discordapp.com/"
@@ -2242,7 +2244,7 @@ class HtmlParser:
                 links = post.find("article", class_="message-body js-selectToQuote").find_all("a")
                 if links:
                     links = [link.get("href") for link in links]
-                    #print(links)
+                    # print(links)
                     filtered_links = self.__extract_external_urls(links)
                     downloadable_links = self.__extract_downloadable_links(filtered_links, external_links)
                     images.extend(downloadable_links)
@@ -2484,7 +2486,7 @@ class HtmlParser:
             Returns list of links that can be downloaded.
         """
         downloadable_links = []
-        downloadable_sites = ("sendvid.com", )
+        downloadable_sites = ("sendvid.com",)
         for site in src_dict:
             if any(s == site for s in downloadable_sites):
                 downloadable_links.extend(src_dict[site])
@@ -2579,7 +2581,7 @@ class HtmlParser:
         logins = Config.config.logins
         if self.site_name == "titsintops":
             self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
-            #self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
+            # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
             login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
             while not login_input:
                 sleep(0.1)
@@ -2587,9 +2589,11 @@ class HtmlParser:
             login_input.send_keys(logins["TitsInTops"]["Username"])
             password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
             password_input.send_keys(logins["TitsInTops"]["Password"])
-            button = self.driver.find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]')
+            button = self.driver.find_element(By.XPATH,
+                                              '//button[@class="button--primary button button--icon button--icon--login"]')
             button.click()
-            while self.try_find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]'):
+            while self.try_find_element(By.XPATH,
+                                        '//button[@class="button--primary button button--icon button--icon--login"]'):
                 sleep(0.1)
             self.driver.get(download_url)
 

@@ -25,3 +25,8 @@ class ImproperlyFormattedSubdomain(RipperError):
 class FileNotFoundAtUrl(RipperError):
     """File was not found at url"""
     pass
+
+
+class SiteParseError(RipperError):
+    """Unable to parse given url"""
+    pass
