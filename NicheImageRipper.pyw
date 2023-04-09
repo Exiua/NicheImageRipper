@@ -396,7 +396,7 @@ class NicheImageRipper(QWidget):
     def clear_cache(self):
         self.__silently_remove_files(".ripIndex", "partial.json")
 
-    def __silently_remove_files(self, *filepaths: list[str]):
+    def __silently_remove_files(self, *filepaths: str):
         for filepath in filepaths:
             self.__silently_remove_file(filepath)
 
