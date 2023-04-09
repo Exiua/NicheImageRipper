@@ -5,6 +5,7 @@ import os
 import re
 import struct
 import subprocess
+import sys
 import urllib.request
 from urllib.parse import urlparse
 from time import sleep
@@ -645,8 +646,9 @@ def object_deserialization_test():
 def iframe_test():
     import urllib
 
-    #response = urllib.request.urlopen("https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
-    response = requests.get("https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
+    # response = urllib.request.urlopen("https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
+    response = requests.get(
+        "https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
     print(response.content)
     with open("test.html", "wb") as f:
         f.write(response.content)
@@ -663,7 +665,8 @@ def cookie_test():
 
 
 def session_test():
-    r = requests.get("https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/")
+    r = requests.get(
+        "https://titsintops.com/phpBB2/index.php?threads/asian-yuma0ppai-busty-o-cup-japanese-chick.13525043/")
     for c in r.cookies:
         print(f"{c.name}: {c.value}")
 
@@ -675,17 +678,19 @@ def create_driver(headless: bool) -> webdriver.Firefox:
     driver = webdriver.Firefox(options=options)
     return driver
 
+
 def try_find_element(driver: webdriver.Firefox, by: str, value: str) -> WebElement | None:
-        try:
-            return driver.find_element(by, value)
-        except selenium.common.exceptions.NoSuchElementException:
-            return None
+    try:
+        return driver.find_element(by, value)
+    except selenium.common.exceptions.NoSuchElementException:
+        return None
+
 
 def tnt_login_helper(driver: webdriver.Firefox):
     download_url = driver.current_url
     logins = Config.config.logins
     driver.get("https://titsintops.com/phpBB2/index.php?login/login")
-    #driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
+    # driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
     login_input = try_find_element(driver, By.XPATH, '//input[@name="login"]')
     while not login_input:
         sleep(0.1)
@@ -695,15 +700,18 @@ def tnt_login_helper(driver: webdriver.Firefox):
     password_input.send_keys(logins["TitsInTops"]["Password"])
     button = driver.find_element(By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]')
     button.click()
-    while try_find_element(driver, By.XPATH, '//button[@class="button--primary button button--icon button--icon--login"]'):
+    while try_find_element(driver, By.XPATH,
+                           '//button[@class="button--primary button button--icon button--icon--login"]'):
         sleep(0.1)
     driver.get(download_url)
+
 
 def download_file(response: requests.Response, file_path: str):
     with open(file_path, "wb") as f:
         for block in response.iter_content(chunk_size=50000):
             if block:
                 f.write(block)
+
 
 def tnt_login_test():
     requests_header: dict[str, str] = {
@@ -712,7 +720,8 @@ def tnt_login_test():
         'referer':
             'https://titsintops.com/phpBB2/index.php?login/login',
         'cookie':
-            'tnt0=1;',#'xf_csrf=l_TJPttw0YbmvBpf; yuo1={"objName":"uXqakQEuIfNAb","request_id":0,"zones":[{"idzone":"4717830","here":{}},{"idzone":"4717830","here":{}},{"idzone":"4717830"}]}'
+            'tnt0=1;',
+        # 'xf_csrf=l_TJPttw0YbmvBpf; yuo1={"objName":"uXqakQEuIfNAb","request_id":0,"zones":[{"idzone":"4717830","here":{}},{"idzone":"4717830","here":{}},{"idzone":"4717830"}]}'
         'origin':
             'titsintops.com'
     }
@@ -729,13 +738,15 @@ def tnt_login_test():
         if c["name"] == "xf_user":
             requests_header["cookie"] += f'{c["name"]}={c["value"]};'
         s.cookies.set(c["name"], c["value"], domain=c["domain"])
-    r = s.get("https://titsintops.com/phpBB2/index.php?attachments/c49492b2-944b-42cb-8c51-d0d7843182ab-jpg.2424014/", headers=requests_header)
+    r = s.get("https://titsintops.com/phpBB2/index.php?attachments/c49492b2-944b-42cb-8c51-d0d7843182ab-jpg.2424014/",
+              headers=requests_header)
     print(r)
     print(s.cookies.items())
     print(r.cookies.items())
     download_file(r, "test.jpg")
     with open("test.html", "wb") as f:
         f.write(r.content)
+
 
 def gelbooru_parse():
     response = requests.get("https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&tags=stelarhoshi")
@@ -756,6 +767,7 @@ def gelbooru_parse():
         json.dump(images, f, indent=4)
     # print(json)
 
+
 def m3u8_to_mp4():
     import subprocess
 
@@ -765,14 +777,17 @@ def m3u8_to_mp4():
     cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy", video_path]
     subprocess.run(cmd)
 
+
 def write_response(r: requests.Response, filepath: str):
     with open(filepath, "wb") as f:
         f.write(r.content)
+
 
 def send_video_parse():
     r = requests.get("https://sendvid.com/cfhnmfob")
     soup = BeautifulSoup(r.content, "lxml")
     print(soup.find("source", id="video_source").get("src"))
+
 
 def dead_link_test():
     r = requests.get("https://drive.google.com/file/d/1pxG_u7GfDbHzNGVa3c3OaqeWTc8EDdTj/view?usp=sharing")
@@ -781,23 +796,26 @@ def dead_link_test():
     print(r)
     write_response(r, "test.html")
 
+
 class EventHandler:
     def __init__(self):
         self.events = []
-    
+
     def add_listener(self, function):
         self.events.append(function)
-    
+
     def invoke(self):
         for event in self.events:
             event()
 
+
 class Foo:
     def __init__(self):
         pass
-    
+
     def print(self):
         print("foo")
+
 
 class Bar:
     def __init__(self):
@@ -806,6 +824,7 @@ class Bar:
     def baz(self):
         print("bar")
 
+
 def event_test():
     event = EventHandler()
     foo = Foo()
@@ -813,6 +832,28 @@ def event_test():
     event.add_listener(foo.print)
     event.add_listener(bar.baz)
     event.invoke()
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def color_print_test():
+    print(f"{bcolors.HEADER}purple{bcolors.ENDC}")
+    print(f"{bcolors.OKBLUE}blue{bcolors.ENDC}")
+    print(f"{bcolors.OKCYAN}cyan{bcolors.ENDC}")
+    print(f"{bcolors.OKGREEN}green{bcolors.ENDC}")
+    print(f"{bcolors.WARNING}yellow{bcolors.ENDC}")
+    print(f"{bcolors.FAIL}red{bcolors.ENDC}")
+
 
 def sankaku_test():
     logins = Config.config.logins
@@ -844,5 +885,6 @@ def sankaku_test():
     print(response.content)
 
 if __name__ == "__main__":
+    color_print_test()
     #sankaku_test()
     parse_pixiv_links()
