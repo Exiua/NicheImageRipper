@@ -188,7 +188,7 @@ class ImageRipper:
         else:
             # Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
             if "cyberdrop" == self.site_name:
-                self.__cyberdrop_download(full_path, self.folder_info.urls)
+                self.__cyberdrop_download(full_path, [ImageLink(self.given_url, FilenameScheme.ORIGINAL, 0)])
             elif "deviantart" == self.site_name:
                 self.__deviantart_download(full_path, self.folder_info.urls[0].url)
             else:
@@ -212,20 +212,25 @@ class ImageRipper:
                     self.__cyberdrop_download(full_path, cyberdrop_files)
         print("{#00FF00}Download Complete")
 
-    @staticmethod
-    def __cyberdrop_download(full_path: str, cyberdrop_files: list[ImageLink]):
-        cmd = ["cyberdrop-dl", "-o", full_path]
+    def __cyberdrop_download(self, full_path: str, cyberdrop_files: list[ImageLink]):
+        cmd = ["gallery-dl", "-D", full_path]
         cmd.extend([file.url for file in cyberdrop_files])
-        print("Starting cyberdrop-dl")
-        subprocess.run(cmd)
-        print("Cyberdrop-dl finished")
+        print(cmd)
+        self.__run_subprocess(cmd, "Starting gallery-dl", "Gallery-dl finished")
 
     def __deviantart_download(self, full_path: str, url: str):
         cmd = ["gallery-dl", "-D", full_path, "-u", self.logins["DeviantArt"]["Username"], "-p",
                self.logins["DeviantArt"]["Password"], "--write-log", "log.txt", url]
-        cmd = " ".join(cmd)
-        print("Starting Deviantart download")
+        # cmd = " ".join(cmd)
+        self.__run_subprocess(cmd, start_message="Starting Deviantart download")
+
+    def __run_subprocess(self, cmd: list[str], start_message: str = None, end_message: str = None):
+        if start_message:
+            print(start_message)
         subprocess.run(cmd, stdout=sys.stdout, stderr=subprocess.STDOUT)
+        if end_message:
+            print(end_message)
+
 
     def __download_from_url(self, url_name: str, file_name: str, full_path: str, ext: str):
         """"Download image from image url"""

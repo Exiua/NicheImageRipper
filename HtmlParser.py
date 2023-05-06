@@ -211,9 +211,10 @@ class HtmlParser:
             site_info: RipInfo = site_parser()
             self.write_partial_save(site_info, url)
             pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
+            return site_info
         finally:
             self.driver.quit()
-        raise SiteParseError()
+        # aise SiteParseError()
 
     def site_check(self) -> str:
         """
