@@ -1913,6 +1913,7 @@ class HtmlParser:
         # Parses the html of the site
         tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
         tags = unquote(tags)
+        print(tags)
         dir_name = "[Rule34] " + tags.replace("+", " ").replace("tags=", "")
         response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
         data = response.json()
