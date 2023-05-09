@@ -1581,6 +1581,23 @@ class HtmlParser:
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
+    def mitaku_parse(self) -> RipInfo:
+        """Parses the html for mitaku.net and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="page-title").text
+        nav_bar = soup.find("div", class_="wp-pagenavi").find("span")
+        page_count = int(nav_bar.text.split(" ")[-1])
+        base_url = self.current_url
+        posts = []
+        for i in range(1, page_count + 1):
+            soup = self.soupify(f"{base_url}page/{str(i)}/")
+            sub_posts = soup.find("div", class_="article-container").find_all("article", recursive=False)
+            sub_posts = [post.find("a").get("href") for post in posts]
+            posts.extend(sub_posts)
+        images = []
+        return RipInfo(images, dir_name)
+
     def morazzia_parse(self) -> RipInfo:
         """Parses the html for morazzia.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
