@@ -187,7 +187,8 @@ class HtmlParser:
             "flickr": self.flickr_parse,
             "rule34": self.rule34_parse,
             "titsintops": self.titsintops_parse,
-            "gelbooru": self.gelbooru_parse
+            "gelbooru": self.gelbooru_parse,
+            "999hentai": self.nine99hentai_parse
         }
 
     @property
@@ -1634,6 +1635,26 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def nine99hentai_parse(self) -> RipInfo:
+        """Parses the html for 999hentai.to and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        pause_time = 1
+        scroll_distance = 2500 // 4
+        while True:
+            self.lazy_load(True, increment=scroll_distance, scroll_pause_time=pause_time)
+            soup = self.soupify()
+            dir_name = soup.find("h1", class_="container main-night").text
+            images = soup.find("div", class_="d-flex image-board mb container image-board-chapter").find_all("img", recursive=False)
+            images = [img.get("src").replace("s.", ".") for img in images]
+            fail_count = sum("data:image/gif" in img for img in images)
+            if fail_count != 0:
+                print(f"{str(fail_count)} Improper Urls Found, Retrying...")
+                pause_time *= 2
+                scroll_distance //= 2
+            else:
+                break
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def nonsummerjack_parse(self) -> RipInfo:
         """Parses the html for nonsummerjack.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -1913,7 +1934,6 @@ class HtmlParser:
         # Parses the html of the site
         tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
         tags = unquote(tags)
-        print(tags)
         dir_name = "[Rule34] " + tags.replace("+", " ").replace("tags=", "")
         response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}")
         data = response.json()
@@ -2420,6 +2440,8 @@ class HtmlParser:
             self.driver = webdriver.Firefox(options=options)
             self.driver.get(given_url.replace("members.", "www."))
             site_name = self._test_site_check(given_url)
+            if site_name == "999hentai":
+                site_name = "nine99hentai"
             return eval(f"self.{site_name}_parse()")
         finally:
             self.driver.quit()
@@ -2575,9 +2597,11 @@ class HtmlParser:
 
     # TODO: Merge the if/else
     def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5,
-                  backscroll: int = 0):
+                  backscroll: int = 0, rescroll: bool = False):
         """Load lazy loaded images by scrolling the page"""
         last_height = self.driver.execute_script("return window.pageYOffset")
+        if rescroll:
+            self.driver.execute_script("window.scrollTo(0, 0);")
         if scroll_by:
             while True:
                 self.driver.execute_script(

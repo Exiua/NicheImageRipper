@@ -24,7 +24,7 @@ class RipInfo:
             self.__clean_dir_name()
 
     def __str__(self) -> str:
-        return f"({self.urls}, {self.num_urls}, {self.dir_name})"
+        return f"({[str(url) for url in self.urls]}, {self.num_urls}, {self.dir_name})"
 
     @property
     def num_urls(self):
