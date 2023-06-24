@@ -57,7 +57,8 @@ class HtmlParser:
                  filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
         global logged_in
         options = Options()
-        options.headless = site_name != "v2ph" or logged_in
+        if site_name != "v2ph" or logged_in:
+            options.add_argument("-headless")
         options.add_argument(DRIVER_HEADER)
         options.set_preference("dom.disable_beforeunload", True)
         options.set_preference("browser.tabs.warnOnClose", False)
@@ -188,12 +189,17 @@ class HtmlParser:
             "rule34": self.rule34_parse,
             "titsintops": self.titsintops_parse,
             "gelbooru": self.gelbooru_parse,
-            "999hentai": self.nine99hentai_parse
+            "999hentai": self.nine99hentai_parse,
+            "newgrounds": self.newgrounds_parse
         }
 
     @property
     def current_url(self):
         return self.driver.current_url
+
+    @current_url.setter
+    def current_url(self, value):
+        self.driver.get(value)
 
     def parse_site(self, url: str) -> RipInfo:
         if path.isfile("partial.json"):
@@ -285,15 +291,22 @@ class HtmlParser:
         except FileNotFoundError:
             return {"": ""}  # Doesn't matter if the cached data doesn't exist, will regen instead
 
-    def site_login(self, site_name: str, given_url: str, logins: dict[str, str]):
-        curr_url = self.driver.current_url
-        if site_name == "sexy-egirls" and "forum." in given_url:
-            self.driver.implicitly_wait(10)
-            self.driver.get("https://forum.sexy-egirls.com/login/")
-            self.driver.find_element(By.XPATH, "//input[@type='text']").send_keys(logins["sexy-egirls"][0])
-            self.driver.find_element(By.XPATH, "//input[@type='password']").send_keys(logins["sexy-egirls"][1])
-            self.driver.find_element(By.XPATH, "//button[@type='submit']").click()
-        self.driver.get(curr_url)
+    def site_login(self):
+        if self.site_name == "newgrounds":
+            self.__newgrounds_login()
+
+    def __newgrounds_login(self):
+        curr_url = self.current_url
+        newgrounds_login = Config.config.logins["Newgrounds"]
+        username = newgrounds_login["Username"]
+        password = newgrounds_login["Password"]
+        self.current_url = "https://newgrounds.com/passport"
+        self.driver.find_element(By.XPATH, '//input[@name="username"]').send_keys(username)
+        self.driver.find_element(By.XPATH, '//input[@name="password"]').send_keys(password)
+        self.driver.find_element(By.XPATH, '//button[@name="login"]').click()
+        while self.current_url != "https://www.newgrounds.com/social":
+            sleep(1)
+        self.current_url = curr_url
 
     # region Parsers
 
@@ -1626,6 +1639,29 @@ class HtmlParser:
         images = ["".join(["https://www.nakedgirls.xxx", img.find("a").get("href")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def newgrounds_parse(self) -> RipInfo:
+        """Parses the html for newgrounds.com and extracts the relevant information necessary for downloading images from the site"""
+        # Parses the html of the site
+        if self.current_url.endswith("/art/"):
+            url = self.current_url.split("/")[:3]
+            url = "/".join(url)
+            self.current_url = f"{url}/art/"
+        self.site_login()
+        self.lazy_load(scroll_by=True)
+        soup = self.soupify()
+        dir_name = soup.find("a", class_="user-link").text.strip()
+        images = []
+        post_years = soup.find("div", class_="userpage-browse-content").find("div").find_all("div", recursive=False)
+        for post_year in post_years:
+            posts = post_year.find_all("div", class_="span-1 align-center")
+            for post in posts:
+                image_title = post.find("a").get("href").split("/")[-1]
+                thumbnail_url = post.find("img").get("src")
+                image_url = thumbnail_url.replace("/thumbnails/", "/images/")\
+                    .replace("_full", f"_{dir_name}_{image_title}").replace(".webp", ".png")
+                images.append(image_url)
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def nightdreambabe_parse(self) -> RipInfo:
         """Parses the html for nightdreambabe.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2435,7 +2471,8 @@ class HtmlParser:
         self.driver = None
         try:
             options = Options()
-            options.headless = not debug
+            if not debug:
+                options.add_argument("-headless")
             options.add_argument(DRIVER_HEADER)
             self.driver = webdriver.Firefox(options=options)
             self.driver.get(given_url.replace("members.", "www."))

@@ -70,7 +70,7 @@ def url_check(given_url: str) -> bool:
     """Check the url to make sure it is from valid site"""
     parsed_uri = urlparse(given_url)
     base_url = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
-    return base_url in SUPPORTED_SITES
+    return base_url in SUPPORTED_SITES or "newgrounds.com" in base_url
 
 
 if __name__ == "__main__":

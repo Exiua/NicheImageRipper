@@ -52,10 +52,6 @@ class ImageRipper:
     status_sync: StatusSync = None
 
     def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
-        self.cookies: dict[str, list[str]] = {
-            "v2ph": [],
-            "fantia": []
-        }
         self.requests_header: dict[str, str] = {
             'User-Agent':
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',

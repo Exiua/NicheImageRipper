@@ -65,6 +65,10 @@ class Config:
                     "Username": "",
                     "Password": ""
                 },
+                "Newgrounds": {
+                    "Username": "",
+                    "Password": ""
+                }
             },
             "Keys": {
                 "Imgur": ""
