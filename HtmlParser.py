@@ -294,6 +294,8 @@ class HtmlParser:
     def site_login(self):
         if self.site_name == "newgrounds":
             self.__newgrounds_login()
+        elif self.site_name == "titsintops":
+            self.__titsintops_login()
 
     def __newgrounds_login(self):
         curr_url = self.current_url
@@ -307,6 +309,26 @@ class HtmlParser:
         while self.current_url != "https://www.newgrounds.com/social":
             sleep(1)
         self.current_url = curr_url
+
+    def __titsintops_login(self):
+        download_url = self.current_url
+        logins = Config.config.logins
+        self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
+        # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
+        login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        while not login_input:
+            sleep(0.1)
+            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        login_input.send_keys(logins["TitsInTops"]["Username"])
+        password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
+        password_input.send_keys(logins["TitsInTops"]["Password"])
+        button = self.driver.find_element(By.XPATH,
+                                            '//button[@class="button--primary button button--icon button--icon--login"]')
+        button.click()
+        while self.try_find_element(By.XPATH,
+                                    '//button[@class="button--primary button button--icon button--icon--login"]'):
+            sleep(0.1)
+        self.driver.get(download_url)          
 
     # region Parsers
 
@@ -339,12 +361,15 @@ class HtmlParser:
         base_url = self.driver.current_url
         base_url = base_url.split("/")
         source_site = base_url[3]
-        base_url = "/".join(base_url[:6])
+        base_url = "/".join(base_url[:6]).split("?")[0]
         page_url = self.driver.current_url.split("?")[0]
         sleep(5)
         soup = self.soupify()
         dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
         dir_name = f"{dir_name} - ({source_site})"
+        
+        # region Get All Posts
+
         page = 0
         image_links = []
         while True:
@@ -353,53 +378,50 @@ class HtmlParser:
             image_list = soup.find("div", class_="card-list__items").find_all("article")
             image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
             image_links.extend(image_list)
-            next_page = f"{page_url}?o={str(page * 25)}"
+            next_page = f"{page_url}?o={str(page * 50)}"
             print(next_page)
-            self.driver.get(next_page)
-            soup = self.soupify()
+            soup = self.soupify(next_page)
             self._print_html(soup)
             test_str = soup.find("h2", class_="site-section__subheading")
             if test_str is not None:
                 break
+
+        # endregion
+
+        # region Parse All Posts
+
         images = []
-        mega_links = []
-        gdrive_links = []
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
         num_posts = len(image_links)
-        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
+        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp")
         for i, link in enumerate(image_links):
             print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
-            self.driver.get(link)
-            soup = self.soupify()
+            print(link)
+            soup = self.soupify(link)
             links = soup.find_all("a")
             links = [link.get("href") for link in links]
             possible_links_p = soup.find_all("p")
             possible_links = [tag.text for tag in possible_links_p]
             possible_links_div = soup.find_all("div")
             possible_links.extend([tag.text for tag in possible_links_div])
-            m_links = [link + "\n" for link in links if "mega.nz" in link]
-            gd_links = [link + "\n" for link in links if "drive.google.com" in link]
-            for text in possible_links:
-                for domain_list in (("drive.google.com", gd_links), ("mega.nz", m_links)):
-                    if domain_list[0] not in text:
-                        continue
-                    parts = text.split()
-                    for part in parts:
-                        if domain_list[0] in part:
-                            domain_list[1].append(part + "\n")
-            attachments = [domain_url + link if domain_url not in link else link for link in links
-                           if any(ext in link for ext in ATTACHMENTS)]
+            ext_links = self.__extract_external_urls(links)
+            for site in ext_links:
+                external_links[site].extend(ext_links[site])
+            ext_links = self.__extract_possible_external_urls(possible_links)
+            for site in ext_links:
+                external_links[site].extend(ext_links[site])
+            attachments = [domain_url + link if domain_url not in link else link for link in
+                           links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
-            mega_links.extend(list(dict.fromkeys(m_links)))
-            gdrive_links.extend(list(dict.fromkeys(gd_links)))
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join([domain_url.replace("//", "//data1."), img.get("href")]) for img in image_list]
+                image_list = [img.get("href") for img in image_list]
                 images.extend(image_list)
-        with open("megaLinks.txt", "a", encoding="utf-16") as f:
-            f.writelines(mega_links)
-        with open("gdriveLinks.txt", "a", encoding="utf-16") as f:
-            f.writelines(gdrive_links)
+
+        # endregion
+
+        self.__save_external_links(external_links)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def agirlpic_parse(self) -> RipInfo:
@@ -1357,76 +1379,7 @@ class HtmlParser:
     def kemono_parse(self) -> RipInfo:
         """Parses the html for kemono.party and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
-        cookies = self.driver.get_cookies()
-        cookie_str = ''
-        for c in cookies:
-            cookie_str += "".join([c['name'], '=', c['value'], ';'])
-        requests_header["cookie"] = cookie_str
-        base_url = self.current_url
-        base_url = base_url.split("/")
-        source_site = base_url[3]
-        base_url = "/".join(base_url[:6])
-        page_url = self.driver.current_url.split("?")[0]
-        sleep(5)
-        soup = self.soupify()
-        dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
-        dir_name = f"{dir_name} - ({source_site})"
-
-        # region Get All Posts
-
-        page = 0
-        image_links = []
-        while True:
-            page += 1
-            print("".join(["Parsing page ", str(page)]))
-            image_list = soup.find("div", class_="card-list__items").find_all("article")
-            image_list = ["".join([base_url, "/post/", img.get("data-id")]) for img in image_list]
-            image_links.extend(image_list)
-            next_page = f"{page_url}?o={str(page * 50)}"
-            print(next_page)
-            soup = self.soupify(next_page)
-            self._print_html(soup)
-            test_str = soup.find("h2", class_="site-section__subheading")
-            if test_str is not None:
-                break
-
-        # endregion
-
-        # region Parse All Posts
-
-        images = []
-        external_links: dict[str, list[str]] = self.__create_external_link_dict()
-        num_posts = len(image_links)
-        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip")
-        for i, link in enumerate(image_links):
-            print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
-            soup = self.soupify(link)
-            links = soup.find_all("a")
-            links = [link.get("href") for link in links]
-            possible_links_p = soup.find_all("p")
-            possible_links = [tag.text for tag in possible_links_p]
-            possible_links_div = soup.find_all("div")
-            possible_links.extend([tag.text for tag in possible_links_div])
-            ext_links = self.__extract_external_urls(links)
-            for site in ext_links:
-                external_links[site].extend(ext_links[site])
-            ext_links = self.__extract_possible_external_urls(possible_links)
-            for site in ext_links:
-                external_links[site].extend(ext_links[site])
-            attachments = ["https://kemono.party" + link if "https://kemono.party" not in link else link for link in
-                           links if any(ext in link for ext in ATTACHMENTS)]
-            images.extend(attachments)
-            image_list = soup.find("div", class_="post__files")
-            if image_list is not None:
-                image_list = image_list.find_all("a", class_="fileThumb image-link")
-                image_list = ["".join(["https://kemono.party".replace("//", "//data1."), img.get("href")]) for img in
-                              image_list]
-                images.extend(image_list)
-
-        # endregion
-
-        self.__save_external_links(external_links)
-        return RipInfo(images, dir_name, self.filename_scheme)
+        return self.__dot_party_parse("https://kemono.party")
 
     # unable to load closed shadow DOM
     def __koushoku_parse(self) -> RipInfo:
@@ -2282,7 +2235,7 @@ class HtmlParser:
         # Parses the html of the site
         # noinspection PyPep8Naming
         SITE_URL = "https://titsintops.com"
-        self.login()
+        self.site_login()
         cookies = self.driver.get_cookies()
         cookie_str = ''
         for c in cookies:
@@ -2640,56 +2593,31 @@ class HtmlParser:
         if rescroll:
             self.driver.execute_script("window.scrollTo(0, 0);")
         if scroll_by:
-            while True:
-                self.driver.execute_script(
-                    "".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"]))
-                sleep(scroll_pause_time)
-                new_height = self.driver.execute_script("return window.pageYOffset")
-                if new_height == last_height:
-                    if backscroll > 0:
-                        for _ in range(backscroll):
-                            self.driver.execute_script(
-                                "".join(
-                                    ["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
-                            sleep(scroll_pause_time)
-                        sleep(scroll_pause_time)
-                    break
-                last_height = new_height
+            scroll_script = "".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"])
+            height_check_script = "return window.pageYOffset"
         else:
-            while True:
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                sleep(scroll_pause_time)
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    break
-                last_height = new_height
+            scroll_script = "window.scrollTo(0, document.body.scrollHeight);"
+            height_check_script = "return document.body.scrollHeight"
+        while True:
+            self.driver.execute_script(scroll_script)
+            sleep(scroll_pause_time)
+            new_height = self.driver.execute_script(height_check_script)
+            if new_height == last_height:
+                if backscroll > 0:
+                    for _ in range(backscroll):
+                        self.driver.execute_script(
+                            "".join(
+                                ["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
+                        sleep(scroll_pause_time)
+                    sleep(scroll_pause_time)
+                break
+            last_height = new_height
         self.driver.implicitly_wait(10)
 
     @staticmethod
     def log_failed_url(url: str):
         with open("failed.txt", "a") as f:
             f.write("".join([url, "\n"]))
-
-    def login(self):
-        download_url = self.current_url
-        logins = Config.config.logins
-        if self.site_name == "titsintops":
-            self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
-            # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
-            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
-            while not login_input:
-                sleep(0.1)
-                login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
-            login_input.send_keys(logins["TitsInTops"]["Username"])
-            password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
-            password_input.send_keys(logins["TitsInTops"]["Password"])
-            button = self.driver.find_element(By.XPATH,
-                                              '//button[@class="button--primary button button--icon button--icon--login"]')
-            button.click()
-            while self.try_find_element(By.XPATH,
-                                        '//button[@class="button--primary button button--icon button--icon--login"]'):
-                sleep(0.1)
-            self.driver.get(download_url)
 
     def try_find_element(self, by: str, value: str) -> WebElement | None:
         try:
