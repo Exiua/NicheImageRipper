@@ -885,7 +885,17 @@ def sankaku_test():
     print(response.content)
 
 
+def re_raise_test():
+    try:
+        x = "".join(["hi", 1])
+    except:
+        print("caught")
+        raise
+    finally:
+        print("finally")
+
 if __name__ == "__main__":
-    color_print_test()
+    #color_print_test()
     # sankaku_test()
-    parse_pixiv_links()
+    #parse_pixiv_links()
+    re_raise_test()

@@ -190,7 +190,8 @@ class HtmlParser:
             "titsintops": self.titsintops_parse,
             "gelbooru": self.gelbooru_parse,
             "999hentai": self.nine99hentai_parse,
-            "newgrounds": self.newgrounds_parse
+            "newgrounds": self.newgrounds_parse,
+            "fapello": self.fapello_parse
         }
 
     @property
@@ -902,6 +903,17 @@ class HtmlParser:
         dir_name = soup.find("div", class_="title-area").find("h1").text
         images = soup.find("div", class_="gallery").find_all("a", class_="thumb exo")
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def fapello_parse(self) -> RipInfo:
+        """
+            Parses the html for fapello.com and extracts the relevant information necessary for downloading images from the site
+        """
+        self.lazy_load(scroll_by=True)
+        soup = self.soupify()
+        dir_name = soup.find("h2", class_="font-semibold lg:text-2xl text-lg mb-2 mt-4").text
+        images = soup.find("div", id="content").find_all("img")
+        images = [img.get("src").replace("_300px", "") for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def f5girls_parse(self) -> RipInfo:
