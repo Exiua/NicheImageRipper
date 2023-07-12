@@ -191,7 +191,8 @@ class HtmlParser:
             "gelbooru": self.gelbooru_parse,
             "999hentai": self.nine99hentai_parse,
             "newgrounds": self.newgrounds_parse,
-            "fapello": self.fapello_parse
+            "fapello": self.fapello_parse,
+            "nijie": self.nijie_parse
         }
 
     @property
@@ -297,12 +298,16 @@ class HtmlParser:
             self.__newgrounds_login()
         elif self.site_name == "titsintops":
             self.__titsintops_login()
+        elif self.site_name == "nijie":
+            self.__nijie_login()
+
+    def __get_login_creds(self, site_name: str) -> tuple[str, str]:
+        login = Config.config.logins[site_name]
+        return login["Username"], login["Password"]
 
     def __newgrounds_login(self):
         curr_url = self.current_url
-        newgrounds_login = Config.config.logins["Newgrounds"]
-        username = newgrounds_login["Username"]
-        password = newgrounds_login["Password"]
+        username, password = self.__get_login_creds("Newgrounds")
         self.current_url = "https://newgrounds.com/passport"
         self.driver.find_element(By.XPATH, '//input[@name="username"]').send_keys(username)
         self.driver.find_element(By.XPATH, '//input[@name="password"]').send_keys(password)
@@ -311,18 +316,33 @@ class HtmlParser:
             sleep(1)
         self.current_url = curr_url
 
+    def __nijie_login(self):
+        orig_url = self.current_url
+        username, password = self.__get_login_creds("Nijie")
+        self.current_url = "https://nijie.info/login.php"
+        if "age_ver.php" in self.current_url:
+            self.driver.find_element(By.XPATH, '//li[@class="ok"]').click()
+            while "login.php" not in self.current_url:
+                sleep(0.1)
+        self.driver.find_element(By.XPATH, '//input[@name="email"]').send_keys(username)
+        self.driver.find_element(By.XPATH, '//input[@name="password"]').send_keys(password)
+        self.driver.find_element(By.XPATH, '//input[@class="login_button"]').click()
+        while "login.php" in self.current_url:
+            sleep(0.1)
+        self.current_url = orig_url
+
     def __titsintops_login(self):
         download_url = self.current_url
-        logins = Config.config.logins
+        username, password = self.__get_login_creds("TitsInTops")
         self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
         # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
         login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
         while not login_input:
             sleep(0.1)
             login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
-        login_input.send_keys(logins["TitsInTops"]["Username"])
+        login_input.send_keys(username)
         password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
-        password_input.send_keys(logins["TitsInTops"]["Password"])
+        password_input.send_keys(password)
         button = self.driver.find_element(By.XPATH,
                                             '//button[@class="button--primary button button--icon button--icon--login"]')
         button.click()
@@ -1634,6 +1654,55 @@ class HtmlParser:
         dir_name = soup.find("section", class_="outer-section").find("h2", class_="section-title title").text
         images = soup.find("div", class_="lightgallery thumbs quadruple fivefold").find_all("a", class_="gallery-card")
         images = ["".join([PROTOCOL, img.find("img").get("src")]) for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def nijie_parse(self) -> RipInfo:
+        """
+            Parses the html for nijie.info and extracts the relevant information necessary for downloading images from the site
+        """
+        self.site_name = "nijie"
+        self.site_login()
+        soup = self.soupify()
+        if not "members_illust" in self.current_url:
+            member_id = re.findall(r"id=(\d+)", self.current_url)[0]
+            soup = self.soupify(f"https://nijie.info/members_illust.php?id={member_id}")
+        dir_name = soup.find("a", class_="name").text
+        posts = []
+        count = 1
+        while True:
+            print(f"Parsing posts page {count}")
+            count += 1
+            post_tags = soup.find("div", class_="mem-index clearboth").find_all("p", class_="nijiedao")
+            post_links = [f"https://nijie.info{link.find('a').get('href')}" for link in post_tags]
+            posts.extend(post_links)
+            next_page_btn = soup.find("div", class_="right")
+            if not next_page_btn:
+                break
+            next_page_btn = next_page_btn.find("p", class_="page_button")
+            if next_page_btn:
+                next_page = next_page_btn.find("a").get("href")
+                soup = self.soupify(f"https://nijie.info{next_page}")
+            else:
+                break
+        print("Collected all posts...")
+        images: list[str] = []
+        total = len(posts)
+        for i, post in enumerate(posts):
+            print(f"Parsing post {i+1}/{total}")
+            soup = self.soupify(post)
+            try:
+                imgs = soup.find("div", id="gallery_open").find_all("img", class_="mozamoza ngtag")
+            except AttributeError:
+                sleep(5)
+                soup = self.soupify(post)
+                imgs = soup.find("div", id="gallery_open").find_all("img", class_="mozamoza ngtag")
+            image_links = [f"{PROTOCOL}{img.get('src')}" for img in imgs]
+            images.extend(image_links)
+        for i, image in enumerate(images):
+            img_split = image.split("/")
+            if img_split[4] != "nijie":
+                img_split.pop(4)
+            images[i] = "/".join(img_split)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def nine99hentai_parse(self) -> RipInfo:

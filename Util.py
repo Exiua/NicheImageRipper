@@ -63,7 +63,8 @@ SUPPORTED_SITES: set[str] = {"https://imhentai.xxx/", "https://hotgirl.asia/", "
                              "https://manganato.com/",
                              "https://sfmcompile.club/", "https://www.tsumino.com/", "https://danbooru.donmai.us/",
                              "https://www.flickr.com/", "https://rule34.xxx/", "https://titsintops.com/",
-                             "https://gelbooru.com/", "https://999hentai.to/", "https://fapello.com/"}
+                             "https://gelbooru.com/", "https://999hentai.to/", "https://fapello.com/",
+                             "https://nijie.info/"}
 
 
 def url_check(given_url: str) -> bool:

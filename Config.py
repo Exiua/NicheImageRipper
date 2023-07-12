@@ -68,6 +68,10 @@ class Config:
                 "Newgrounds": {
                     "Username": "",
                     "Password": ""
+                },
+                "Nijie": {
+                    "Username": "",
+                    "Password": ""
                 }
             },
             "Keys": {
