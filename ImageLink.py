@@ -55,6 +55,10 @@ class ImageLink:
         elif "sendvid.com" in url and ".m3u8" in url:
             file_name = url.split("/")[6]
             self.is_m3u8 = True
+        elif "erocdn.co" in url:
+            parts = url.split("/")
+            ext = parts[-1].split(".")[-1]
+            file_name = f"{parts[-2]}.{ext}"
         else:
             file_name = os.path.basename(urlparse(url).path)
         return file_name

@@ -894,8 +894,23 @@ def re_raise_test():
     finally:
         print("finally")
 
+def check_for_missing():
+    with open("test.json", "r") as f:
+        data: list[str] = json.load(f)
+    
+    num = 1
+    missing = []
+    data.reverse()
+    for d in data:
+        n = int(d.split("_")[-1].split(".")[0])
+        while n != num:
+            missing.append(num)
+            num += 1
+        num += 1
+    print(missing, len(missing))
+
 if __name__ == "__main__":
     #color_print_test()
     # sankaku_test()
     #parse_pixiv_links()
-    re_raise_test()
+    check_for_missing()

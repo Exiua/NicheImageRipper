@@ -192,7 +192,9 @@ class HtmlParser:
             "999hentai": self.nine99hentai_parse,
             "newgrounds": self.newgrounds_parse,
             "fapello": self.fapello_parse,
-            "nijie": self.nijie_parse
+            "nijie": self.nijie_parse,
+            "faponic": self.faponic_parse,
+            "erothots": self.erothots_parse
         }
 
     @property
@@ -907,6 +909,17 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def erothots_parse(self) -> RipInfo:
+        """
+            Parses the html for erothots.co and extracts the relevant information necessary for downloading images from the site
+        """
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="head-title").find("span").text
+        links = soup.find("div", class_="album-gallery").find_all("a", recursive=False)
+        images = [link.get("data-src") for link in links]
+        return RipInfo(images, dir_name, self.filename_scheme)
+        
+
     def everia_parse(self) -> RipInfo:
         """Parses the html for everia.club and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -934,6 +947,29 @@ class HtmlParser:
         dir_name = soup.find("h2", class_="font-semibold lg:text-2xl text-lg mb-2 mt-4").text
         images = soup.find("div", id="content").find_all("img")
         images = [img.get("src").replace("_300px", "") for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def faponic_parse(self) -> RipInfo:
+        """
+            Parses the html for faponic.com and extracts the relevant information necessary for downloading images from the site
+        """
+        self.lazy_load(scroll_by=True, scroll_pause_time=1)
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="author-content").find("a").text
+        posts = soup.find("div", id="content").find_all("div", class_="photo-item col-4-width")
+        images: list[str] = []
+        for post in posts:
+            video = post.find("a", class_="play-video2")
+            if video:
+                images.append(f"video:{video.get('href')}")
+            else:
+                images.append(post.find("img").get("src"))
+        for i, img in enumerate(images):
+            if not img.startswith("video:"):
+                continue
+            soup = self.soupify(img.replace("video:", ""))
+            vid = soup.find("source").get("src")
+            images[i] = vid
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def f5girls_parse(self) -> RipInfo:
@@ -2513,7 +2549,11 @@ class HtmlParser:
             site_name = self._test_site_check(given_url)
             if site_name == "999hentai":
                 site_name = "nine99hentai"
-            return eval(f"self.{site_name}_parse()")
+            data: RipInfo = eval(f"self.{site_name}_parse()")
+            out = [d.url for d in data]
+            with open("test.json", "w") as f:
+                json.dump(out, f, indent=4)
+            return data
         finally:
             self.driver.quit()
 

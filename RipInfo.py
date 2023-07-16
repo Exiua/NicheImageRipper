@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import string
+from typing import Iterator
 
 from FilenameScheme import FilenameScheme
 from ImageLink import ImageLink
@@ -25,6 +26,9 @@ class RipInfo:
 
     def __str__(self) -> str:
         return f"({[str(url) for url in self.urls]}, {self.num_urls}, {self.dir_name})"
+
+    def __iter__(self) -> Iterator[ImageLink]:
+        return iter(self.urls)
 
     @property
     def num_urls(self):
