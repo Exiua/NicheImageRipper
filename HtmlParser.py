@@ -901,12 +901,57 @@ class HtmlParser:
         return self.__generic_html_parser_1()
 
     def erosberry_parse(self) -> RipInfo:
-        """Parses the html for erosberry.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for erosberry.com and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="title").text
         images = soup.find("div", class_="block-post three-post flex").find_all("a", recursive=False)
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def erohive_parse(self) -> RipInfo:
+        """
+            Parses the html for erohive.com and extracts the relevant information necessary for downloading images from the site
+        """
+        # Parses the html of the site
+        def wait_for_post_load():
+            while True:
+                elm = self.driver.find_element(By.ID, "has_no_img")
+                if elm.get_attribute("class"):
+                    sleep(0.1)
+                    break
+                elif self.driver.find_elements(By.XPATH, '//h2[@class="warning-page"]'):
+                    self.driver.refresh()
+                sleep(0.1)
+        base_url = self.current_url.split("?")[0]
+        wait_for_post_load()
+        soup = self.soupify()
+        dir_name = " ".join(soup.find("h1", class_="title").text.split(" ")[:-3])
+        posts = []
+        page = 0
+        while True:
+            print(f"Parsing page {page}")
+            if page != 0:
+                self.current_url = f"{base_url}?p={page}"
+                wait_for_post_load()
+                soup = self.soupify()
+            page += 1
+            links = soup.find_all("a", class_="image-thumb")
+            if not links:
+                break
+            links = [link.get("href") for link in links]
+            posts.extend(links)
+        images = []
+        total = len(posts)
+        for i, post in enumerate(posts):
+            print(f"Parsing post {i+1}/{total}")
+            self.current_url = post
+            wait_for_post_load()
+            soup = self.soupify()
+            img = soup.find("div", class_="img").find("img").get("src")
+            images.append(img)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def erothots_parse(self) -> RipInfo:
@@ -919,7 +964,6 @@ class HtmlParser:
         images = [link.get("data-src") for link in links]
         return RipInfo(images, dir_name, self.filename_scheme)
         
-
     def everia_parse(self) -> RipInfo:
         """Parses the html for everia.club and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2554,6 +2598,9 @@ class HtmlParser:
             with open("test.json", "w") as f:
                 json.dump(out, f, indent=4)
             return data
+        except:
+            with open("test.html", "w", encoding="utf-16") as f:
+                f.write(self.driver.page_source)
         finally:
             self.driver.quit()
 

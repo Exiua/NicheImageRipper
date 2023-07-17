@@ -909,8 +909,16 @@ def check_for_missing():
         num += 1
     print(missing, len(missing))
 
+def nested_function_test():
+    print("tst")
+    x = func2() # Func def must come before
+    print(x)
+
+    def func2():
+        return 2
+
 if __name__ == "__main__":
     #color_print_test()
     # sankaku_test()
     #parse_pixiv_links()
-    check_for_missing()
+    nested_function_test()
