@@ -6,6 +6,7 @@ import os
 import pickle
 import re
 import time
+import random
 from math import ceil
 from os import path
 from time import sleep
@@ -66,6 +67,7 @@ class HtmlParser:
         self.interrupted: bool = False
         self.site_name: str = site_name
         self.sleep_time: float = 0.2
+        self.jitter: float = 0.5
         self.given_url: str = ""
         self.filename_scheme: FilenameScheme = filename_scheme
         self.requests_header: dict[str, str] = header
@@ -302,6 +304,10 @@ class HtmlParser:
             self.__titsintops_login()
         elif self.site_name == "nijie":
             self.__nijie_login()
+
+    def sleep(self, time: float):
+        jitter = random.random() * self.jitter
+        sleep(time + jitter)
 
     def __get_login_creds(self, site_name: str) -> tuple[str, str]:
         login = Config.config.logins[site_name]
@@ -911,7 +917,8 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
-    def erohive_parse(self) -> RipInfo:
+    # Server takes forever and fails sometimes to serve data
+    def __erohive_parse(self) -> RipInfo:
         """
             Parses the html for erohive.com and extracts the relevant information necessary for downloading images from the site
         """
@@ -923,6 +930,7 @@ class HtmlParser:
                     sleep(0.1)
                     break
                 elif self.driver.find_elements(By.XPATH, '//h2[@class="warning-page"]'):
+                    self.sleep(5)
                     self.driver.refresh()
                 sleep(0.1)
         base_url = self.current_url.split("?")[0]
