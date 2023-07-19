@@ -196,7 +196,8 @@ class HtmlParser:
             "fapello": self.fapello_parse,
             "nijie": self.nijie_parse,
             "faponic": self.faponic_parse,
-            "erothots": self.erothots_parse
+            "erothots": self.erothots_parse,
+            "bitchesgirls": self.bitchesgirls_parse
         }
 
     @property
@@ -626,12 +627,39 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def bestprettygirl_parse(self) -> RipInfo:
-        """Parses the html for bestprettygirl.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for bestprettygirl.com and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="entry-title").text
         images = soup.find_all("img", class_="aligncenter size-full")
         images = [img.get("src") for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def bitchesgirls_parse(self) -> RipInfo:
+        """
+            Parses the html for bitchesgirls.com and extracts the relevant information necessary for downloading images from the site
+        """
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="album-name").text
+        images = []
+        base_url = self.current_url
+        if base_url[-1] != "/":
+            base_url += "/"
+        page = 1
+        while True:
+            if page != 1:
+                soup = self.soupify(f"{base_url}{page}")
+            posts = soup.find("div", class_="albumgrid").find_all("a", class_="post-container", recursive=False)
+            links = [post.get("href") for post in posts]
+            images.extend(links)
+            load_btn = soup.find("a", id="loadMore")
+            if load_btn:
+                page += 1
+            else:
+                break
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def buondua_parse(self) -> RipInfo:
@@ -2601,6 +2629,7 @@ class HtmlParser:
             site_name = self._test_site_check(given_url)
             if site_name == "999hentai":
                 site_name = "nine99hentai"
+            print(f"Testing: {site_name}_parse")
             data: RipInfo = eval(f"self.{site_name}_parse()")
             out = [d.url for d in data]
             with open("test.json", "w") as f:

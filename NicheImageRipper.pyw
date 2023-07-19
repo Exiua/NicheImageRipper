@@ -588,7 +588,10 @@ class NicheImageRipper(QWidget):
             response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
         except requests.exceptions.ConnectionError:
             return "v0.0.0"
-        return response.json()['tag_name']
+        try:
+            return response.json()['tag_name']
+        except KeyError:
+            return "v0.0.0"
 
 
 if __name__ == "__main__":
