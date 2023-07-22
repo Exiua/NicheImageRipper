@@ -198,7 +198,8 @@ class HtmlParser:
             "faponic": self.faponic_parse,
             "erothots": self.erothots_parse,
             "bitchesgirls": self.bitchesgirls_parse,
-            "thothub": self.thothub_parse
+            "thothub": self.thothub_parse,
+            "influencersgonewild": self.influencersgonewild_parse
         }
 
     @property
@@ -1469,7 +1470,9 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def imhentai_parse(self) -> RipInfo:
-        """Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         soup = self.soupify()
 
@@ -1483,6 +1486,25 @@ class HtmlParser:
 
         # Removes illegal characters from folder name
         return RipInfo([images], dir_name, generate=True, num_urls=num_pages)
+
+    def influencersgonewild_parse(self) -> RipInfo:
+        """
+            Parses the html for influencersgonewild.com and extracts the relevant information necessary for downloading images from the site
+        """
+        # Parses the html of the site
+        self.lazy_load(True, increment=625, scroll_pause_time=1)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="g1-mega g1-mega-1st entry-title").text
+        posts: bs4.ResultSet[any] = soup.find("div", class_="g1-content-narrow g1-typography-xl entry-content").find_all(["img", "video"])
+        images = []
+        for p in posts:
+            if p.name == "img":
+                url = p.get("src")
+                images.append(url)
+            elif p.name == "video":
+                url = p.find("source").get("src")
+                images.append(url)
+        return RipInfo(images, dir_name, self.filename_scheme)
 
     def inven_parse(self) -> RipInfo:
         """Parses the html for inven.co.kr and extracts the relevant information necessary for downloading images from the site"""
@@ -2399,7 +2421,6 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="headline").find("h1").text
         if "/videos/" in self.current_url:
-            print("hi")
             vid = soup.find("video", class_="fp-engine").get("src")
             if not vid:
                 vid = soup.find("div", class_="no-player").find("img").get("src")
@@ -2640,7 +2661,7 @@ class HtmlParser:
 
     # endregion
 
-    def _test_parse(self, given_url: str, debug: bool) -> RipInfo:
+    def _test_parse(self, given_url: str, debug: bool, print_site: bool) -> RipInfo:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
         try:
@@ -2663,6 +2684,9 @@ class HtmlParser:
             with open("test.html", "w", encoding="utf-16") as f:
                 f.write(self.driver.page_source)
         finally:
+            if print_site:
+                with open("test.html", "w") as f:
+                    f.write(self.driver.page_source)
             self.driver.quit()
 
     def _test_site_check(self, url: str) -> str:
@@ -2883,11 +2907,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("url", type=str)
     parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-p", "--print", action="store_true")
     args = parser.parse_args()
 
     parser = HtmlParser(requests_header)
 
     start = time.process_time_ns()
     # HtmlParser._download_from_mega("https://mega.nz/folder/hAhFzTBB#-e9q8FxVGyeY5wHuiZOOeg", "./Temp")
-    print(parser._test_parse(args.url, args.debug))
+    print(parser._test_parse(args.url, args.debug, args.print))
     end = time.process_time_ns()
