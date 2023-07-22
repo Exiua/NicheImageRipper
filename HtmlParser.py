@@ -197,7 +197,8 @@ class HtmlParser:
             "nijie": self.nijie_parse,
             "faponic": self.faponic_parse,
             "erothots": self.erothots_parse,
-            "bitchesgirls": self.bitchesgirls_parse
+            "bitchesgirls": self.bitchesgirls_parse,
+            "thothub": self.thothub_parse
         }
 
     @property
@@ -2380,12 +2381,35 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def theomegaproject_parse(self) -> RipInfo:
-        """Parses the html for theomegaproject.org and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for theomegaproject.org and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h1", class_="omega").text
         images = soup.find("div", class_="postholder").find_all("div", class_="picture", recursive=False)
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def thothub_parse(self) -> RipInfo:
+        """
+            Parses the html for thothub.lol and extracts the relevant information necessary for downloading images from the site
+        """
+        self.lazy_load(True, increment=625, scroll_pause_time=1)
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="headline").find("h1").text
+        if "/videos/" in self.current_url:
+            print("hi")
+            vid = soup.find("video", class_="fp-engine").get("src")
+            if not vid:
+                vid = soup.find("div", class_="no-player").find("img").get("src")
+            images = [vid]
+        else:
+            posts = soup.find("div", class_="images").find_all("img")
+            images = []
+            for img in posts:
+                url = img.get("src").replace("/main/200x150/", "/sources/")
+                images.append(url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def thotsbay_parse(self) -> RipInfo:
