@@ -69,6 +69,7 @@ class HtmlParser:
         self.sleep_time: float = 0.2
         self.jitter: float = 0.5
         self.given_url: str = ""
+        #self.session: requests.Session = session
         self.filename_scheme: FilenameScheme = filename_scheme
         self.requests_header: dict[str, str] = header
         self.parser_jump_table: dict[str, Callable[[], RipInfo]] = {
@@ -2099,24 +2100,28 @@ class HtmlParser:
         """Parses the html for redgifs.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         sleep(3)
+        base_request = "https://api.redgifs.com/v2/gifs?ids="
         self.lazy_load(True, 1250)
         soup = self.soupify()
-        dir_name = soup.find("div", class_="username").text
+        dir_name = soup.find("h1", class_="userName").text
         images = []
-        while True:
-            wrapper = soup.find("div", class_="gif-tiles-wrapper")
-            gif_list = wrapper.find_all("video")
-            gif_list = [gif.find("source").get("src").replace("-mobile", "") for gif in gif_list]
-            image_list = wrapper.find_all("img")
-            image_list = [img.get("src").replace("-small", "-large") for img in image_list]
-            images.extend(gif_list)
-            images.extend(image_list)
-            try:
-                self.driver.find_element(By.XPATH, "//div[@class='pager']/div[@data-page='next']").click()
-                self.lazy_load(True, 1250)
-                soup = self.soupify()
-            except selenium.common.exceptions.NoSuchElementException:
-                break
+        posts = soup.find("div", class_="tileFeed").find_all("a", recursive=False)
+        ids = []
+        for post in posts:
+            vid_id = post.get("href").split("/")[-1].split("#")[0]
+            ids.append(vid_id)
+        id_chunks = self.list_splitter(ids, 100)
+        session = requests.Session()
+        response = session.get("https://api.redgifs.com/v2/auth/temporary")
+        response_json = response.json()
+        self.requests_header["Authorization"] = f"Bearer {response_json['token']}"
+        for chunk in id_chunks:
+            id_param = "%2C".join(chunk)
+            response = session.get(f"{base_request}{id_param}", headers=self.requests_header)
+            response_json = response.json()
+            gifs = response_json["gifs"]
+            gifs = [gif["urls"]["hd"] for gif in gifs]
+            images.extend(gifs)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def redpornblog_parse(self) -> RipInfo:
@@ -2683,6 +2688,7 @@ class HtmlParser:
         except:
             with open("test.html", "w", encoding="utf-16") as f:
                 f.write(self.driver.page_source)
+            raise
         finally:
             if print_site:
                 with open("test.html", "w") as f:
@@ -2892,6 +2898,9 @@ class HtmlParser:
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
+    def list_splitter(self, lst: list, size: int):
+        for i in range(0, len(lst), size):
+            yield lst[i:i + size]
 
 if __name__ == "__main__":
     requests_header: dict[str, str] = {

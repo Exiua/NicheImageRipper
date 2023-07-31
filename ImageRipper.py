@@ -58,6 +58,8 @@ class ImageRipper:
             'referer':
                 'https://imhentai.xxx/',
             'cookie':
+                '',
+            'Authorization':
                 ''
         }
         self.filename_scheme: FilenameScheme = filename_scheme
@@ -135,9 +137,8 @@ class ImageRipper:
 
     def __image_getter(self):
         """Download images from URL."""
-        html_parser = HtmlParser(self.requests_header, self.site_name)
+        html_parser = HtmlParser(self.requests_header, self.site_name, self.filename_scheme)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
-
         # Save location of this album
         full_path = os.path.join(self.save_path, self.folder_info.dir_name)
         if self.interrupted and self.filename_scheme != FilenameScheme.HASH:

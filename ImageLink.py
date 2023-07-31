@@ -59,6 +59,8 @@ class ImageLink:
             parts = url.split("/")
             ext = parts[-1].split(".")[-1]
             file_name = f"{parts[-2]}.{ext}"
+        elif "thothub.lol/" in url and "/?rnd=" in url:
+            file_name = url.split("/")[-2]
         else:
             file_name = os.path.basename(urlparse(url).path)
         return file_name
