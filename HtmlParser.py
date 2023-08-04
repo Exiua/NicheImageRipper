@@ -69,7 +69,6 @@ class HtmlParser:
         self.sleep_time: float = 0.2
         self.jitter: float = 0.5
         self.given_url: str = ""
-        #self.session: requests.Session = session
         self.filename_scheme: FilenameScheme = filename_scheme
         self.requests_header: dict[str, str] = header
         self.parser_jump_table: dict[str, Callable[[], RipInfo]] = {
@@ -200,7 +199,8 @@ class HtmlParser:
             "erothots": self.erothots_parse,
             "bitchesgirls": self.bitchesgirls_parse,
             "thothub": self.thothub_parse,
-            "influencersgonewild": self.influencersgonewild_parse
+            "influencersgonewild": self.influencersgonewild_parse,
+            "erome": self.erome_parse
         }
 
     @property
@@ -309,9 +309,9 @@ class HtmlParser:
         elif self.site_name == "nijie":
             self.__nijie_login()
 
-    def sleep(self, time: float):
+    def sleep(self, seconds: float):
         jitter = random.random() * self.jitter
-        sleep(time + jitter)
+        sleep(seconds + jitter)
 
     def __get_login_creds(self, site_name: str) -> tuple[str, str]:
         login = Config.config.logins[site_name]
@@ -443,7 +443,7 @@ class HtmlParser:
             ext_links = self.__extract_possible_external_urls(possible_links)
             for site in ext_links:
                 external_links[site].extend(ext_links[site])
-            attachments = [domain_url + link if domain_url not in link else link for link in
+            attachments = [domain_url + link if domain_url not in link and PROTOCOL not in link else link for link in
                            links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
             image_list = soup.find("div", class_="post__files")
@@ -991,6 +991,28 @@ class HtmlParser:
             soup = self.soupify()
             img = soup.find("div", class_="img").find("img").get("src")
             images.append(img)
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def erome_parse(self) -> RipInfo:
+        """
+           Parses the html for erome.com and extracts the relevant information necessary for downloading images from the site
+        """
+        self.lazy_load(scroll_by=True, increment=1250)
+        soup = self.soupify()
+        dir_name = soup.find("h1").text
+        posts = soup.find_all("div", class_="col-sm-12 page-content")[1].find_all("div", recursive=False)
+        images = []
+        for post in posts:
+            img = post.find("img")
+            if img:
+                url = img.get("src")
+                images.append(url)
+                continue
+            vid = post.find("video")
+            if vid:
+                url = vid.find("source").get("src")
+                images.append(url)
+                continue
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def erothots_parse(self) -> RipInfo:
@@ -1549,7 +1571,9 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def kemono_parse(self) -> RipInfo:
-        """Parses the html for kemono.party and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for kemono.party and extracts the relevant information necessary for downloading images from the site
+        """
         # Parses the html of the site
         return self.__dot_party_parse("https://kemono.party")
 
@@ -2097,7 +2121,10 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def redgifs_parse(self) -> RipInfo:
-        """Parses the html for redgifs.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for redgifs.com and extracts the relevant information necessary for downloading images from
+            the site
+        """
         # Parses the html of the site
         sleep(3)
         base_request = "https://api.redgifs.com/v2/gifs?ids="

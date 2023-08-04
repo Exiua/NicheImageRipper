@@ -3,10 +3,11 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 
 from FilenameScheme import FilenameScheme
 from RipperExceptions import RipperError
+
 
 class ImageLink:
     def __init__(self, url: str, filename_scheme: FilenameScheme, index: int):
@@ -16,6 +17,11 @@ class ImageLink:
 
     def __str__(self):
         return f"({self.url}, {self.filename}, {self.is_m3u8})"
+
+    def __eq__(self, other):
+        if not isinstance(other, ImageLink):
+            return False
+        return self.url == other.url
 
     @classmethod
     def deserialize(cls, object_data: dict) -> ImageLink:
@@ -63,6 +69,8 @@ class ImageLink:
             file_name = url.split("/")[-2]
         else:
             file_name = os.path.basename(urlparse(url).path)
+        if "%" in file_name:
+            file_name = unquote(file_name)
         return file_name
 
 

@@ -935,8 +935,24 @@ def dict_modifier(d):
     d["place"] = "holder"
 
 
+def link_cleaner():
+    sites = ("mega.nz", "drive.google.com")
+    for site in sites:
+        with open(f"{site}_links.txt", "r", encoding="utf-16") as f:
+            links = f.readlines()
+        for i, link in enumerate(links):
+            try:
+                start = link.index("http")
+            except ValueError:
+                continue
+            links[i] = link[start:]
+        links = list(set(links))
+        with open(f"{site}_links.txt", "w", encoding="utf-16") as f:
+            f.writelines(links)
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
     # parse_pixiv_links()
-    dict_modification_test()
+    link_cleaner()
