@@ -17,7 +17,7 @@ class Config:
             with open(config_path, "r") as f:
                 self._config = json.load(f)
 
-    def __getitem__(self, key: str) -> str:
+    def __getitem__(self, key: str):
         return self._config[key]
 
     def __setitem__(self, key, value):
@@ -75,7 +75,8 @@ class Config:
                 }
             },
             "Keys": {
-                "Imgur": ""
+                "Imgur": "",
+                "Google": ""
             }
         }
         self.__save_config()

@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-import pickle
-import os.path
-import json
 import io
+import json
+import os.path
 import string
-import urllib.request
+import sys
 import time
-from os import path, makedirs, remove, rename
+from os import path, makedirs
 from pathlib import Path
 
 from getfilelistpy import getfilelist
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 
 from Config import Config
 
@@ -49,13 +48,15 @@ def download_googledrive_folder(gdrive_url, local_dir, gdrive_api_key):
             num_files = res['totalNumberOfFiles']
             print(f"Found {num_files} files")
             file_list = res["fileList"]
+            folder_ids = res["folderTree"]["id"]
             folder_names = res["folderTree"]["names"]
+            folder_names = get_folder_names(folder_ids, folder_names)
             for _ in range(4):
-                download_files(file_list, folder_names, gdrive_api_key, destination_path)
+                download_files(file_list, folder_names, destination_path)
                 if len(__recursively_get_files(destination_path)) != num_files:
                     print("Rate Limit Reached | Retrying in 5 min...")
                     time.sleep(5 * 60)
-                    download_files(file_list, folder_names, gdrive_api_key, destination_path)
+                    download_files(file_list, folder_names, destination_path)
                 else:
                     break
             if len(__recursively_get_files(destination_path)) != num_files:
@@ -71,7 +72,7 @@ def download_googledrive_folder(gdrive_url, local_dir, gdrive_api_key):
     return success
 
 
-def download_files(file_list: list[dict], folder_names: list[str], gdrive_api_key: str, destination_path: str):
+def download_files(file_list: list[dict], folder_names: list[str], destination_path: str):
     for i, file in enumerate(file_list):
         folder_name = __clean_dir_name(folder_names[i])
         print(folder_name)
@@ -142,13 +143,6 @@ def extract_id(url: str) -> tuple[str, bool]:
         return parts[-1].split('?')[0], False
 
 
-def test():
-    id_ = "1pTw2Rf1XYkDOlQ5p-T2IQBap5lVBGm6d"
-    source = f"https://www.googleapis.com/drive/v3/files/{id_}?alt=media&key={key}"
-    destination_file = "./Temp/202005FanBox reward.zip"
-    urllib.request.urlretrieve(source, destination_file)
-
-
 def authenticate():
     creds = None
 
@@ -169,12 +163,49 @@ def authenticate():
     return creds
 
 
+def get_files(url: str):
+    id_, single_file = extract_id(url)
+    resource = {
+        # "api_key": gdrive_api_key,
+        "id": id_,
+        "oauth2": authenticate(),
+        "fields": "files(name,id)",
+    }
+    res = getfilelist.GetFileList(resource)
+    with open("test.json", "w") as f:
+        json.dump(res, f, indent=4)
+
+
+def get_folder_names(folder_ids: list[list[str]], names: list[str]) -> list[str]:
+    hierarchy = {}
+    for i, name in enumerate(names):
+        folder_id = folder_ids[i]
+        complete = False
+        for id_ in folder_id:
+            parent = hierarchy.get(id_, None)
+            if not parent:
+                hierarchy[id_] = name
+                complete = True
+                break
+        if complete:
+            continue
+    folder_names = []
+    for id_set in folder_ids:
+        path_ = ""
+        for id_ in id_set:
+            if not path_:
+                path_ = hierarchy[id_]
+            else:
+                path_ = os.path.join(path_, hierarchy[id_])
+        folder_names.append(path_)
+    return folder_names
+
+
 if __name__ == "__main__":
-    remote = "https://drive.google.com/file/d/1pTw2Rf1XYkDOlQ5p-T2IQBap5lVBGm6d/view?usp=sharing"
-    # remote = "https://drive.google.com/drive/folders/1QXl1IH5v0TvZ5VqO7nj8TiZToeRgn0xt"
     local = "Temp"
     key = Config.config["Keys"]["Google"]
-    download_links()
+    # download_links()
     # print(extract_id(remote))
-    # print(download_googledrive_folder(remote, local, key))
+    print(download_googledrive_folder(sys.argv[1], local, key))
     # test()
+    # get_files(sys.argv[1])
