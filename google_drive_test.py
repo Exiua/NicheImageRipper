@@ -116,8 +116,8 @@ def download_links():
     with open("drive.google.com_links.txt", "r", encoding="utf-16") as f:
         links = f.readlines()
 
+    base_folder = "testRips"
     for i, link in enumerate(links):
-        base_folder = "testRips"
         url = link.strip()
         print(url)
         try:

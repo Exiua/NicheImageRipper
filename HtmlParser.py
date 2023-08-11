@@ -443,8 +443,8 @@ class HtmlParser:
             ext_links = self.__extract_possible_external_urls(possible_links)
             for site in ext_links:
                 external_links[site].extend(ext_links[site])
-            attachments = [domain_url + link if domain_url not in link and PROTOCOL not in link else link for link in
-                           links if any(ext in link for ext in ATTACHMENTS)]
+            attachments = [domain_url + link if domain_url not in link and (PROTOCOL not in link or "http" not in link)
+                           else link for link in links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:

@@ -19,7 +19,7 @@ class BadSubdomain(RipperError):
 
 
 class ImproperlyFormattedSubdomain(RipperError):
-    """data##. subdomain not properly formatted for .party sites"""
+    """c##. subdomain not properly formatted for .party sites"""
 
 
 class FileNotFoundAtUrl(RipperError):

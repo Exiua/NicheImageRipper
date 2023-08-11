@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import functools
-import hashlib
 import logging.handlers
-import json
 import os
+import pickle
 import re
 import subprocess
 import sys
-import pickle
 from pathlib import Path
 from time import sleep
 from typing import BinaryIO
@@ -22,8 +20,8 @@ from requests import Response
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from FilenameScheme import FilenameScheme
 from Config import Config
+from FilenameScheme import FilenameScheme
 from HtmlParser import HtmlParser
 from ImageLink import ImageLink
 from RipInfo import RipInfo
@@ -136,7 +134,9 @@ class ImageRipper:
         raise RipperError(f"Not a support site: {self.given_url}")
 
     def __image_getter(self):
-        """Download images from URL."""
+        """
+            Download images from URL
+        """
         html_parser = HtmlParser(self.requests_header, self.site_name, self.filename_scheme)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
         # Save location of this album
@@ -221,16 +221,28 @@ class ImageRipper:
         # cmd = " ".join(cmd)
         self.__run_subprocess(cmd, start_message="Starting Deviantart download")
 
-    def __run_subprocess(self, cmd: list[str], start_message: str = None, end_message: str = None):
+    @staticmethod
+    def __run_subprocess(cmd: list[str], start_message: str = None, end_message: str = None):
+        """
+            Run the given subprocess
+        :param cmd: List of commands and arguments to run
+        :param start_message: Message to display before running subprocess
+        :param end_message: Message to display after running subprocess
+        """
         if start_message:
             print(start_message)
         subprocess.run(cmd, stdout=sys.stdout, stderr=subprocess.STDOUT)
         if end_message:
             print(end_message)
 
-
     def __download_from_url(self, url_name: str, file_name: str, full_path: str, ext: str):
-        """"Download image from image url"""
+        """"
+            Download image from image url
+        :param url_name: Base url to use to download the file from
+        :param file_name: Name of the file to download
+        :param full_path: Full path of the directory to download the file to
+        :param ext: Extension of the file to download
+        """
         num_files = self.folder_info.num_urls
         # Completes the specific image URL from the general URL
         rip_url = "".join([url_name, str(file_name), ext])
@@ -238,16 +250,15 @@ class ImageRipper:
         print("    ".join([rip_url, num_progress]))
         image_path = os.path.join(full_path, file_name + ext)  # "".join([full_path, "/", str(file_name), ext])
         self.__download_file(image_path, rip_url)
-
-        # Should already be handled by the ImageLink class, so no need to rename
-        # if self.filename_scheme == FilenameScheme.HASH:
-        #     self.__rename_file_to_hash(image_path, full_path, ext)
-
-        # Filenames are chronological by default on imhentai
         sleep(0.05)
 
     def __download_from_list(self, image_url: ImageLink, full_path: str, current_file_num: int):
-        """Download images from url supplied from a list of image urls"""
+        """
+            Download images from url supplied from a list of image urls
+        :param image_url: ImageLink containing data on the file to download
+        :param full_path: Full path of the directory to save the file to
+        :param current_file_num: Number of the file being downloaded
+        """
         num_files = self.folder_info.num_urls
         rip_url = image_url.url
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
@@ -258,13 +269,6 @@ class ImageRipper:
             self.__download_m3u8_to_mp4(image_path, rip_url)
         else:
             self.__download_file(image_path, rip_url)
-
-        # Should already be handled by the ImageLink class, so no need to rename
-        # if self.filename_scheme == FilenameScheme.HASH:
-        #     self.__rename_file_to_hash(image_path, full_path, ext)
-        # elif self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
-        #     self.__rename_file_chronologically(image_path, full_path, ext, current_file_num)
-
         sleep(0.05)
 
     @staticmethod
@@ -284,8 +288,8 @@ class ImageRipper:
                     break
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
         # Context:
-        #   https://data1.kemono.party//data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
-        #   will fail, however, changing the subdomain to data5 will allow requests to download the file
+        #   https://c1.kemono.party/data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
+        #   will fail, however, changing the subdomain to c5 will allow requests to download the file
         #   given that there are generally correct cookies in place
         except BadSubdomain:
             self.__dot_party_subdomain_handler(rip_url, image_path)
@@ -329,7 +333,7 @@ class ImageRipper:
         return True
 
     def __dot_party_subdomain_handler(self, url: str, image_path: str):
-        subdomain_search = re.search(r"data(\d)+", url)
+        subdomain_search = re.search(r"//c(\d)+", url)
 
         if subdomain_search:
             subdomain_num = int(subdomain_search.group(1))
@@ -341,14 +345,14 @@ class ImageRipper:
             if i == subdomain_num:
                 continue
 
-            rip_url = re.sub(r"data\d+", f"data{str(i)}", url)
+            rip_url = re.sub(r"//c\d+", f"//c{str(i)}", url)
 
             try:
                 self.__download_party_file(image_path, rip_url)
             except BadSubdomain:
-                print(f"\rTrying subdomain data{str(i)}...", end="")
+                print(f"\rTrying subdomain c{str(i)}...", end="")
                 if i == 99:
-                    self.__log_failed_url(re.sub(r"data\d+", f"data{str(subdomain_num)}", url))
+                    self.__log_failed_url(re.sub(r"//c\d+", f"//c{str(subdomain_num)}", url))
                     return
         print(url)
 
@@ -374,34 +378,14 @@ class ImageRipper:
         if not self.__write_to_file(response, image_path):
             self.__log_failed_url(rip_url)
 
-    def __rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str | int):
-        """Rename the given file to the number of the order it was downloaded in"""
-        curr_num = str(curr_num)
-        chronological_image_name = os.path.join(full_path, curr_num + ext)  # "".join([full_path, "/", curr_num, ext])
-        # Rename the image with the chronological image name
-        try:
-            os.replace(image_path, chronological_image_name)
-        except OSError:
-            with open("failed.txt", "a") as f:
-                f.write(self.folder_info.urls[int(curr_num)].url + "\n")
-
-    @staticmethod
-    def __rename_file_to_hash(image_path: str, full_path: str, ext: str):
-        """Rename the given file to the hash of the given file"""
-        # md5 hash is used as image name to avoid duplicate names
-        md5hash = hashlib.md5(Image.open(image_path).tobytes())
-        hash5 = md5hash.hexdigest()
-        image_hash_name = os.path.join(full_path, hash5 + ext)  # "".join([full_path, "/", hash5, ext])
-
-        # If duplicate exists, remove the duplicate
-        if os.path.exists(image_hash_name):
-            os.remove(image_path)
-        else:
-            # Otherwise, rename the image with the md5 hash
-            os.rename(image_path, image_hash_name)
-
     @staticmethod
     def __write_to_file(response: Response, file_path: str) -> bool:
+        """
+            Write response data to file
+        :param response: Response to write to file
+        :param file_path: Filepath to write to
+        :return: Boolean based on successfulness
+        """
         for _ in range(4):
             try:
                 with open(file_path, "wb") as f:
@@ -416,8 +400,13 @@ class ImageRipper:
 
     @staticmethod
     def __get_correct_ext(filepath: str) -> str:
+        """
+            Get correct extension for a file based on file signature
+        :param filepath: Path to the file to analyze
+        :return: True extension of the file or .jpg if the file signature is unknown
+        """
         with open(filepath, "rb") as f:
-            file_sig = os.read(f.fileno(), 8)
+            file_sig = f.read(8)
             if file_sig[:6] == b"\x52\x61\x72\x21\x1A\x07":  # is rar
                 return ".rar"
             elif file_sig == b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A":  # is png
@@ -435,7 +424,9 @@ class ImageRipper:
                 return ".jpg"
 
     def __verify_files(self, full_path: str):
-        """Check for truncated and corrupted files"""
+        """
+            Check for truncated and corrupted files
+        """
         _, _, files = next(os.walk(full_path))
         files = natsorted(files)
         image_links = []  # self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
@@ -445,7 +436,7 @@ class ImageRipper:
         vid_cmd = ["ffmpeg.exe", "-v", "error", "-i", None, "-f", "null", "-", ">error.log", "2>&1"]  # Change idx 4
         for i, f in enumerate(files):
             filename = os.path.join(full_path, f)
-            vid_cmd[4] = "".join(['', filename, ''])
+            vid_cmd[4] = f"{filename}"
             stat_file = os.stat(filename)
             filesize = stat_file.st_size
             if filesize == 0:
@@ -473,7 +464,9 @@ class ImageRipper:
                         self.__redownload_files(filename, image_links[i])
 
     def __redownload_files(self, filename: str, url: str):
-        """Redownload damaged files"""
+        """
+            Re-download damaged files
+        """
         response = requests.get(url, headers=self.requests_header, stream=True)
         self.__write_to_file(response, filename)
 
@@ -482,17 +475,17 @@ class ImageRipper:
         total_lines_wanted = lines
 
         BLOCK_SIZE = 1024
-        f.seek(0, 2)
+        f.seek(0, os.SEEK_END)
         block_end_byte = f.tell()
         lines_to_go = total_lines_wanted
         block_number = -1
         blocks = []
         while lines_to_go > 0 and block_end_byte > 0:
             if block_end_byte - BLOCK_SIZE > 0:
-                f.seek(block_number * BLOCK_SIZE, 2)
+                f.seek(block_number * BLOCK_SIZE, os.SEEK_END)
                 blocks.append(f.read(BLOCK_SIZE))
             else:
-                f.seek(0, 0)
+                f.seek(0, os.SEEK_SET)
                 blocks.append(f.read(block_end_byte))
             lines_found = blocks[-1].count(b'\n')
             lines_to_go -= lines_found
@@ -511,7 +504,7 @@ class ImageRipper:
     @staticmethod
     def __log_failed_url(url: str):
         with open("failed.txt", "a", encoding="unicode_escape") as f:
-            f.write("".join([url, "\n"]))
+            f.write(f"{url}\n")
 
     @staticmethod
     def __trim_url(given_url: str) -> str:
