@@ -64,6 +64,7 @@ class ImageRipper:
         self.folder_info: RipInfo = None
         self.given_url: str = ""
         self.interrupted: bool = False
+        self.auto_extract: bool = False
         self.logins: dict[str, dict[str, str]] = Config.config.logins
         self.logged_in: bool = os.path.isfile("cookies.pkl")
         self.save_path: str = Config.config['SavePath']
