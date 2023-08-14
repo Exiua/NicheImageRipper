@@ -200,7 +200,8 @@ class HtmlParser:
             "bitchesgirls": self.bitchesgirls_parse,
             "thothub": self.thothub_parse,
             "influencersgonewild": self.influencersgonewild_parse,
-            "erome": self.erome_parse
+            "erome": self.erome_parse,
+            "ggoorr": self.ggoorr_parse
         }
 
     @property
@@ -1208,12 +1209,18 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def ftvhunter_parse(self) -> RipInfo:
-        """Parses the html for ftvhunter.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for ftvhunter.com and extracts the relevant information necessary for downloading images
+            from the site
+        """
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
     def gelbooru_parse(self) -> RipInfo:
-        """Read the html for gelbooru.com"""
+        """
+            Parses the html for gelbooru.com and extracts the relevant information necessary for downloading images
+            from the site
+        """
         # Parses the html of the site
         tags = re.search(r"(tags=[^&]+)", self.current_url).group(1)
         tags = unquote(tags)
@@ -1231,6 +1238,25 @@ class HtmlParser:
             pid += 1
             data = response.json()
             posts = data.get("post", [])
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def ggoorr_parse(self) -> RipInfo:
+        """
+            Parses the html for ggoorr.net and extracts the relevant information necessary for downloading images
+            from the site
+        """
+        SCHEMA = "https://cdn.ggoorr.net"
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="np_18px").find("a").text
+        posts = soup.find("div", id="article_1").find("div").find_all(["img", "video"])
+        images = []
+        for post in posts:
+            link = post.get("src")
+            if link is None:
+                link = post.find("source").get("src")
+            if "https://" not in link:
+                link = f"{SCHEMA}{link}"
+            images.append(link)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def girlsofdesire_parse(self) -> RipInfo:
