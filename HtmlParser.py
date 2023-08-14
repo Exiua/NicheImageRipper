@@ -27,7 +27,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
-from FilenameScheme import FilenameScheme
+from Enums import FilenameScheme
 from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError, SiteParseError

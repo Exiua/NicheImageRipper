@@ -7,6 +7,7 @@ import pickle
 import re
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 from time import sleep
 from typing import BinaryIO
@@ -21,7 +22,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 from Config import Config
-from FilenameScheme import FilenameScheme
+from Enums import FilenameScheme, UnzipProtocol
 from HtmlParser import HtmlParser
 from ImageLink import ImageLink
 from RipInfo import RipInfo
@@ -49,7 +50,8 @@ class ImageRipper:
 
     status_sync: StatusSync = None
 
-    def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
+    def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL,
+                 unzip_protocol: UnzipProtocol = UnzipProtocol.NONE):
         self.requests_header: dict[str, str] = {
             'User-Agent':
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
@@ -61,6 +63,7 @@ class ImageRipper:
                 ''
         }
         self.filename_scheme: FilenameScheme = filename_scheme
+        self.unzip_protocol: UnzipProtocol = unzip_protocol
         self.folder_info: RipInfo = None
         self.given_url: str = ""
         self.interrupted: bool = False
@@ -97,7 +100,7 @@ class ImageRipper:
         self.site_name = self.__site_check()
         if self.__cookies_needed():
             self.__add_cookies()
-        self.__image_getter()
+        self.__file_getter()
 
     def __add_cookies(self):
         if not os.path.isfile("cookies.pkl"):
@@ -134,9 +137,9 @@ class ImageRipper:
             return domain
         raise RipperError(f"Not a support site: {self.given_url}")
 
-    def __image_getter(self):
+    def __file_getter(self):
         """
-            Download images from URL
+            Download files from URL
         """
         html_parser = HtmlParser(self.requests_header, self.site_name, self.filename_scheme)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
@@ -208,7 +211,44 @@ class ImageRipper:
                         self.__download_from_list(link, full_path, i)
                 if cyberdrop_files:
                     self.__cyberdrop_download(full_path, cyberdrop_files)
+
+        if self.unzip_protocol != UnzipProtocol.NONE:
+            self.__unzip_files(full_path)
         print("{#00FF00}Download Complete")
+
+    def __unzip_files(self, dir_path: str):
+        """
+            Recursively unzip all files in a given directory
+        :param dir_path: Path of directory to unzip files in
+        """
+        path = Path(dir_path)
+        content = path.rglob("*")
+        count = 0
+        error = 0
+        for item in content:
+            if item.is_dir():
+                continue
+            if item.suffix == ".zip":
+                try:
+                    self.__unzip_file(item)
+                    count += 1
+                except RuntimeError:
+                    print(f"Failed to extract: {item}")
+                    error += 1
+                    continue
+        print(f"Results:\n\tExtracted: {count}\n\tFailed: {error}")
+
+    def __unzip_file(self, zip_path: Path):
+        """
+            Unzip a given file
+        :param zip_path: File to unzip
+        """
+        extract_path = zip_path.with_suffix("")
+        extract_path.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(zip_path, "r") as f:
+            f.extractall(extract_path)
+        if self.unzip_protocol == UnzipProtocol.EXTRACT_DELETE:
+            zip_path.unlink()
 
     def __cyberdrop_download(self, full_path: str, cyberdrop_files: list[ImageLink]):
         cmd = ["gallery-dl", "-D", full_path]

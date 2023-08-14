@@ -1,10 +1,16 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class FilenameScheme(Enum):
+class FilenameScheme(IntEnum):
     ORIGINAL = 0
     HASH = 1
     CHRONOLOGICAL = 2
+
+
+class UnzipProtocol(IntEnum):
+    NONE = 0,
+    EXTRACT = 1,
+    EXTRACT_DELETE = 2
 
 
 if __name__ == "__main__":

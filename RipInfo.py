@@ -3,7 +3,7 @@ from __future__ import annotations
 import string
 from typing import Iterator
 
-from FilenameScheme import FilenameScheme
+from Enums import FilenameScheme
 from ImageLink import ImageLink
 
 

@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPush
     QTextBrowser
 
 from Config import Config
-from FilenameScheme import FilenameScheme
+from Enums import FilenameScheme, UnzipProtocol
 from ImageRipper import ImageRipper
 from StatusSync import StatusSync
 from Util import url_check
@@ -79,6 +79,7 @@ class NicheImageRipper(QWidget):
         # noinspection PyTypeChecker
         self.ripper: ImageRipper = None
         self.filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL
+        self.unzip_protocol: UnzipProtocol = UnzipProtocol.NONE
         self.status_sync: StatusSync = StatusSync()
         self.ripper_thread: threading.Thread = threading.Thread()
         self.version: str = "v2.1.0"
@@ -177,6 +178,12 @@ class NicheImageRipper(QWidget):
         self.file_scheme_combobox.setCurrentIndex(self.filename_scheme.value)
         self.file_scheme_combobox.currentTextChanged.connect(self.file_scheme_changed)
 
+        self.unzip_protocol_combobox = QComboBox()
+        self.unzip_protocol_combobox.addItems(("None", "Extract", "Extract and Delete"))
+        self.unzip_protocol_combobox.setFixedWidth(100)
+        self.unzip_protocol_combobox.setCurrentIndex(self.unzip_protocol.value)
+        self.unzip_protocol_combobox.currentTextChanged.connect(self.unzip_protocol_changed)
+
         checkbox_row = QHBoxLayout()
         checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
         self.rerip_checkbox = QCheckBox()
@@ -194,6 +201,7 @@ class NicheImageRipper(QWidget):
         vbox.addRow("Check For Updates:", check_update_hbox)
         vbox.addRow("Clear Cache:", clear_cache_hbox)
         vbox.addRow("Filename Scheme:", self.file_scheme_combobox)
+        vbox.addRow("Unzip Protocol:", self.unzip_protocol_combobox)
         vbox.addRow(checkbox_row)
         self.settings_tab.setLayout(vbox)
 
@@ -353,7 +361,7 @@ class NicheImageRipper(QWidget):
         while self.url_queue.qsize() != 0:
             url = self.url_queue.queue[0]
             print(url)
-            self.ripper = ImageRipper(self.filename_scheme)
+            self.ripper = ImageRipper(self.filename_scheme, self.unzip_protocol)
             self.interrupted = True  # Flag to indicate ripper was running when close event executes
             self.ripper.rip(url)
             self.interrupted = False
@@ -513,20 +521,34 @@ class NicheImageRipper(QWidget):
 
     def file_scheme_changed(self, new_value: str):
         """
-        Update rip filename scheme
+            Update rip filename scheme
         :param new_value: new value for filename_scheme
         """
         self.filename_scheme = FilenameScheme[new_value.upper()]
         Config.config['FilenameScheme'] = self.filename_scheme.name.title()
 
+    def unzip_protocol_changed(self, new_value: str):
+        """
+            Update what to do with downloaded zip files
+        :param new_value: new value for unzip_protocol
+        """
+        if new_value == "Extract and Delete":
+            new_value = "EXTRACT_DELETE"
+        self.unzip_protocol = UnzipProtocol[new_value.upper()]
+        Config.config['UnzipProtocol'] = self.unzip_protocol.name.title()
+
     def load_config(self):
         """
-        Load application configuration file
+            Load application configuration file
         """
         self.save_folder = Config.config['SavePath']
         self.save_folder_label.setText(self.save_folder)
         saved_filename_scheme = FilenameScheme[Config.config['FilenameScheme'].upper()]
+        self.filename_scheme = saved_filename_scheme
         self.file_scheme_combobox.setCurrentIndex(saved_filename_scheme.value)
+        saved_unzip_protocol = UnzipProtocol[Config.config["UnzipProtocol"].upper()]
+        self.unzip_protocol = saved_unzip_protocol
+        self.unzip_protocol_combobox.setCurrentIndex(saved_unzip_protocol.value)
         self.rerip_ask = Config.config['AskToReRip']
         self.rerip_checkbox.setChecked(self.rerip_ask)
         self.live_update = Config.config['LiveHistoryUpdate']

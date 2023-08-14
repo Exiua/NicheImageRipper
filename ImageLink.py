@@ -5,7 +5,7 @@ import os
 import re
 from urllib.parse import urlparse, unquote
 
-from FilenameScheme import FilenameScheme
+from Enums import FilenameScheme
 from RipperExceptions import RipperError
 
 
