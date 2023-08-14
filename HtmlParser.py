@@ -1296,7 +1296,10 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def gofile_parse(self) -> RipInfo:
-        """Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for gofile.io and extracts the relevant information necessary for downloading images
+            from the site
+        """
         # Parses the html of the site
         sleep(5)
         soup = self.soupify()
@@ -1305,6 +1308,14 @@ class HtmlParser:
         images = [img.find("a", target="_blank").get("href") for img in images]
         images.insert(0, self.current_url)
         return RipInfo(images, dir_name, self.filename_scheme)
+
+    def google_parse(self, gdrive_url: str = "") -> RipInfo:
+        """
+            Query the google drive API to get file information to download
+        """
+        if not gdrive_url:
+            gdrive_url = self.current_url
+        return RipInfo(gdrive_url, "", self.filename_scheme)
 
     def grabpussy_parse(self) -> RipInfo:
         """Parses the html for grabpussy.com and extracts the relevant information necessary for downloading images from the site"""

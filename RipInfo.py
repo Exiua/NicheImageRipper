@@ -4,7 +4,7 @@ import string
 from typing import Iterator
 
 from Enums import FilenameScheme
-from ImageLink import ImageLink
+from ImageLink import ImageLink, GenericImageLink, GoogleImageLink
 
 
 class RipInfo:
@@ -44,7 +44,14 @@ class RipInfo:
         self.__clean_dir_name()
 
     def __convert_str_to_image_link(self, urls: list[str]) -> list[ImageLink]:
-        return [ImageLink(url, self.filename_scheme, i) for i, url in enumerate(urls)]
+        image_links = []
+        for i, url in enumerate(urls):
+            if "drive.google.com" in url:
+                image_link = GoogleImageLink()
+            else:
+                image_link = GenericImageLink(url, self.filename_scheme, i)
+            image_links.append(image_link)
+        return image_links
 
     def __clean_dir_name(self):
         """Remove forbidden characters from name"""
