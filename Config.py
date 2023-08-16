@@ -49,7 +49,8 @@ CONFIG_TEMPLATE: dict = {
     },
     "Keys": {
         "Imgur": "",
-        "Google": ""
+        "Google": "",
+        "Dropbox": ""
     }
 }
 

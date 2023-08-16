@@ -10,12 +10,14 @@ from RipperExceptions import RipperError
 
 
 class ImageLink:
-    def __init__(self, url: str):
+    def __init__(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "", gdrive: bool = False):
         self.url: str = url
-        self.filename: str = ""
+        self.is_m3u8: bool = False
+        self.is_gdrive: bool = gdrive
+        self.filename: str = self.__generate_filename(url, filename_scheme, index, filename)
 
     def __str__(self):
-        return f"({self.url}, {self.filename})"
+        return f"({self.url}, {self.filename}, {self.is_m3u8}, {self.is_gdrive})"
 
     def __eq__(self, other):
         if not isinstance(other, ImageLink):
@@ -23,40 +25,27 @@ class ImageLink:
         return self.url == other.url
 
     @classmethod
-    def deserialize(cls, object_data: dict):
-        pass
-
-    def serialize(self):
-        raise NotImplementedError
-
-
-class GenericImageLink(ImageLink):
-    def __init__(self, url: str, filename_scheme: FilenameScheme, index: int):
-        super().__init__(url)
-        self.is_m3u8: bool = False
-        self.filename: str = self.__generate_filename(url, filename_scheme, index)
-
-    def __str__(self):
-        return f"({self.url}, {self.filename}, {self.is_m3u8})"
-
-    @classmethod
-    def deserialize(cls, object_data: dict) -> GenericImageLink:
+    def deserialize(cls, object_data: dict) -> ImageLink:
         image_link = cls("", FilenameScheme.ORIGINAL, 0)
         image_link.url = object_data["url"]
         image_link.filename = object_data["filename"]
         image_link.is_m3u8 = object_data["is_m3u8"]
+        image_link.is_gdrive = object_data["is_gdrive"]
         return image_link
 
     def serialize(self) -> dict[str, str | bool]:
         object_data = {
             "url": self.url,
             "filename": self.filename,
-            "is_m3u8": self.is_m3u8
+            "is_m3u8": self.is_m3u8,
+            "is_gdrive": self.is_gdrive
         }
         return object_data
 
-    def __generate_filename(self, url: str, filename_scheme: FilenameScheme, index: int) -> str:
-        filename = self.__extract_filename(url)
+    def __generate_filename(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "") -> str:
+        if not filename:
+            filename = self.__extract_filename(url)
+
         if filename_scheme == FilenameScheme.ORIGINAL:
             return filename
         else:
@@ -83,16 +72,13 @@ class GenericImageLink(ImageLink):
             file_name = f"{parts[-2]}.{ext}"
         elif "thothub.lol/" in url and "/?rnd=" in url:
             file_name = url.split("/")[-2]
+        elif "kemono.party/" in url and "?f=" in url:
+            file_name = url.split("?f=")[-1]
         else:
             file_name = os.path.basename(urlparse(url).path)
         if "%" in file_name:
             file_name = unquote(file_name)
         return file_name
-
-
-class GoogleImageLink(ImageLink):
-    def __init__(self, url: str):
-        super().__init__(url)
 
 
 if __name__ == "__main__":

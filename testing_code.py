@@ -4,6 +4,7 @@ import json
 import os
 import io
 import re
+import string
 import struct
 import subprocess
 import sys
@@ -11,15 +12,18 @@ import urllib.request
 from urllib.parse import urlparse
 from time import sleep
 
+import dropbox
 import requests
-from googleapiclient.discovery import build
+from getfilelistpy import getfilelist
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from google.auth.transport.requests import Request
 from PIL import Image
 from bs4 import BeautifulSoup
 import selenium
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
@@ -28,7 +32,9 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
+from Enums import FilenameScheme
 from HtmlParser import DRIVER_HEADER
+from ImageLink import ImageLink
 
 
 def string_join_test():
@@ -997,9 +1003,143 @@ def url_parsing(url: str):
     print(re.search(URL_REGEX, url).group(1))
 
 
+SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+TRANSLATION_TABLE = dict.fromkeys(map(ord, '<>:"/\\|?*.'), None)
+
+
+def authenticate():
+    gdrive_creds = None
+
+    if os.path.exists('token.json'):
+        gdrive_creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
+    # If there are no (valid) credentials available, let the user log in.
+    if not gdrive_creds or not gdrive_creds.valid:
+        if gdrive_creds and gdrive_creds.expired and gdrive_creds.refresh_token:
+            gdrive_creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+            gdrive_creds = flow.run_local_server(port=0)
+
+        # Save the credentials for the next run
+        with open("token.json", "w") as token:
+            token.write(gdrive_creds.to_json())
+
+    return gdrive_creds
+
+
+def extract_id(url: str) -> tuple[str, bool]:
+    parts = url.split("/")
+    if "/d/" in url:
+        return parts[-2], True
+    else:
+        return parts[-1].split('?')[0], False
+
+
+def clean_dir_name(dir_name: str) -> str:
+    """
+        Remove forbidden characters from path
+    """
+    dir_name = dir_name.translate(TRANSLATION_TABLE).strip().replace("\n", "")
+    if dir_name[-1] not in (")", "]", "}"):
+        dir_name.rstrip(string.punctuation)
+    if dir_name[0] not in ("(", "[", "{"):
+        dir_name.lstrip(string.punctuation)
+    return dir_name
+
+
+def get_gdrive_folder_names(folder_ids: list[list[str]], names: list[str]) -> list[str]:
+    # Stores the mapping from folder id to folder name
+    hierarchy = {}
+    for i, name in enumerate(names):
+        folder_id = folder_ids[i]
+        complete = False
+        for id_ in folder_id:
+            parent = hierarchy.get(id_, None)
+            if not parent:
+                hierarchy[id_] = clean_dir_name(name)
+                complete = True
+                break
+        if complete:
+            continue
+
+    # Using the id -> name mapping, resolve the full path of each file
+    folder_names = []
+    for id_set in folder_ids:
+        path_ = ""
+        for id_ in id_set:
+            if not path_:
+                path_ = hierarchy[id_]
+            else:
+                path_ = os.path.join(path_, hierarchy[id_])
+        folder_names.append(path_)
+    return folder_names
+
+
+def query_gdrive_links(gdrive_url: str):
+    gdrive_creds = authenticate()
+    id_, single_file = extract_id(gdrive_url)
+    resource = {
+        "id": id_,
+        "oauth2": gdrive_creds,
+        "fields": "files(name,id)",
+    }
+    res = getfilelist.GetFileList(resource)
+    dir_name = res["searchedFolder"]["name"] if not single_file else res["searchedFolder"]["id"]
+    dir_name = clean_dir_name(dir_name)
+    links: list[ImageLink] = []
+    if single_file:
+        filename = res["searchedFolder"]["name"]
+        file_id = id_
+        img_link = ImageLink(file_id, FilenameScheme.ORIGINAL, 0, filename)
+        links.append(img_link)
+    else:
+        file_lists = res["fileList"]
+        folder_ids = res["folderTree"]["id"]
+        folder_names = res["folderTree"]["names"]
+        folder_names = get_gdrive_folder_names(folder_ids, folder_names)
+        counter = 0
+        for i, file_list in enumerate(file_lists):
+            files = file_list["files"]
+            parent_folder = folder_names[i]
+            for file in files:
+                file_id = file["id"]
+                filename = os.path.join(parent_folder, file["name"])
+                img_link = ImageLink(file_id, FilenameScheme.ORIGINAL, counter, filename)
+                links.append(img_link)
+                counter += 1
+
+
+def repair_files():
+    dir_path = Path("./Temp/Sample")
+    file_gen = dir_path.rglob("*")
+    for file in file_gen:
+        with file.open("rb") as f:
+            file_sig = f.read(8)
+            if file_sig != b"\x3C\x21\x44\x4F\x43\x54\x59\x50":
+                continue
+            f.seek(0, os.SEEK_SET)
+            file_content = f.read()
+        soup = BeautifulSoup(file_content, "lxml")
+        with open("test.html", "w") as f:
+            f.write(str(soup))
+        return
+
+
+def dropbox_test():
+    token = Config.config["Keys"]["Dropbox"]
+    dbx = dropbox.Dropbox(token)
+    response = dbx.files_list_folder("id:AADZnZhQk7TgSPpTiIEGkcy4a", recursive=True)
+    print(response)
+    #dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
     # parse_pixiv_links()
-    link_cleaner()
+    # link_cleaner()
     # url_parsing("")
+    # query_gdrive_links(sys.argv[1])
+    # repair_files()
+    dropbox_test()

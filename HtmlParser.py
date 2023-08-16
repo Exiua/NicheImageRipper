@@ -447,6 +447,7 @@ class HtmlParser:
             attachments = [domain_url + link if domain_url not in link and (PROTOCOL not in link or "http" not in link)
                            else link for link in links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
+            images.extend(external_links["drive.google.com"])
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
@@ -1315,6 +1316,7 @@ class HtmlParser:
         """
         if not gdrive_url:
             gdrive_url = self.current_url
+        # Actual querying happens within the RipInfo object
         return RipInfo(gdrive_url, "", self.filename_scheme)
 
     def grabpussy_parse(self) -> RipInfo:
@@ -2809,17 +2811,15 @@ class HtmlParser:
             external_links[site] = []
         return external_links
 
-    @staticmethod
-    def __extract_external_urls(urls: list[str]) -> dict[str, list[str]]:
-        external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
+    def __extract_external_urls(self, urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
         for site in external_links.keys():
-            ext_links = [HtmlParser._extract_url(url) + "\n" for url in urls if url and site in url]
+            ext_links = [self._extract_url(url) + "\n" for url in urls if url and site in url]
             external_links[site].extend(ext_links)
         return external_links
 
-    @staticmethod
-    def __extract_possible_external_urls(possible_urls: list[str]) -> dict[str, list[str]]:
-        external_links: dict[str, list[str]] = HtmlParser.__create_external_link_dict()
+    def __extract_possible_external_urls(self, possible_urls: list[str]) -> dict[str, list[str]]:
+        external_links: dict[str, list[str]] = self.__create_external_link_dict()
         for site in external_links.keys():
             for text in possible_urls:
                 if site not in text:

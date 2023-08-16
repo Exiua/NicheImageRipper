@@ -4,7 +4,6 @@ import io
 import json
 import os.path
 import string
-import sys
 import time
 from os import path, makedirs
 from pathlib import Path
@@ -113,7 +112,8 @@ def __recursively_get_files(filepath: str) -> list[str]:
 
 
 def download_links():
-    with open("drive.google.com_links.txt", "r", encoding="utf-16") as f:
+    FILE = "gdriveLinks.txt"  # "drive.google.com_links.txt"
+    with open(FILE, "r", encoding="utf-16") as f:
         links = f.readlines()
 
     base_folder = "testRips"
@@ -131,7 +131,7 @@ def download_links():
     expanded_links = collapsed_links.split("\n")
     expanded_links = [link + "\n" for link in expanded_links]
 
-    with open("drive.google.com_links.txt", "w", encoding="utf-16") as f:
+    with open(FILE, "w", encoding="utf-16") as f:
         f.writelines(expanded_links)
 
 
@@ -204,8 +204,8 @@ def get_folder_names(folder_ids: list[list[str]], names: list[str]) -> list[str]
 if __name__ == "__main__":
     local = "Temp"
     key = Config.config["Keys"]["Google"]
-    # download_links()
+    download_links()
     # print(extract_id(remote))
-    print(download_googledrive_folder(sys.argv[1], local, key))
+    # print(download_googledrive_folder(sys.argv[1], local, key))
     # test()
     # get_files(sys.argv[1])

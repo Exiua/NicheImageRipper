@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import io
 import logging.handlers
 import os
 import pickle
@@ -16,6 +17,8 @@ from urllib.parse import urlparse
 import PIL
 import requests
 from PIL import Image
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 from natsort import natsorted
 from requests import Response
 from selenium import webdriver
@@ -151,10 +154,11 @@ class ImageRipper:
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
 
-        if os.path.exists(".ripIndex"):
-            with open(".ripIndex", "r") as f:
+        rip_index = Path(".ripIndex")
+        if rip_index.exists():
+            with rip_index.open("r") as f:
                 start = int(f.read())
-            os.remove(".ripIndex")
+            rip_index.unlink()
         else:
             if self.folder_info.must_generate_manually:
                 start = 1
@@ -195,6 +199,7 @@ class ImageRipper:
             else:
                 cyberdrop_files: list[ImageLink] = []
                 for i, link in enumerate(self.folder_info.urls[start:]):
+                    i = start + i
                     self.current_index = i
                     while self.pause:
                         sleep(1)
@@ -245,8 +250,14 @@ class ImageRipper:
         """
         extract_path = zip_path.with_suffix("")
         extract_path.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(zip_path, "r") as f:
-            f.extractall(extract_path)
+        try:
+            with zipfile.ZipFile(zip_path, "r") as f:
+                f.extractall(extract_path)
+        except zipfile.BadZipfile:
+            ext = self.__get_correct_ext(str(zip_path))
+            new_path = zip_path.with_suffix(ext)
+            zip_path.rename(new_path)
+            return
         if self.unzip_protocol == UnzipProtocol.EXTRACT_DELETE:
             zip_path.unlink()
 
@@ -293,21 +304,23 @@ class ImageRipper:
         self.__download_file(image_path, rip_url)
         sleep(0.05)
 
-    def __download_from_list(self, image_url: ImageLink, full_path: str, current_file_num: int):
+    def __download_from_list(self, image_link: ImageLink, full_path: str, current_file_num: int):
         """
             Download images from url supplied from a list of image urls
-        :param image_url: ImageLink containing data on the file to download
+        :param image_link: ImageLink containing data on the file to download
         :param full_path: Full path of the directory to save the file to
         :param current_file_num: Number of the file being downloaded
         """
         num_files = self.folder_info.num_urls
-        rip_url = image_url.url
+        rip_url = image_link.url
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
-        file_name = image_url.filename
+        file_name = image_link.filename
         image_path = os.path.join(full_path, file_name)
-        if image_url.is_m3u8:
+        if image_link.is_m3u8:
             self.__download_m3u8_to_mp4(image_path, rip_url)
+        elif image_link.is_gdrive:
+            self.__download_gdrive_file(image_path, image_link)
         else:
             self.__download_file(image_path, rip_url)
         sleep(0.05)
@@ -317,6 +330,20 @@ class ImageRipper:
         cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy",
                video_path]
         subprocess.run(cmd)
+
+    @staticmethod
+    def __download_gdrive_file(folder_path: str, image_link: ImageLink):
+        destination_file = os.path.join(folder_path, image_link.filename)
+        Path(destination_file).parent.mkdir(parents=True, exist_ok=True)
+        drive_service = build("drive", "v3", credentials=RipInfo.gdrive_creds)
+        request = drive_service.files().get_media(fileId=image_link.url)  # Url will be the file id when handling gdrive
+        fh = io.FileIO(destination_file, "wb")
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            print(f"Download {int(status.progress() * 100):d}%.")
+        print()
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""
@@ -331,11 +358,11 @@ class ImageRipper:
         # Context:
         #   https://c1.kemono.party/data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
         #   will fail, however, changing the subdomain to c5 will allow requests to download the file
-        #   given that there are generally correct cookies in place
+        #   given that there are correct cookies in place
         except BadSubdomain:
             self.__dot_party_subdomain_handler(rip_url, image_path)
 
-        # If the downloaded file doesn't have an extension for some reason, default to jpg
+        # If the downloaded file doesn't have an extension for some reason, search for correct ext or default to jpg
         if os.path.splitext(image_path)[-1] == "":
             ext = self.__get_correct_ext(image_path)
             os.replace(image_path, image_path + ext)
@@ -427,16 +454,19 @@ class ImageRipper:
         :param file_path: Filepath to write to
         :return: Boolean based on successfulness
         """
+        save_path = Path(file_path).expanduser().absolute()
         for _ in range(4):
             try:
-                with open(file_path, "wb") as f:
+                with save_path.open("wb") as f:
                     for block in response.iter_content(chunk_size=50000):
                         if block:
                             f.write(block)
-                    return True
+                return True
             except ConnectionResetError:
                 print("Connection Reset, Retrying...")
                 sleep(1)
+            except OSError:
+                print(f"Failed to open file: {str(save_path)}")
         return False
 
     @staticmethod
@@ -454,12 +484,20 @@ class ImageRipper:
                 return ".png"
             elif file_sig[:3] == b"\xff\xd8\xff":  # is jpg
                 return ".jpg"
-            elif file_sig[:4] == b"\x47\x49\x46\x38":  # is gif
+            elif file_sig[:4] in b"\x47\x49\x46\x38":  # is gif
                 return ".gif"
             elif file_sig[:4] == b"\x50\x4B\x03\x04":  # is zip
                 return ".zip"
             elif file_sig[:4] == b"\x38\x42\x50\x53":  # is psd
                 return ".psd"
+            elif file_sig[:4] == b"\x25\x50\x44\x46":  # is pdf
+                return ".pdf"
+            elif file_sig[:6] == b"\x37\x7A\xBC\xAF\x27\x1C":  # is 7z
+                return ".7z"
+            elif file_sig[:4] == b"\x1A\x45\xDF\xA3":
+                return ".webm"
+            elif file_sig[:4] == b"\x52\x49\x46\x46":
+                return ".webp"
             else:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
                 return ".jpg"
