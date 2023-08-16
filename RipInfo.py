@@ -22,16 +22,17 @@ class RipInfo:
     translation_table = dict.fromkeys(map(ord, '<>:"/\\|?*.'), None)
     gdrive_creds: Credentials = None
 
-    def __init__(self, urls: list[str] | str, dir_name: str = "",
+    def __init__(self, urls: list[str | ImageLink] | str, dir_name: str = "",
                  filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL,
-                 generate: bool = False, num_urls: int = 0):
-        if isinstance(urls, str):
+                 generate: bool = False, num_urls: int = 0, filenames: list[str] = None):
+        if isinstance(urls, str) or isinstance(urls, ImageLink):
             urls = [urls]
         self.filename_scheme: FilenameScheme = filename_scheme
         self.__dir_name: str = dir_name
+        self.__filenames: list[str] = filenames
         if self.__dir_name:
             self.__dir_name = self.__clean_dir_name(self.__dir_name)
-        self.urls: list[ImageLink] = self.__convert_str_to_image_link(urls)
+        self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls)
         self.must_generate_manually: bool = generate
         self.url_count = num_urls if generate else len(urls)
 
@@ -54,20 +55,26 @@ class RipInfo:
         self.__dir_name = value
         self.__dir_name = self.__clean_dir_name(self.__dir_name)
 
-    def __convert_str_to_image_link(self, urls: list[str]) -> list[ImageLink]:
+    def __convert_urls_to_image_link(self, urls: list[str | ImageLink]) -> list[ImageLink]:
         image_links = []
-        counter = 0
+        link_counter = 0
+        filename_counter = 0
         for url in urls:
+            if isinstance(url, ImageLink):
+                image_links.append(url)
+                continue
             if "drive.google.com" in url:
                 try:
-                    image_link, counter = self.__query_gdrive_links(url, counter)
+                    image_link, link_counter = self.__query_gdrive_links(url, link_counter)
                     image_links.extend(image_link)
                 except googleapiclient.errors.HttpError:
                     pass
             else:
-                image_link = ImageLink(url, self.filename_scheme, counter)
+                filename = self.__filenames[filename_counter] if self.__filenames else ""
+                filename_counter += 1
+                image_link = ImageLink(url, self.filename_scheme, link_counter, filename=filename)
                 image_links.append(image_link)
-                counter += 1
+                link_counter += 1
         return image_links
 
     def __query_gdrive_links(self, gdrive_url: str, index: int) -> tuple[list[ImageLink], int]:

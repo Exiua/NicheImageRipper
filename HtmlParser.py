@@ -5,6 +5,7 @@ import json
 import os
 import pickle
 import re
+import sys
 import time
 import random
 from math import ceil
@@ -357,14 +358,14 @@ class HtmlParser:
         password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
         password_input.send_keys(password)
         button = self.driver.find_element(By.XPATH,
-                                            '//button[@class="button--primary button button--icon button--icon--login"]')
+                                          '//button[@class="button--primary button button--icon button--icon--login"]')
         button.click()
         while self.try_find_element(By.XPATH,
                                     '//button[@class="button--primary button button--icon button--icon--login"]'):
             sleep(0.1)
-        self.driver.get(download_url)          
+        self.driver.get(download_url)
 
-    # region Parsers
+        # region Parsers
 
     def __generic_html_parser_1(self):
         soup = self.soupify()
@@ -401,7 +402,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", id="user-header__info-top").find("span", itemprop="name").text
         dir_name = f"{dir_name} - ({source_site})"
-        
+
         # region Get All Posts
 
         page = 0
@@ -841,7 +842,10 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def dirtyyoungbitches_parse(self) -> RipInfo:
-        """Parses the html for dirtyyoungbitches.com and extracts the relevant information necessary for downloading images from the site"""
+        """
+            Parses the html for dirtyyoungbitches.com and extracts the relevant information necessary for downloading
+            images from the site
+        """
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("div", class_="title-holder").find("h1").text
@@ -849,6 +853,34 @@ class HtmlParser:
                                                                                                        class_="thumb")
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
+
+    def dropbox_parse(self, dropbox_url: str = "") -> RipInfo:
+        """
+            Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from
+            the site
+        """
+        if dropbox_url:
+            self.current_url = dropbox_url
+        soup = self.soupify(xpath='//span[@class="dig-Breadcrumb-link-text"]')
+        dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
+        posts = soup.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
+        posts = [post.get("href") for post in posts]
+        posts = self.__remove_duplicates(posts)
+        images = []
+        filenames = []
+        for post in posts:
+            soup = self.soupify(post, xpath='//img[@class="_fullSizeImg_1anuf_16"]')
+            img = soup.find("img", class_="_fullSizeImg_1anuf_16")
+            if img:
+                filename = post.split("/")[-1].split("?")[0]
+                filenames.append(filename)
+                images.append(img.get("src"))
+            else:
+                new_posts = soup.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
+                new_posts = [post.get("href") for post in new_posts]
+                new_posts = self.__remove_duplicates(new_posts)
+                posts.extend(new_posts)
+        return RipInfo(images, dir_name, self.filename_scheme, filenames=filenames)
 
     def eahentai_parse(self) -> RipInfo:
         """Parses the html for eahentai.com and extracts the relevant information necessary for downloading images from the site"""
@@ -955,6 +987,7 @@ class HtmlParser:
         """
             Parses the html for erohive.com and extracts the relevant information necessary for downloading images from the site
         """
+
         # Parses the html of the site
         def wait_for_post_load():
             while True:
@@ -966,6 +999,7 @@ class HtmlParser:
                     self.sleep(5)
                     self.driver.refresh()
                 sleep(0.1)
+
         base_url = self.current_url.split("?")[0]
         wait_for_post_load()
         soup = self.soupify()
@@ -987,7 +1021,7 @@ class HtmlParser:
         images = []
         total = len(posts)
         for i, post in enumerate(posts):
-            print(f"Parsing post {i+1}/{total}")
+            print(f"Parsing post {i + 1}/{total}")
             self.current_url = post
             wait_for_post_load()
             soup = self.soupify()
@@ -1026,7 +1060,7 @@ class HtmlParser:
         links = soup.find("div", class_="album-gallery").find_all("a", recursive=False)
         images = [link.get("data-src") for link in links]
         return RipInfo(images, dir_name, self.filename_scheme)
-        
+
     def everia_parse(self) -> RipInfo:
         """Parses the html for everia.club and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -1557,7 +1591,9 @@ class HtmlParser:
         self.lazy_load(True, increment=625, scroll_pause_time=1)
         soup = self.soupify()
         dir_name = soup.find("h1", class_="g1-mega g1-mega-1st entry-title").text
-        posts: bs4.ResultSet[any] = soup.find("div", class_="g1-content-narrow g1-typography-xl entry-content").find_all(["img", "video"])
+        posts: bs4.ResultSet[any] = soup.find("div",
+                                              class_="g1-content-narrow g1-typography-xl entry-content").find_all(
+            ["img", "video"])
         images = []
         for p in posts:
             if p.name == "img":
@@ -1845,7 +1881,7 @@ class HtmlParser:
             for post in posts:
                 image_title = post.find("a").get("href").split("/")[-1]
                 thumbnail_url = post.find("img").get("src")
-                image_url = thumbnail_url.replace("/thumbnails/", "/images/")\
+                image_url = thumbnail_url.replace("/thumbnails/", "/images/") \
                     .replace("_full", f"_{dir_name}_{image_title}").replace(".webp", ".png")
                 images.append(image_url)
         return RipInfo(images, dir_name, self.filename_scheme)
@@ -1891,7 +1927,7 @@ class HtmlParser:
         images: list[str] = []
         total = len(posts)
         for i, post in enumerate(posts):
-            print(f"Parsing post {i+1}/{total}")
+            print(f"Parsing post {i + 1}/{total}")
             soup = self.soupify(post)
             try:
                 imgs = soup.find("div", id="gallery_open").find_all("img", class_="mozamoza ngtag")
@@ -1917,7 +1953,8 @@ class HtmlParser:
             self.lazy_load(True, increment=scroll_distance, scroll_pause_time=pause_time)
             soup = self.soupify()
             dir_name = soup.find("h1", class_="container main-night").text
-            images = soup.find("div", class_="d-flex image-board mb container image-board-chapter").find_all("img", recursive=False)
+            images = soup.find("div", class_="d-flex image-board mb container image-board-chapter").find_all("img",
+                                                                                                             recursive=False)
             images = [img.get("src").replace("s.", ".") for img in images]
             fail_count = sum("data:image/gif" in img for img in images)
             if fail_count != 0:
@@ -2867,6 +2904,27 @@ class HtmlParser:
         return resolved_links
 
     @staticmethod
+    def __remove_duplicates(list_: list) -> list:
+        seen = set()
+        clean_list = []
+        for item in list_:
+            if item not in seen:
+                clean_list.append(item)
+                seen.add(item)
+        return clean_list
+
+    def __wait_for_element(self, xpath: str, delay: float = 0.1, timeout: float = 10) -> bool:
+        if timeout != -1:
+            timeout *= 1_000_000_000
+        start_time = time.time_ns()
+        while not self.driver.find_elements(By.XPATH, xpath):
+            sleep(delay)
+            curr_time = time.time_ns()
+            if timeout != -1 and curr_time - start_time >= timeout:
+                return False
+        return True
+
+    @staticmethod
     def _print_html(soup: BeautifulSoup):
         with open("html.html", "w", encoding="utf-8") as f:
             f.write(str(soup))
@@ -2949,22 +3007,25 @@ class HtmlParser:
             return None
 
     def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False,
-                response: requests.Response = None) -> BeautifulSoup:
+                response: requests.Response = None, xpath: str = "") -> BeautifulSoup:
         """Return BeautifulSoup object of html from driver"""
         if response:
             return BeautifulSoup(response.content, PARSER)
         if url:
             self.driver.get(url)
-            if delay != 0:
-                sleep(delay)
-            if lazy_load:
-                self.lazy_load(True)
+        if delay != 0:
+            sleep(delay)
+        if xpath:
+            self.__wait_for_element(xpath)
+        if lazy_load:
+            self.lazy_load(True)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
     def list_splitter(self, lst: list, size: int):
         for i in range(0, len(lst), size):
             yield lst[i:i + size]
+
 
 if __name__ == "__main__":
     requests_header: dict[str, str] = {

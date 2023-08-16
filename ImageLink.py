@@ -47,6 +47,8 @@ class ImageLink:
             filename = self.__extract_filename(url)
 
         if filename_scheme == FilenameScheme.ORIGINAL:
+            if "%" in filename:
+                filename = unquote(filename)
             return filename
         else:
             ext = os.path.splitext(filename)[1]  # Contains '.' delimiter
@@ -76,8 +78,6 @@ class ImageLink:
             file_name = url.split("?f=")[-1]
         else:
             file_name = os.path.basename(urlparse(url).path)
-        if "%" in file_name:
-            file_name = unquote(file_name)
         return file_name
 
 
