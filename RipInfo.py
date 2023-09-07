@@ -4,6 +4,7 @@ import os
 import string
 from typing import Iterator
 
+import google.auth.exceptions
 import googleapiclient.errors
 from getfilelistpy import getfilelist
 from google.auth.transport.requests import Request
@@ -96,7 +97,7 @@ class RipInfo:
         return unique_urls
 
     def __query_gdrive_links(self, gdrive_url: str, index: int) -> tuple[list[ImageLink], int]:
-        self.__authenticate()
+        self.authenticate()
         id_, single_file = self.__extract_id(gdrive_url)
         resource = {
             "id": id_,
@@ -166,21 +167,26 @@ class RipInfo:
         else:
             return parts[-1].split('?')[0], False
 
-    def __authenticate(self):
+    @staticmethod
+    def authenticate():
         if os.path.exists('token.json'):
-            self.gdrive_creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+            RipInfo.gdrive_creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
         # If there are no (valid) credentials available, let the user log in.
-        if not self.gdrive_creds or not self.gdrive_creds.valid:
-            if self.gdrive_creds and self.gdrive_creds.expired and self.gdrive_creds.refresh_token:
-                self.gdrive_creds.refresh(Request())
+        if not RipInfo.gdrive_creds or not RipInfo.gdrive_creds.valid:
+            if RipInfo.gdrive_creds and RipInfo.gdrive_creds.expired and RipInfo.gdrive_creds.refresh_token:
+                try:
+                    RipInfo.gdrive_creds.refresh(Request())
+                except google.auth.exceptions.RefreshError:
+                    flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+                    RipInfo.gdrive_creds = flow.run_local_server(port=0)
             else:
                 flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-                self.gdrive_creds = flow.run_local_server(port=0)
+                RipInfo.gdrive_creds = flow.run_local_server(port=0)
 
             # Save the credentials for the next run
             with open("token.json", "w") as token:
-                token.write(self.gdrive_creds.to_json())
+                token.write(RipInfo.gdrive_creds.to_json())
 
     def __clean_dir_name(self, dir_name: str) -> str:
         """
