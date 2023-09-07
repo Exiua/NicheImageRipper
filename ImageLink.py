@@ -20,6 +20,8 @@ class ImageLink:
         return f"({self.url}, {self.filename}, {self.is_m3u8}, {self.is_gdrive})"
 
     def __eq__(self, other):
+        if isinstance(other, str):
+            return self.url == other
         if not isinstance(other, ImageLink):
             return False
         return self.url == other.url
@@ -74,8 +76,10 @@ class ImageLink:
             file_name = f"{parts[-2]}.{ext}"
         elif "thothub.lol/" in url and "/?rnd=" in url:
             file_name = url.split("/")[-2]
-        elif "kemono.party/" in url and "?f=" in url:
+        elif ("kemono.party/" in url or "coomer.party/" in url) and "?f=" in url:
             file_name = url.split("?f=")[-1]
+            if "http" in file_name:
+                file_name = url.split("?f=")[0].split("/")[-1]
         else:
             file_name = os.path.basename(urlparse(url).path)
         return file_name
