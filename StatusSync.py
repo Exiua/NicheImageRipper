@@ -1,4 +1,4 @@
-import os
+from __future__ import annotations
 
 
 class StatusSync:
