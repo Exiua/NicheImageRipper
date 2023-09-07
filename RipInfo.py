@@ -34,7 +34,7 @@ class RipInfo:
             self.__dir_name = self.__clean_dir_name(self.__dir_name)
         self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls)
         self.must_generate_manually: bool = generate
-        self.url_count = num_urls if generate else len(urls)
+        self.url_count = num_urls if generate else len(self.urls)
 
     def __str__(self) -> str:
         return f"({[str(url) for url in self.urls]}, {self.num_urls}, {self.dir_name})"
@@ -59,6 +59,7 @@ class RipInfo:
         image_links = []
         link_counter = 0
         filename_counter = 0
+        urls = self.__remove_duplicates(urls)
         for url in urls:
             if isinstance(url, ImageLink):
                 image_links.append(url)
@@ -76,6 +77,23 @@ class RipInfo:
                 image_links.append(image_link)
                 link_counter += 1
         return image_links
+
+    @staticmethod
+    def __remove_duplicates(urls: list[str | ImageLink]) -> list[str | ImageLink]:
+        unique_urls: list[str | ImageLink] = []
+        seen_urls = set()
+        for url in urls:
+            if isinstance(url, ImageLink):
+                link = url.url
+            else:
+                link = url
+
+            if link in seen_urls:
+                continue
+            else:
+                unique_urls.append(url)
+                seen_urls.add(link)
+        return unique_urls
 
     def __query_gdrive_links(self, gdrive_url: str, index: int) -> tuple[list[ImageLink], int]:
         self.__authenticate()
