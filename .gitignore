@@ -170,7 +170,6 @@ config.ini
 *.png
 *.gif
 *.txt
-*.log
 *.md
 *.mp4
 *.psd
@@ -186,6 +185,7 @@ __init__.py
 Rips/
 app/
 Tests/
+Temp/
 
 # Don't ignore
 !Wiki/*.md
