@@ -1141,5 +1141,4 @@ if __name__ == "__main__":
     # link_cleaner()
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
-    # repair_files()
-    dropbox_test()
+    repair_files()
