@@ -355,6 +355,7 @@ class ImageRipper:
             for _ in range(4):  # Try 4 times before giving up
                 if self.__download_file_helper(rip_url, image_path):
                     break
+            return  # Failed to download file
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
         # Context:
         #   https://c1.kemono.party/data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
@@ -363,7 +364,7 @@ class ImageRipper:
         except BadSubdomain:
             self.__dot_party_subdomain_handler(rip_url, image_path)
 
-        # If the downloaded file doesn't have an extension for some reason, search for correct ext or default to jpg
+        # If the downloaded file doesn't have an extension for some reason, search for correct ext
         if os.path.splitext(image_path)[-1] == "":
             ext = self.__get_correct_ext(image_path)
             os.replace(image_path, image_path + ext)
@@ -375,8 +376,11 @@ class ImageRipper:
         try:
             response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
         except requests.exceptions.SSLError:
-            response = self.session.get(url, headers=self.requests_header, stream=True, verify=False)
-            bad_cert = True
+            try:
+                response = self.session.get(url, headers=self.requests_header, stream=True, verify=False)
+                bad_cert = True
+            except requests.exceptions.SSLError:
+                return False
         except requests.exceptions.ConnectionError:
             log.error("Unable to establish connection to " + url)
             return False
