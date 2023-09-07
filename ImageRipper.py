@@ -335,6 +335,7 @@ class ImageRipper:
     def __download_gdrive_file(folder_path: str, image_link: ImageLink):
         destination_file = os.path.join(folder_path, image_link.filename)
         Path(destination_file).parent.mkdir(parents=True, exist_ok=True)
+        RipInfo.authenticate()
         drive_service = build("drive", "v3", credentials=RipInfo.gdrive_creds)
         request = drive_service.files().get_media(fileId=image_link.url)  # Url will be the file id when handling gdrive
         fh = io.FileIO(destination_file, "wb")
@@ -342,7 +343,7 @@ class ImageRipper:
         done = False
         while done is False:
             status, done = downloader.next_chunk()
-            print(f"Download {int(status.progress() * 100):d}%.")
+            print(f"Downloaded {int(status.progress() * 100):d}%", end="\r")
         print()
 
     def __download_file(self, image_path: str, rip_url: str):
