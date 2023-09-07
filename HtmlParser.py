@@ -202,7 +202,9 @@ class HtmlParser:
             "thothub": self.thothub_parse,
             "influencersgonewild": self.influencersgonewild_parse,
             "erome": self.erome_parse,
-            "ggoorr": self.ggoorr_parse
+            "ggoorr": self.ggoorr_parse,
+            "google": self.google_parse,
+            "dropbox": self.dropbox_parse
         }
 
     @property
@@ -445,8 +447,9 @@ class HtmlParser:
             ext_links = self.__extract_possible_external_urls(possible_links)
             for site in ext_links:
                 external_links[site].extend(ext_links[site])
-            attachments = [domain_url + link if domain_url not in link and (PROTOCOL not in link or "http" not in link)
-                           else link for link in links if any(ext in link for ext in ATTACHMENTS)]
+            attachments = [domain_url + link if domain_url not in link and not any(protocol in link for protocol in
+                                                                                   ("https", "http")) else link for link
+                           in links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
             images.extend(external_links["drive.google.com"])
             image_list = soup.find("div", class_="post__files")
@@ -458,6 +461,16 @@ class HtmlParser:
         # endregion
 
         self.__save_external_links(external_links)
+        if any("dropbox.com/" in url for url in images):
+            old_links = images
+            images: list[str | ImageLink] = []
+            for link in old_links:
+                if "dropbox.com/" not in link:
+                    images.append(link)
+                else:
+                    rip_info = self.dropbox_parse(link)
+                    if rip_info.dir_name:
+                        images.extend(rip_info.urls)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def agirlpic_parse(self) -> RipInfo:
@@ -859,27 +872,54 @@ class HtmlParser:
             Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from
             the site
         """
+
+        def get_dropbox_file(soup_: BeautifulSoup, post: str, filenames_: list[str], images_: list[str]):
+            filename = post.split("/")[-1].split("?")[0]
+            filenames_.append(filename)
+            img = soup_.find("img", class_="_fullSizeImg_1anuf_16")
+            if img:
+                images_.append(img.get("src"))
+            else:
+                vid = soup_.find("video")
+                if vid:
+                    images_.append(vid.find("source").get("src"))
+                else:
+                    new_posts = soup_.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
+                    new_posts = [post.get("href") for post in new_posts]
+                    new_posts = self.__remove_duplicates(new_posts)
+                    posts.extend(new_posts)
+
+        internal_use = False
         if dropbox_url:
             self.current_url = dropbox_url
+            internal_use = True
         soup = self.soupify(xpath='//span[@class="dig-Breadcrumb-link-text"]')
-        dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
-        posts = soup.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
-        posts = [post.get("href") for post in posts]
-        posts = self.__remove_duplicates(posts)
+        if not internal_use:
+            try:
+                dir_name = "test"
+                #dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
+            except AttributeError:
+                deleted_notice = soup.find("h2", class_="dig-Title dig-Title--size-large dig-Title--color-standard")
+                if deleted_notice:
+                    return RipInfo([], "", self.filename_scheme)
+                else:
+                    print(self.current_url)
+                    raise
+        else:
+            dir_name = ""
+
         images = []
         filenames = []
-        for post in posts:
-            soup = self.soupify(post, xpath='//img[@class="_fullSizeImg_1anuf_16"]')
-            img = soup.find("img", class_="_fullSizeImg_1anuf_16")
-            if img:
-                filename = post.split("/")[-1].split("?")[0]
-                filenames.append(filename)
-                images.append(img.get("src"))
-            else:
-                new_posts = soup.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
-                new_posts = [post.get("href") for post in new_posts]
-                new_posts = self.__remove_duplicates(new_posts)
-                posts.extend(new_posts)
+        posts = soup.find("ol", class_="_sl-grid-body_6yqpe_26")
+        if posts:
+            posts = posts.find_all("a")
+            posts = [post.get("href") for post in posts]
+            posts = self.__remove_duplicates(posts)
+            for post in posts:
+                soup = self.soupify(post, xpath='//img[@class="_fullSizeImg_1anuf_16"]')
+                get_dropbox_file(soup, post, filenames, images)
+        else:
+            get_dropbox_file(soup, self.current_url, filenames, images)
         return RipInfo(images, dir_name, self.filename_scheme, filenames=filenames)
 
     def eahentai_parse(self) -> RipInfo:
