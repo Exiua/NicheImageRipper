@@ -479,9 +479,11 @@ class ImageRipper:
         """
             Get correct extension for a file based on file signature
         :param filepath: Path to the file to analyze
-        :return: True extension of the file or .jpg if the file signature is unknown
+        :return: True extension of the file or the original extension if the file signature is unknown (will default to
+        .bin if the file does not have a file extension)
         """
-        with open(filepath, "rb") as f:
+        orig_filepath = Path(filepath)
+        with orig_filepath.open("rb") as f:
             file_sig = f.read(8)
             if file_sig[:6] == b"\x52\x61\x72\x21\x1A\x07":  # is rar
                 return ".rar"
@@ -503,9 +505,16 @@ class ImageRipper:
                 return ".webm"
             elif file_sig[:4] == b"\x52\x49\x46\x46":
                 return ".webp"
+            elif file_sig[4:] == b"\x66\x74\x79\x70":
+                return ".mp4"
+            elif file_sig == b"\x43\x53\x46\x43\x48\x55\x4E\x4B":
+                return ".clip"
             else:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
-                return ".jpg"
+                if orig_filepath.suffix == "":
+                    return ".bin"
+                else:
+                    return orig_filepath.suffix
 
     def __verify_files(self, full_path: str):
         """
