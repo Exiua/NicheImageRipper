@@ -233,6 +233,9 @@ class HtmlParser:
             self.write_partial_save(site_info, url)
             pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             return site_info
+        except Exception:
+            print(self.current_url)
+            raise
         finally:
             self.driver.quit()
         # aise SiteParseError()
@@ -877,17 +880,20 @@ class HtmlParser:
             filename = post.split("/")[-1].split("?")[0]
             filenames_.append(filename)
             img = soup_.find("img", class_="_fullSizeImg_1anuf_16")
-            if img:
-                images_.append(img.get("src"))
-            else:
-                vid = soup_.find("video")
-                if vid:
-                    images_.append(vid.find("source").get("src"))
+            try:
+                if img:
+                    images_.append(img.get("src"))
                 else:
-                    new_posts = soup_.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
-                    new_posts = [post.get("href") for post in new_posts]
-                    new_posts = self.__remove_duplicates(new_posts)
-                    posts.extend(new_posts)
+                    vid = soup_.find("video")
+                    if vid:
+                        images_.append(vid.find("source").get("src"))
+                    else:
+                        new_posts = soup_.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
+                        new_posts = [post.get("href") for post in new_posts]
+                        new_posts = self.__remove_duplicates(new_posts)
+                        posts.extend(new_posts)
+            except AttributeError:
+                pass
 
         internal_use = False
         if dropbox_url:
@@ -896,12 +902,11 @@ class HtmlParser:
         soup = self.soupify(xpath='//span[@class="dig-Breadcrumb-link-text"]')
         if not internal_use:
             try:
-                dir_name = "test"
-                #dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
+                dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
             except AttributeError:
                 deleted_notice = soup.find("h2", class_="dig-Title dig-Title--size-large dig-Title--color-standard")
                 if deleted_notice:
-                    return RipInfo([], "", self.filename_scheme)
+                    return RipInfo([], "Deleted", self.filename_scheme)
                 else:
                     print(self.current_url)
                     raise
