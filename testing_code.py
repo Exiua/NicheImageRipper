@@ -1131,7 +1131,49 @@ def dropbox_test():
     dbx = dropbox.Dropbox(token)
     response = dbx.files_list_folder("id:AADZnZhQk7TgSPpTiIEGkcy4a", recursive=True)
     print(response)
-    #dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
+    # dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
+
+
+def exception_modification():
+    try:
+        ex_level1()
+    except Exception as e:
+        print(e.foo)
+
+
+def ex_level1():
+    print("level 1 start")
+    ex_level2()
+    print("level 1 end")
+
+
+def ex_level2():
+    print("level 2 start")
+    ex_level3()
+    print("level 2 end")
+
+
+def ex_level3():
+    print("level 3 start")
+    ex_level4()
+    print("level 3 end")
+
+
+def ex_level4():
+    print("level 4 start")
+    ex_level5()
+    print("level 4 end")
+
+
+def ex_level5():
+    print("level 5 start")
+    foo = {"bar": "baz"}
+    try:
+        print(foo["fail"])
+    except Exception as e:
+        e.foo = foo
+        raise
+    print("level 5 end")
 
 
 if __name__ == "__main__":
@@ -1141,4 +1183,4 @@ if __name__ == "__main__":
     # link_cleaner()
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
-    repair_files()
+    exception_modification()

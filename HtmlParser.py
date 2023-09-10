@@ -1615,6 +1615,9 @@ class HtmlParser:
             Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
+        if "/gallery/" not in self.current_url:
+            gal_code = self.current_url.split("/")[4]
+            self.current_url = f"https://imhentai.xxx/gallery/{gal_code}/"
         soup = self.soupify()
 
         # Gets the image URL to be turned into the general image URL
