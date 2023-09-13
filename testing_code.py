@@ -158,10 +158,19 @@ def user_inject_test() -> str:
     return test
 
 
-requests_header = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/88.0.4324.190 Safari/537.36',
-    'referer': 'https://imhentai.xxx/'}
+requests_header: dict[str, str] = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+
+
+# {
+#     'User-Agent':
+#         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 '
+#         'Safari/537.36',
+#     'referer':
+#         'https://www.artstation.com/',
+#     'cookie':
+#         ''
+# }
 
 
 def img_download(url: str):
@@ -1176,6 +1185,124 @@ def ex_level5():
     print("level 5 end")
 
 
+def artstation_api():
+    project_fetch_headers = {
+        'authority': 'www.artstation.com',
+        'pragma': 'no-cache',
+        'cache-control': 'no-cache',
+        'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="97", "Chromium";v="97"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'sec-fetch-site': 'none',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-user': '?1',
+        'sec-fetch-dest': 'document',
+        'accept-language': 'de-DE,de;q=0.9',
+        'authority': 'api.reddit.com',
+    }
+    cookies = {
+        '__cf_bm': 'nUqNtjXV77oyvB.uv3FGaq4uom5Q1Dgbv9KRA5MtDhI-1694577171-0-ARPgbpjTu75tpT4EhU4qyyb5xqUFi3duWPxK2is/eX7fxtrMSRSk58ZluTCR73L6kTRGsz0OxBDbdLGdgMjYkCM3lPFyIrRku1hDPqS/tF9o'
+    }
+    cookie_header = {
+        "Cookie": "__cf_bm=nUqNtjXV77oyvB.uv3FGaq4uom5Q1Dgbv9KRA5MtDhI-1694577171-0-ARPgbpjTu75tpT4EhU4qyyb5xqUFi3duWPxK2is/eX7fxtrMSRSk58ZluTCR73L6kTRGsz0OxBDbdLGdgMjYkCM3lPFyIrRku1hDPqS/tF9o; Expires=Wed, 13 Sep 2023 04:22:51 GMT; Domain=artstation.com; Path=/; Secure; HttpOnly"
+    }
+    total = 1
+    page_count = 1
+    first_iter = True
+    posts = []
+    while total > 0:
+        print(page_count)
+        url = f"https://www.artstation.com/users/flowerxl/projects.json?page={page_count}"
+        response = requests.get(url, headers=cookie_header)
+        try:
+            response_data = response.json()
+        except:
+            print(response.content)
+            raise
+        data = response_data["data"]
+        for d in data:
+            posts.append(d["permalink"])
+        if first_iter:
+            total = response_data["total_count"] - len(data)
+            first_iter = False
+        else:
+            total -= len(data)
+        page_count += 1
+        sleep(0.1)
+    print(len(posts))
+
+
+def artstation_json_test():
+    string_json = '{\"followed\":false,\"following_back\":false,\"blocked\":false,\"is_staff\":false,\"is_plus_member\":false,\"is_studio_account\":false,\"is_school_account\":false,\"is_artist\":true,\"is_beta\":false,\"albums_with_community_projects\":[{\"id\":1580428,\"title\":\"All\",\"user_id\":1366378,\"created_at\":\"2019-06-30T05:08:45.261-05:00\",\"updated_at\":\"2019-06-30T05:08:45.261-05:00\",\"position\":-1,\"community_projects_count\":566,\"total_projects\":0,\"website_projects_count\":566,\"public_projects_count\":139,\"profile_visibility\":true,\"website_visibility\":true,\"album_type\":\"all_projects\"}],\"has_pro_permissions\":false,\"has_premium_permissions\":false,\"display_portfolio_as_albums\":false,\"portfolio_display_settings_albums\":[],\"portfolio_display_settings\":null,\"profile_default_album\":{\"id\":1580428,\"album_type\":\"all_projects\"},\"id\":1366378,\"large_avatar_url\":\"https://cdna.artstation.com/p/users/avatars/001/366/378/large/49e6dc4c96b96a17715b4fe551a35226.jpg?1561889621\",\"medium_avatar_url\":\"https://cdna.artstation.com/p/users/avatars/001/366/378/medium/49e6dc4c96b96a17715b4fe551a35226.jpg?1561889621\",\"default_cover_url\":\"https://cdna.artstation.com/p/users/covers/001/366/378/default/10bad5d89b24ef4fca4bd3b410348b38.jpg?1597776318\",\"full_name\":\"Flower Xl\",\"headline\":\"Freelance Illustrator.Commissions are open\",\"username\":\"flowerxl\",\"artstation_url\":\"https://flowerxl.artstation.com\",\"artstation_website\":\"flowerxl.artstation.com\",\"city\":\"New York\",\"country\":\"United States\",\"permalink\":\"https://www.artstation.com/flowerxl\",\"cover_file_name\":\"10bad5d89b24ef4fca4bd3b410348b38.jpg\",\"cover_width\":1500,\"cover_height\":679,\"availability\":\"available\",\"available_full_time\":false,\"available_contract\":false,\"available_freelance\":true,\"liked_projects_count\":0,\"followees_count\":0,\"followers_count\":3350,\"pro_member\":false,\"profile_artstation_website\":\"flowerxl.artstation.com\",\"profile_artstation_website_url\":\"https://flowerxl.artstation.com\",\"memorialized\":null,\"twitter_url\":null,\"facebook_url\":null,\"tumblr_url\":null,\"deviantart_url\":null,\"linkedin_url\":null,\"instagram_url\":null,\"pinterest_url\":null,\"youtube_url\":null,\"vimeo_url\":null,\"behance_url\":null,\"steam_url\":null,\"sketchfab_url\":null,\"twitch_url\":null,\"imdb_url\":null,\"website_url\":null}'
+    data = json.loads(string_json)
+    for key in data:
+        print(key)
+    print(data["id"])
+
+
+def artstation_json_test2():
+    str_json = """// Add initial user to cache so that AngularJS does not have to request it
+app.run(['$http', '$cacheFactory', function ($http, $cacheFactory) {
+  var cache = $cacheFactory.get('$http');
+  cache.put('/users/flowerxl/quick.json', '{\"followed\":false,\"following_back\":false,\"blocked\":false,\"is_staff\":false,\"is_plus_member\":false,\"is_
+studio_account\":false,\"is_school_account\":false,\"is_artist\":true,\"is_beta\":false,\"albums_with_community_projects\":[{\"id\":1580428,\"title\":\"All
+\",\"user_id\":1366378,\"created_at\":\"2019-06-30T05:08:45.261-05:00\",\"updated_at\":\"2019-06-30T05:08:45.261-05:00\",\"position\":-1,\"community_projec
+ts_count\":566,\"total_projects\":0,\"website_projects_count\":566,\"public_projects_count\":139,\"profile_visibility\":true,\"website_visibility\":true,\"
+album_type\":\"all_projects\"}],\"has_pro_permissions\":false,\"has_premium_permissions\":false,\"display_portfolio_as_albums\":false,\"portfolio_display_s
+ettings_albums\":[],\"portfolio_display_settings\":null,\"profile_default_album\":{\"id\":1580428,\"album_type\":\"all_projects\"},\"id\":1366378,\"large_a
+vatar_url\":\"https://cdna.artstation.com/p/users/avatars/001/366/378/large/49e6dc4c96b96a17715b4fe551a35226.jpg?1561889621\",\"medium_avatar_url\":\"https
+://cdna.artstation.com/p/users/avatars/001/366/378/medium/49e6dc4c96b96a17715b4fe551a35226.jpg?1561889621\",\"default_cover_url\":\"https://cdna.artstation
+.com/p/users/covers/001/366/378/default/10bad5d89b24ef4fca4bd3b410348b38.jpg?1597776318\",\"full_name\":\"Flower Xl\",\"headline\":\"Freelance Illustrator.
+ Commissions are open\",\"username\":\"flowerxl\",\"artstation_url\":\"https://flowerxl.artstation.com\",\"artstation_website\":\"flowerxl.artstation.com\"
+,\"city\":\"New York\",\"country\":\"United States\",\"permalink\":\"https://www.artstation.com/flowerxl\",\"cover_file_name\":\"10bad5d89b24ef4fca4bd3b410
+348b38.jpg\",\"cover_width\":1500,\"cover_height\":679,\"availability\":\"available\",\"available_full_time\":false,\"available_contract\":false,\"availabl
+e_freelance\":true,\"liked_projects_count\":0,\"followees_count\":0,\"followers_count\":3350,\"pro_member\":false,\"profile_artstation_website\":\"flowerxl
+.artstation.com\",\"profile_artstation_website_url\":\"https://flowerxl.artstation.com\",\"memorialized\":null,\"twitter_url\":null,\"facebook_url\":null,\
+"tumblr_url\":null,\"deviantart_url\":null,\"linkedin_url\":null,\"instagram_url\":null,\"pinterest_url\":null,\"youtube_url\":null,\"vimeo_url\":null,\"be
+hance_url\":null,\"steam_url\":null,\"sketchfab_url\":null,\"twitch_url\":null,\"imdb_url\":null,\"website_url\":null}');
+}])
+"""
+    start = str_json.find("'{\"")
+    end = str_json.rfind(");")
+    json_data = str_json[start + 1:end - 1].replace("\n", "")
+    json_data = json.loads(json_data)
+    print(json_data["id"])
+    print(json_data["full_name"])
+
+
+def artstation_api2():
+    import urllib3
+
+    project_fetch_headers = {
+        'authority': 'www.artstation.com',
+        'pragma': 'no-cache',
+        'cache-control': 'no-cache',
+        'sec-ch-ua': '" Not;A Brand";v="99", "Google Chrome";v="97", "Chromium";v="97"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'sec-fetch-site': 'none',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-user': '?1',
+        'sec-fetch-dest': 'document',
+        'accept-language': 'de-DE,de;q=0.9',
+        'authority': 'api.reddit.com',
+        'cookie': '__cf_bm=w72DxS2FECTrXLjY9LOld7tizlEChFhoPiN0vc5kSYs-1694579078-0-AdJ2qMDmvu8ITs/yql2MhddRtAErsWogcFVoxGrP/SOrf89APhOwjha7QsGgqamak8ZfDc/wrz5oFqVF2SQbkvQiJ1uukpI13c9BbrxSZr0P; Expires=Wed, 13 Sep 2023 04:54:38 GMT; Domain=artstation.com; Path=/; Secure; HttpOnly'
+    }
+    headers = {
+        'cookie': "__cf_bm=nUqNtjXV77oyvB.uv3FGaq4uom5Q1Dgbv9KRA5MtDhI-1694577171-0-ARPgbpjTu75tpT4EhU4qyyb5xqUFi3duWPxK2is%2FeX7fxtrMSRSk58ZluTCR73L6kTRGsz0OxBDbdLGdgMjYkCM3lPFyIrRku1hDPqS%2FtF9o"}
+
+    http = urllib3.PoolManager()
+    response = http.request("GET", "https://www.artstation.com/users/flowerxl/projects.json?page=4", headers=project_fetch_headers)
+
+    print(response.data)
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
@@ -1183,4 +1310,4 @@ if __name__ == "__main__":
     # link_cleaner()
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
-    exception_modification()
+    artstation_api2()
