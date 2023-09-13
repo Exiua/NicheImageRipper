@@ -542,20 +542,10 @@ class HtmlParser:
         for cookie in cookies:
             cookies_dict[cookie['name']] = cookie['value']
         url = f"https://www.artstation.com/users/flowerxl/projects.json?page=1&user_id=1366378"
-        response = requests.get(url, headers=requests_header, cookies=cookies_dict)
-        print(response.content)
-        images = []
-        for post in posts:
-            url = f"https://www.artstation.com/projects/{post}.json"
-            try:
-                response = requests.get(url, headers=requests_header)
-            except urllib3.exceptions.MaxRetryError:
-                sleep(5)
-                response = requests.get(url, headers=requests_header)
-            response_data = response.json()
-            assets = response_data["assets"]
-            urls = [asset["image_url"] for asset in assets]
-            images.extend(urls)
+        self.current_url = url
+
+        print(self.driver.page_source)
+        images = "test"
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def babecentrum_parse(self) -> RipInfo:
