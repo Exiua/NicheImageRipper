@@ -15,6 +15,7 @@ from typing import Callable
 from urllib.parse import urlparse, unquote
 
 import bs4
+import cloudscraper
 import requests
 import selenium
 import tldextract
@@ -518,8 +519,10 @@ class HtmlParser:
             Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
-        #self.lazy_load(scroll_by=True, increment=1250)
         soup = self.soupify()
+        base_url = self.current_url
+        if base_url[-1] != "/":
+            base_url += "/"
         dir_name = soup.find("h1", class_="artist-name").text
         cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
 
@@ -534,13 +537,31 @@ class HtmlParser:
 
         # endregion
 
-        posts = soup.find("div", class_="gallery").find_all("a", class_="project-image")
-        posts = [p.get("href").split("/")[-1] for p in posts]
-        requests_header["referer"] = self.current_url
-        cookies = self.driver.get_cookies()
-        cookies_dict = {}
-        for cookie in cookies:
-            cookies_dict[cookie['name']] = cookie['value']
+        # region Get Posts
+
+        total = 1
+        page_count = 1
+        first_iter = True
+        posts = []
+        scraper = cloudscraper.create_scraper()
+        while total > 0:
+            print(page_count)
+            url = f"{base_url}projects.json?page={page_count}"
+            response = scraper.get(url)
+            response_data = response.json()
+            data = response_data["data"]
+            for d in data:
+                posts.append(d["permalink"])
+            if first_iter:
+                total = response_data["total_count"] - len(data)
+                first_iter = False
+            else:
+                total -= len(data)
+            page_count += 1
+            sleep(0.1)
+
+        # endregion
+
         url = f"https://www.artstation.com/users/flowerxl/projects.json?page=1&user_id=1366378"
         self.current_url = url
 

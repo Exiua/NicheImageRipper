@@ -1186,6 +1186,7 @@ def ex_level5():
 
 
 def artstation_api():
+    import cloudscraper
     project_fetch_headers = {
         'authority': 'www.artstation.com',
         'pragma': 'no-cache',
@@ -1213,10 +1214,11 @@ def artstation_api():
     page_count = 1
     first_iter = True
     posts = []
+    scraper = cloudscraper.create_scraper()
     while total > 0:
         print(page_count)
         url = f"https://www.artstation.com/users/flowerxl/projects.json?page={page_count}"
-        response = requests.get(url, headers=cookie_header)
+        response = scraper.get(url)
         try:
             response_data = response.json()
         except:
@@ -1233,6 +1235,7 @@ def artstation_api():
         page_count += 1
         sleep(0.1)
     print(len(posts))
+    print(posts)
 
 
 def artstation_json_test():
@@ -1310,4 +1313,4 @@ if __name__ == "__main__":
     # link_cleaner()
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
-    artstation_api2()
+    artstation_api()
