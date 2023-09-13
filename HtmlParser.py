@@ -520,9 +520,7 @@ class HtmlParser:
         """
         # Parses the html of the site
         soup = self.soupify()
-        base_url = self.current_url
-        if base_url[-1] != "/":
-            base_url += "/"
+        username = self.current_url.split("/")[3]
         dir_name = soup.find("h1", class_="artist-name").text
         cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
 
@@ -546,12 +544,13 @@ class HtmlParser:
         scraper = cloudscraper.create_scraper()
         while total > 0:
             print(page_count)
-            url = f"{base_url}projects.json?page={page_count}"
+            url = f"https://www.artstation.com/users/{username}/projects.json?page={page_count}"
+            print(url)
             response = scraper.get(url)
             response_data = response.json()
             data = response_data["data"]
             for d in data:
-                posts.append(d["permalink"])
+                posts.append(d["permalink"].split("/")[4])
             if first_iter:
                 total = response_data["total_count"] - len(data)
                 first_iter = False
@@ -562,11 +561,23 @@ class HtmlParser:
 
         # endregion
 
-        url = f"https://www.artstation.com/users/flowerxl/projects.json?page=1&user_id=1366378"
-        self.current_url = url
+        # region Get Media Links
 
-        print(self.driver.page_source)
-        images = "test"
+        images = []
+        for post in posts:
+            url = f"https://www.artstation.com/projects/{post}.json"
+            try:
+                response = scraper.get(url)
+            except urllib3.exceptions.MaxRetryError:
+                sleep(5)
+                response = scraper.get(url)
+            response_data = response.json()
+            assets = response_data["assets"]
+            urls = [asset["image_url"].replace("/large/", "/4k/") for asset in assets]
+            images.extend(urls)
+
+        # endregion
+
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def babecentrum_parse(self) -> RipInfo:
