@@ -4,10 +4,9 @@ import argparse
 import json
 import os
 import pickle
-import re
-import sys
-import time
 import random
+import re
+import time
 from math import ceil
 from os import path
 from time import sleep
@@ -33,7 +32,7 @@ from Config import Config
 from Enums import FilenameScheme
 from ImageLink import ImageLink
 from RipInfo import RipInfo
-from RipperExceptions import InvalidSubdomain, RipperError, SiteParseError
+from RipperExceptions import InvalidSubdomain, RipperError
 from Util import SCHEME, url_check
 
 PROTOCOL: str = "https:"
