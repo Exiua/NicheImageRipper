@@ -2,32 +2,24 @@ import base64
 import collections
 import json
 import os
-import io
 import re
 import string
 import struct
 import subprocess
-import sys
-import urllib.request
-from urllib.parse import urlparse
+from pathlib import Path
 from time import sleep
+from urllib.parse import urlparse
 
-import dropbox
 import requests
+import selenium
+from PIL import Image
+from bs4 import BeautifulSoup
 from getfilelistpy import getfilelist
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-from PIL import Image
-from bs4 import BeautifulSoup
-import selenium
-from pathlib import Path
 from selenium import webdriver
-from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 
@@ -344,15 +336,6 @@ def artstation_requests():
     print(json_data)
 
 
-def m3u8_to_mp4_test():
-    import m3u8_To_MP4
-
-    m3u8_To_MP4.multithread_download(
-        'https://iframe.mediadelivery.net/8baab001-3937-4f0a-8c8d-b247a31bf3b9/playlist.drm?contextId=d27e16cf-7877'
-        '-48a2-93d6-da4d28ec3493&secret=13c5398c-052d-486a-ae27-f769392df5a3',
-        mp4_file_name="test.mp4")
-
-
 def reassign_files():
     from os import listdir
     from os.path import isfile, join
@@ -656,8 +639,6 @@ def object_deserialization_test():
 
 
 def iframe_test():
-    import urllib
-
     # response = urllib.request.urlopen("https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
     response = requests.get(
         "https://imgur.com/a/2crjBWC/embed?pub=true&ref=https%3A%2F%2Ftitsintops.com%2FphpBB2%2Findex.php%3Fthreads%2Fasian-yuma0ppai-busty-o-cup-japanese-chick.13525043%2F&w=540")
@@ -923,13 +904,13 @@ def check_for_missing():
     print(missing, len(missing))
 
 
-def nested_function_test():
-    print("tst")
-    x = func2()  # Func def must come before
-    print(x)
-
-    def func2():
-        return 2
+# def nested_function_test():
+#     print("tst")
+#     x = func2()  # Func def must come before
+#     print(x)
+#
+#     def func2():
+#         return 2
 
 
 def dict_modification_test():
@@ -1126,12 +1107,12 @@ def repair_files():
         return
 
 
-def dropbox_test():
-    token = Config.config["Keys"]["Dropbox"]
-    dbx = dropbox.Dropbox(token)
-    response = dbx.files_list_folder("id:AADZnZhQk7TgSPpTiIEGkcy4a", recursive=True)
-    print(response)
-    #dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
+# def dropbox_test():
+#     token = Config.config["Keys"]["Dropbox"]
+#     dbx = dropbox.Dropbox(token)
+#     response = dbx.files_list_folder("id:AADZnZhQk7TgSPpTiIEGkcy4a", recursive=True)
+#     print(response)
+#     #dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
 
 
 if __name__ == "__main__":
