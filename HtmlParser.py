@@ -14,9 +14,11 @@ from typing import Callable
 from urllib.parse import urlparse, unquote
 
 import bs4
+import cloudscraper
 import requests
 import selenium
 import tldextract
+import urllib3.exceptions
 from bs4 import BeautifulSoup
 from pybooru import Danbooru
 from selenium import webdriver
@@ -36,7 +38,7 @@ from Util import SCHEME, url_check
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # The XML parsing engine to be used by BeautifulSoup
 DRIVER_HEADER: str = (
-    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0")
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
 EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
@@ -232,6 +234,9 @@ class HtmlParser:
             self.write_partial_save(site_info, url)
             pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             return site_info
+        except Exception:
+            print(self.current_url)
+            raise
         finally:
             self.driver.quit()
         # aise SiteParseError()
@@ -349,7 +354,7 @@ class HtmlParser:
     def __titsintops_login(self):
         download_url = self.current_url
         username, password = self.__get_login_creds("TitsInTops")
-        self.driver.get("https://titsintops.com/phpBB2/index.php?login/login")
+        self.current_url = "https://titsintops.com/phpBB2/index.php?login/login"
         # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
         login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
         while not login_input:
@@ -366,7 +371,7 @@ class HtmlParser:
             sleep(0.1)
         self.driver.get(download_url)
 
-        # region Parsers
+    # region Parsers
 
     def __generic_html_parser_1(self):
         soup = self.soupify()
@@ -513,26 +518,65 @@ class HtmlParser:
             Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
-        self.lazy_load()
         soup = self.soupify()
+        username = self.current_url.split("/")[3]
         dir_name = soup.find("h1", class_="artist-name").text
-        posts = soup.find("div", class_="gallery").find_all("a", class_="project-image")
-        posts = ["https://www.artstation.com" + p.get("href") for p in posts]
-        num_posts = len(posts)
+        cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
+
+        # region Id Extraction
+
+        start_ = cache_script.find("quick.json")
+        end_ = cache_script.rfind(");")
+        json_data = cache_script[start_ + 14:end_ - 1].replace("\n", "").replace(r'\"', '"')
+        json_data = json.loads(json_data)
+        user_id = json_data["id"]
+        user_name = json_data["full_name"]
+
+        # endregion
+
+        # region Get Posts
+
+        total = 1
+        page_count = 1
+        first_iter = True
+        posts = []
+        scraper = cloudscraper.create_scraper()
+        while total > 0:
+            print(page_count)
+            url = f"https://www.artstation.com/users/{username}/projects.json?page={page_count}"
+            print(url)
+            response = scraper.get(url)
+            response_data = response.json()
+            data = response_data["data"]
+            for d in data:
+                posts.append(d["permalink"].split("/")[4])
+            if first_iter:
+                total = response_data["total_count"] - len(data)
+                first_iter = False
+            else:
+                total -= len(data)
+            page_count += 1
+            sleep(0.1)
+
+        # endregion
+
+        # region Get Media Links
+
         images = []
-        for i, post in enumerate(posts):
-            print(f'Parsing post {str(i + 1)} of {num_posts}')
-            self.driver.get(post)
+        for post in posts:
+            url = f"https://www.artstation.com/projects/{post}.json"
             try:
-                self.driver.find_element(By.XPATH, '//div[@class="matureContent-container"]//a').click()
-            except selenium.common.exceptions.NoSuchElementException:
-                pass
-            soup = self.soupify()
-            image_lists = soup.find("div", {"class": "project-assets-list"}).find_all("picture")
-            for image in image_lists:
-                link = image.find("source").get("srcset")
-                images.append(link)
-        self.driver.quit()
+                response = scraper.get(url)
+            except urllib3.exceptions.MaxRetryError:
+                sleep(5)
+                response = scraper.get(url)
+            response_data = response.json()
+            assets = response_data["assets"]
+            urls = [asset["image_url"].replace("/large/", "/4k/") for asset in assets]
+            images.extend(urls)
+
+        # endregion
+
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def babecentrum_parse(self) -> RipInfo:
@@ -876,17 +920,20 @@ class HtmlParser:
             filename = post.split("/")[-1].split("?")[0]
             filenames_.append(filename)
             img = soup_.find("img", class_="_fullSizeImg_1anuf_16")
-            if img:
-                images_.append(img.get("src"))
-            else:
-                vid = soup_.find("video")
-                if vid:
-                    images_.append(vid.find("source").get("src"))
+            try:
+                if img:
+                    images_.append(img.get("src"))
                 else:
-                    new_posts = soup_.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
-                    new_posts = [post.get("href") for post in new_posts]
-                    new_posts = self.__remove_duplicates(new_posts)
-                    posts.extend(new_posts)
+                    vid = soup_.find("video")
+                    if vid:
+                        images_.append(vid.find("source").get("src"))
+                    else:
+                        new_posts = soup_.find("ol", class_="_sl-grid-body_6yqpe_26").find_all("a")
+                        new_posts = [post.get("href") for post in new_posts]
+                        new_posts = self.__remove_duplicates(new_posts)
+                        posts.extend(new_posts)
+            except AttributeError:
+                pass
 
         internal_use = False
         if dropbox_url:
@@ -895,12 +942,11 @@ class HtmlParser:
         soup = self.soupify(xpath='//span[@class="dig-Breadcrumb-link-text"]')
         if not internal_use:
             try:
-                dir_name = "test"
-                #dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
+                dir_name = soup.find("span", class_="dig-Breadcrumb-link-text").text
             except AttributeError:
                 deleted_notice = soup.find("h2", class_="dig-Title dig-Title--size-large dig-Title--color-standard")
                 if deleted_notice:
-                    return RipInfo([], "", self.filename_scheme)
+                    return RipInfo([], "Deleted", self.filename_scheme)
                 else:
                     print(self.current_url)
                     raise
@@ -1609,6 +1655,9 @@ class HtmlParser:
             Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
+        if "/gallery/" not in self.current_url:
+            gal_code = self.current_url.split("/")[4]
+            self.current_url = f"https://imhentai.xxx/gallery/{gal_code}/"
         soup = self.soupify()
 
         # Gets the image URL to be turned into the general image URL
