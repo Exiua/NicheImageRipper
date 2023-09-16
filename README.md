@@ -11,7 +11,7 @@ Download `NicheImageRipper.rar` from the [latest release](https://github.com/Exi
 
 ## Sites Currently Supported:
 
-- [imhentai.com](https://imhentai.com/)
+- [imhentai.xxx](https://imhentai.xxx/)
 - [artstation.com](https://artstation.com)
 - [imgur.com](https://imgur.com/)
 - [redgifs.com](https://redgifs.com/)
