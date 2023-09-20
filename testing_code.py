@@ -12,6 +12,7 @@ import urllib.request
 from urllib.parse import urlparse
 from time import sleep
 
+import cloudscraper
 import dropbox
 import requests
 from getfilelistpy import getfilelist
@@ -1301,10 +1302,48 @@ def artstation_api2():
         'cookie': "__cf_bm=nUqNtjXV77oyvB.uv3FGaq4uom5Q1Dgbv9KRA5MtDhI-1694577171-0-ARPgbpjTu75tpT4EhU4qyyb5xqUFi3duWPxK2is%2FeX7fxtrMSRSk58ZluTCR73L6kTRGsz0OxBDbdLGdgMjYkCM3lPFyIrRku1hDPqS%2FtF9o"}
 
     http = urllib3.PoolManager()
-    response = http.request("GET", "https://www.artstation.com/users/flowerxl/projects.json?page=4", headers=project_fetch_headers)
+    response = http.request("GET", "https://www.artstation.com/users/flowerxl/projects.json?page=4",
+                            headers=project_fetch_headers)
 
     print(response.data)
 
+
+def clean_links():
+    sites = ("mega.nz", "drive.google.com")
+    for site in sites:
+        seen = set()
+        with open(f"{site}_links.txt", "r", encoding="utf-16") as f:
+            links = f.readlines()
+
+        for i, link in enumerate(links):
+            if "http" not in link:
+                links[i] = ""
+                continue
+            start = link.index("http")
+            partial = link[start:]
+            end = find_invalid_character(partial)
+            links[i] = partial[:end]
+            links[i] = links[i] + "\n" if links[i][-1] != "\n" else links[i]
+            if links[i] in seen:
+                links[i] = ""
+            else:
+                seen.add(links[i])
+
+        idx = 0
+        while idx < len(links):
+            if not links[idx]:
+                links.pop(idx)
+            else:
+                idx += 1
+
+        with open(f"{site}_links.txt", "w", encoding="utf-16") as f:
+            f.writelines(links)
+
+
+def porn3dx_test():
+    scraper = cloudscraper.create_scraper()
+    response = scraper.get("https://porn3dx.com/InitialA")
+    print(response.text)
 
 if __name__ == "__main__":
     # color_print_test()
@@ -1313,4 +1352,5 @@ if __name__ == "__main__":
     # link_cleaner()
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
-    artstation_api()
+    #clean_links()
+    porn3dx_test()

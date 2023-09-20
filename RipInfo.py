@@ -165,7 +165,10 @@ class RipInfo:
         if "/d/" in url:
             return parts[-2], True
         else:
-            return parts[-1].split('?')[0], False
+            id_ = parts[-1].split('?')[0]
+            if id_ in ("open", "folderview"):
+                id_ = parts[-1].split('?id=')[-1]
+            return id_, False
 
     @staticmethod
     def authenticate():

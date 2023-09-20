@@ -6,6 +6,7 @@ import os
 import pickle
 import random
 import re
+import this
 import time
 from math import ceil
 from os import path
@@ -309,13 +310,15 @@ class HtmlParser:
         except FileNotFoundError:
             return {"": ""}  # Doesn't matter if the cached data doesn't exist, will regen instead
 
-    def site_login(self):
+    def site_login(self) -> bool:
         if self.site_name == "newgrounds":
-            self.__newgrounds_login()
-        elif self.site_name == "titsintops":
-            self.__titsintops_login()
-        elif self.site_name == "nijie":
-            self.__nijie_login()
+            return self.__newgrounds_login()
+        if self.site_name == "titsintops":
+            return self.__titsintops_login()
+        if self.site_name == "nijie":
+            return self.__nijie_login()
+        if self.site_name == "porn3dx":
+            return self.__porn3dx_login()
 
     def sleep(self, seconds: float):
         jitter = random.random() * self.jitter
@@ -325,7 +328,30 @@ class HtmlParser:
         login = Config.config.logins[site_name]
         return login["Username"], login["Password"]
 
-    def __newgrounds_login(self):
+    def __porn3dx_login(self) -> bool:
+        def try_send_key(xpath: str, key: str):
+            fields = self.driver.find_elements(By.XPATH, xpath)
+            for field in fields:
+                try:
+                    field.send_keys(key)
+                    break
+                except selenium.common.exceptions.ElementNotInteractableException:
+                    pass
+        curr_url = self.current_url
+        username, password = self.__get_login_creds("Porn3dx")
+        self.current_url = "https://porn3dx.com/login"
+        logged_in_to_site = False
+        if username and password:
+            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="text"]', username)
+            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="password"]', password)
+            self.driver.find_elements(By.XPATH, '//button[@type="submit"]')[-1].click()
+            while "/login" in self.driver.current_url:
+                sleep(1)
+            logged_in_to_site = True
+            self.current_url = curr_url
+        return logged_in_to_site
+
+    def __newgrounds_login(self) -> bool:
         curr_url = self.current_url
         username, password = self.__get_login_creds("Newgrounds")
         self.current_url = "https://newgrounds.com/passport"
@@ -335,8 +361,9 @@ class HtmlParser:
         while self.current_url != "https://www.newgrounds.com/social":
             sleep(1)
         self.current_url = curr_url
+        return True
 
-    def __nijie_login(self):
+    def __nijie_login(self) -> bool:
         orig_url = self.current_url
         username, password = self.__get_login_creds("Nijie")
         self.current_url = "https://nijie.info/login.php"
@@ -350,8 +377,9 @@ class HtmlParser:
         while "login.php" in self.current_url:
             sleep(0.1)
         self.current_url = orig_url
+        return True
 
-    def __titsintops_login(self):
+    def __titsintops_login(self) -> bool:
         download_url = self.current_url
         username, password = self.__get_login_creds("TitsInTops")
         self.current_url = "https://titsintops.com/phpBB2/index.php?login/login"
@@ -370,6 +398,7 @@ class HtmlParser:
                                     '//button[@class="button--primary button button--icon button--icon--login"]'):
             sleep(0.1)
         self.driver.get(download_url)
+        return True
 
     # region Parsers
 
@@ -2197,30 +2226,29 @@ class HtmlParser:
         the site
         """
         # Parses the html of the site
-        username = Config.config.logins["Porn3dxU"]["Username"]
-        password = Config.config.logins["Porn3dxU"]["Password"]
-        curr_url = self.driver.current_url
-        logged_in_to_site = False
-        if username and password:
-            while True:
-                try:
-                    self.driver.find_element(By.XPATH, '//button[@class="btn btn-primary sign_in"]').click()
-                    break
-                except selenium.common.exceptions.NoSuchElementException:
-                    sleep(1)
-            self.driver.find_element(By.ID, "email").send_keys(username)
-            self.driver.find_element(By.ID, "password").send_keys(password)
-            self.driver.find_element(By.XPATH, '//button[@class="btn btn-action"]').click()
-            while self.driver.current_url == curr_url:
-                sleep(1)
-            logged_in_to_site = True
-            self.driver.get(curr_url)
-        self.lazy_load(True)
+        self.site_name = "porn3dx"
+        logged_in_to_site = self.site_login()
+        self.lazy_load(scroll_by=True, increment=1250, scroll_pause_time=1)
+        sleep(10)
         soup = self.soupify()
-        dir_name = soup.find("div", class_="title-wrapper").find("h1").text
-        posts = soup.find("div", class_="post-list post-list-popular-monthly position-relative") \
-            .find_all("a", recursive=False)
-        posts = [p.get("href") for p in posts]
+        self._print_html(soup)
+        dir_name = soup.find("div", class_="text-white leading-none text-sm font-bold items-center self-center").text
+        posts = []
+        id_ = 0
+        input("./..")
+        soup = self.soupify()
+        while True:
+            post = soup.find("div", id=f"gallery-{id_}")
+            post2 = self.driver.find_element(By.ID, f"gallery-{id_}")
+            print(post2.text)
+            id_ += 1
+            if post:
+                print(post)
+                url = post.find("div").get("@click")
+                print(url)
+                return
+            else:
+                break
         num_posts = len(posts)
         images = []
         for i, post in enumerate(posts):

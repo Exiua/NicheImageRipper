@@ -4,6 +4,7 @@ import io
 import json
 import os.path
 import string
+import sys
 import time
 from os import path, makedirs
 from pathlib import Path
@@ -112,12 +113,14 @@ def __recursively_get_files(filepath: str) -> list[str]:
 
 
 def download_links():
-    FILE = "gdriveLinks.txt"  # "drive.google.com_links.txt"
+    FILE = "drive.google.com_links.txt"  # "gdriveLinks.txt"
     with open(FILE, "r", encoding="utf-16") as f:
         links = f.readlines()
 
     base_folder = "testRips"
     for i, link in enumerate(links):
+        if not link:
+            continue
         url = link.strip()
         print(url)
         try:
@@ -125,14 +128,20 @@ def download_links():
                 links[i] = ""
         except Exception as e:
             print(e)
+            print(link)
             continue
 
-    collapsed_links = "".join(links)
-    expanded_links = collapsed_links.split("\n")
-    expanded_links = [link + "\n" for link in expanded_links]
+    count = 0
+    while count < len(links):
+        if links[count] == "":
+            links.pop(count)
+        else:
+            if links[count][-1] != '\n':
+                links[count] += '\n'
+            count += 1
 
     with open(FILE, "w", encoding="utf-16") as f:
-        f.writelines(expanded_links)
+        f.writelines(links)
 
 
 def extract_id(url: str) -> tuple[str, bool]:
@@ -140,7 +149,10 @@ def extract_id(url: str) -> tuple[str, bool]:
     if "/d/" in url:
         return parts[-2], True
     else:
-        return parts[-1].split('?')[0], False
+        id_ = parts[-1].split('?')[0]
+        if id_ in ("open", "folderview"):
+            id_ = parts[-1].split('?id=')[-1]
+        return id_, False
 
 
 def authenticate():
@@ -204,8 +216,10 @@ def get_folder_names(folder_ids: list[list[str]], names: list[str]) -> list[str]
 if __name__ == "__main__":
     local = "Temp"
     key = Config.config["Keys"]["Google"]
+    authenticate()
     download_links()
-    # print(extract_id(remote))
-    # print(download_googledrive_folder(sys.argv[1], local, key))
+    #remote = "https://drive.google.com/file/d/1uzBOJZ5e8vtkIA73q7PFIoOrVsJ50Ofi/view?usp=sharing"
+    #print(extract_id(remote))
+    #print(download_googledrive_folder(sys.argv[1], local, key))
     # test()
     # get_files(sys.argv[1])
