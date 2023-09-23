@@ -6,9 +6,12 @@ import os
 import pickle
 import random
 import re
+import signal
+import subprocess
 import time
 from math import ceil
 from os import path
+from subprocess import Popen
 from time import sleep
 from typing import Callable
 from urllib.parse import urlparse, unquote
@@ -20,6 +23,7 @@ import selenium
 import tldextract
 import urllib3.exceptions
 from bs4 import BeautifulSoup
+from pathlib import Path
 from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -66,6 +70,7 @@ class HtmlParser:
         options.set_preference("dom.disable_beforeunload", True)
         options.set_preference("browser.tabs.warnOnClose", False)
         self.driver: webdriver.Firefox = webdriver.Firefox(options=options)
+        self.driver_pid: Popen = self.driver.service.process.pid
         self.interrupted: bool = False
         self.site_name: str = site_name
         self.sleep_time: float = 0.2
@@ -226,7 +231,7 @@ class HtmlParser:
                 return save_data[url]
         url = url.replace("members.", "www.")
         self.given_url = url
-        self.driver.get(url)
+        self.current_url = url
         self.site_name = self.site_check()
         site_parser: Callable[[], RipInfo] = self.parser_jump_table.get(self.site_name)
         try:
@@ -238,6 +243,7 @@ class HtmlParser:
             print(self.current_url)
             raise
         finally:
+            os.kill(self.driver_pid.pid, signal.SIGTERM)
             self.driver.quit()
         # aise SiteParseError()
 
@@ -397,7 +403,7 @@ class HtmlParser:
         while self.try_find_element(By.XPATH,
                                     '//button[@class="button--primary button button--icon button--icon--login"]'):
             sleep(0.1)
-        self.driver.get(download_url)
+        self.current_url = download_url
         return True
 
     # region Parsers
@@ -522,8 +528,7 @@ class HtmlParser:
                     if img:
                         images.append(img.get("src"))
             if i != num_pages:
-                self.driver.get("".join([base_url, str(i + 1), "/"]))
-                soup = self.soupify()
+                soup = self.soupify("".join([base_url, str(i + 1), "/"]))
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def arca_parse(self) -> RipInfo:
@@ -634,8 +639,7 @@ class HtmlParser:
         image_list = ["".join(["https://babeimpact.com", tag.find("a").get("href")]) for tag in tag_list]
         images = []
         for image in image_list:
-            self.driver.get(image)
-            soup = self.soupify()
+            soup = self.soupify(image)
             images.append("".join([PROTOCOL, soup.find(
                 "div", class_="image-wrapper").find("img").get("src")]))
         return RipInfo(images, dir_name, self.filename_scheme)
@@ -773,7 +777,7 @@ class HtmlParser:
             images.extend(image_list)
             if i < pages - 1:
                 next_page = "".join([curr_url, "?page=", str(i + 2)])
-                self.driver.get(next_page)
+                self.current_url = next_page
                 self.lazy_load(True)
                 soup = self.soupify()
         return RipInfo(images, dir_name, self.filename_scheme)
@@ -1028,19 +1032,18 @@ class HtmlParser:
                 sleep(5)
                 try:
                     page_count += 1
-                    self.driver.get(next_page)
+                    self.current_url = next_page
                 except selenium.common.exceptions.TimeoutException:
                     print("Timed out. Sleeping for 10 seconds before retrying...")
                     sleep(10)
-                    self.driver.get(next_page)
+                    self.current_url = next_page
                 soup = self.soupify()
         images = []
         links = str(len(image_links))
         for i, link in enumerate(image_links):
             print("".join(["Parsing image ", str(i + 1), "/", links]))
             sleep(5)
-            self.driver.get(link)
-            soup = self.soupify()
+            soup = self.soupify(link)
             img = soup.find("img", id="img").get("src")
             images.append(img)
         self.driver.quit()
@@ -1241,8 +1244,7 @@ class HtmlParser:
             images.extend(image_list)
             if i < pages - 1:
                 next_page = "".join([curr_url, "?page=", str(i + 2)])
-                self.driver.get(next_page)
-                soup = self.soupify()
+                soup = self.soupify(next_page)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     # Started working on support for fantia.com
@@ -1252,9 +1254,9 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="fanclub-name").find("a").text
         curr_url = self.driver.current_url
-        self.driver.get("https://fantia.jp/sessions/signin")
+        self.current_url = "https://fantia.jp/sessions/signin"
         input("cont")
-        self.driver.get(curr_url)
+        self.current_url = curr_url
         post_list = []
         while True:
             posts = soup.find("div", class_="row row-packed row-eq-height").find_all("a", class_="link-block")
@@ -1265,11 +1267,10 @@ class HtmlParser:
                 break
             else:
                 next_page = "https://fantia.jp" + next_page.get("href")
-                self.driver.get(next_page)
-                soup = self.soupify()
+                soup = self.soupify(next_page)
         images = []
         for post in post_list:
-            self.driver.get(post)
+            self.current_url = post
             mimg = None
             try:
                 mimg = self.driver.find_element(By.CLASS_NAME, "post-thumbnail bg-gray mt-30 mb-30 full-xs ng-scope")
@@ -1516,8 +1517,7 @@ class HtmlParser:
                 break
             else:
                 next_page = "".join(["https://hentai-cosplays.com", next_page.get("href")])
-                self.driver.get(next_page)
-                soup = self.soupify()
+                soup = self.soupify(next_page)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def hentairox_parse(self) -> RipInfo:
@@ -1557,8 +1557,7 @@ class HtmlParser:
         if int(num_pages) > 1:
             for index in range(2, int(num_pages) + 1):
                 page_url = "".join([url, str(index), '/'])
-                self.driver.get(page_url)
-                soup = self.soupify()
+                soup = self.soupify(page_url)
                 images_list = soup.find_all("img", itemprop="image")
                 del images_list[0]  # First image is just the thumbnail
                 images_html.extend(images_list)
@@ -1780,7 +1779,7 @@ class HtmlParser:
         base_url = self.driver.current_url
         images = []
         for i in range(1, num_images + 1):
-            self.driver.get(f"{base_url}/{str(i)}")
+            self.current_url = f"{base_url}/{str(i)}"
             # input(".")
             shadow_host = self.driver.find_element(By.XPATH, '//div[@class="main"]/a')
             shadow_host.click()
@@ -1806,8 +1805,7 @@ class HtmlParser:
             if "postimg.cc" not in link:
                 images.append(link)
                 continue
-            self.driver.get(link)
-            soup = self.soupify()
+            soup = self.soupify(link)
             img = soup.find("a", id="download").get("href").split("?")[0]
             images.append(img)
         self.driver.quit()
@@ -1830,11 +1828,10 @@ class HtmlParser:
         images = soup.find("div", class_="files-wrapper noselect").find_all("a")
         images = [img.get("href") for img in images]
         vid = []
-        for i, l in enumerate(images):
-            if "/video/" in l:
+        for i, link in enumerate(images):
+            if "/video/" in link:
                 vid.append(i)
-                self.driver.get("https://lovefap.com" + l)
-                soup = self.soupify()
+                soup = self.soupify(f"https://lovefap.com{link}")
                 images.append(soup.find("video", id="main-video").find("source").get("src"))
         for i in reversed(vid):
             images.pop(i)
@@ -1844,7 +1841,7 @@ class HtmlParser:
         """Parses the html for luscious.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         if "members." in self.driver.current_url:
-            self.driver.get(self.driver.current_url.replace("members.", "www."))
+            self.current_url = self.driver.current_url.replace("members.", "www.")
         soup = self.soupify()
         dir_name = soup.find("h1", class_="o-h1 album-heading").text
         endpoint = "https://members.luscious.net/graphqli/?"
@@ -1913,9 +1910,7 @@ class HtmlParser:
         while next_chapter:
             print(f"Parsing Chapter {counter}")
             counter += 1
-            self.driver.get(next_chapter.get("href"))
-            soup = self.soupify()
-            self.__print_html(soup)
+            soup = self.soupify(next_chapter.get("href"))
             chapter_images = soup.find("div", class_="container-chapter-reader").find_all("img")
             images.extend([img.get("src") for img in chapter_images])
             next_chapter = soup.find("a", class_="navi-change-chapter-btn-next a-h")
@@ -2085,7 +2080,7 @@ class HtmlParser:
     def nonsummerjack_parse(self) -> RipInfo:
         """Parses the html for nonsummerjack.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
-        self.lazy_load(True, increment=1250, backscroll=1)
+        self.lazy_load(True, increment=1250, scroll_back=1)
         ul = self.driver.find_element(By.CLASS_NAME, "fg-dots")
         while not ul:
             ul = self.driver.find_element(By.CLASS_NAME, "fg-dots")
@@ -2096,7 +2091,7 @@ class HtmlParser:
         for i in range(1, pages + 1):
             if i != 1:
                 self.driver.find_element(By.XPATH, f"//ul[@class='fg-dots']/li[{i}]").click()
-                self.lazy_load(True, increment=1250, backscroll=1)
+                self.lazy_load(True, increment=1250, scroll_back=1)
                 soup = self.soupify()
             image_list = soup.find("div", class_="foogallery foogallery-container "
                                                  "foogallery-justified foogallery-lightbox-foobox fg-justified "
@@ -2192,8 +2187,7 @@ class HtmlParser:
                 break
             else:
                 next_page = "".join(["https://pics.vc", soup.find("div", id="center_control").find("a").get("href")])
-                self.driver.get(next_page)
-                soup = self.soupify()
+                soup = self.soupify(next_page)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def pinkfineart_parse(self) -> RipInfo:
@@ -2220,13 +2214,19 @@ class HtmlParser:
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
+    # TODO: Fix to not need to download in the HtmlParser
     def porn3dx_parse(self) -> RipInfo:
         """
         Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
         the site
         """
         # Parses the html of the site
-        self.site_name = "porn3dx"
+        def format_url(url_: str, res: str) -> str:
+            match = re.search(r"net/([-\w]+)/playlist\.drm\?contextId=([-\w]+)", url_)
+            guid = match.group(1)
+            context_id = match.group(2)
+            resolution = ImageLink.resolution_lookup(res)
+            return f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
         self.site_login()
         self.lazy_load(scroll_by=True, increment=1250, scroll_pause_time=1)
         soup = self.soupify()
@@ -2238,18 +2238,27 @@ class HtmlParser:
             raise Exception("Element could not be found")
 
         while True:
-            print(f"Searching for post {id_ + 1}", end='\r')
+            #print(f"Searching for post {id_ + 1}", end='\r')
             post = self.try_find_element(By.ID, f"gallery-{id_}")
             if not post:
                 break
             posts.append(post.get_attribute("href"))
             id_ += 1
 
+        base_save_path = Path(Config.config["SavePath"]) / RipInfo.clean_dir_name(dir_name)
+        base_save_path.mkdir(parents=True, exist_ok=True)
+        counter = 0
+        cmd = ["yt-dlp", "--referer", "", "", "--user-agent",
+               "\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36\"",
+               "-o", ""]
+        num_posts = len(posts)
         images = []
-        for post in posts:
+        for i, post in enumerate(posts):
+            print(f"Parsing post {i + 1} of {num_posts}")
             self.current_url = post
-            iframes = []
-            while not iframes:
+            iframes: list[WebElement] = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
+            pictures: list[WebElement] = self.driver.find_elements(By.XPATH, '//pictures')
+            while not iframes and not pictures:
                 sleep(5)
                 if self.current_url == orig_url:
                     ad = self.try_find_element(By.XPATH, f'//div[@class="ex-over-top ex-opened"]//div[@class="ex-over-btn"]')
@@ -2257,11 +2266,53 @@ class HtmlParser:
                         ad.click()
                 self.__clean_tabs("porn3dx")
                 iframes = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
-            for iframe in iframes:
-                url = iframe.get_attribute("src")
-                if "iframe.mediadelivery.net" in url:
-                    images.append(url)
-        print(images)
+                pictures = self.driver.find_elements(By.XPATH, '//pictures')
+
+            sleep(10)
+            if iframes:
+                for iframe in iframes:
+                    iframe_url = iframe.get_attribute("src")
+                    cmd[2] = iframe_url
+                    if "iframe.mediadelivery.net" in iframe_url:
+                        self.driver.switch_to.frame(iframe)
+                        self.__wait_for_element('//button[@data-plyr="play"]', timeout=-1)
+                        btn = self.try_find_element(By.XPATH, '//button[@data-plyr="play"]')
+                        #btn.click()
+                        source = self.driver.find_element(By.XPATH, '//video/source')
+                        url = source.get_attribute("src")
+                        qualities = self.driver.find_elements(By.XPATH, '//button[@data-plyr="quality"]')
+                        max_quality = 0
+                        for quality in qualities:
+                            value = int(quality.get_attribute("value"))
+                            if value > max_quality:
+                                max_quality = value
+                        #btn.click()
+                        cmd[3] = format_url(url, str(max_quality))
+                        # images.append(url + f"{{{max_quality}}}{iframe_url}")
+                        input(f"{iframe_url}\n{cmd[3]}\n...")
+                        self.driver.switch_to.default_content()
+                        save_path = base_save_path / f"{counter}.mp4"
+                        # print(save_path)
+                        counter += 1
+                        cmd[-1] = str(save_path)
+                        out = subprocess.run(cmd, capture_output=True)
+                        stdout = out.stdout.decode()
+                        stderr = out.stderr.decode()
+                        if "401" in stderr:
+                            print(stdout)
+                            print(stderr)
+            if pictures:
+                for picture in pictures:
+                    imgs = picture.find_elements(By.XPATH, "//img")
+                    for img in imgs:
+                        url = img.get_attribute("src")
+                        if "m.porn3dx.com" in url:
+                            save_path = base_save_path / f"{counter}.png"   # Guessing filename is bad
+                            counter += 1
+                            response = requests.get(url, headers=requests_header)
+                            with save_path.open("wb") as f:
+                                f.write(response.content)
+                            # images.append(url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     # TODO: Site may be down permanently
@@ -2283,9 +2334,7 @@ class HtmlParser:
                 if next_page is None:
                     break
                 print(next_page)
-                self.driver.get(next_page)
-                soup = self.soupify()
-        self.driver.quit()
+                soup = self.soupify(next_page)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def rabbitsfun_parse(self) -> RipInfo:
@@ -2466,8 +2515,7 @@ class HtmlParser:
                 else:
                     page += 1
                     next_page = "".join([BASE_URL, "/", next_page.get("href")])
-                    self.driver.get(next_page)
-                    soup = self.soupify()
+                    soup = self.soupify(next_page)
             for link in images:
                 if any(p in link for p in parsable_links):
                     site_name = urlparse(link).netloc
@@ -2492,8 +2540,7 @@ class HtmlParser:
                                image.find("a").get("href")]) for image in image_list]
         images = []
         for link in image_link:
-            self.driver.get(link)
-            soup = self.soupify()
+            soup = self.soupify(link)
             images.append("".join([PROTOCOL, soup.find(
                 "div", class_="image-wrapper").find("img").get("src")]))
         return RipInfo(images, dir_name, self.filename_scheme)
@@ -2599,8 +2646,7 @@ class HtmlParser:
         curr_url = self.driver.current_url
         for i in range(num_pages):
             if i != 0:
-                self.driver.get("".join([curr_url, str(i + 1), "/"]))
-                soup = self.soupify()
+                soup = self.soupify("".join([curr_url, str(i + 1), "/"]))
             image_list = soup.find("div", class_="thecontent").find_all("figure", class_="wp-block-image size-large",
                                                                         recursive=False)
             for img in image_list:
@@ -2655,11 +2701,10 @@ class HtmlParser:
             images = [img.get("href") for img in images]
             sleep(1)
         vid = []
-        for i, l in enumerate(images):
-            if "/video/" in l:
+        for i, link in enumerate(images):
+            if "/video/" in link:
                 vid.append(i)
-                self.driver.get(l)
-                soup = self.soupify()
+                soup = self.soupify(link)
                 images.append(soup.find("video", id="main-video").find("source").get("src"))
         for i in reversed(vid):
             images.pop(i)
@@ -2772,8 +2817,7 @@ class HtmlParser:
             for i in range(pages):
                 if i > 0:
                     url = "".join([page_url, str(i + 1), "/"])
-                    self.driver.get(url)
-                    soup = self.soupify()
+                    soup = self.soupify(url)
                 image_list = soup.find(
                     "div", class_="entry-content clearfix").find_all("img")
                 images.extend(image_list)
@@ -2816,21 +2860,21 @@ class HtmlParser:
                 num = num[:i]
                 break
         num_pages = int(num)
-        base_url = self.driver.current_url
+        base_url = self.current_url
         base_url = base_url.split("?")[0]
         images = []
         parse_complete = False
         for i in range(num_pages):
             if i != 0:
                 next_page = "".join([base_url, "?page=", str(i + 1)])
-                self.driver.get(next_page)
+                self.current_url = next_page
                 if not logged_in:
-                    curr_page = self.driver.current_url
-                    self.driver.get("https://www.v2ph.com/login?hl=en")
-                    while self.driver.current_url == "https://www.v2ph.com/login?hl=en":
+                    curr_page = self.current_url
+                    self.current_url = "https://www.v2ph.com/login?hl=en"
+                    while self.current_url == "https://www.v2ph.com/login?hl=en":
                         sleep(0.1)
                     pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
-                    self.driver.get(curr_page)
+                    self.current_url = curr_page
                     logged_in = True
                 self.lazy_load(*LAZY_LOAD_ARGS)
                 soup = self.soupify()
@@ -2888,17 +2932,18 @@ class HtmlParser:
                 options.add_argument("-headless")
             options.add_argument(DRIVER_HEADER)
             self.driver = webdriver.Firefox(options=options)
-            self.driver.get(given_url.replace("members.", "www."))
+            self.current_url = given_url.replace("members.", "www.")
             site_name = self._test_site_check(given_url)
             if site_name == "999hentai":
                 site_name = "nine99hentai"
             print(f"Testing: {site_name}_parse")
             data: RipInfo = eval(f"self.{site_name}_parse()")
+            print(data.urls[0].referer)
             out = [d.url for d in data]
             with open("test.json", "w") as f:
                 json.dump(out, f, indent=4)
             return data
-        except:
+        except Exception:
             with open("test.html", "w", encoding="utf-16") as f:
                 f.write(self.driver.page_source)
             raise
@@ -2930,10 +2975,10 @@ class HtmlParser:
 
     def secondary_parse(self, link: str, parser: Callable[[webdriver.Firefox], RipInfo]) -> list[ImageLink]:
         """Parses the html for links for supported sites used in other sites"""
-        curr = self.driver.current_url
-        self.driver.get(link)
+        curr = self.current_url
+        self.current_url = link
         images = parser(self.driver).urls
-        self.driver.get(curr)
+        self.current_url = curr
         return images
 
     def parse_embedded_urls(self, urls: list[str]) -> list[str]:
@@ -3083,14 +3128,28 @@ class HtmlParser:
         scroll_script = f"window.scrollBy({{top: {int(curr_height) + distance}, left: 0, behavior: 'smooth'}});"
         self.driver.execute_script(scroll_script)
 
+    def dump_cookies(self):
+        with open("cookies.txt", "w") as f:
+            for cookie in self.driver.get_cookies():
+                f.write(f"{cookie}\n")
+
+    def dump_cookies_netscape(self):
+        cookies = self.driver.get_cookies()
+        formatted_cookies = []
+        for c in cookies:
+            formatted_cookie = f"{c['domain']} FALSE {c['path']} {c['httpOnly']} {c['expiry']} {c['name']} {c['value']}\n"
+            formatted_cookies.append(formatted_cookie)
+        with open("cookies.txt", "w") as f:
+            f.writelines(formatted_cookies)
+
     def lazy_load(self, scroll_by: bool = False, increment: int = 2500, scroll_pause_time: float = 0.5,
-                  backscroll: int = 0, rescroll: bool = False):
+                  scroll_back: int = 0, rescroll: bool = False):
         """
             Load lazy loaded images by scrolling the page
         :param scroll_by: Whether to scroll through the page or instantly scroll to the bottom
         :param increment: Distance to scroll by each iteration
         :param scroll_pause_time: Seconds to wait between each scroll
-        :param backscroll: Distance to scroll back by after reaching the bottom of the page
+        :param scroll_back: Distance to scroll back by after reaching the bottom of the page
         :param rescroll: Whether scrolling through the page again
         """
         last_height = self.driver.execute_script("return window.pageYOffset")
@@ -3107,8 +3166,8 @@ class HtmlParser:
             sleep(scroll_pause_time)
             new_height = self.driver.execute_script(height_check_script)
             if new_height == last_height:
-                if backscroll > 0:
-                    for _ in range(backscroll):
+                if scroll_back > 0:
+                    for _ in range(scroll_back):
                         self.driver.execute_script(
                             "".join(
                                 ["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
@@ -3138,11 +3197,19 @@ class HtmlParser:
 
     def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False,
                 response: requests.Response = None, xpath: str = "") -> BeautifulSoup:
-        """Return BeautifulSoup object of html from driver"""
+        """
+            Return BeautifulSoup object of html from WebDriver or given Response if provided
+        :param url: Url to switch to before getting the BeautifulSoup object of the html (not needed if WebDriver is
+            currently at this url)
+        :param delay: Seconds to wait (for JS and other events) before creating BeautifulSoup object
+        :param lazy_load: Whether there are elements on the webpage that are lazily loaded
+        :param response: Response object to create BeautifulSoup object from (if set, ignores other arguments)
+        :param xpath: XPath to an element the WebDriver should wait until it exists before creating the BeautifulSoup object
+        """
         if response:
             return BeautifulSoup(response.content, PARSER)
         if url:
-            self.driver.get(url)
+            self.current_url = url
         if delay != 0:
             sleep(delay)
         if xpath:
@@ -3152,7 +3219,8 @@ class HtmlParser:
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
-    def list_splitter(self, lst: list, size: int):
+    @staticmethod
+    def list_splitter(lst: list, size: int):
         for i in range(0, len(lst), size):
             yield lst[i:i + size]
 

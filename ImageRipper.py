@@ -25,7 +25,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 from Config import Config
-from Enums import FilenameScheme, UnzipProtocol
+from Enums import FilenameScheme, UnzipProtocol, LinkInfo
 from HtmlParser import HtmlParser
 from ImageLink import ImageLink
 from RipInfo import RipInfo
@@ -317,10 +317,12 @@ class ImageRipper:
         print("    ".join([rip_url, num_progress]))
         file_name = image_link.filename
         image_path = os.path.join(full_path, file_name)
-        if image_link.is_m3u8:
+        if image_link.link_info == LinkInfo.M3U8:
             self.__download_m3u8_to_mp4(image_path, rip_url)
-        elif image_link.is_gdrive:
+        elif image_link.link_info == LinkInfo.GDRIVE:
             self.__download_gdrive_file(image_path, image_link)
+        elif image_link.link_info == LinkInfo.IFRAME_MEDIA:
+            self.__download_iframe_media(image_path, image_link)
         else:
             self.__download_file(image_path, rip_url)
         sleep(0.05)
@@ -345,6 +347,18 @@ class ImageRipper:
             status, done = downloader.next_chunk()
             print(f"Downloaded {int(status.progress() * 100):d}%", end="\r")
         print()
+
+    @staticmethod
+    def __download_iframe_media(folder_path: str, image_link: ImageLink):
+        destination_file = Path(folder_path)
+        destination_file.parent.mkdir(parents=True, exist_ok=True)
+        cmd = ["yt-dlp", "--referer", image_link.referer, image_link.url, "--user-agent",
+               "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+               "-o", str(destination_file)]
+        print(" ".join(cmd))
+        out = subprocess.run(cmd, capture_output=True)
+        print(out.stdout.decode())
+        print(out.stderr.decode())
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""

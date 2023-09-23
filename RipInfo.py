@@ -32,7 +32,7 @@ class RipInfo:
         self.__dir_name: str = dir_name
         self.__filenames: list[str] = filenames
         if self.__dir_name:
-            self.__dir_name = self.__clean_dir_name(self.__dir_name)
+            self.__dir_name = self.clean_dir_name(self.__dir_name)
         self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls)
         self.must_generate_manually: bool = generate
         self.url_count = num_urls if generate else len(self.urls)
@@ -54,7 +54,7 @@ class RipInfo:
     @dir_name.setter
     def dir_name(self, value):
         self.__dir_name = value
-        self.__dir_name = self.__clean_dir_name(self.__dir_name)
+        self.__dir_name = self.clean_dir_name(self.__dir_name)
 
     def __convert_urls_to_image_link(self, urls: list[str | ImageLink]) -> list[ImageLink]:
         image_links = []
@@ -107,7 +107,7 @@ class RipInfo:
         res = getfilelist.GetFileList(resource)
         if not self.__dir_name:
             dir_name = res["searchedFolder"]["name"] if not single_file else res["searchedFolder"]["id"]
-            self.__dir_name = self.__clean_dir_name(dir_name)
+            self.__dir_name = self.clean_dir_name(dir_name)
         links: list[ImageLink] = []
         counter = index
         if single_file:
@@ -141,7 +141,7 @@ class RipInfo:
             for id_ in folder_id:
                 parent = hierarchy.get(id_, None)
                 if not parent:
-                    hierarchy[id_] = self.__clean_dir_name(name)
+                    hierarchy[id_] = self.clean_dir_name(name)
                     complete = True
                     break
             if complete:
@@ -191,11 +191,12 @@ class RipInfo:
             with open("token.json", "w") as token:
                 token.write(RipInfo.gdrive_creds.to_json())
 
-    def __clean_dir_name(self, dir_name: str) -> str:
+    @staticmethod
+    def clean_dir_name(dir_name: str) -> str:
         """
             Remove forbidden characters from path
         """
-        dir_name = dir_name.translate(self.translation_table).strip().replace("\n", "")
+        dir_name = dir_name.translate(RipInfo.translation_table).strip().replace("\n", "")
         if dir_name[-1] not in (")", "]", "}"):
             dir_name.rstrip(string.punctuation)
         if dir_name[0] not in ("(", "[", "{"):
