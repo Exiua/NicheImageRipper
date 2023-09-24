@@ -51,12 +51,11 @@ class ImageLink:
             split = url.split("}")
             playlist_url = split[0]
             self.referer = split[1]
-            match = re.search(r"net/([-\w]+)/playlist\.drm\?contextId=([-\w]+)[^{]+{(\d+)", playlist_url)
-            guid = match.group(1)
-            context_id = match.group(2)
-            resolution = self.resolution_lookup(match.group(3))
+            match = re.search(r"[^{]+{(\d+)", playlist_url)
+            resolution = self.resolution_lookup(match.group(1))
             self.link_info = LinkInfo.IFRAME_MEDIA
-            return f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
+            link_url = playlist_url.split("{")[0].replace("/playlist.drm", f"/{resolution}/video.drm")
+            return link_url  # f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
         else:
             return url
 

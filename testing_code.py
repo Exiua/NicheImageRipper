@@ -1341,9 +1341,34 @@ def clean_links():
 
 
 def porn3dx_test():
-    scraper = cloudscraper.create_scraper()
-    response = scraper.get("https://porn3dx.com/InitialA")
-    print(response.text)
+    import yt_dlp
+    url = [
+        f'https://iframe.mediadelivery.net/82965dff-c070-4506-a69c-6720e44371ed/2560x1440/video.drm?contextId=c850b636-cdb1-4700-8880-b8f9cf6e25b1&secret=35b6b222-21a7-42c6-8c86-b1ab7d9c4c6c'
+    ]
+    ydl_opts = {
+        'http_headers': {
+            'Referer': "https://iframe.mediadelivery.net/embed/21030/82965dff-c070-4506-a69c-6720e44371ed?autoplay=false&loop=true",
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+        },
+        'concurrent_fragment_downloads': 10,
+        # 'external_downloader': 'aria2c'
+        'nocheckcertificate': True,
+        'outtmpl': "test.mp4",
+        'restrictfilenames': True,
+        'windowsfilenames': True,
+        'nopart': True,
+        'paths': {
+            'home': "./Temp/",
+        },
+        'retries': float('inf'),
+        'extractor_retries': float('inf'),
+        'fragment_retries': float('inf'),
+        'skip_unavailable_fragments': False,
+        'no_warnings': True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(url)
+
 
 if __name__ == "__main__":
     # color_print_test()

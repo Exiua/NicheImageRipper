@@ -243,8 +243,8 @@ class HtmlParser:
             print(self.current_url)
             raise
         finally:
-            os.kill(self.driver_pid.pid, signal.SIGTERM)
             self.driver.quit()
+            # os.kill(self.driver_pid, signal.SIGTERM)
         # aise SiteParseError()
 
     def site_check(self) -> str:
@@ -2222,11 +2222,9 @@ class HtmlParser:
         """
         # Parses the html of the site
         def format_url(url_: str, res: str) -> str:
-            match = re.search(r"net/([-\w]+)/playlist\.drm\?contextId=([-\w]+)", url_)
-            guid = match.group(1)
-            context_id = match.group(2)
             resolution = ImageLink.resolution_lookup(res)
-            return f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
+            new_url = url_.replace("/playlist.drm", f"/{resolution}/video.drm")
+            return new_url
         self.site_login()
         self.lazy_load(scroll_by=True, increment=1250, scroll_pause_time=1)
         soup = self.soupify()
@@ -2268,7 +2266,7 @@ class HtmlParser:
                 iframes = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
                 pictures = self.driver.find_elements(By.XPATH, '//pictures')
 
-            sleep(10)
+            #sleep(10)
             if iframes:
                 for iframe in iframes:
                     iframe_url = iframe.get_attribute("src")
@@ -2277,7 +2275,7 @@ class HtmlParser:
                         self.driver.switch_to.frame(iframe)
                         self.__wait_for_element('//button[@data-plyr="play"]', timeout=-1)
                         btn = self.try_find_element(By.XPATH, '//button[@data-plyr="play"]')
-                        #btn.click()
+                        btn.click()
                         source = self.driver.find_element(By.XPATH, '//video/source')
                         url = source.get_attribute("src")
                         qualities = self.driver.find_elements(By.XPATH, '//button[@data-plyr="quality"]')
@@ -2288,19 +2286,20 @@ class HtmlParser:
                                 max_quality = value
                         #btn.click()
                         cmd[3] = format_url(url, str(max_quality))
-                        # images.append(url + f"{{{max_quality}}}{iframe_url}")
-                        input(f"{iframe_url}\n{cmd[3]}\n...")
+                        images.append(url + f"{{{max_quality}}}{iframe_url}")
+                        # input(f"{iframe_url}\n{cmd[3]}\n...")
                         self.driver.switch_to.default_content()
                         save_path = base_save_path / f"{counter}.mp4"
-                        # print(save_path)
+                        print(save_path)
                         counter += 1
                         cmd[-1] = str(save_path)
                         out = subprocess.run(cmd, capture_output=True)
                         stdout = out.stdout.decode()
                         stderr = out.stderr.decode()
                         if "401" in stderr:
-                            print(stdout)
-                            print(stderr)
+                            print(" ".join(cmd))
+                        print(stdout)
+                        print(stderr)
             if pictures:
                 for picture in pictures:
                     imgs = picture.find_elements(By.XPATH, "//img")
@@ -2312,7 +2311,7 @@ class HtmlParser:
                             response = requests.get(url, headers=requests_header)
                             with save_path.open("wb") as f:
                                 f.write(response.content)
-                            # images.append(url)
+                            images.append(url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     # TODO: Site may be down permanently
