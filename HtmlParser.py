@@ -2221,10 +2221,6 @@ class HtmlParser:
         the site
         """
         # Parses the html of the site
-        def format_url(url_: str, res: str) -> str:
-            resolution = ImageLink.resolution_lookup(res)
-            new_url = url_.replace("/playlist.drm", f"/{resolution}/video.drm")
-            return new_url
         self.site_login()
         self.lazy_load(scroll_by=True, increment=1250, scroll_pause_time=1)
         soup = self.soupify()
@@ -2236,82 +2232,57 @@ class HtmlParser:
             raise Exception("Element could not be found")
 
         while True:
-            #print(f"Searching for post {id_ + 1}", end='\r')
             post = self.try_find_element(By.ID, f"gallery-{id_}")
             if not post:
                 break
             posts.append(post.get_attribute("href"))
             id_ += 1
 
-        base_save_path = Path(Config.config["SavePath"]) / RipInfo.clean_dir_name(dir_name)
-        base_save_path.mkdir(parents=True, exist_ok=True)
-        counter = 0
-        cmd = ["yt-dlp", "--referer", "", "", "--user-agent",
-               "\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36\"",
-               "-o", ""]
         num_posts = len(posts)
         images = []
         for i, post in enumerate(posts):
+            content_found = False
             print(f"Parsing post {i + 1} of {num_posts}")
-            self.current_url = post
-            iframes: list[WebElement] = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
-            pictures: list[WebElement] = self.driver.find_elements(By.XPATH, '//pictures')
-            while not iframes and not pictures:
-                sleep(5)
-                if self.current_url == orig_url:
-                    ad = self.try_find_element(By.XPATH, f'//div[@class="ex-over-top ex-opened"]//div[@class="ex-over-btn"]')
-                    if ad:
-                        ad.click()
-                self.__clean_tabs("porn3dx")
-                iframes = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
-                pictures = self.driver.find_elements(By.XPATH, '//pictures')
+            while not content_found:
+                self.current_url = post
+                iframes: list[WebElement] = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
+                pictures: list[WebElement] = self.driver.find_elements(By.XPATH, '//picture')
+                while not iframes and not pictures:
+                    sleep(5)
+                    if self.current_url == orig_url:
+                        ad = self.try_find_element(By.XPATH, f'//div[@class="ex-over-top ex-opened"]//div[@class="ex-over-btn"]')
+                        if ad:
+                            ad.click()
+                    self.__clean_tabs("porn3dx")
+                    iframes = self.driver.find_elements(By.XPATH, '//main[@id="postView"]//iframe')
+                    pictures = self.driver.find_elements(By.XPATH, '//picture')
 
-            #sleep(10)
-            if iframes:
-                for iframe in iframes:
-                    iframe_url = iframe.get_attribute("src")
-                    cmd[2] = iframe_url
-                    if "iframe.mediadelivery.net" in iframe_url:
-                        self.driver.switch_to.frame(iframe)
-                        self.__wait_for_element('//button[@data-plyr="play"]', timeout=-1)
-                        btn = self.try_find_element(By.XPATH, '//button[@data-plyr="play"]')
-                        btn.click()
-                        source = self.driver.find_element(By.XPATH, '//video/source')
-                        url = source.get_attribute("src")
-                        qualities = self.driver.find_elements(By.XPATH, '//button[@data-plyr="quality"]')
-                        max_quality = 0
-                        for quality in qualities:
-                            value = int(quality.get_attribute("value"))
-                            if value > max_quality:
-                                max_quality = value
-                        #btn.click()
-                        cmd[3] = format_url(url, str(max_quality))
-                        images.append(url + f"{{{max_quality}}}{iframe_url}")
-                        # input(f"{iframe_url}\n{cmd[3]}\n...")
-                        self.driver.switch_to.default_content()
-                        save_path = base_save_path / f"{counter}.mp4"
-                        print(save_path)
-                        counter += 1
-                        cmd[-1] = str(save_path)
-                        out = subprocess.run(cmd, capture_output=True)
-                        stdout = out.stdout.decode()
-                        stderr = out.stderr.decode()
-                        if "401" in stderr:
-                            print(" ".join(cmd))
-                        print(stdout)
-                        print(stderr)
-            if pictures:
-                for picture in pictures:
-                    imgs = picture.find_elements(By.XPATH, "//img")
-                    for img in imgs:
-                        url = img.get_attribute("src")
-                        if "m.porn3dx.com" in url:
-                            save_path = base_save_path / f"{counter}.png"   # Guessing filename is bad
-                            counter += 1
-                            response = requests.get(url, headers=requests_header)
-                            with save_path.open("wb") as f:
-                                f.write(response.content)
-                            images.append(url)
+                if iframes:
+                    for iframe in iframes:
+                        iframe_url = iframe.get_attribute("src")
+                        if "iframe.mediadelivery.net" in iframe_url:
+                            # print(f"Found iframes: {post}")
+                            content_found = True
+                            self.driver.switch_to.frame(iframe)
+                            source = self.driver.find_element(By.XPATH, '//video/source')
+                            url = source.get_attribute("src")
+                            qualities = self.driver.find_elements(By.XPATH, '//button[@data-plyr="quality"]')
+                            max_quality = 0
+                            for quality in qualities:
+                                value = int(quality.get_attribute("value"))
+                                if value > max_quality:
+                                    max_quality = value
+                            images.append(url + f"{{{max_quality}}}{iframe_url}")
+                            self.driver.switch_to.default_content()
+                if pictures:
+                    for picture in pictures:
+                        # print(f"Found pictures: {post}")
+                        content_found = True
+                        imgs = picture.find_elements(By.XPATH, "//img")
+                        for img in imgs:
+                            url = img.get_attribute("src")
+                            if "m.porn3dx.com" in url and not any(s in url for s in ("avatar", "thumb")):
+                                images.append(url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     # TODO: Site may be down permanently

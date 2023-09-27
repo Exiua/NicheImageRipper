@@ -4,6 +4,7 @@ import json
 import os
 import io
 import re
+import shutil
 import string
 import struct
 import subprocess
@@ -1370,6 +1371,12 @@ def porn3dx_test():
         ydl.download(url)
 
 
+def hidden_folder_get():
+    folder = Path("./Temp")
+    for f in folder.glob(".*"):
+        shutil.rmtree(f)
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
@@ -1377,5 +1384,5 @@ if __name__ == "__main__":
     # link_cleaner()
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
-    #clean_links()
-    porn3dx_test()
+    # clean_links()
+    hidden_folder_get()

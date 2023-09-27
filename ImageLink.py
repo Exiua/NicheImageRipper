@@ -51,10 +51,11 @@ class ImageLink:
             split = url.split("}")
             playlist_url = split[0]
             self.referer = split[1]
-            match = re.search(r"[^{]+{(\d+)", playlist_url)
-            resolution = self.resolution_lookup(match.group(1))
+            # match = re.search(r"[^{]+{(\d+)", playlist_url)
+            # resolution = self.resolution_lookup(match.group(1))
             self.link_info = LinkInfo.IFRAME_MEDIA
-            link_url = playlist_url.split("{")[0].replace("/playlist.drm", f"/{resolution}/video.drm")
+            # link_url = playlist_url.split("{")[0].replace("/playlist.drm", f"/{resolution}/video.drm")
+            link_url = playlist_url.split("{")[0]
             return link_url  # f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
         else:
             return url
@@ -111,7 +112,7 @@ class ImageLink:
             self.link_info = LinkInfo.M3U8
         elif "iframe.mediadelivery.net" in url:
             file_name = url.split("/")[-2]
-            file_name += ".mp4"
+            # file_name += ".mp4"
         elif "erocdn.co" in url:
             parts = url.split("/")
             ext = parts[-1].split(".")[-1]

@@ -6,6 +6,7 @@ import logging.handlers
 import os
 import pickle
 import re
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -32,6 +33,7 @@ from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
 from Util import url_check, SCHEME
+from b_cdn_drm_vod_dl import BunnyVideoDRM
 
 SESSION_HEADERS: dict[str, str] = {
     "User-Agent":
@@ -352,13 +354,18 @@ class ImageRipper:
     def __download_iframe_media(folder_path: str, image_link: ImageLink):
         destination_file = Path(folder_path)
         destination_file.parent.mkdir(parents=True, exist_ok=True)
-        cmd = ["yt-dlp", "--referer", image_link.referer, image_link.url, "--user-agent",
-               "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-               "-o", str(destination_file)]
-        print(" ".join(cmd))
-        out = subprocess.run(cmd, capture_output=True)
-        print(out.stdout.decode())
-        print(out.stderr.decode())
+        video = BunnyVideoDRM(
+            # insert the referer between the quotes below (address of your webpage)
+            referer=image_link.url,
+            # paste your embed link
+            embed_url=image_link.referer,
+            # you can override file name, no extension
+            name=destination_file.name,
+            # you can override download path
+            path=str(destination_file.parent))
+        video.download()
+        for f in destination_file.parent.glob(".*"):
+            shutil.rmtree(f)
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""
