@@ -61,15 +61,14 @@ def create_button(text: str, width: int = 75) -> QPushButton:
     button.setFixedWidth(width)
     return button
 
+
 # endregion
 
-
-class NicheImageRipper(QWidget):
+class NicheImageRipperBase:
     display_sync: threading.Semaphore = threading.Semaphore(0)
     update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
 
-    def __init__(self, parent: QWidget | None = None):
-        super().__init__(parent)
+    def __init__(self):
         self.title: str = "NicheImagerRipper"
         self.latest_version: str = self.get_git_version()
         self.url_queue: Queue = Queue()
@@ -85,6 +84,56 @@ class NicheImageRipper(QWidget):
         self.version: str = "v2.1.0"
         self.save_folder: str = "."
 
+    def get_history_data(self) -> list[list[str]]:
+        """
+
+        """
+
+    def load_history(self):
+        """
+
+        """
+
+    def save_data(self):
+        if self.url_queue.not_empty:
+            self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
+        if self.interrupted and self.ripper.current_index > 1:
+            with open(".ripIndex", "w") as f:
+                f.write(str(self.ripper.current_index))
+        self.save_to_json('RipHistory.json', self.get_history_data())  # Save history data
+        Config.config['SavePath'] = self.save_folder  # Update the config
+        # Config.config['DEFAULT', 'Theme'] = self.theme_color
+        Config.config['FilenameScheme'] = self.filename_scheme.name.title()
+        Config.config['AskToReRip'] = self.rerip_ask
+        Config.config['LiveHistoryUpdate'] = self.live_update
+        # Config.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
+
+    @staticmethod
+    def save_to_json(file_name: str, data: any):
+        """Save data to json file"""
+        with open(file_name, 'w') as save_file:
+            json.dump(data, save_file, indent=4)
+
+    @staticmethod
+    def get_git_version() -> str:
+        """
+        Retrieve the version tag from the remote git repo
+
+        :return: latest version tag from the remote git repo or v0.0.0 if unable to connect to the repo
+        """
+        try:
+            response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
+        except requests.exceptions.ConnectionError:
+            return "v0.0.0"
+        try:
+            return response.json()['tag_name']
+        except KeyError:
+            return "v0.0.0"
+
+
+class NicheImageRipper(QWidget, NicheImageRipperBase):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
         ImageRipper.status_sync = self.status_sync
 
         stdout = OutputRedirect(self, True)
@@ -251,18 +300,7 @@ class NicheImageRipper(QWidget):
         # endregion
 
     def closeEvent(self, event: QtGui.QCloseEvent):
-        if self.url_queue.not_empty:
-            self.save_to_json('UnfinishedRips.json', list(self.url_queue.queue))  # Save queued urls
-        if self.interrupted and self.ripper.current_index > 1:
-            with open(".ripIndex", "w") as f:
-                f.write(str(self.ripper.current_index))
-        self.save_to_json('RipHistory.json', self.get_history_data()) # Save history data
-        Config.config['SavePath'] = self.save_folder  # Update the config
-        # Config.config['DEFAULT', 'Theme'] = self.theme_color
-        Config.config['FilenameScheme'] = self.filename_scheme.name.title()
-        Config.config['AskToReRip'] = self.rerip_ask
-        Config.config['LiveHistoryUpdate'] = self.live_update
-        # Config.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
+        self.save_data()
 
     def redirect_output(self, raw_text: str, stderr: bool):
         self.log_field.moveCursor(QTextCursor.End)
@@ -282,12 +320,6 @@ class NicheImageRipper(QWidget):
         else:
             color = QColor.fromRgb(0)
             return raw_text, color
-
-    @staticmethod
-    def save_to_json(file_name: str, data: any):
-        """Save data to json file"""
-        with open(file_name, 'w') as save_file:
-            json.dump(data, save_file, indent=4)
 
     def add_history_entry(self, name: str, url: str, date: str, count: int):
         row_pos = self.history_table.rowCount()
@@ -598,22 +630,6 @@ class NicheImageRipper(QWidget):
         :param label: QLabel to clear the text of
         """
         label.setText("")
-
-    @staticmethod
-    def get_git_version() -> str:
-        """
-        Retrieve the version tag from the remote git repo
-
-        :return: latest version tag from the remote git repo or v0.0.0 if unable to connect to the repo
-        """
-        try:
-            response = requests.get("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest")
-        except requests.exceptions.ConnectionError:
-            return "v0.0.0"
-        try:
-            return response.json()['tag_name']
-        except KeyError:
-            return "v0.0.0"
 
 
 if __name__ == "__main__":
