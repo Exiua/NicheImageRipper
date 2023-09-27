@@ -216,6 +216,10 @@ class ImageRipper:
                     except requests.exceptions.ChunkedEncodingError:
                         sleep(10)
                         self.__download_from_list(link, full_path, i)
+                    except FileNotFoundError:
+                        if link.link_info == LinkInfo.IFRAME_MEDIA:
+                            with open("failed_iframe.txt", "a") as f:
+                                f.write(f"{link.url} {link.referer}\n")
                 if cyberdrop_files:
                     self.__cyberdrop_download(full_path, cyberdrop_files)
 
