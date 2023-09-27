@@ -122,7 +122,7 @@ class BunnyVideoDRM:
                 headers=self.headers['playlist'])
             resolutions = re.findall(r'RESOLUTION=(.*)', response.text)[::-1]
             if not resolutions:
-                sys.exit(2)
+                raise FileNotFoundError
             else:
                 return resolutions[0]  # highest resolution, -1 for lowest
 
@@ -178,9 +178,9 @@ class BunnyVideoDRM:
 if __name__ == '__main__':
     video = BunnyVideoDRM(
         # insert the referer between the quotes below (address of your webpage)
-        referer='https://iframe.mediadelivery.net/82965dff-c070-4506-a69c-6720e44371ed/playlist.drm?contextId=d2e6aedd-d926-4b0a-8b69-2f27dcbc10d2&secret=71637114-e391-4c99-ba45-2bdfee86f840',
+        referer='https://iframe.mediadelivery.net/5056fb0a-a739-416e-92af-acfa505e7b3a/playlist.drm?contextId=99959a4c-f523-4e30-ade5-710de730cad4&secret=1b0ccff3-d931-42e1-b7ce-656f347ec164',
         # paste your embed link
-        embed_url='https://iframe.mediadelivery.net/embed/21030/82965dff-c070-4506-a69c-6720e44371ed?autoplay=false&loop=true',
+        embed_url='https://iframe.mediadelivery.net/embed/21030/5056fb0a-a739-416e-92af-acfa505e7b3a?autoplay=false&loop=true',
         # you can override file name, no extension
         name="test2",
         # you can override download path
