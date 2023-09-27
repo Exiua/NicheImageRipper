@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import abc
 import argparse
 import json
 import os
 import sys
 import threading
+from abc import ABC
 from datetime import datetime
 from queue import Queue
 from threading import Timer
+from typing import Callable
 
 import requests
 from PyQt5 import QtCore, QtGui
@@ -17,7 +20,7 @@ from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPush
     QTextBrowser
 
 from Config import Config
-from Enums import FilenameScheme, UnzipProtocol
+from Enums import FilenameScheme, UnzipProtocol, QueueResult
 from ImageRipper import ImageRipper
 from StatusSync import StatusSync
 from Util import url_check
@@ -64,7 +67,7 @@ def create_button(text: str, width: int = 75) -> QPushButton:
 
 # endregion
 
-class NicheImageRipperBase:
+class NicheImageRipperBase(ABC):
     display_sync: threading.Semaphore = threading.Semaphore(0)
     update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
 
@@ -84,15 +87,104 @@ class NicheImageRipperBase:
         self.version: str = "v2.1.0"
         self.save_folder: str = "."
 
+    @abc.abstractmethod
     def get_history_data(self) -> list[list[str]]:
         """
 
         """
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def load_history(self):
         """
 
         """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_history(self, ripper: ImageRipper, url: str):
+        """
+
+        """
+        raise NotImplementedError
+
+    def load_app_data(self):
+        if os.path.isfile('config.json'):
+            self.load_config()
+        if os.path.isfile('RipHistory.json'):
+            self.load_history()
+
+    def load_config(self):
+        """
+            Load application configuration file
+        """
+        self.save_folder = Config.config['SavePath']
+        self.filename_scheme = FilenameScheme[Config.config['FilenameScheme'].upper()]
+        self.unzip_protocol = UnzipProtocol[Config.config["UnzipProtocol"].upper()]
+        self.rerip_ask = Config.config['AskToReRip']
+        self.live_update = Config.config['LiveHistoryUpdate']
+
+    def _load_url_file(self, filepath: str):
+        with open(filepath, 'r') as load_file:
+            loaded_urls = json.load(load_file)
+        for url in loaded_urls:
+            self.add_to_url_queue(url)
+
+    @staticmethod
+    def _load_history() -> list[list[str]]:
+        with open("RipHistory.json", 'r') as load_file:
+            rip_history = json.load(load_file)
+        return rip_history
+
+    @abc.abstractmethod
+    def add_to_url_queue(self, item: str):
+        """
+            Add a url to the url queue
+        :param item: url to add to the url queue
+        """
+        raise NotImplementedError
+
+    def _queue_urls(self, urls: str) -> QueueResult:
+        url_list = self.separate_string(urls, "https://")
+        for url in url_list:
+            if url.count("http://") > 1:
+                urls = self.separate_string(url, "http://")
+                for u in urls:
+                    self.add_to_url_queue(u)
+            else:
+                if url_check(url):
+                    if url not in self.url_queue.queue:
+                        self.add_to_url_queue(url)
+                    else:
+                        return QueueResult.ALREADY_QUEUED
+                else:
+                    return QueueResult.NOT_SUPPORTED
+        return QueueResult.SUCCESS
+
+    def rip_urls_starter(self):
+        """
+            Start a new thread for ripping all images from urls in the url queue
+        """
+        if not self.ripper_thread.is_alive() and self.url_queue.qsize() != 0:
+            self.ripper_thread = threading.Thread(target=self.rip_urls, daemon=True)
+            self.ripper_thread.start()
+
+    @abc.abstractmethod
+    def rip_urls(self):
+        """
+            Rip files from all urls in the url queue
+        """
+        raise NotImplementedError
+
+    def _rip_url(self) -> str:
+        url = self.url_queue.queue[0]
+        print(url)
+        self.ripper = ImageRipper(self.filename_scheme, self.unzip_protocol)
+        self.interrupted = True  # Flag to indicate ripper was running when close event executes
+        self.ripper.rip(url)
+        self.interrupted = False
+        self.url_queue.get()
+        return url
 
     def save_data(self):
         if self.url_queue.not_empty:
@@ -107,6 +199,60 @@ class NicheImageRipperBase:
         Config.config['AskToReRip'] = self.rerip_ask
         Config.config['LiveHistoryUpdate'] = self.live_update
         # Config.config['DEFAULT', 'NumberOfThreads'] = str(self.max_threads)
+
+    def is_latest_version(self) -> bool:
+        """
+            Check current version against latest version of application
+        """
+        v1 = self.version.replace("v", "").split(".")
+        v2 = self.latest_version.replace("v", "").split(".")
+
+        if int(v1[0]) == int(v2[0]):
+            if int(v1[1]) == int(v2[1]):
+                return int(v1[2]) >= int(v2[2])
+            else:
+                return int(v1[1]) > int(v2[1])
+        else:
+            return int(v1[0]) > int(v2[0])
+
+    def clear_cache(self):
+        """
+            Removed the cache files .ripIndex and partial.json
+        """
+        self.__silently_remove_files(".ripIndex", "partial.json")
+
+    def __silently_remove_files(self, *filepaths: str):
+        """
+            Remove files without raise an exception
+        :param filepaths: filepaths to remove
+        """
+        for filepath in filepaths:
+            self.__silently_remove_file(filepath)
+
+    @staticmethod
+    def __silently_remove_file(filepath: str):
+        """
+            Remove a filepath without raising an exception
+        :param filepath: filepath to remove
+        """
+        try:
+            os.remove(filepath)
+        except FileNotFoundError:
+            pass
+
+    @staticmethod
+    def separate_string(base_string: str, delimiter: str) -> list[str]:
+        """
+            Split a string while keeping the delimiter attached to each part
+        :param base_string: string to spilt
+        :param delimiter: delimiter to split the string by
+        :return: list of split elements of the base_string with delimiters still attached
+        """
+        string_list = base_string.split(delimiter)  # Split by delimiter
+        if string_list[0] == "":
+            string_list.pop(0)
+        string_list = ["".join([delimiter, string.strip()]) for string in string_list]
+        return string_list
 
     @staticmethod
     def save_to_json(file_name: str, data: any):
@@ -277,7 +423,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
         rip_button.clicked.connect(self.queue_url)
         self.pause_button.clicked.connect(self.toggle_ripper)
         save_folder_button.clicked.connect(self.set_save_folder)
-        load_url_button.clicked.connect(self.load_json_file)
+        load_url_button.clicked.connect(self.load_url_file)
         check_update_button.clicked.connect(self.check_latest_version)
         clear_cache_button.clicked.connect(self.clear_cache)
 
@@ -292,10 +438,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
 
         # region Load Data
 
-        if os.path.isfile('config.json'):
-            self.load_config()
-        if os.path.isfile('RipHistory.json'):
-            self.load_history()
+        self.load_app_data()
 
         # endregion
 
@@ -353,58 +496,33 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
         return data
 
     def load_history(self):
-        with open("RipHistory.json", 'r') as load_file:
-            rip_history: list[list[str]] = json.load(load_file)
+        rip_history = self._load_history()
         for entry in rip_history:
             self.add_history_entry(*entry)
 
     def queue_url(self):
         raw_urls = self.url_field.text()
-        url_list = self.separate_string(raw_urls, "https://")
-        for url in url_list:
-            if url.count("http://") > 1:
-                urls = self.separate_string(url, "http://")
-                for u in urls:
-                    self.add_to_url_queue(u)
-            else:
-                if url_check(url):
-                    if url not in self.url_queue.queue:
-                        self.add_to_url_queue(url)
-                    else:
-                        self.set_label_text(self.status_label, "Already queued", "green", 2.5)
-                else:
-                    self.set_label_text(self.status_label, "Not a support site", "red", 2.5)
+        result = self._queue_urls(raw_urls)
+        if result == QueueResult.ALREADY_QUEUED:
+            self.set_label_text(self.status_label, "Already queued", "green", 2.5)
+        elif result == QueueResult.NOT_SUPPORTED:
+            self.set_label_text(self.status_label, "Not a support site", "red", 2.5)
         self.url_field.clear()
         self.update_url_queue()
         self.rip_urls_starter()
 
-    def rip_urls_starter(self):
-        """
-        Start a new thread for ripping all images from urls in the url queue
-        """
-        if not self.ripper_thread.is_alive() and self.url_queue.qsize() != 0:
-            self.ripper_thread = threading.Thread(target=self.rip_urls, daemon=True)
-            self.ripper_thread.start()
-
     def rip_urls(self):
         """
-        Rip files from all urls in the url queue
+            Rip files from all urls in the url queue
         """
         while self.url_queue.qsize() != 0:
-            url = self.url_queue.queue[0]
-            print(url)
-            self.ripper = ImageRipper(self.filename_scheme, self.unzip_protocol)
-            self.interrupted = True  # Flag to indicate ripper was running when close event executes
-            self.ripper.rip(url)
-            self.interrupted = False
-            self.url_queue.get()
+            url = self._rip_url()
             self.update_display.emit(self.ripper, url)
-            self.display_sync.acquire()
+            self.display_sync.acquire()     # Wait until display has updated
 
     def update_display_sequence(self, ripper: ImageRipper, url: str):
         """
-        Update url queue and rip history displays
-
+            Update url queue and rip history displays
         :param ripper: ImageRipper that stores information of the completed rip job
         :param url: url of the completed rip job
         """
@@ -414,8 +532,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
 
     def update_history(self, ripper: ImageRipper, url: str):
         """
-        Update the history table with a new entry
-
+            Update the history table with a new entry
         :param ripper: ImageRipper that stores information of the completed rip job
         :param url: url of the completed rip job
         """
@@ -433,25 +550,9 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
                                    ripper.folder_info.num_urls)
         ripper.folder_info = []
 
-    @staticmethod
-    def separate_string(base_string: str, delimiter: str) -> list[str]:
-        """
-        Split a string while keeping the delimiter attached to each part
-
-        :param base_string: string to spilt
-        :param delimiter: delimiter to split the string by
-        :return: list of split elements of the base_string with delimiters still attached
-        """
-        string_list = base_string.split(delimiter)  # Split by delimiter
-        if string_list[0] == "":
-            string_list.pop(0)
-        string_list = ["".join([delimiter, string.strip()]) for string in string_list]
-        return string_list
-
     def add_to_url_queue(self, item: str):
         """
-        Add a url to the url queue
-
+            Add a url to the url queue
         :param item: url to add to the url queue
         """
         # If user wants to be prompted and if url is in the history
@@ -463,8 +564,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
 
     def popup_yes_no(self, message: str) -> QMessageBox.StandardButton:
         """
-        Create a popup with yes or no options
-
+            Create a popup with yes or no options
         :param message: message to be displayed by the popup
         :return: user selection of QMessageBox.Yes or QMessageBox.No based on option selected
         """
@@ -473,7 +573,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
 
     def update_url_queue(self):
         """
-        Update the visual display of the url queue
+            Update the visual display of the url queue
         """
         self.queue_field.clear()
         for url in self.url_queue.queue:
@@ -481,7 +581,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
 
     def toggle_ripper(self):
         """
-        Toggle the ripper's run/pause state
+            Toggle the ripper's run/pause state
         """
         if self.status_sync.pause:
             self.pause_button.setIcon(QtGui.QIcon("./Icons/pause.svg"))
@@ -490,65 +590,34 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
             self.pause_button.setIcon(QtGui.QIcon("./Icons/play.svg"))
             self.status_sync.pause = True
 
-    def clear_cache(self):
-        """
-        Removed the cache files .ripIndex and partial.json
-        """
-        self.__silently_remove_files(".ripIndex", "partial.json")
-
-    def __silently_remove_files(self, *filepaths: str):
-        """
-        Remove files without raise an exception
-        :param filepaths: filepaths to remove
-        """
-        for filepath in filepaths:
-            self.__silently_remove_file(filepath)
-
-    @staticmethod
-    def __silently_remove_file(filepath: str):
-        """
-        Remove a filepath without raising an exception
-
-        :param filepath: filepath to remove
-        """
-        try:
-            os.remove(filepath)
-        except FileNotFoundError:
-            pass
-
     def set_rerip(self, value: bool):
         """
-        Update the rerip_ask value
-
+            Update the rerip_ask value
         :param value: new value of rerip_ask
         """
         self.rerip_ask = value
 
     def set_live_update(self, value: bool):
         """
-        Update the live_update value
-
+            Update the live_update value
         :param value: new value of live_update
         """
         self.live_update = value
 
     def set_save_folder(self):
         """
-        Set directory where all rips will be saved
+            Set directory where all rips will be saved
         """
         folder = str(QFileDialog.getExistingDirectory(self, "Select Directory", self.save_folder_label.text()))
         self.save_folder_label.setText(folder)
         Config.config['SavePath'] = folder
 
-    def load_json_file(self):
+    def load_url_file(self):
         """
-        Queue urls from user selected .json file
+            Queue urls from user selected .json file
         """
         file = QFileDialog.getOpenFileName(self, "Select File", filter="*.json")[0]
-        with open(file, 'r') as load_file:
-            loaded_urls = json.load(load_file)
-        for url in loaded_urls:
-            self.add_to_url_queue(url)
+        self._load_url_file(file)
         self.update_url_queue()
 
     def file_scheme_changed(self, new_value: str):
@@ -573,33 +642,18 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
         """
             Load application configuration file
         """
-        self.save_folder = Config.config['SavePath']
+        super().load_config()
         self.save_folder_label.setText(self.save_folder)
-        saved_filename_scheme = FilenameScheme[Config.config['FilenameScheme'].upper()]
-        self.filename_scheme = saved_filename_scheme
-        self.file_scheme_combobox.setCurrentIndex(saved_filename_scheme.value)
-        saved_unzip_protocol = UnzipProtocol[Config.config["UnzipProtocol"].upper()]
-        self.unzip_protocol = saved_unzip_protocol
-        self.unzip_protocol_combobox.setCurrentIndex(saved_unzip_protocol.value)
-        self.rerip_ask = Config.config['AskToReRip']
         self.rerip_checkbox.setChecked(self.rerip_ask)
-        self.live_update = Config.config['LiveHistoryUpdate']
         self.live_update_checkbox.setChecked(self.live_update)
+        self.unzip_protocol_combobox.setCurrentIndex(self.unzip_protocol.value)
+        self.file_scheme_combobox.setCurrentIndex(self.filename_scheme.value)
 
     def check_latest_version(self):
         """
-        Check current version against latest version of application
+            Check current version against latest version of application
         """
-        v1 = self.version.replace("v", "").split(".")
-        v2 = self.latest_version.replace("v", "").split(".")
-
-        if int(v1[0]) == int(v2[0]):
-            if int(v1[1]) == int(v2[1]):
-                is_latest_version = int(v1[2]) >= int(v2[2])
-            else:
-                is_latest_version = int(v1[1]) > int(v2[1])
-        else:
-            is_latest_version = int(v1[0]) > int(v2[0])
+        is_latest_version = self.is_latest_version()
 
         if is_latest_version:
             self.set_label_text(self.check_update_label, f"{self.version} is the latest version", "green", 5)
@@ -608,8 +662,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
 
     def set_label_text(self, label: QLabel, text: str, color: str = None, display_time: float = 0):
         """
-        Set text of a given QLabel. If display_time is specified, the label text will be set for display_time seconds
-
+            Set text of a given QLabel. If display_time is specified, the label text will be set for display_time seconds
         :param label: QLabel to update the text of
         :param text: New text to display
         :param color: Color of the new text
@@ -625,8 +678,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
     @staticmethod
     def clear_label(label: QLabel):
         """
-        Clear the text of the given label
-
+            Clear the text of the given label
         :param label: QLabel to clear the text of
         """
         label.setText("")
