@@ -63,12 +63,7 @@ class HtmlParser:
     def __init__(self, header: dict[str, str], site_name: str = "",
                  filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
         global logged_in
-        options = Options()
-        if site_name != "v2ph" or logged_in:
-            options.add_argument("-headless")
-        options.add_argument(DRIVER_HEADER)
-        options.set_preference("dom.disable_beforeunload", True)
-        options.set_preference("browser.tabs.warnOnClose", False)
+        options = self.__initialize_options(site_name)
         self.driver: webdriver.Firefox = webdriver.Firefox(options=options)
         self.driver_pid: Popen = self.driver.service.process.pid
         self.interrupted: bool = False
@@ -213,6 +208,14 @@ class HtmlParser:
             "dropbox": self.dropbox_parse
         }
 
+    def __enter__(self) -> HtmlParser:
+        options = self.__initialize_options()
+        self.driver = webdriver.Firefox(options=options)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.driver.quit()
+
     @property
     def current_url(self):
         return self.driver.current_url
@@ -220,6 +223,16 @@ class HtmlParser:
     @current_url.setter
     def current_url(self, value):
         self.driver.get(value)
+
+    @staticmethod
+    def __initialize_options(site_name: str = "") -> Options:
+        options = Options()
+        if site_name != "v2ph" or logged_in:
+            options.add_argument("-headless")
+        options.add_argument(DRIVER_HEADER)
+        options.set_preference("dom.disable_beforeunload", True)
+        options.set_preference("browser.tabs.warnOnClose", False)
+        return options
 
     def parse_site(self, url: str) -> RipInfo:
         if path.isfile("partial.json"):
@@ -244,8 +257,6 @@ class HtmlParser:
             raise
         finally:
             self.driver.quit()
-            # os.kill(self.driver_pid, signal.SIGTERM)
-        # aise SiteParseError()
 
     def site_check(self) -> str:
         """
