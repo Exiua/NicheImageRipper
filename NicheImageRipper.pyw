@@ -85,7 +85,7 @@ class NicheImageRipper(ABC):
         self.unzip_protocol: UnzipProtocol = UnzipProtocol.NONE
         self.status_sync: StatusSync = StatusSync()
         self.ripper_thread: threading.Thread = threading.Thread()
-        self.version: str = "v2.1.0"
+        self.version: str = "v2.2.0"
         self.save_folder: str = "."
 
     @abc.abstractmethod
