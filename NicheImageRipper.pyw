@@ -67,11 +67,12 @@ def create_button(text: str, width: int = 75) -> QPushButton:
 
 # endregion
 
-class NicheImageRipperBase(ABC):
+class NicheImageRipper(ABC):
     display_sync: threading.Semaphore = threading.Semaphore(0)
     update_display: QtCore.pyqtSignal = QtCore.pyqtSignal(ImageRipper, str)
 
     def __init__(self):
+        super().__init__()
         self.title: str = "NicheImagerRipper"
         self.latest_version: str = self.get_git_version()
         self.url_queue: Queue = Queue()
@@ -277,7 +278,11 @@ class NicheImageRipperBase(ABC):
             return "v0.0.0"
 
 
-class NicheImageRipper(QWidget, NicheImageRipperBase):
+class NicheImageRipperMeta(type(QWidget), type(NicheImageRipper)):
+    pass
+
+
+class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperMeta):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         ImageRipper.status_sync = self.status_sync
@@ -518,7 +523,7 @@ class NicheImageRipper(QWidget, NicheImageRipperBase):
         while self.url_queue.qsize() != 0:
             url = self._rip_url()
             self.update_display.emit(self.ripper, url)
-            self.display_sync.acquire()     # Wait until display has updated
+            self.display_sync.acquire()  # Wait until display has updated
 
     def update_display_sequence(self, ripper: ImageRipper, url: str):
         """
@@ -699,6 +704,6 @@ if __name__ == "__main__":
         print("This feature is not yet supported")
     else:
         app = QApplication(sys.argv)
-        win = NicheImageRipper()
+        win = NicheImageRipperGUI()
         win.show()
         sys.exit(app.exec_())

@@ -1377,6 +1377,15 @@ def hidden_folder_get():
         shutil.rmtree(f)
 
 
+def exit_test():
+    for i in range(10):
+        try:
+            print(i)
+            sys.exit(1)
+        except SystemExit:
+            pass
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
@@ -1385,4 +1394,4 @@ if __name__ == "__main__":
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
     # clean_links()
-    hidden_folder_get()
+    exit_test()

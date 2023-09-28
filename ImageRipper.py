@@ -220,6 +220,10 @@ class ImageRipper:
                         if link.link_info == LinkInfo.IFRAME_MEDIA:
                             with open("failed_iframe.txt", "a") as f:
                                 f.write(f"{link.url} {link.referer}\n")
+                    except Exception:
+                        with open(".ripIndex", "w") as f:
+                            f.write(str(self.current_index))
+                        raise
                 if cyberdrop_files:
                     self.__cyberdrop_download(full_path, cyberdrop_files)
 
