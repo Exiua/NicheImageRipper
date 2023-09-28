@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import functools
-import hashlib
+import io
 import logging.handlers
-import json
 import os
+import pickle
 import re
+import shutil
 import subprocess
 import sys
-import pickle
+import zipfile
 from pathlib import Path
 from time import sleep
 from typing import BinaryIO
@@ -17,18 +18,22 @@ from urllib.parse import urlparse
 import PIL
 import requests
 from PIL import Image
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 from natsort import natsorted
 from requests import Response
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from FilenameScheme import FilenameScheme
 from Config import Config
+from Enums import FilenameScheme, UnzipProtocol, LinkInfo
 from HtmlParser import HtmlParser
+from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
 from Util import url_check, SCHEME
+from b_cdn_drm_vod_dl import BunnyVideoDRM
 
 SESSION_HEADERS: dict[str, str] = {
     "User-Agent":
@@ -50,23 +55,24 @@ class ImageRipper:
 
     status_sync: StatusSync = None
 
-    def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL):
-        self.cookies: dict[str, list[str]] = {
-            "v2ph": [],
-            "fantia": []
-        }
+    def __init__(self, filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL,
+                 unzip_protocol: UnzipProtocol = UnzipProtocol.NONE):
         self.requests_header: dict[str, str] = {
             'User-Agent':
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36',
             'referer':
                 'https://imhentai.xxx/',
             'cookie':
+                '',
+            'Authorization':
                 ''
         }
         self.filename_scheme: FilenameScheme = filename_scheme
-        self.folder_info: RipInfo = RipInfo("")
+        self.unzip_protocol: UnzipProtocol = unzip_protocol
+        self.folder_info: RipInfo = None
         self.given_url: str = ""
         self.interrupted: bool = False
+        self.auto_extract: bool = False
         self.logins: dict[str, dict[str, str]] = Config.config.logins
         self.logged_in: bool = os.path.isfile("cookies.pkl")
         self.save_path: str = Config.config['SavePath']
@@ -99,7 +105,7 @@ class ImageRipper:
         self.site_name = self.__site_check()
         if self.__cookies_needed():
             self.__add_cookies()
-        self.__image_getter()
+        self.__file_getter()
 
     def __add_cookies(self):
         if not os.path.isfile("cookies.pkl"):
@@ -136,11 +142,12 @@ class ImageRipper:
             return domain
         raise RipperError(f"Not a support site: {self.given_url}")
 
-    def __image_getter(self):
-        """Download images from URL."""
-        html_parser = HtmlParser(self.requests_header, self.site_name)
+    def __file_getter(self):
+        """
+            Download files from URL
+        """
+        html_parser = HtmlParser(self.requests_header, self.site_name, self.filename_scheme)
         self.folder_info = html_parser.parse_site(self.given_url)  # Gets image url, number of images, and name of album
-
         # Save location of this album
         full_path = os.path.join(self.save_path, self.folder_info.dir_name)
         if self.interrupted and self.filename_scheme != FilenameScheme.HASH:
@@ -149,10 +156,11 @@ class ImageRipper:
         # Checks if the dir path of this album exists
         Path(full_path).mkdir(parents=True, exist_ok=True)
 
-        if os.path.exists(".ripIndex"):
-            with open(".ripIndex", "r") as f:
+        rip_index = Path(".ripIndex")
+        if rip_index.exists():
+            with rip_index.open("r") as f:
                 start = int(f.read())
-            os.remove(".ripIndex")
+            rip_index.unlink()
         else:
             if self.folder_info.must_generate_manually:
                 start = 1
@@ -160,11 +168,11 @@ class ImageRipper:
                 start = 0
 
         # Can get the image through numerically ascending url for imhentai and hentairox
-        #   (hard to account for gifs otherwise)
+        #   (hard to account for gifs and other extensions otherwise)
         if self.folder_info.must_generate_manually:
             # Gets the general url of all images in this album
-            trimmed_url = self.__trim_url(self.folder_info.urls[0])
-            extensions = (".jpg", ".gif", ".png", "t.jpg")
+            trimmed_url = self.__trim_url(self.folder_info.urls[0].url)
+            extensions = (".jpg", ".gif", ".png", "mp4", "t.jpg")
 
             # Downloads all images from the general url by incrementing the file number
             #   (eg. https://domain/gallery/##.jpg)
@@ -181,25 +189,24 @@ class ImageRipper:
                         self.__download_from_url(trimmed_url, file_num, full_path, ext)
                         break  # Correct extension was found
                     except (PIL.UnidentifiedImageError, WrongExtension):
-                        #image_path = os.path.join(full_path, file_num + ext)  # "".join([full_path, "/", file_num, ext])
-                        #os.remove(image_path)  # Remove temp file if wrong file extension
                         if i == 3:
                             print("Image not found")
         # Easier to put all image url in a list and then download for these sites
         else:
             # Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
             if "cyberdrop" == self.site_name:
-                self.__cyberdrop_download(full_path, self.folder_info.urls)
+                self.__cyberdrop_download(full_path, [ImageLink(self.given_url, FilenameScheme.ORIGINAL, 0)])
             elif "deviantart" == self.site_name:
-                self.__deviantart_download(full_path, self.folder_info.urls[0])
+                self.__deviantart_download(full_path, self.folder_info.urls[0].url)
             else:
-                cyberdrop_files: list[str] = []
+                cyberdrop_files: list[ImageLink] = []
                 for i, link in enumerate(self.folder_info.urls[start:]):
+                    i = start + i
                     self.current_index = i
                     while self.pause:
                         sleep(1)
                     sleep(self.sleep_time)
-                    if any(domain in link for domain in CYBERDROP_DOMAINS):
+                    if any(domain in link.url for domain in CYBERDROP_DOMAINS):
                         cyberdrop_files.append(link)
                         continue
                     try:
@@ -209,27 +216,95 @@ class ImageRipper:
                     except requests.exceptions.ChunkedEncodingError:
                         sleep(10)
                         self.__download_from_list(link, full_path, i)
+                    except FileNotFoundError:
+                        if link.link_info == LinkInfo.IFRAME_MEDIA:
+                            with open("failed_iframe.txt", "a") as f:
+                                f.write(f"{link.url} {link.referer}\n")
+                    except Exception:
+                        with open(".ripIndex", "w") as f:
+                            f.write(str(self.current_index))
+                        raise
                 if cyberdrop_files:
                     self.__cyberdrop_download(full_path, cyberdrop_files)
-        print("Download Complete")
 
-    @staticmethod
-    def __cyberdrop_download(full_path: str, cyberdrop_files: list[str]):
-        cmd = ["cyberdrop-dl", "-o", full_path]
-        cmd.extend(cyberdrop_files)
-        print("Starting cyberdrop-dl")
-        subprocess.run(cmd)
-        print("Cyberdrop-dl finished")
+        if self.unzip_protocol != UnzipProtocol.NONE:
+            self.__unzip_files(full_path)
+        print("{#00FF00}Download Complete")
+
+    def __unzip_files(self, dir_path: str):
+        """
+            Recursively unzip all files in a given directory
+        :param dir_path: Path of directory to unzip files in
+        """
+        path = Path(dir_path)
+        content = path.rglob("*")
+        count = 0
+        error = 0
+        for item in content:
+            if item.is_dir():
+                continue
+            if item.suffix == ".zip":
+                try:
+                    self.__unzip_file(item)
+                    count += 1
+                except RuntimeError:
+                    print(f"Failed to extract: {item}")
+                    error += 1
+                    continue
+        print(f"Results:\n\tExtracted: {count}\n\tFailed: {error}")
+
+    def __unzip_file(self, zip_path: Path):
+        """
+            Unzip a given file
+        :param zip_path: File to unzip
+        """
+        extract_path = zip_path.with_suffix("")
+        extract_path.mkdir(parents=True, exist_ok=True)
+        try:
+            with zipfile.ZipFile(zip_path, "r") as f:
+                f.extractall(extract_path)
+        except zipfile.BadZipfile:
+            ext = self.__get_correct_ext(str(zip_path))
+            new_path = zip_path.with_suffix(ext)
+            zip_path.rename(new_path)
+            return
+        if self.unzip_protocol == UnzipProtocol.EXTRACT_DELETE:
+            zip_path.unlink()
+
+    def __cyberdrop_download(self, full_path: str, cyberdrop_files: list[ImageLink]):
+        cmd = ["gallery-dl", "-D", full_path]
+        cmd.extend([file.url for file in cyberdrop_files])
+        print(cmd)
+        self.__run_subprocess(cmd, "Starting gallery-dl", "Gallery-dl finished")
 
     def __deviantart_download(self, full_path: str, url: str):
-        cmd = ["gallery-dl", "-D", full_path, "-u", self.logins["deviantart"][0], "-p",
-               self.logins["deviantart"][1], "--write-log", "log.txt", url]
-        cmd = " ".join(cmd)
-        print("Starting Deviantart download")
+        cmd = ["gallery-dl", "-D", full_path, "-u", self.logins["DeviantArt"]["Username"], "-p",
+               self.logins["DeviantArt"]["Password"], "--write-log", "log.txt", url]
+        # cmd = " ".join(cmd)
+        self.__run_subprocess(cmd, start_message="Starting Deviantart download")
+
+    @staticmethod
+    def __run_subprocess(cmd: list[str], start_message: str = None, end_message: str = None):
+        """
+            Run the given subprocess
+        :param cmd: List of commands and arguments to run
+        :param start_message: Message to display before running subprocess
+        :param end_message: Message to display after running subprocess
+        """
+        if start_message:
+            print(start_message)
         subprocess.run(cmd, stdout=sys.stdout, stderr=subprocess.STDOUT)
+        if end_message:
+            print(end_message)
 
     def __download_from_url(self, url_name: str, file_name: str, full_path: str, ext: str):
-        """"Download image from image url"""
+        """"
+            Download image from image url
+        :param url_name: Base url to use to download the file from
+        :param file_name: Name of the file to download
+        :param full_path: Full path of the directory to download the file to
+        :param ext: Extension of the file to download
+        """
         num_files = self.folder_info.num_urls
         # Completes the specific image URL from the general URL
         rip_url = "".join([url_name, str(file_name), ext])
@@ -237,49 +312,68 @@ class ImageRipper:
         print("    ".join([rip_url, num_progress]))
         image_path = os.path.join(full_path, file_name + ext)  # "".join([full_path, "/", str(file_name), ext])
         self.__download_file(image_path, rip_url)
-
-        if self.filename_scheme == FilenameScheme.HASH:
-            self.__rename_file_to_hash(image_path, full_path, ext)
-
-        # Filenames are chronological by default on imhentai
         sleep(0.05)
 
-    def __download_from_list(self, image_url: str, full_path: str, current_file_num: int):
-        """Download images from url supplied from a list of image urls"""
+    def __download_from_list(self, image_link: ImageLink, full_path: str, current_file_num: int):
+        """
+            Download images from url supplied from a list of image urls
+        :param image_link: ImageLink containing data on the file to download
+        :param full_path: Full path of the directory to save the file to
+        :param current_file_num: Number of the file being downloaded
+        """
         num_files = self.folder_info.num_urls
-        rip_url = image_url.strip('\n')
+        rip_url = image_link.url
         num_progress = f"({str(current_file_num + 1)}/{str(num_files)})"
         print("    ".join([rip_url, num_progress]))
-
-        m3u8: bool = False
-        if "https://titsintops.com/" in rip_url and rip_url[-1] == "/":
-            file_name = rip_url.split("/")[-2]#.split(".")[0].replace("-", ".")
-            #print(file_name)
-            file_name = re.sub(r"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+\/?", r".\1", file_name)
-            #print(file_name)
-        elif "sendvid.com" in rip_url and ".m3u8" in rip_url:
-            file_name = rip_url.split("/")[6]
-            m3u8 = True
-        else:
-            file_name = os.path.basename(urlparse(rip_url).path)
-
+        file_name = image_link.filename
         image_path = os.path.join(full_path, file_name)
-        ext = os.path.splitext(image_path)[1]
-        if m3u8:
+        if image_link.link_info == LinkInfo.M3U8:
             self.__download_m3u8_to_mp4(image_path, rip_url)
+        elif image_link.link_info == LinkInfo.GDRIVE:
+            self.__download_gdrive_file(image_path, image_link)
+        elif image_link.link_info == LinkInfo.IFRAME_MEDIA:
+            self.__download_iframe_media(image_path, image_link)
         else:
             self.__download_file(image_path, rip_url)
-
-        if self.filename_scheme == FilenameScheme.HASH:
-            self.__rename_file_to_hash(image_path, full_path, ext)
-        elif self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
-            self.__rename_file_chronologically(image_path, full_path, ext, current_file_num)
-
         sleep(0.05)
 
-    def __download_m3u8_to_mp4(self, video_path: str, video_url: str):
-        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy", video_path]
+    @staticmethod
+    def __download_m3u8_to_mp4(video_path: str, video_url: str):
+        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy",
+               video_path]
         subprocess.run(cmd)
+
+    @staticmethod
+    def __download_gdrive_file(folder_path: str, image_link: ImageLink):
+        destination_file = os.path.join(folder_path, image_link.filename)
+        Path(destination_file).parent.mkdir(parents=True, exist_ok=True)
+        RipInfo.authenticate()
+        drive_service = build("drive", "v3", credentials=RipInfo.gdrive_creds)
+        request = drive_service.files().get_media(fileId=image_link.url)  # Url will be the file id when handling gdrive
+        fh = io.FileIO(destination_file, "wb")
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+            print(f"Downloaded {int(status.progress() * 100):d}%", end="\r")
+        print()
+
+    @staticmethod
+    def __download_iframe_media(folder_path: str, image_link: ImageLink):
+        destination_file = Path(folder_path)
+        destination_file.parent.mkdir(parents=True, exist_ok=True)
+        video = BunnyVideoDRM(
+            # insert the referer between the quotes below (address of your webpage)
+            referer=image_link.url,
+            # paste your embed link
+            embed_url=image_link.referer,
+            # you can override file name, no extension
+            name=destination_file.name,
+            # you can override download path
+            path=str(destination_file.parent))
+        video.download()
+        for f in destination_file.parent.glob(".*"):
+            shutil.rmtree(f)
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""
@@ -290,15 +384,16 @@ class ImageRipper:
             for _ in range(4):  # Try 4 times before giving up
                 if self.__download_file_helper(rip_url, image_path):
                     break
+            return  # Failed to download file
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
         # Context:
-        #   https://data1.kemono.party//data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
-        #   will fail, however, changing the subdomain to data5 will allow requests to download the file
-        #   given that there are generally correct cookies in place
+        #   https://c1.kemono.party/data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
+        #   will fail, however, changing the subdomain to c5 will allow requests to download the file
+        #   given that there are correct cookies in place
         except BadSubdomain:
             self.__dot_party_subdomain_handler(rip_url, image_path)
 
-        # If the downloaded file doesn't have an extension for some reason, default to jpg
+        # If the downloaded file doesn't have an extension for some reason, search for correct ext
         if os.path.splitext(image_path)[-1] == "":
             ext = self.__get_correct_ext(image_path)
             os.replace(image_path, image_path + ext)
@@ -310,8 +405,11 @@ class ImageRipper:
         try:
             response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
         except requests.exceptions.SSLError:
-            response = self.session.get(url, headers=self.requests_header, stream=True, verify=False)
-            bad_cert = True
+            try:
+                response = self.session.get(url, headers=self.requests_header, stream=True, verify=False)
+                bad_cert = True
+            except requests.exceptions.SSLError:
+                return False
         except requests.exceptions.ConnectionError:
             log.error("Unable to establish connection to " + url)
             return False
@@ -337,7 +435,7 @@ class ImageRipper:
         return True
 
     def __dot_party_subdomain_handler(self, url: str, image_path: str):
-        subdomain_search = re.search(r"data(\d)+", url)
+        subdomain_search = re.search(r"//c(\d)+", url)
 
         if subdomain_search:
             subdomain_num = int(subdomain_search.group(1))
@@ -349,14 +447,14 @@ class ImageRipper:
             if i == subdomain_num:
                 continue
 
-            rip_url = re.sub(r"data\d+", f"data{str(i)}", url)
+            rip_url = re.sub(r"//c\d+", f"//c{str(i)}", url)
 
             try:
                 self.__download_party_file(image_path, rip_url)
             except BadSubdomain:
-                print(f"\rTrying subdomain data{str(i)}...", end="")
+                print(f"\rTrying subdomain c{str(i)}...", end="")
                 if i == 99:
-                    self.__log_failed_url(re.sub(r"data\d+", f"data{str(subdomain_num)}", url))
+                    self.__log_failed_url(re.sub(r"//c\d+", f"//c{str(subdomain_num)}", url))
                     return
         print(url)
 
@@ -382,68 +480,75 @@ class ImageRipper:
         if not self.__write_to_file(response, image_path):
             self.__log_failed_url(rip_url)
 
-    def __rename_file_chronologically(self, image_path: str, full_path: str, ext: str, curr_num: str | int):
-        """Rename the given file to the number of the order it was downloaded in"""
-        curr_num = str(curr_num)
-        chronological_image_name = os.path.join(full_path, curr_num + ext)  # "".join([full_path, "/", curr_num, ext])
-        # Rename the image with the chronological image name
-        try:
-            os.replace(image_path, chronological_image_name)
-        except OSError:
-            with open("failed.txt", "a") as f:
-                f.write("".join([url + "\n" for url in self.folder_info.urls[int(curr_num)]]))
-
-    @staticmethod
-    def __rename_file_to_hash(image_path: str, full_path: str, ext: str):
-        """Rename the given file to the hash of the given file"""
-        # md5 hash is used as image name to avoid duplicate names
-        md5hash = hashlib.md5(Image.open(image_path).tobytes())
-        hash5 = md5hash.hexdigest()
-        image_hash_name = os.path.join(full_path, hash5 + ext)  # "".join([full_path, "/", hash5, ext])
-
-        # If duplicate exists, remove the duplicate
-        if os.path.exists(image_hash_name):
-            os.remove(image_path)
-        else:
-            # Otherwise, rename the image with the md5 hash
-            os.rename(image_path, image_hash_name)
-
     @staticmethod
     def __write_to_file(response: Response, file_path: str) -> bool:
+        """
+            Write response data to file
+        :param response: Response to write to file
+        :param file_path: Filepath to write to
+        :return: Boolean based on successfulness
+        """
+        save_path = Path(file_path).expanduser().absolute()
         for _ in range(4):
             try:
-                with open(file_path, "wb") as f:
+                with save_path.open("wb") as f:
                     for block in response.iter_content(chunk_size=50000):
                         if block:
                             f.write(block)
-                    return True
+                return True
             except ConnectionResetError:
                 print("Connection Reset, Retrying...")
                 sleep(1)
+            except OSError:
+                print(f"Failed to open file: {str(save_path)}")
         return False
 
     @staticmethod
     def __get_correct_ext(filepath: str) -> str:
-        with open(filepath, "rb") as f:
-            file_sig = os.read(f.fileno(), 8)
+        """
+            Get correct extension for a file based on file signature
+        :param filepath: Path to the file to analyze
+        :return: True extension of the file or the original extension if the file signature is unknown (will default to
+        .bin if the file does not have a file extension)
+        """
+        orig_filepath = Path(filepath)
+        with orig_filepath.open("rb") as f:
+            file_sig = f.read(8)
             if file_sig[:6] == b"\x52\x61\x72\x21\x1A\x07":  # is rar
                 return ".rar"
             elif file_sig == b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A":  # is png
                 return ".png"
             elif file_sig[:3] == b"\xff\xd8\xff":  # is jpg
                 return ".jpg"
-            elif file_sig[:4] == b"\x47\x49\x46\x38":  # is gif
+            elif file_sig[:4] in b"\x47\x49\x46\x38":  # is gif
                 return ".gif"
             elif file_sig[:4] == b"\x50\x4B\x03\x04":  # is zip
                 return ".zip"
             elif file_sig[:4] == b"\x38\x42\x50\x53":  # is psd
                 return ".psd"
+            elif file_sig[:4] == b"\x25\x50\x44\x46":  # is pdf
+                return ".pdf"
+            elif file_sig[:6] == b"\x37\x7A\xBC\xAF\x27\x1C":  # is 7z
+                return ".7z"
+            elif file_sig[:4] == b"\x1A\x45\xDF\xA3":
+                return ".webm"
+            elif file_sig[:4] == b"\x52\x49\x46\x46":
+                return ".webp"
+            elif file_sig[4:] == b"\x66\x74\x79\x70":
+                return ".mp4"
+            elif file_sig == b"\x43\x53\x46\x43\x48\x55\x4E\x4B":
+                return ".clip"
             else:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
-                return ".jpg"
+                if orig_filepath.suffix == "":
+                    return ".bin"
+                else:
+                    return orig_filepath.suffix
 
     def __verify_files(self, full_path: str):
-        """Check for truncated and corrupted files"""
+        """
+            Check for truncated and corrupted files
+        """
         _, _, files = next(os.walk(full_path))
         files = natsorted(files)
         image_links = []  # self.read_partial_save()["https://forum.sexy-egirls.com/threads/ashley-tervort.36594/"][0]
@@ -453,7 +558,7 @@ class ImageRipper:
         vid_cmd = ["ffmpeg.exe", "-v", "error", "-i", None, "-f", "null", "-", ">error.log", "2>&1"]  # Change idx 4
         for i, f in enumerate(files):
             filename = os.path.join(full_path, f)
-            vid_cmd[4] = "".join(['', filename, ''])
+            vid_cmd[4] = f"{filename}"
             stat_file = os.stat(filename)
             filesize = stat_file.st_size
             if filesize == 0:
@@ -481,7 +586,9 @@ class ImageRipper:
                         self.__redownload_files(filename, image_links[i])
 
     def __redownload_files(self, filename: str, url: str):
-        """Redownload damaged files"""
+        """
+            Re-download damaged files
+        """
         response = requests.get(url, headers=self.requests_header, stream=True)
         self.__write_to_file(response, filename)
 
@@ -490,17 +597,17 @@ class ImageRipper:
         total_lines_wanted = lines
 
         BLOCK_SIZE = 1024
-        f.seek(0, 2)
+        f.seek(0, os.SEEK_END)
         block_end_byte = f.tell()
         lines_to_go = total_lines_wanted
         block_number = -1
         blocks = []
         while lines_to_go > 0 and block_end_byte > 0:
             if block_end_byte - BLOCK_SIZE > 0:
-                f.seek(block_number * BLOCK_SIZE, 2)
+                f.seek(block_number * BLOCK_SIZE, os.SEEK_END)
                 blocks.append(f.read(BLOCK_SIZE))
             else:
-                f.seek(0, 0)
+                f.seek(0, os.SEEK_SET)
                 blocks.append(f.read(block_end_byte))
             lines_found = blocks[-1].count(b'\n')
             lines_to_go -= lines_found
@@ -519,7 +626,7 @@ class ImageRipper:
     @staticmethod
     def __log_failed_url(url: str):
         with open("failed.txt", "a", encoding="unicode_escape") as f:
-            f.write("".join([url, "\n"]))
+            f.write(f"{url}\n")
 
     @staticmethod
     def __trim_url(given_url: str) -> str:
