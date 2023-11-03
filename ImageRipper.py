@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 
 import PIL
 import requests
+import yt_dlp
 from PIL import Image
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -358,22 +359,27 @@ class ImageRipper:
             print(f"Downloaded {int(status.progress() * 100):d}%", end="\r")
         print()
 
-    @staticmethod
-    def __download_iframe_media(folder_path: str, image_link: ImageLink):
-        destination_file = Path(folder_path)
-        destination_file.parent.mkdir(parents=True, exist_ok=True)
-        video = BunnyVideoDRM(
-            # insert the referer between the quotes below (address of your webpage)
-            referer=image_link.url,
-            # paste your embed link
-            embed_url=image_link.referer,
-            # you can override file name, no extension
-            name=destination_file.name,
-            # you can override download path
-            path=str(destination_file.parent))
-        video.download()
-        for f in destination_file.parent.glob(".*"):
-            shutil.rmtree(f)
+    def __download_iframe_media(self, folder_path: str, image_link: ImageLink):
+        for i in range(4):
+            try:
+                destination_file = Path(folder_path)
+                destination_file.parent.mkdir(parents=True, exist_ok=True)
+                video = BunnyVideoDRM(
+                    # insert the referer between the quotes below (address of your webpage)
+                    referer=image_link.url,
+                    # paste your embed link
+                    embed_url=image_link.referer,
+                    # you can override file name, no extension
+                    name=destination_file.name,
+                    # you can override download path
+                    path=str(destination_file.parent))
+                video.download()
+                for f in destination_file.parent.glob(".*"):
+                    shutil.rmtree(f)
+                break
+            except (yt_dlp.utils.DownloadError, PermissionError):
+                if i == 3:
+                    self.__log_failed_url(image_link.url)
 
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""

@@ -419,9 +419,10 @@ def deviantart_requests():
 #     image.composite(force=True).save("test.png")
 
 
-def get_webdriver() -> webdriver.Firefox:
+def get_webdriver(headless: bool = True) -> webdriver.Firefox:
     options = Options()
-    options.headless = True
+    if headless:
+        options.add_argument("-headless")
     options.add_argument(DRIVER_HEADER)
     driver = webdriver.Firefox(options=options)
     return driver
@@ -1384,6 +1385,11 @@ def exit_test():
             sys.exit(1)
         except SystemExit:
             pass
+
+
+def rule34_parsing_test():
+    driver = get_webdriver(False)
+    driver.get("https://rule34.xxx/index.php?page=post&s=list&tags=hongbaise_raw")
 
 
 if __name__ == "__main__":

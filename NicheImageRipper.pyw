@@ -147,6 +147,7 @@ class NicheImageRipper(ABC):
 
     def _queue_urls(self, urls: str) -> QueueResult:
         url_list = self.separate_string(urls, "https://")
+        result = QueueResult.SUCCESS
         for url in url_list:
             if url.count("http://") > 1:
                 urls = self.separate_string(url, "http://")
@@ -157,10 +158,12 @@ class NicheImageRipper(ABC):
                     if url not in self.url_queue.queue:
                         self.add_to_url_queue(url)
                     else:
-                        return QueueResult.ALREADY_QUEUED
+                        if result < QueueResult.ALREADY_QUEUED:
+                            result = QueueResult.ALREADY_QUEUED
                 else:
-                    return QueueResult.NOT_SUPPORTED
-        return QueueResult.SUCCESS
+                    if result < QueueResult.NOT_SUPPORTED:
+                        result = QueueResult.NOT_SUPPORTED
+        return result
 
     def rip_urls_starter(self):
         """

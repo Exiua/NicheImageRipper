@@ -459,6 +459,7 @@ class HtmlParser:
 
         page = 0
         image_links = []
+        orig_url = self.current_url
         while True:
             page += 1
             print("".join(["Parsing page ", str(page)]))
@@ -470,7 +471,7 @@ class HtmlParser:
             soup = self.soupify(next_page)
             self.__print_html(soup)
             test_str = soup.find("h2", class_="site-section__subheading")
-            if test_str is not None:
+            if test_str is not None or self.current_url == orig_url:
                 break
 
         # endregion
@@ -2183,30 +2184,12 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
-    # Seems like all galleries have been deleted
-    def _pics_parse(self) -> RipInfo:
-        """Parses the html for pics.vc and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="gall_header").find("h2").text.split("-")[1].strip()
-        images = []
-        while True:
-            image_list = soup.find("div", class_="grid").find_all("div", class_="photo_el grid-item transition_bs")
-            image_list = [img.find("img").get("src").replace("/s/", "/o/") for img in image_list]
-            images.extend(image_list)
-            if soup.find("div", id="center_control").find("div", class_="next_page clip") is None:
-                break
-            else:
-                next_page = "".join(["https://pics.vc", soup.find("div", id="center_control").find("a").get("href")])
-                soup = self.soupify(next_page)
-        return RipInfo(images, dir_name, self.filename_scheme)
-
     def pinkfineart_parse(self) -> RipInfo:
         """Parses the html for pinkfineart.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h5", class_="d-none d-sm-block text-center my-2")
-        dir_name = "".join([t for t in dir_name.contents if type(t) == bs4.element.NavigableString])
+        dir_name = "".join([str(t) for t in dir_name.contents if type(t) == bs4.element.NavigableString])
         images = soup.find_all("div", class_="card ithumbnail-nobody ishadow ml-2 mb-3")
         images = ["".join(["https://pinkfineart.com", img.find("a").get("href")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
@@ -2225,7 +2208,6 @@ class HtmlParser:
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
-    # TODO: Fix to not need to download in the HtmlParser
     def porn3dx_parse(self) -> RipInfo:
         """
         Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
@@ -2391,8 +2373,7 @@ class HtmlParser:
         while len(data) != 0:
             urls = [post["file_url"] for post in data]
             images.extend(urls)
-            response = requests.get(
-                f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
             pid += 1
             data = response.json()
         return RipInfo(images, dir_name, self.filename_scheme)
