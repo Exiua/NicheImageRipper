@@ -181,11 +181,14 @@ NicheImageRipper.rar
 __init__.py
 .ripindex
 
+# Don't ignore
+!Wiki/*.md
+
 # Custom folders
 Rips/
 app/
 Tests/
 Temp/
+testRips/
 
-# Don't ignore
-!Wiki/*.md
+# Custom Files
