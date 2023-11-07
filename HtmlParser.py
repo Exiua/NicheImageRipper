@@ -340,7 +340,8 @@ class HtmlParser:
         jitter = random.random() * self.jitter
         sleep(seconds + jitter)
 
-    def __get_login_creds(self, site_name: str) -> tuple[str, str]:
+    @staticmethod
+    def __get_login_creds(site_name: str) -> tuple[str, str]:
         login = Config.config.logins[site_name]
         return login["Username"], login["Password"]
 
@@ -511,7 +512,10 @@ class HtmlParser:
 
         # endregion
 
+        for site in external_links:
+            external_links[site] = self.__remove_duplicates(external_links[site])
         self.__save_external_links(external_links)
+        images = self.__remove_duplicates(images)
         if any("dropbox.com/" in url for url in images):
             old_links = images
             images: list[str | ImageLink] = []
@@ -2981,7 +2985,7 @@ class HtmlParser:
                 parts = text.split()
                 for part in parts:
                     if site in part:
-                        external_links[site].append(part + "\n")
+                        external_links[site].append(self._extract_url(part) + "\n")
         return external_links
 
     @staticmethod
@@ -3022,6 +3026,11 @@ class HtmlParser:
 
     @staticmethod
     def __remove_duplicates(list_: list) -> list:
+        """
+            Remove duplicate elements from list while preserving order
+        :param list_: List of elements to remove duplicates from
+        :return: List of unique elements
+        """
         seen = set()
         clean_list = []
         for item in list_:
@@ -3048,14 +3057,26 @@ class HtmlParser:
             else:
                 f.write(self.driver.page_source)
 
-    @staticmethod
-    def _extract_url(text: str) -> str:
+    def _extract_url(self, text: str) -> str:
         protocol_index = text.find("https:")
         if protocol_index == -1:
             return ""
         url = text[protocol_index:]
         url.replace("</a>", "")
+        ending_offsets = (("?usp=sharing", 0), ("?usp=share_link", 0), ("open?id=", 33))
+        for ending, offset in ending_offsets:
+            url, modified = self.__trim_past_ending(url, ending, offset)
+            if modified:
+                return url
         return url
+
+    @staticmethod
+    def __trim_past_ending(text: str, ending: str, offset: int = 0) -> tuple[str, bool]:
+        idx = text.find(ending)
+        if idx == -1:
+            return text, False
+        idx += len(ending) + offset
+        return text[:idx], True
 
     @staticmethod
     def _print_debug_info(title: str, *data, fd="output.txt", clear=False):

@@ -1392,6 +1392,89 @@ def rule34_parsing_test():
     driver.get("https://rule34.xxx/index.php?page=post&s=list&tags=hongbaise_raw")
 
 
+def link_extractor():
+    with open("drive.google.com_links.txt", "r", encoding="utf-16") as f:
+        links = f.readlines()
+    links = [link.strip() for link in links]
+    ending_offsets = (("?usp=sharing", 0), ("?usp=share_link", 0), ("open?id=", 33))
+    cleaned_links = []
+    seen = set()
+    for link in links:
+        protocol_index = link.find("https:")
+        url = link[protocol_index:]
+        for ending, offset in ending_offsets:
+            url, modified = __trim_past_ending(url, ending, offset)
+            if modified:
+                break
+        if url not in seen:
+            cleaned_links.append(url + "\n")
+            seen.add(url)
+
+    with open("drive.google.com_links.txt", "w", encoding="utf-16") as f:
+        f.writelines(cleaned_links)
+
+
+def __trim_past_ending(text: str, ending: str, offset: int = 0) -> tuple[str, bool]:
+    idx = text.find(ending)
+    if idx == -1:
+        return text, False
+    idx += len(ending) + offset
+    return text[:idx], True
+
+
+def mega_link_parse(url: str) -> str:
+    start = url.find("https:")
+    if start == -1:
+        return ""
+    m = re.search(r"(/folder/|/#F!|/#!|/file/)", url)
+    if m is None:
+        print(url, file=sys.stderr)
+        return ""
+    match m.group(1):
+        case "/folder/":
+            end = m.span(1)[0] + len("/folder/") + 31
+        case "/#F!":
+            end = m.span(1)[0] + len("/#F!") + 31
+        case "/#!":
+            end = m.span(1)[0] + len("/#!") + 52
+        case "/file/":
+            end = m.span(1)[0] + len("/file/") + 52
+        case _:
+            print("No Match", url, file=sys.stderr)
+            return ""
+    if len(url) < end:
+        return ""
+    return url[start:end]
+
+
+def file_merge():
+    cwd = Path(".")
+    links = []
+    seen = set()
+    for file in cwd.glob("*mega*.txt"):
+        if file.stem == "mega_out":
+            continue
+        with file.open("r") as f:
+            data = f.readlines()
+        for item in data:
+            item = mega_link_parse(item)
+            if not item:
+                continue
+            if item not in seen:
+                seen.add(item)
+                links.append(item + "\n")
+
+    with open("mega_out.txt", "w", encoding="utf-8") as f:
+        f.writelines(links)
+
+
+def covert_utf16_to_ut8(filepath: str):
+    with open(filepath, "r", encoding="utf-16") as f:
+        data = f.read()
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(data)
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
@@ -1400,4 +1483,7 @@ if __name__ == "__main__":
     # url_parsing("")
     # query_gdrive_links(sys.argv[1])
     # clean_links()
-    exit_test()
+    # exit_test()
+    # link_extractor()
+    file_merge()
+    # covert_utf16_to_ut8(sys.argv[1])
