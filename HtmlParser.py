@@ -37,6 +37,7 @@ from Enums import FilenameScheme
 from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
+from UrlUtility import extract_url
 from Util import SCHEME, url_check
 
 PROTOCOL: str = "https:"
@@ -263,22 +264,23 @@ class HtmlParser:
             Check which site the url is from while also updating requests_header['referer'] to match the domain that
             hosts the files
         """
-        if url_check(self.given_url):
-            special_domains = ("inven.co.kr", "danbooru.donmai.us")
-            domain = urlparse(self.given_url).netloc
-            requests_header['referer'] = "".join([SCHEME, domain, "/"])
-            domain_parts = domain.split(".")
-            domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
-                domain_parts[-2]
-            # Hosts images on a different domain
-            if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
-                requests_header['referer'] = "https://cdn.discordapp.com/"
-            elif "https://kemono.party/" in self.given_url:
-                requests_header['referer'] = ""
-            elif "https://e-hentai.org/" in self.given_url:
-                self.sleep_time = 5
-            return domain
-        raise RipperError("Not a support site")
+        if not url_check(self.given_url):
+            raise RipperError("Not a support site")
+
+        special_domains = ("inven.co.kr", "danbooru.donmai.us")
+        domain = urlparse(self.given_url).netloc
+        requests_header['referer'] = "".join([SCHEME, domain, "/"])
+        domain_parts = domain.split(".")
+        domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
+            domain_parts[-2]
+        # Hosts images on a different domain
+        if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
+            requests_header['referer'] = "https://cdn.discordapp.com/"
+        elif "https://kemono.party/" in self.given_url:
+            requests_header['referer'] = ""
+        elif "https://e-hentai.org/" in self.given_url:
+            self.sleep_time = 5
+        return domain
 
     @staticmethod
     def sequential_rename(old_name: str, new_name: str):
@@ -2972,7 +2974,15 @@ class HtmlParser:
     def __extract_external_urls(self, urls: list[str]) -> dict[str, list[str]]:
         external_links: dict[str, list[str]] = self.__create_external_link_dict()
         for site in external_links.keys():
-            ext_links = [self._extract_url(url) + "\n" for url in urls if url and site in url]
+            # links = [link + "\n" for url in urls if url and site in url and (link := extract_url(url))]
+            # external_links[site].extend(links)
+            ext_links = []
+            for url in urls:
+                if not url or site not in url:
+                    continue
+                link = extract_url(url)
+                if link:
+                    ext_links.append(link + "\n")
             external_links[site].extend(ext_links)
         return external_links
 
@@ -2983,9 +2993,14 @@ class HtmlParser:
                 if site not in text:
                     continue
                 parts = text.split()
+                # links = [link + "\n" for part in parts if site in part and (link := extract_url(part))]
+                # external_links[site].extend(links)
                 for part in parts:
-                    if site in part:
-                        external_links[site].append(self._extract_url(part) + "\n")
+                    if site not in part:
+                        continue
+                    link = extract_url(part)
+                    if link:
+                        external_links[site].append(link + "\n")
         return external_links
 
     @staticmethod
@@ -3056,27 +3071,6 @@ class HtmlParser:
                 f.write(str(soup))
             else:
                 f.write(self.driver.page_source)
-
-    def _extract_url(self, text: str) -> str:
-        protocol_index = text.find("https:")
-        if protocol_index == -1:
-            return ""
-        url = text[protocol_index:]
-        url.replace("</a>", "")
-        ending_offsets = (("?usp=sharing", 0), ("?usp=share_link", 0), ("open?id=", 33))
-        for ending, offset in ending_offsets:
-            url, modified = self.__trim_past_ending(url, ending, offset)
-            if modified:
-                return url
-        return url
-
-    @staticmethod
-    def __trim_past_ending(text: str, ending: str, offset: int = 0) -> tuple[str, bool]:
-        idx = text.find(ending)
-        if idx == -1:
-            return text, False
-        idx += len(ending) + offset
-        return text[:idx], True
 
     @staticmethod
     def _print_debug_info(title: str, *data, fd="output.txt", clear=False):

@@ -37,6 +37,7 @@ from Config import Config
 from Enums import FilenameScheme
 from HtmlParser import DRIVER_HEADER
 from ImageLink import ImageLink
+from UrlUtility import gdrive_link_parse, mega_link_parse
 
 
 def string_join_test():
@@ -1396,55 +1397,16 @@ def link_extractor():
     with open("drive.google.com_links.txt", "r", encoding="utf-16") as f:
         links = f.readlines()
     links = [link.strip() for link in links]
-    ending_offsets = (("?usp=sharing", 0), ("?usp=share_link", 0), ("open?id=", 33))
     cleaned_links = []
     seen = set()
     for link in links:
-        protocol_index = link.find("https:")
-        url = link[protocol_index:]
-        for ending, offset in ending_offsets:
-            url, modified = __trim_past_ending(url, ending, offset)
-            if modified:
-                break
+        url = gdrive_link_parse(link)
         if url not in seen:
             cleaned_links.append(url + "\n")
             seen.add(url)
 
     with open("drive.google.com_links.txt", "w", encoding="utf-16") as f:
         f.writelines(cleaned_links)
-
-
-def __trim_past_ending(text: str, ending: str, offset: int = 0) -> tuple[str, bool]:
-    idx = text.find(ending)
-    if idx == -1:
-        return text, False
-    idx += len(ending) + offset
-    return text[:idx], True
-
-
-def mega_link_parse(url: str) -> str:
-    start = url.find("https:")
-    if start == -1:
-        return ""
-    m = re.search(r"(/folder/|/#F!|/#!|/file/)", url)
-    if m is None:
-        print(url, file=sys.stderr)
-        return ""
-    match m.group(1):
-        case "/folder/":
-            end = m.span(1)[0] + len("/folder/") + 31
-        case "/#F!":
-            end = m.span(1)[0] + len("/#F!") + 31
-        case "/#!":
-            end = m.span(1)[0] + len("/#!") + 52
-        case "/file/":
-            end = m.span(1)[0] + len("/file/") + 52
-        case _:
-            print("No Match", url, file=sys.stderr)
-            return ""
-    if len(url) < end:
-        return ""
-    return url[start:end]
 
 
 def file_merge():
