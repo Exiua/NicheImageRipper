@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
+from Config import Config
+
 SCHEME: str = "https://"
 
 # Global Variables
@@ -68,6 +70,11 @@ SUPPORTED_SITES: set[str] = {"https://imhentai.xxx/", "https://hotgirl.asia/", "
                              "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
                              "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
                              "https://www.dropbox.com/"}
+
+
+def get_login_creds(site_name: str) -> tuple[str, str]:
+    login = Config.config.logins[site_name]
+    return login["Username"], login["Password"]
 
 
 def url_check(given_url: str) -> bool:

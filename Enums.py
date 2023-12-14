@@ -23,6 +23,7 @@ class LinkInfo(CustomIntEnum):
     M3U8 = 1
     GDRIVE = 2
     IFRAME_MEDIA = 3
+    MEGA = 4
 
 
 class QueueResult(CustomIntEnum):

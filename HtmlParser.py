@@ -38,7 +38,7 @@ from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
 from UrlUtility import extract_url
-from Util import SCHEME, url_check
+from Util import SCHEME, url_check, get_login_creds
 
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # The XML parsing engine to be used by BeautifulSoup
@@ -46,7 +46,8 @@ DRIVER_HEADER: str = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
-EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
+EXTERNAL_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
+PARSEABLE_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "sendvid.com")
 
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -342,11 +343,6 @@ class HtmlParser:
         jitter = random.random() * self.jitter
         sleep(seconds + jitter)
 
-    @staticmethod
-    def __get_login_creds(site_name: str) -> tuple[str, str]:
-        login = Config.config.logins[site_name]
-        return login["Username"], login["Password"]
-
     def __porn3dx_login(self) -> bool:
         def try_send_key(xpath: str, key: str):
             fields = self.driver.find_elements(By.XPATH, xpath)
@@ -358,7 +354,7 @@ class HtmlParser:
                     pass
 
         curr_url = self.current_url
-        username, password = self.__get_login_creds("Porn3dx")
+        username, password = get_login_creds("Porn3dx")
         self.current_url = "https://porn3dx.com/login"
         logged_in_to_site = False
         if username and password:
@@ -373,7 +369,7 @@ class HtmlParser:
 
     def __newgrounds_login(self) -> bool:
         curr_url = self.current_url
-        username, password = self.__get_login_creds("Newgrounds")
+        username, password = get_login_creds("Newgrounds")
         self.current_url = "https://newgrounds.com/passport"
         self.driver.find_element(By.XPATH, '//input[@name="username"]').send_keys(username)
         self.driver.find_element(By.XPATH, '//input[@name="password"]').send_keys(password)
@@ -385,7 +381,7 @@ class HtmlParser:
 
     def __nijie_login(self) -> bool:
         orig_url = self.current_url
-        username, password = self.__get_login_creds("Nijie")
+        username, password = get_login_creds("Nijie")
         self.current_url = "https://nijie.info/login.php"
         if "age_ver.php" in self.current_url:
             self.driver.find_element(By.XPATH, '//li[@class="ok"]').click()
@@ -401,7 +397,7 @@ class HtmlParser:
 
     def __titsintops_login(self) -> bool:
         download_url = self.current_url
-        username, password = self.__get_login_creds("TitsInTops")
+        username, password = get_login_creds("TitsInTops")
         self.current_url = "https://titsintops.com/phpBB2/index.php?login/login"
         # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
         login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
@@ -505,7 +501,8 @@ class HtmlParser:
                                                                                    ("https", "http")) else link for link
                            in links if any(ext in link for ext in ATTACHMENTS)]
             images.extend(attachments)
-            images.extend(external_links["drive.google.com"])
+            for site in PARSEABLE_SITES:
+                images.extend(external_links[site])
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
@@ -2032,7 +2029,7 @@ class HtmlParser:
         self.site_name = "nijie"
         self.site_login()
         soup = self.soupify()
-        if not "members_illust" in self.current_url:
+        if "members_illust" not in self.current_url:
             member_id = re.findall(r"id=(\d+)", self.current_url)[0]
             soup = self.soupify(f"https://nijie.info/members_illust.php?id={member_id}")
         dir_name = soup.find("a", class_="name").text
@@ -2195,7 +2192,7 @@ class HtmlParser:
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h5", class_="d-none d-sm-block text-center my-2")
-        dir_name = "".join([str(t) for t in dir_name.contents if type(t) == bs4.element.NavigableString])
+        dir_name = "".join([str(t) for t in dir_name.contents if isinstance(t, bs4.element.NavigableString)])
         images = soup.find_all("div", class_="card ithumbnail-nobody ishadow ml-2 mb-3")
         images = ["".join(["https://pinkfineart.com", img.find("a").get("href")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)

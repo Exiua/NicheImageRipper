@@ -30,10 +30,11 @@ from Config import Config
 from Enums import FilenameScheme, UnzipProtocol, LinkInfo
 from HtmlParser import HtmlParser
 from ImageLink import ImageLink
+from MegaApi import mega_login, mega_whoami, mega_download
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from Util import url_check, SCHEME
+from Util import url_check, SCHEME, get_login_creds
 from b_cdn_drm_vod_dl import BunnyVideoDRM
 
 SESSION_HEADERS: dict[str, str] = {
@@ -76,6 +77,7 @@ class ImageRipper:
         self.auto_extract: bool = False
         self.logins: dict[str, dict[str, str]] = Config.config.logins
         self.logged_in: bool = os.path.isfile("cookies.pkl")
+        self.persistent_logins: dict[str, bool] = {}
         self.save_path: str = Config.config['SavePath']
         self.session: requests.Session = requests.Session()
         self.site_name: str = ""
@@ -334,6 +336,8 @@ class ImageRipper:
             self.__download_gdrive_file(image_path, image_link)
         elif image_link.link_info == LinkInfo.IFRAME_MEDIA:
             self.__download_iframe_media(image_path, image_link)
+        elif image_link.link_info == LinkInfo.MEGA:
+            self.__download_mega_files(image_path, image_link)
         else:
             self.__download_file(image_path, rip_url)
         sleep(0.05)
@@ -358,6 +362,22 @@ class ImageRipper:
             status, done = downloader.next_chunk()
             print(f"Downloaded {int(status.progress() * 100):d}%", end="\r")
         print()
+
+    def __download_mega_files(self, folder_path: str, image_link: ImageLink):
+        email, password = get_login_creds("Mega")
+        if "Mega" not in self.persistent_logins:
+            if mega_whoami() == email:
+                self.persistent_logins["Mega"] = True
+            else:
+                self.persistent_logins["Mega"] = mega_login(email, password)
+        else:
+            if not self.persistent_logins["Mega"]:
+                if mega_whoami() == email:
+                    self.persistent_logins["Mega"] = True
+                else:
+                    self.persistent_logins["Mega"] = mega_login(email, password)
+
+        mega_download(image_link.url, folder_path)
 
     def __download_iframe_media(self, folder_path: str, image_link: ImageLink):
         for i in range(4):

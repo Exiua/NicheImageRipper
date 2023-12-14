@@ -57,6 +57,12 @@ class ImageLink:
             # link_url = playlist_url.split("{")[0].replace("/playlist.drm", f"/{resolution}/video.drm")
             link_url = playlist_url.split("{")[0]
             return link_url  # f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
+        elif "drive.google.com" in url:
+            self.link_info = LinkInfo.GDRIVE
+            return url
+        elif "mega.nz" in url:
+            self.link_info = LinkInfo.MEGA
+            return url
         else:
             return url
 

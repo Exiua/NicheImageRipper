@@ -19,5 +19,11 @@ def mega_download(url: str, dest: str):
     subprocess.run(cmd, shell=True)
 
 
+def mega_whoami() -> str:
+    cmd = ["mega-whoami"]
+    out = subprocess.run(cmd, shell=True, capture_output=True)
+    return out.stdout.decode().split(" ")[-1]
+
+
 if __name__ == "__main__":
-    pass
+    mega_whoami()
