@@ -28,6 +28,10 @@ class ImageLink:
             return False
         return self.url == other.url
 
+    @property
+    def is_blob(self) -> bool:
+        return self.url.startswith("data:")
+
     @classmethod
     def deserialize(cls, object_data: dict) -> ImageLink:
         image_link = cls("", FilenameScheme.ORIGINAL, 0)

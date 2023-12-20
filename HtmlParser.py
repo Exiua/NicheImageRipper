@@ -338,6 +338,8 @@ class HtmlParser:
             return self.__nijie_login()
         if self.site_name == "porn3dx":
             return self.__porn3dx_login()
+        if self.site_name == "simpcity":
+            return self.__simpcity_login()
 
     def sleep(self, seconds: float):
         jitter = random.random() * self.jitter
@@ -412,6 +414,25 @@ class HtmlParser:
         button.click()
         while self.try_find_element(By.XPATH,
                                     '//button[@class="button--primary button button--icon button--icon--login"]'):
+            sleep(0.1)
+        self.current_url = download_url
+        return True
+
+    def __simpcity_login(self) -> bool:
+        download_url = self.current_url
+        username, password = get_login_creds("SimpCity")
+        self.current_url = "https://simpcity.su/login/login"
+        login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        while not login_input:
+            sleep(0.1)
+            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        login_input.send_keys(username)
+        password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
+        password_input.send_keys(password)
+        btn_xpath = '//button[@class="button--primary button button--icon button--icon--login rippleButton"]'
+        button = self.driver.find_element(By.XPATH, btn_xpath)
+        button.click()
+        while self.try_find_element(By.XPATH, btn_xpath):
             sleep(0.1)
         self.current_url = download_url
         return True
@@ -2560,6 +2581,33 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def simpcity_parse(self) -> RipInfo:
+        """
+            Parses the html for simpcity.su and extracts the relevant information necessary for
+            downloading images from the site
+        """
+        self.site_name = "simpcity"
+        self.site_login()
+        self.lazy_load(scroll_by=True, increment=1250)
+        input("")
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="p-title-value").text
+        images = []
+        while True:
+            posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
+            for post in posts:
+                imgs = post.find_all("img")
+                for img in imgs:
+                    url = img.get("src").replace(".md.", ".")
+                    images.append(url)
+            next_btn = soup.find("a", class_="pageNav-jump pageNav-jump--next")
+            if next_btn is None:
+                break
+            else:
+                next_page = next_btn.get("href")
+                soup = self.soupify(f"https://simpcity.su{next_page}")
+        return RipInfo(images, dir_name, self.filename_scheme, discard_blob=True)
+
     def simplycosplay_parse(self) -> RipInfo:
         """Parses the html for simply-cosplay.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2902,8 +2950,11 @@ class HtmlParser:
             if site_name == "999hentai":
                 site_name = "nine99hentai"
             print(f"Testing: {site_name}_parse")
+            start_time = time.time_ns()
             data: RipInfo = eval(f"self.{site_name}_parse()")
+            end_time = time.time_ns()
             print(data.urls[0].referer)
+            print(f"Time Elapsed: {end_time - start_time} ns")
             out = [d.url for d in data]
             with open("test.json", "w") as f:
                 json.dump(out, f, indent=4)

@@ -45,6 +45,10 @@ CONFIG_TEMPLATE: dict = {
         "Nijie": {
             "Username": "",
             "Password": ""
+        },
+        "SimpCity": {
+            "Username": "",
+            "Password": ""
         }
     },
     "Keys": {

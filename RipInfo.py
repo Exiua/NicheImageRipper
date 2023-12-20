@@ -25,7 +25,8 @@ class RipInfo:
 
     def __init__(self, urls: list[str | ImageLink] | str, dir_name: str = "",
                  filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL,
-                 generate: bool = False, num_urls: int = 0, filenames: list[str] = None):
+                 generate: bool = False, num_urls: int = 0, filenames: list[str] = None,
+                 discard_blob: bool = False):
         if isinstance(urls, str) or isinstance(urls, ImageLink):
             urls = [urls]
         self.filename_scheme: FilenameScheme = filename_scheme
@@ -33,7 +34,7 @@ class RipInfo:
         self.__filenames: list[str] = filenames
         if self.__dir_name:
             self.__dir_name = self.clean_dir_name(self.__dir_name)
-        self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls)
+        self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls, discard_blob)
         self.must_generate_manually: bool = generate
         self.url_count = num_urls if generate else len(self.urls)
 
@@ -56,7 +57,7 @@ class RipInfo:
         self.__dir_name = value
         self.__dir_name = self.clean_dir_name(self.__dir_name)
 
-    def __convert_urls_to_image_link(self, urls: list[str | ImageLink]) -> list[ImageLink]:
+    def __convert_urls_to_image_link(self, urls: list[str | ImageLink], discard_blob: bool = False) -> list[ImageLink]:
         image_links = []
         link_counter = 0
         filename_counter = 0
@@ -77,6 +78,8 @@ class RipInfo:
                 image_link = ImageLink(url, self.filename_scheme, link_counter, filename=filename)
                 image_links.append(image_link)
                 link_counter += 1
+        if discard_blob:
+            image_links = [image_link for image_link in image_links if not image_link.is_blob]
         return image_links
 
     @staticmethod
