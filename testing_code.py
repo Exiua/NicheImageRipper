@@ -1418,6 +1418,7 @@ def covert_utf16_to_ut8(filepath: str):
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(data)
 
+
 def video_download_test():
     # headers = {
     #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
@@ -1429,6 +1430,23 @@ def video_download_test():
     response = requests.get("https://fries.bunkr.ru/victoriahillova-2020-05-15-39863513-dkYu5Oqn.mp4")
     print(response.content)
 
+
+def pixeldrain_api_test():
+    api_key = Config.config.keys["Pixeldrain"]
+    auth_string = f":{api_key}"
+    base64_auth = base64.b64encode(auth_string.encode()).decode()
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/107.0.0.0 Safari/537.36"),
+        "Authorization": f"Basic {base64_auth}",
+    }
+    response = requests.get("https://pixeldrain.com/api/file/nAEhH6wF", headers=headers, stream=True)
+    with open("Performer victoriahillova show on 2023-02-26 0805 Chaturbate Archive – Recurbate.mp4", "wb") as f:
+        for block in response.iter_content(chunk_size=10240):
+            if block:
+                f.write(block)
+
+
 if __name__ == "__main__":
     # color_print_test()
     # sankaku_test()
@@ -1439,5 +1457,5 @@ if __name__ == "__main__":
     # clean_links()
     # exit_test()
     # link_extractor()
-    video_download_test()
+    pixeldrain_api_test()
     # covert_utf16_to_ut8(sys.argv[1])

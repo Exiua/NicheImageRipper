@@ -10,9 +10,10 @@ from RipperExceptions import RipperError
 
 
 class ImageLink:
-    def __init__(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "", gdrive: bool = False):
+    def __init__(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "",
+                 link_info: LinkInfo = LinkInfo.NONE):
         self.referer: str = ""  # Needs to be declared before url
-        self.link_info: LinkInfo = LinkInfo.GDRIVE if gdrive else LinkInfo.NONE
+        self.link_info: LinkInfo = link_info
         self.url: str = self.__generate_url(url)
         self.filename: str = self.__generate_filename(url, filename_scheme, index, filename)
 

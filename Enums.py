@@ -24,6 +24,7 @@ class LinkInfo(CustomIntEnum):
     GDRIVE = 2
     IFRAME_MEDIA = 3
     MEGA = 4
+    PIXELDRAIN = 5
 
 
 class QueueResult(CustomIntEnum):

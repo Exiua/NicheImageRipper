@@ -33,7 +33,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
-from Enums import FilenameScheme
+from Enums import FilenameScheme, LinkInfo
 from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
@@ -802,7 +802,7 @@ class HtmlParser:
             self.current_url = url
         soup = self.soupify()
         if url != "":
-            dir_name = soup.find("h1", class_="text-[24px] font-bold text-dark dark:text-white")
+            dir_name = soup.find("h1", class_="text-[24px] font-bold text-dark dark:text-white").text
         else:
             dir_name = ""
 
@@ -2251,6 +2251,40 @@ class HtmlParser:
         images = ["".join(["https://pinkfineart.com", img.find("a").get("href")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def pixeldrain_parse(self, url: str = "") -> RipInfo:
+        """
+            Queries the endpoints for pixeldrain.com and extracts the relevant information necessary for downloading
+            files
+        """
+        if url == "":
+            url = self.current_url
+        api_key = Config.config.keys["pixeldrain"]
+        counter = 0
+        images = []
+        if "/l/" in url:
+            #https://pixeldrain.com/l/3EoURSpZ#item=1
+            id_ = url.split("/")[4].split("#")[0]
+            response = requests.get(f"https://pixeldrain.com/api/list/{id_}")
+            response_json = response.json()
+            dir_name = response_json["title"]
+            files = response_json["files"]
+            for file in files:
+                link = ImageLink(file["id"], self.filename_scheme, counter, filename=file["name"],
+                                 link_info=LinkInfo.PIXELDRAIN)
+                counter += 1
+                images.append(link)
+        elif "/u/" in url:
+            id_ = url.split("/")[4]
+            response = requests.get(f"https://pixeldrain.com/api/file/{id_}/info")
+            response_json = response.json()
+            dir_name = response_json["id"]
+            link = ImageLink(response_json["id"], self.filename_scheme, counter, filename=response_json["name"],
+                             link_info=LinkInfo.PIXELDRAIN)
+            images.append(link)
+        else:
+            raise Exception(f"Unknown url: {url}")
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def pleasuregirl_parse(self) -> RipInfo:
         """Parses the html for pleasuregirl.net and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2621,23 +2655,27 @@ class HtmlParser:
         """
         self.site_login()
         self.lazy_load(scroll_by=True, increment=1250)
-        input("")
         soup = self.soupify()
         dir_name = soup.find("h1", class_="p-title-value").text
         images = []
+        page_count = 0
         while True:
+            print(f"Parsing page {page_count}")
+            page_count += 1
             posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
             for post in posts:
                 imgs = post.find_all("img")
                 for img in imgs:
                     url = img.get("src").replace(".md.", ".")
                     images.append(url)
-                iframes = soup.find_all("iframe", class_="saint-iframe")
+                iframes = post.find_all("iframe", class_="saint-iframe")
                 for i, _ in enumerate(iframes):
+                    with open("test.html", "w") as f:
+                        f.write(str(iframes[i]))
                     iframe = self.driver.find_element(By.XPATH, f'(//iframe[@class="saint-iframe"])[{i+1}]')
                     self.driver.switch_to.frame(iframe)
                     soup = self.soupify()
-                    video = soup.find("vide", id="main-video")
+                    video = soup.find("video", id="main-video")
                     url = video.find("source").get("src")
                     images.append(url)
                     self.driver.switch_to.default_content()

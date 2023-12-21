@@ -11,7 +11,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from Enums import FilenameScheme
+from Enums import FilenameScheme, LinkInfo
 from ImageLink import ImageLink
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
@@ -116,7 +116,7 @@ class RipInfo:
         if single_file:
             filename = res["searchedFolder"]["name"]
             file_id = id_
-            img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, gdrive=True)
+            img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, link_info=LinkInfo.GDRIVE)
             links.append(img_link)
             counter += 1
         else:
@@ -130,7 +130,8 @@ class RipInfo:
                 for file in files:
                     file_id = file["id"]
                     filename = os.path.join(parent_folder, file["name"])
-                    img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, gdrive=True)
+                    img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename,
+                                         link_info=LinkInfo.GDRIVE)
                     links.append(img_link)
                     counter += 1
         return links, counter
@@ -199,11 +200,12 @@ class RipInfo:
         """
             Remove forbidden characters from path
         """
+        print(dir_name, RipInfo.translation_table)
         dir_name = dir_name.translate(RipInfo.translation_table).strip().replace("\n", "")
         if dir_name[-1] not in (")", "]", "}"):
-            dir_name.rstrip(string.punctuation)
+            dir_name = dir_name.rstrip(string.punctuation)
         if dir_name[0] not in ("(", "[", "{"):
-            dir_name.lstrip(string.punctuation)
+            dir_name = dir_name.lstrip(string.punctuation)
         return dir_name
 
     @classmethod

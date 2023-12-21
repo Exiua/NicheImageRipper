@@ -54,7 +54,8 @@ CONFIG_TEMPLATE: dict = {
     "Keys": {
         "Imgur": "",
         "Google": "",
-        "Dropbox": ""
+        "Dropbox": "",
+        "Pixeldrain": ""
     }
 }
 
