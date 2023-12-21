@@ -69,7 +69,7 @@ SUPPORTED_SITES: set[str] = {"https://imhentai.xxx/", "https://hotgirl.asia/", "
                              "https://nijie.info/", "https://faponic.com/", "https://erothots.co/",
                              "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
                              "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
-                             "https://www.dropbox.com/"}
+                             "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/"}
 
 
 def get_login_creds(site_name: str) -> tuple[str, str]:
@@ -78,7 +78,9 @@ def get_login_creds(site_name: str) -> tuple[str, str]:
 
 
 def url_check(given_url: str) -> bool:
-    """Check the url to make sure it is from valid site"""
+    """
+        Check the url to make sure it is from valid site
+    """
     parsed_uri = urlparse(given_url)
     base_url = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
     return base_url in SUPPORTED_SITES or "newgrounds.com" in base_url

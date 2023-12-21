@@ -67,6 +67,9 @@ class ImageLink:
         elif "mega.nz" in url:
             self.link_info = LinkInfo.MEGA
             return url
+        elif "saint.to" in url:
+            self.referer = "https://saint.to/"
+            return url
         else:
             return url
 

@@ -207,7 +207,9 @@ class HtmlParser:
             "erome": self.erome_parse,
             "ggoorr": self.ggoorr_parse,
             "google": self.google_parse,
-            "dropbox": self.dropbox_parse
+            "dropbox": self.dropbox_parse,
+            "simpcity": self.simpcity_parse,
+            "bunkrr": self.bunkrr_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -306,7 +308,6 @@ class HtmlParser:
     @staticmethod
     def write_partial_save(site_info: RipInfo, given_url: str):
         """Saves parsed site data to quickly retrieve in event of a failure"""
-        # TODO
         data: dict[str, RipInfo | str] = {
             given_url: site_info.serialize(),
             "cookies": requests_header["cookie"],
@@ -791,6 +792,38 @@ class HtmlParser:
                 page += 1
             else:
                 break
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def bunkrr_parse(self, url: str = "") -> RipInfo:
+        """
+            Parses the html for bunkrr.su and extracts the relevant information necessary for downloading images from the site
+        """
+        if url != "":
+            self.current_url = url
+        soup = self.soupify()
+        if url != "":
+            dir_name = soup.find("h1", class_="text-[24px] font-bold text-dark dark:text-white")
+        else:
+            dir_name = ""
+
+        if "/a/" in self.current_url:
+            images = []
+            image_posts = soup.find("div", class_="grid-images").find_all("a")
+            for post in image_posts:
+                href = post.get("href")
+                ext = href.split(".")[-1]
+                if ext in ("mp4", "webm", "avi", "rar", "zip", "7z"):
+                    url = f"https://fries.bunkrr.su{href}".replace("/d/", "/")
+                else:
+                    img = post.find("img")
+                    url = img.get("src").replace("/thumbs/", "/")
+                    url = url.replace(".png", f".{ext}")
+                images.append(url)
+        else:
+            anchor = soup.find("a", class_="text-white inline-flex items-center justify-center rounded-[5px] "
+                                           "py-2 px-4 text-center text-base font-bold hover:text-white mb-2")
+            url = anchor.get("href")
+            images = [url]
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def buondua_parse(self) -> RipInfo:
@@ -2586,7 +2619,6 @@ class HtmlParser:
             Parses the html for simpcity.su and extracts the relevant information necessary for
             downloading images from the site
         """
-        self.site_name = "simpcity"
         self.site_login()
         self.lazy_load(scroll_by=True, increment=1250)
         input("")
@@ -2600,6 +2632,26 @@ class HtmlParser:
                 for img in imgs:
                     url = img.get("src").replace(".md.", ".")
                     images.append(url)
+                iframes = soup.find_all("iframe", class_="saint-iframe")
+                for i, _ in enumerate(iframes):
+                    iframe = self.driver.find_element(By.XPATH, f'(//iframe[@class="saint-iframe"])[{i+1}]')
+                    self.driver.switch_to.frame(iframe)
+                    soup = self.soupify()
+                    video = soup.find("vide", id="main-video")
+                    url = video.find("source").get("src")
+                    images.append(url)
+                    self.driver.switch_to.default_content()
+                    soup = self.soupify()
+                anchor_divs = post.find("div", class_="bbWrapper").find_all("div", recursive=False)
+                for div in anchor_divs:
+                    anchor = div.find("a")
+                    url = anchor.get("href")
+                    if "bunkrr." in url:
+                        links = self.bunkrr_parse(url)
+                        images.extend(links)
+                    else:
+                        with open("external_links.txt", "a") as f:
+                            f.write(url + "\n")
             next_btn = soup.find("a", class_="pageNav-jump pageNav-jump--next")
             if next_btn is None:
                 break
@@ -2949,6 +3001,7 @@ class HtmlParser:
             site_name = self._test_site_check(given_url)
             if site_name == "999hentai":
                 site_name = "nine99hentai"
+            self.site_name = site_name
             print(f"Testing: {site_name}_parse")
             start_time = time.time_ns()
             data: RipInfo = eval(f"self.{site_name}_parse()")

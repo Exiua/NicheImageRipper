@@ -14,7 +14,6 @@ from urllib.parse import urlparse
 from time import sleep
 
 import cloudscraper
-import dropbox
 import requests
 from getfilelistpy import getfilelist
 from google.auth.transport.requests import Request
@@ -354,15 +353,6 @@ def artstation_requests():
     print(response.text)
     json_data = json.loads(response.text)
     print(json_data)
-
-
-def m3u8_to_mp4_test():
-    import m3u8_To_MP4
-
-    m3u8_To_MP4.multithread_download(
-        'https://iframe.mediadelivery.net/8baab001-3937-4f0a-8c8d-b247a31bf3b9/playlist.drm?contextId=d27e16cf-7877'
-        '-48a2-93d6-da4d28ec3493&secret=13c5398c-052d-486a-ae27-f769392df5a3',
-        mp4_file_name="test.mp4")
 
 
 def reassign_files():
@@ -1139,14 +1129,6 @@ def repair_files():
         return
 
 
-def dropbox_test():
-    token = Config.config["Keys"]["Dropbox"]
-    dbx = dropbox.Dropbox(token)
-    response = dbx.files_list_folder("id:AADZnZhQk7TgSPpTiIEGkcy4a", recursive=True)
-    print(response)
-    # dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
-
-
 def exception_modification():
     try:
         ex_level1()
@@ -1436,6 +1418,16 @@ def covert_utf16_to_ut8(filepath: str):
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(data)
 
+def video_download_test():
+    # headers = {
+    #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+    #     #"host": "simp2.saint.to",
+    #     #"origin": "https://saint.to",
+    #     "referer": "https://saint.to/"
+    # }
+    # response = requests.get("https://simp2.saint.to/videos/c4b8b5c11e5ce0f640f79152194a9b5a.mp4", headers=headers)
+    response = requests.get("https://fries.bunkr.ru/victoriahillova-2020-05-15-39863513-dkYu5Oqn.mp4")
+    print(response.content)
 
 if __name__ == "__main__":
     # color_print_test()
@@ -1447,5 +1439,5 @@ if __name__ == "__main__":
     # clean_links()
     # exit_test()
     # link_extractor()
-    file_merge()
+    video_download_test()
     # covert_utf16_to_ut8(sys.argv[1])
