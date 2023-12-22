@@ -69,7 +69,8 @@ SUPPORTED_SITES: set[str] = {"https://imhentai.xxx/", "https://hotgirl.asia/", "
                              "https://nijie.info/", "https://faponic.com/", "https://erothots.co/",
                              "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
                              "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
-                             "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/"}
+                             "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
+                             "https://omegascans.org/"}
 
 
 def get_login_creds(site_name: str) -> tuple[str, str]:

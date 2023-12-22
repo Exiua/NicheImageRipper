@@ -209,7 +209,8 @@ class HtmlParser:
             "google": self.google_parse,
             "dropbox": self.dropbox_parse,
             "simpcity": self.simpcity_parse,
-            "bunkrr": self.bunkrr_parse
+            "bunkrr": self.bunkrr_parse,
+            "omegascans": self.omegascans_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -854,6 +855,19 @@ class HtmlParser:
     def bustybloom_parse(self) -> RipInfo:
         """Parses the html for bustybloom.com and extracts the relevant information necessary for downloading images from the site"""
         return self.__generic_html_parser_2()
+
+    def camwhores_parse(self, url: str = "") -> RipInfo:
+        """
+            Parses the html for camwhores.tv and extracts the relevant information necessary for downloading images from the site
+        """
+        if url != "":
+            self.current_url = url
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="headline").find("h1").text
+        video = soup.find("div", class_="fp-player").find("video")
+        url = video.get("src")
+        images = [url]
+        return RipInfo(images, dir_name, self.filename_scheme)
 
     def cherrynudes_parse(self) -> RipInfo:
         """Parses the html for cherrynudes.com and extracts the relevant information necessary for downloading images from the site"""
@@ -2232,6 +2246,37 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def omegascans_parse(self) -> RipInfo:
+        """
+            Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
+        """
+        sleep(5)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="__className_280070 text-center text-2xl lg:text-[70px] lg:text-left text-gray-50 leading-[1.2] uppercase").text
+        chapter_count: str = soup.find_all("span", class_="p-4 mr-[5px] inline-block border-b-gray-50 border-b")[1].text
+        chapter_count = int(chapter_count.strip().split(" ")[0])
+        base_url = self.current_url
+        images = []
+        for i in range(0, chapter_count):
+            for j in range(2):
+                if j == 0:
+                    self.current_url = f"{base_url}/chapter-{i}-5"
+                else:
+                    self.current_url = f"{base_url}/chapter-{i+1}"
+                self.lazy_load(scroll_by=True, increment=5000)
+                soup = self.soupify()
+                post = soup.find("p", class_="flex flex-col justify-center items-center")
+                if post is None:
+                    continue
+                if j == 0:
+                    print(f"Parsing page {i}.5 of {chapter_count}")
+                else:
+                    print(f"Parsing page {i+1} of {chapter_count}")
+                imgs = post.find_all("img", recursive=False)
+                images.extend([img.get("src") for img in imgs])
+        return RipInfo(images, dir_name, self.filename_scheme)
+        
+
     def pbabes_parse(self) -> RipInfo:
         """Parses the html for pbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2658,7 +2703,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("h1", class_="p-title-value").text
         images = []
-        page_count = 0
+        page_count = 1
         while True:
             print(f"Parsing page {page_count}")
             page_count += 1
@@ -2669,10 +2714,12 @@ class HtmlParser:
                     url = img.get("src").replace(".md.", ".")
                     images.append(url)
                 iframes = post.find_all("iframe", class_="saint-iframe")
+                # TODO: Fix iframe switching
                 for i, _ in enumerate(iframes):
-                    with open("test.html", "w") as f:
+                    with open("iframe.html", "w") as f:
                         f.write(str(iframes[i]))
-                    iframe = self.driver.find_element(By.XPATH, f'(//iframe[@class="saint-iframe"])[{i+1}]')
+                    iframe = self.driver.find_elements(By.XPATH, f'//iframe[@class="saint-iframe"]')[i]
+                    print(str(iframe))
                     self.driver.switch_to.frame(iframe)
                     soup = self.soupify()
                     video = soup.find("video", id="main-video")
@@ -2686,6 +2733,9 @@ class HtmlParser:
                     url = anchor.get("href")
                     if "bunkrr." in url:
                         links = self.bunkrr_parse(url)
+                        images.extend(links)
+                    elif "camwhores.tv" in url:
+                        links = self.camwhores_parse(url)
                         images.extend(links)
                     else:
                         with open("external_links.txt", "a") as f:

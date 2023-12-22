@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import functools
 import io
 import logging.handlers
@@ -338,6 +339,8 @@ class ImageRipper:
             self.__download_iframe_media(image_path, image_link)
         elif image_link.link_info == LinkInfo.MEGA:
             self.__download_mega_files(image_path, image_link)
+        elif image_link.link_info == LinkInfo.PIXELDRAIN:
+            self.__download_pixeldrain_files(image_path, image_link)
         else:
             self.__download_file(image_path, rip_url)
         sleep(0.05)
@@ -378,6 +381,21 @@ class ImageRipper:
                     self.persistent_logins["Mega"] = mega_login(email, password)
 
         mega_download(image_link.url, folder_path)
+
+    def __download_pixeldrain_files(self, image_path: str, image_link: ImageLink):
+        api_key = Config.config.keys["Pixeldrain"]
+        auth_string = f":{api_key}"
+        base64_auth = base64.b64encode(auth_string.encode()).decode()
+        headers = {
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                           "Chrome/107.0.0.0 Safari/537.36"),
+            "Authorization": f"Basic {base64_auth}",
+        }
+        response = requests.get(f"https://pixeldrain.com/api/file/{image_link.url}", headers=headers, stream=True)
+        with open(image_path, "wb") as f:
+            for block in response.iter_content(chunk_size=10240):
+                if block:
+                    f.write(block)
 
     def __download_iframe_media(self, folder_path: str, image_link: ImageLink):
         for i in range(4):

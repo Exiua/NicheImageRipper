@@ -200,7 +200,6 @@ class RipInfo:
         """
             Remove forbidden characters from path
         """
-        print(dir_name, RipInfo.translation_table)
         dir_name = dir_name.translate(RipInfo.translation_table).strip().replace("\n", "")
         if dir_name[-1] not in (")", "]", "}"):
             dir_name = dir_name.rstrip(string.punctuation)
