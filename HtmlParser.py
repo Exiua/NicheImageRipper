@@ -3182,8 +3182,6 @@ class HtmlParser:
                 if site not in text:
                     continue
                 parts = text.split()
-                # links = [link + "\n" for part in parts if site in part and (link := extract_url(part))]
-                # external_links[site].extend(links)
                 for part in parts:
                     if site not in part:
                         continue

@@ -52,16 +52,14 @@ class ImageLink:
         return object_data
 
     def __generate_url(self, url: str) -> str:
+        url = url.replace("\n", "")
         if "iframe.mediadelivery.net" in url:
             split = url.split("}")
             playlist_url = split[0]
             self.referer = split[1]
-            # match = re.search(r"[^{]+{(\d+)", playlist_url)
-            # resolution = self.resolution_lookup(match.group(1))
             self.link_info = LinkInfo.IFRAME_MEDIA
-            # link_url = playlist_url.split("{")[0].replace("/playlist.drm", f"/{resolution}/video.drm")
             link_url = playlist_url.split("{")[0]
-            return link_url  # f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
+            return link_url
         elif "drive.google.com" in url:
             self.link_info = LinkInfo.GDRIVE
             return url
@@ -73,30 +71,6 @@ class ImageLink:
             return url
         else:
             return url
-
-    @staticmethod
-    def resolution_lookup(resolution: str) -> str:
-        if resolution == "360":
-            return "640x360"
-        if resolution == "480":
-            return "640x480"
-        if resolution == "720":
-            return "1280x720"
-        if resolution == "1080":
-            return "1920x1080"
-        if resolution == "1280":
-            return "720x1280"
-        if resolution == "1440":
-            return "2560x1440"
-        if resolution == "1920":
-            return "1080x1920"
-        if resolution == "2160":
-            return "3840x2160"
-        if resolution == "2560":
-            return "1440x2560"
-        if resolution == "3840":
-            return "2160x3840"
-        raise Exception(f"Invalid Resolution: {resolution}")
 
     def __generate_filename(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "") -> str:
         if not filename:

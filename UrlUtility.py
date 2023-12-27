@@ -17,6 +17,8 @@ def extract_url(url: str) -> str:
 
 def gdrive_link_parse(url: str) -> str:
     start = url.find("https:")
+    if start == -1:
+        return ""
     m = re.search(r"(\?usp=sharing|\?usp=share_link|\?id=)", url)
     if m is None:
         print(url, file=sys.stderr)
