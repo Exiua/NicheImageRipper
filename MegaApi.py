@@ -4,7 +4,7 @@ import subprocess
 
 
 def mega_login(email: str, password: str) -> bool:
-    cmd = ["mega-login", email, password]
+    cmd = ["mega-login", email, f'"{password}"']
     out = subprocess.run(cmd, shell=True, capture_output=True)
     return out.stderr.decode() == ""
 

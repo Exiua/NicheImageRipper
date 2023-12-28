@@ -380,6 +380,9 @@ class ImageRipper:
                 else:
                     self.persistent_logins["Mega"] = mega_login(email, password)
 
+        if not self.persistent_logins["Mega"]:
+            raise Exception("Unable to login to MegaCmd")
+
         mega_download(image_link.url, folder_path)
 
     def __download_pixeldrain_files(self, image_path: str, image_link: ImageLink):
