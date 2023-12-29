@@ -210,7 +210,8 @@ class HtmlParser:
             "dropbox": self.dropbox_parse,
             "simpcity": self.simpcity_parse,
             "bunkrr": self.bunkrr_parse,
-            "omegascans": self.omegascans_parse
+            "omegascans": self.omegascans_parse,
+            "toonily": self.toonily_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -2939,6 +2940,28 @@ class HtmlParser:
                 break
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def toonily_parse(self) -> RipInfo:
+        """
+            Parses the html for toonily.me and extracts the relevant information necessary for downloading images from the site
+        """
+        #self.__wait_for_element('//div[@id="show-more-chapters"]', timeout=-1)
+        btn = self.try_find_element(By.XPATH, '//div[@id="show-more-chapters"]')
+        if btn is not None:
+            self.scroll_element_into_view(btn)
+            btn.click()
+            sleep(1)
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="name box").find("h1").text
+        chapter_list = soup.find("ul", id="chapter-list").find_all("li", recursive=False)
+        chapters = [f"https://toonily.me{chapter.find("a").get("href")}" for chapter in chapter_list]
+        images = []
+        for chapter in reversed(chapters):
+            soup = self.soupify(chapter, lazy_load_args={"scroll_by": True, "increment": 5000})
+            image_list = soup.find("div", id="chapter-images").find_all("img")
+            images.extend([img.get("src") for img in image_list])
+
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def tsumino_parse(self) -> RipInfo:
         """Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -3243,7 +3266,7 @@ class HtmlParser:
 
     def __wait_for_element(self, xpath: str, delay: float = 0.1, timeout: float = 10) -> bool:
         if timeout != -1:
-            timeout *= 1_000_000_000
+            timeout *= 1_000_000_000  # Convert seconds to nanoseconds
         start_time = time.time_ns()
         while not self.driver.find_elements(By.XPATH, xpath):
             sleep(delay)
@@ -3359,14 +3382,17 @@ class HtmlParser:
         except selenium.common.exceptions.NoSuchElementException:
             return None
 
-    def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False,
+    def scroll_element_into_view(self, element: WebElement):
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
+    def soupify(self, url: str | None = None, delay: float = 0, lazy_load_args: dict[str, bool | float | int] = None,
                 response: requests.Response = None, xpath: str = "") -> BeautifulSoup:
         """
             Return BeautifulSoup object of html from WebDriver or given Response if provided
         :param url: Url to switch to before getting the BeautifulSoup object of the html (not needed if WebDriver is
             currently at this url)
         :param delay: Seconds to wait (for JS and other events) before creating BeautifulSoup object
-        :param lazy_load: Whether there are elements on the webpage that are lazily loaded
+        :param lazy_load_args: Arguments to use when lazy loading the page
         :param response: Response object to create BeautifulSoup object from (if set, ignores other arguments)
         :param xpath: XPath to an element the WebDriver should wait until it exists before creating the BeautifulSoup object
         """
@@ -3378,8 +3404,8 @@ class HtmlParser:
             sleep(delay)
         if xpath:
             self.__wait_for_element(xpath)
-        if lazy_load:
-            self.lazy_load(True)
+        if lazy_load_args:
+            self.lazy_load(**lazy_load_args)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 
