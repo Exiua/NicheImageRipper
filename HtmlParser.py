@@ -120,7 +120,6 @@ class HtmlParser:
             "8boobs": self.eightboobs_parse,
             "decorativemodels": self.decorativemodels_parse,
             "girlsofdesire": self.girlsofdesire_parse,
-            "tuyangyan": self.tuyangyan_parse,
             "hqsluts": self.hqsluts_parse,
             "foxhq": self.foxhq_parse,
             "rabbitsfun": self.rabbitsfun_parse,
@@ -2974,33 +2973,6 @@ class HtmlParser:
             soup = self.soupify(pager_url + str(i), 3)
             src = soup.find("img", class_="img-responsive reader-img").get("src")
             images.append(src)
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    # TODO: Cert Date Invalid; Build Test Later
-    def tuyangyan_parse(self) -> RipInfo:
-        """Parses the html for tuyangyan.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("h1", class_="post-title entry-title").find("a").text
-        dir_name = dir_name.split("[")
-        num_files = dir_name[1].replace("P]", "")
-        dir_name = dir_name[0]
-        dir_name = "".join(dir_name)
-        if int(num_files) > 20:
-            pages = ceil(int(num_files) / 20)
-            images = []
-            page_url = self.driver.current_url
-            for i in range(pages):
-                if i > 0:
-                    url = "".join([page_url, str(i + 1), "/"])
-                    soup = self.soupify(url)
-                image_list = soup.find(
-                    "div", class_="entry-content clearfix").find_all("img")
-                images.extend(image_list)
-        else:
-            images = soup.find(
-                "div", class_="entry-content clearfix").find_all("img")
-        images = ["".join([PROTOCOL, img.get("src")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def wantedbabes_parse(self) -> RipInfo:

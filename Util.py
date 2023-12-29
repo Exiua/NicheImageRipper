@@ -34,7 +34,7 @@ SUPPORTED_SITES: set[str] = {
     "https://www.hegrehunter.com/", "https://hanime.tv/", "https://members.hanime.tv/",
     "https://www.babesaround.com/", "https://www.8boobs.com/",
     "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/",
-    "https://www.tuyangyan.com/", "http://www.hqsluts.com/", "https://www.foxhq.com/",
+    "http://www.hqsluts.com/", "https://www.foxhq.com/",
     "https://www.rabbitsfun.com/", "https://www.erosberry.com/", "https://www.novohot.com/",
     "https://eahentai.com/",
     "https://www.nightdreambabe.com/", "https://xmissy.nl/", "https://www.glam0ur.com/",
