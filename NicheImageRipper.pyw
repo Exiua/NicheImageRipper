@@ -691,6 +691,53 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         """
         label.setText("")
 
+class NicheImageRipperCLI(NicheImageRipper):
+    def __init__(self):
+        super().__init__()
+        self.rip_history: list[list[str]] = []
+
+    def get_history_data(self) -> list[list[str]]:
+        return self.rip_history
+
+    def load_history(self):
+        self.rip_history = self._load_history()
+
+    def update_history(self, ripper: ImageRipper, url: str):
+        duplicate_entry = False
+        folder_info = ripper.folder_info
+        for i, entry in enumerate(self.rip_history):
+            if entry[0] == folder_info.dir_name:
+                duplicate_entry = True
+                self.rip_history.append(entry)
+                self.rip_history.pop(i)
+                break
+        if not duplicate_entry:
+            self.rip_history.append([folder_info.dir_name, url, str(datetime.today().strftime('%Y-%m-%d')),
+                                     folder_info.num_urls])
+        ripper.folder_info = []
+
+    def add_to_url_queue(self, item: str):
+        if self.rerip_ask and any(item == entry[0] for entry in self.rip_history):
+            if self.query_yes_no('Do you want to re-rip URL?'):
+                self.url_queue.put(item)
+        else:
+            self.url_queue.put(item)
+
+    def rip_urls(self):
+        pass
+
+    def run(self):
+        pass
+
+    def query_yes_no(self, prompt: str) -> bool:
+        prompt = f"{prompt} [y/n]: "
+        while True:
+            response = input(prompt).lower()
+            if response in ("y", "yes"):
+                return True
+            elif response in ("n", "no"):
+                return False
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
