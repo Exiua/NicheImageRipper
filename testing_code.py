@@ -1446,16 +1446,10 @@ def pixeldrain_api_test():
             if block:
                 f.write(block)
 
+def terminal_test():
+    size = shutil.get_terminal_size()
+    for _ in range(size.lines):
+        print("\u2588" * size.columns)
 
 if __name__ == "__main__":
-    # color_print_test()
-    # sankaku_test()
-    # parse_pixiv_links()
-    # link_cleaner()
-    # url_parsing("")
-    # query_gdrive_links(sys.argv[1])
-    # clean_links()
-    # exit_test()
-    # link_extractor()
-    pixeldrain_api_test()
-    # covert_utf16_to_ut8(sys.argv[1])
+    terminal_test()
