@@ -13,11 +13,13 @@ from threading import Timer
 from typing import Callable
 
 import requests
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QFont, QTextCursor, QColor
-from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
-    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtGui import QFont, QTextCursor, QColor, QScreen
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
+    QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
     QTextBrowser
+from qt_material import apply_stylesheet
 
 from Config import Config
 from Enums import FilenameScheme, UnzipProtocol, QueueResult
@@ -58,7 +60,7 @@ class OutputRedirect(QtCore.QObject):
 
 # region pyqt helper functions
 
-def create_button(text: str, width: int = 75) -> QPushButton:
+def create_button(text: str, width: int = 100) -> QPushButton:
     button = QPushButton()
     button.setText(text)
     button.setFixedWidth(width)
@@ -293,14 +295,10 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         stdout = OutputRedirect(self, True)
         stderr = OutputRedirect(self, False)
 
-        stdout.outputWritten.connect(self.redirect_output)
-        stderr.outputWritten.connect(self.redirect_output)
-        self.update_display.connect(self.update_display_sequence)
-
         self.setGeometry(0, 0, 768, 432)
 
         qt_rectangle = self.frameGeometry()
-        center_point = QDesktopWidget().availableGeometry().center()
+        center_point = self.screen().availableGeometry().center()
         qt_rectangle.moveCenter(center_point)
         self.move(qt_rectangle.topLeft())
 
@@ -388,7 +386,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         self.unzip_protocol_combobox.currentTextChanged.connect(self.unzip_protocol_changed)
 
         checkbox_row = QHBoxLayout()
-        checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
+        checkbox_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.rerip_checkbox = QCheckBox()
         self.rerip_checkbox.setText("Ask to re-rip url")
         self.rerip_checkbox.setChecked(self.rerip_ask)
@@ -425,6 +423,14 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
 
         # endregion
 
+        # region Connect Signals
+
+        stdout.outputWritten.connect(self.redirect_output)
+        stderr.outputWritten.connect(self.redirect_output)
+        self.update_display.connect(self.update_display_sequence)
+
+        # endregion
+
         # region Connect Buttons
 
         self.url_field.returnPressed.connect(self.queue_url)
@@ -454,7 +460,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         self.save_data()
 
     def redirect_output(self, raw_text: str, stderr: bool):
-        self.log_field.moveCursor(QTextCursor.End)
+        self.log_field.moveCursor(QTextCursor.MoveOperation.End)
         text, color = self.extract_color(raw_text)
         self.log_field.setTextColor(color)
         self.log_field.insertPlainText(text)
@@ -755,5 +761,8 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
         win = NicheImageRipperGUI()
+
+        apply_stylesheet(app, theme='dark_red.xml')
+
         win.show()
-        sys.exit(app.exec_())
+        sys.exit(app.exec())

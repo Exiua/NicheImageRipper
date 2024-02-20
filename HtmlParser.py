@@ -2952,7 +2952,7 @@ class HtmlParser:
         soup = self.soupify()
         dir_name = soup.find("div", class_="name box").find("h1").text
         chapter_list = soup.find("ul", id="chapter-list").find_all("li", recursive=False)
-        chapters = [f"https://toonily.me{chapter.find("a").get("href")}" for chapter in chapter_list]
+        chapters = [f"https://toonily.me{chapter.find('a').get('href')}" for chapter in chapter_list]
         images = []
         for chapter in reversed(chapters):
             soup = self.soupify(chapter, lazy_load_args={"scroll_by": True, "increment": 5000})
