@@ -15,6 +15,7 @@ from time import sleep
 
 import cloudscraper
 import requests
+import ffmpeg
 from getfilelistpy import getfilelist
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -1451,5 +1452,13 @@ def terminal_test():
     for _ in range(size.lines):
         print("\u2588" * size.columns)
 
+def m3u8_ffmpeg():
+    id_ = "impishturbulentptarmigan"
+    video_url = f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
+    video_path = "test.mp4"
+    input_stream = ffmpeg.input(video_url, protocol_whitelist="file,http,https,tcp,tls,crypto")
+    output_stream = ffmpeg.output(input_stream, video_path, c="copy")
+    ffmpeg.run(output_stream)
+
 if __name__ == "__main__":
-    terminal_test()
+    m3u8_ffmpeg()

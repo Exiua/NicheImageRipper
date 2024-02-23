@@ -69,6 +69,10 @@ class ImageLink:
         elif "saint.to" in url:
             self.referer = "https://saint.to/"
             return url
+        elif "redgifs.com" in url:
+            self.link_info = LinkInfo.M3U8
+            id_ = url.split("/")[3].split(".")[0]
+            return f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
         else:
             return url
 
@@ -111,6 +115,9 @@ class ImageLink:
             file_name = url.split("?f=")[-1]
             if "http" in file_name:
                 file_name = url.split("?f=")[0].split("/")[-1]
+        elif "phncdn.com" in url:
+            file_name = url.split("/")[8]
+            self.link_info = LinkInfo.M3U8
         else:
             file_name = os.path.basename(urlparse(url).path)
         return file_name

@@ -17,6 +17,7 @@ from typing import BinaryIO
 from urllib.parse import urlparse
 
 import PIL
+import ffmpeg
 import requests
 import yt_dlp
 from PIL import Image
@@ -347,9 +348,9 @@ class ImageRipper:
 
     @staticmethod
     def __download_m3u8_to_mp4(video_path: str, video_url: str):
-        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy",
-               video_path]
-        subprocess.run(cmd)
+        input_stream = ffmpeg.input(video_url, protocol_whitelist="file,http,https,tcp,tls,crypto")
+        output_stream = ffmpeg.output(input_stream, video_path, c="copy")
+        ffmpeg.run(output_stream)
 
     @staticmethod
     def __download_gdrive_file(folder_path: str, image_link: ImageLink):

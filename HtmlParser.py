@@ -6,10 +6,7 @@ import os
 import pickle
 import random
 import re
-import signal
-import subprocess
 import time
-from math import ceil
 from os import path
 from subprocess import Popen
 from time import sleep
@@ -210,7 +207,8 @@ class HtmlParser:
             "simpcity": self.simpcity_parse,
             "bunkrr": self.bunkrr_parse,
             "omegascans": self.omegascans_parse,
-            "toonily": self.toonily_parse
+            "toonily": self.toonily_parse,
+            "pornhub": self.pornhub_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -2275,7 +2273,6 @@ class HtmlParser:
                 imgs = post.find_all("img", recursive=False)
                 images.extend([img.get("src") for img in imgs])
         return RipInfo(images, dir_name, self.filename_scheme)
-        
 
     def pbabes_parse(self) -> RipInfo:
         """Parses the html for pbabes.com and extracts the relevant information necessary for downloading images from the site"""
@@ -2346,8 +2343,8 @@ class HtmlParser:
 
     def porn3dx_parse(self) -> RipInfo:
         """
-        Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
-        the site
+            Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
+            the site
         """
         # Parses the html of the site
         self.site_login()
@@ -2412,6 +2409,33 @@ class HtmlParser:
                             url = img.get_attribute("src")
                             if "m.porn3dx.com" in url and not any(s in url for s in ("avatar", "thumb")):
                                 images.append(url)
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def pornhub_parse(self) -> RipInfo:
+        """
+            Parses the html for pornhub.com and extracts the relevant information necessary for downloading videos from
+            the site
+        """
+        self.site_login()
+        self.lazy_load(scroll_by=True, increment=1250, scroll_pause_time=1)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="title").find("span").text
+        player = soup.find("div", id="player").find("script")
+        js = player.text
+        js = js.split("var ")[1]
+        start = js.find("{")
+        raw_json = self._extract_json_object(js[start:])
+        json_data = json.loads(raw_json)
+        media_definitions = json_data["mediaDefinitions"]
+        highest_quality = 0
+        highest_quality_url = ""
+        for definition in media_definitions:
+            if not isinstance(definition["quality"], list):
+                quality = int(definition["quality"])
+                if quality > highest_quality:
+                    highest_quality = quality
+                    highest_quality_url = definition["videoUrl"]
+        images = [highest_quality_url]
         return RipInfo(images, dir_name, self.filename_scheme)
 
     # TODO: Site may be down permanently
