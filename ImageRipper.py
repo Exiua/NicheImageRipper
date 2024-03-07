@@ -36,6 +36,7 @@ from MegaApi import mega_login, mega_whoami, mega_download
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
+from TemporaryTokenManager import TokenManager
 from Util import url_check, SCHEME, get_login_creds
 from b_cdn_drm_vod_dl import BunnyVideoDRM
 
@@ -177,7 +178,7 @@ class ImageRipper:
         if self.folder_info.must_generate_manually:
             # Gets the general url of all images in this album
             trimmed_url = self.__trim_url(self.folder_info.urls[0].url)
-            extensions = (".jpg", ".gif", ".png", "mp4", "t.jpg")
+            extensions = (".jpg", ".gif", ".png", ".mp4", "t.jpg")
 
             # Downloads all images from the general url by incrementing the file number
             #   (eg. https://domain/gallery/##.jpg)
@@ -426,7 +427,7 @@ class ImageRipper:
     def __download_file(self, image_path: str, rip_url: str):
         """Download the given file"""
         if image_path[-1] == "/":
-            image_path = image_path[:-2]
+            image_path = image_path[:-2]    # [:-1] would make sense, but idr why [:-2] works
 
         try:
             for _ in range(4):  # Try 4 times before giving up
@@ -449,6 +450,10 @@ class ImageRipper:
     def __download_file_helper(self, url: str, image_path: str) -> bool:
         bad_cert = False
         sleep(self.sleep_time)
+        token_needed = "redgifs" in url
+        if token_needed:
+            token = TokenManager.get_instance().get_token("redgifs").value
+            self.requests_header["Authorization"] = f"Bearer {token}"
 
         try:
             response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
@@ -479,6 +484,9 @@ class ImageRipper:
         if not self.__write_to_file(response, image_path):
             self.__log_failed_url(url)
             return False
+        
+        if token_needed:
+            del self.requests_header["Authorization"]
 
         return True
 
@@ -586,6 +594,8 @@ class ImageRipper:
                 return ".mp4"
             elif file_sig == b"\x43\x53\x46\x43\x48\x55\x4E\x4B":
                 return ".clip"
+            elif file_sig == b"\x3C\x21\x44\x4F\x43\x54\x59\x50":
+                return ".html"
             else:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
                 if orig_filepath.suffix == "":

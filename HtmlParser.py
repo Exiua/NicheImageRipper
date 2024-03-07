@@ -34,6 +34,7 @@ from Enums import FilenameScheme, LinkInfo
 from ImageLink import ImageLink
 from RipInfo import RipInfo
 from RipperExceptions import InvalidSubdomain, RipperError
+from TemporaryTokenManager import TokenManager
 from UrlUtility import extract_url
 from Util import SCHEME, url_check, get_login_creds
 
@@ -43,8 +44,8 @@ DRIVER_HEADER: str = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
-EXTERNAL_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
-PARSEABLE_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "sendvid.com")
+EXTERNAL_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com")
+PARSEABLE_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "sendvid.com", "dropbox.com")
 
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -521,6 +522,8 @@ class HtmlParser:
             attachments = [domain_url + link if domain_url not in link and not any(protocol in link for protocol in
                                                                                    ("https", "http")) else link for link
                            in links if any(ext in link for ext in ATTACHMENTS)]
+            # domain + link if domain_url is not in link and link doesn't contain http or https else link
+            # for links that contain any of the attachment extensions anywhere in the link
             images.extend(attachments)
             for site in PARSEABLE_SITES:
                 images.extend(external_links[site])
@@ -544,8 +547,7 @@ class HtmlParser:
                     images.append(link)
                 else:
                     rip_info = self.dropbox_parse(link)
-                    if rip_info.dir_name:
-                        images.extend(rip_info.urls)
+                    images.extend(rip_info.urls)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def agirlpic_parse(self) -> RipInfo:
@@ -1051,6 +1053,9 @@ class HtmlParser:
 
         internal_use = False
         if dropbox_url:
+            if "/scl/fi/" in dropbox_url:
+                dropbox_url = dropbox_url.replace("dl=0", "dl=1")
+                return RipInfo([dropbox_url], "", self.filename_scheme)
             self.current_url = dropbox_url
             internal_use = True
         soup = self.soupify(xpath='//span[@class="dig-Breadcrumb-link-text"]')
@@ -1066,6 +1071,10 @@ class HtmlParser:
                     raise
         else:
             dir_name = ""
+
+        
+        if "/scl/fi/" in self.current_url:
+            return RipInfo([self.current_url.replace("dl=0", "dl=1")], "", self.filename_scheme)
 
         images = []
         filenames = []
@@ -2489,9 +2498,8 @@ class HtmlParser:
             ids.append(vid_id)
         id_chunks = self.list_splitter(ids, 100)
         session = requests.Session()
-        response = session.get("https://api.redgifs.com/v2/auth/temporary")
-        response_json = response.json()
-        self.requests_header["Authorization"] = f"Bearer {response_json['token']}"
+        token = TokenManager.get_instance().get_token("redgifs").value
+        self.requests_header["Authorization"] = f"Bearer {token}"
         for chunk in id_chunks:
             id_param = "%2C".join(chunk)
             response = session.get(f"{base_request}{id_param}", headers=self.requests_header)

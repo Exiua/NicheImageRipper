@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import string
 from typing import Iterator
 
@@ -29,6 +30,7 @@ class RipInfo:
                  discard_blob: bool = False):
         if isinstance(urls, str) or isinstance(urls, ImageLink):
             urls = [urls]
+        self.__save_raw_urls(urls)
         self.filename_scheme: FilenameScheme = filename_scheme
         self.__dir_name: str = dir_name
         self.__filenames: list[str] = filenames
@@ -57,13 +59,27 @@ class RipInfo:
         self.__dir_name = value
         self.__dir_name = self.clean_dir_name(self.__dir_name)
 
+    def __save_raw_urls(self, urls: list):
+        serialized_urls = []
+        for url in urls:
+            if isinstance(url, ImageLink):
+                serialized_urls.append(url.serialize())
+            else:
+                serialized_urls.append(url)
+        
+        with open("raw_urls.json", "w") as f:
+            json.dump(serialized_urls, f, indent=4)
+
     def __convert_urls_to_image_link(self, urls: list[str | ImageLink], discard_blob: bool = False) -> list[ImageLink]:
-        image_links = []
-        link_counter = 0
-        filename_counter = 0
+        image_links: list[ImageLink] = []
+        link_counter = 0        # Current index of image_links (used for naming image_links when generating numeric names)
+        filename_counter = 0    # Current index of filenames
         urls = self.__remove_duplicates(urls)
         for url in urls:
             if isinstance(url, ImageLink):
+                if self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
+                    url.rename(link_counter)
+                link_counter += 1
                 image_links.append(url)
                 continue
             if "drive.google.com" in url:

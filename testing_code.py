@@ -9,9 +9,14 @@ import string
 import struct
 import subprocess
 import sys
+import time
+import timeit
 import urllib.request
 from urllib.parse import urlparse
 from time import sleep
+from timeit import timeit
+from cProfile import Profile
+from pstats import SortKey, Stats
 
 import cloudscraper
 import requests
@@ -162,7 +167,8 @@ def user_inject_test() -> str:
 
 
 requests_header: dict[str, str] = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'
+}
 
 
 # {
@@ -1455,10 +1461,105 @@ def terminal_test():
 def m3u8_ffmpeg():
     id_ = "impishturbulentptarmigan"
     video_url = f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
+    video_url = "https://api.redgifs.com/v2/gifs/CleanColorfulSkunk/hd.m3u8"
+    video_url = "https://api.redgifs.com/v2/gifs/SubstantialHomelyGraywolf/hd.m3u8".lower()
     video_path = "test.mp4"
     input_stream = ffmpeg.input(video_url, protocol_whitelist="file,http,https,tcp,tls,crypto")
     output_stream = ffmpeg.output(input_stream, video_path, c="copy")
     ffmpeg.run(output_stream)
 
+def dropbox_zip_test():
+    url = "https://www.dropbox.com/scl/fi/3rx0ysjoc6nl2q2sumtcj/23-03-16.zip?rlkey=v2hringuopk7fngc9dv98e22e&dl=1"
+    response = requests.get(url, headers=requests_header, stream=True, allow_redirects=True)
+    with open("test.zip", "wb") as f:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
+
+def generate_file_sigs():
+    folder = Path(r".")
+    sigs = []
+    i = 0
+    for file in folder.glob("*"):
+        if not file.is_file():
+            continue
+        if i >= 1000:
+            break
+        with file.open("rb") as f:
+            sig = f.read(8)
+        sigs.append([list(sig), file.suffix])
+        i += 1
+    with open("sigs.json", "w") as f:
+        json.dump(sigs, f, indent=4)
+
+def get_correct_ext(file_sig: bytes) -> str:
+    """
+        Get correct extension for a file based on file signature
+    :param filepath: Path to the file to analyze
+    :return: True extension of the file or the original extension if the file signature is unknown (will default to
+    .bin if the file does not have a file extension)
+    """
+    if file_sig[:6] == b"\x52\x61\x72\x21\x1A\x07":  # is rar
+        return ".rar"
+    elif file_sig == b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A":  # is png
+        return ".png"
+    elif file_sig[:3] == b"\xff\xd8\xff":  # is jpg
+        return ".jpg"
+    elif file_sig[:4] in b"\x47\x49\x46\x38":  # is gif
+        return ".gif"
+    elif file_sig[:4] == b"\x50\x4B\x03\x04":  # is zip
+        return ".zip"
+    elif file_sig[:4] == b"\x38\x42\x50\x53":  # is psd
+        return ".psd"
+    elif file_sig[:4] == b"\x25\x50\x44\x46":  # is pdf
+        return ".pdf"
+    elif file_sig[:6] == b"\x37\x7A\xBC\xAF\x27\x1C":  # is 7z
+        return ".7z"
+    elif file_sig[:4] == b"\x1A\x45\xDF\xA3":
+        return ".webm"
+    elif file_sig[:4] == b"\x52\x49\x46\x46":
+        return ".webp"
+    elif file_sig[4:] == b"\x66\x74\x79\x70":
+        return ".mp4"
+    elif file_sig == b"\x43\x53\x46\x43\x48\x55\x4E\x4B":
+        return ".clip"
+    elif file_sig == b"\x3C\x21\x44\x4F\x43\x54\x59\x50":
+        return ".html"
+    else:
+        print(f"Unable to identify signature {file_sig}")
+        return ".bin"
+
+def test_sig_lookup():
+    with open("sigs.json", "r") as f:
+        sigs = json.load(f)
+    sigs: list[list[bytes | str]] = [(bytes(sig[0]), sig[1]) for sig in sigs]
+    start = time.time_ns()
+    for sig in sigs:
+        get_correct_ext(sig[0])
+    end = time.time_ns()
+    print(f"Elapsed time: {(end - start) / 1_000_000} ms")
+    correct = 0
+    start = time.time_ns()
+    for sig in sigs:
+        ext = get_correct_ext(sig[0])
+        if ext == sig[1]:
+            correct += 1
+    end = time.time_ns()
+    print(f"Elapsed time: {(end - start) / 1_000_000} ms | Accuracy: {correct / len(sigs) * 100}%")
+
+def fib(n: int) -> int:
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+def profile_test():
+    with Profile() as profile:
+        print(f"{fib(35)}")
+        Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
+
 if __name__ == "__main__":
+    #profile_test()
+    # iterations = 1000
+    # total_time = timeit("test_sig_lookup()", number=iterations, globals=globals())
+    # print(f"Average time is {total_time / iterations:.2f} seconds")
     m3u8_ffmpeg()

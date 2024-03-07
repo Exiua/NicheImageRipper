@@ -295,6 +295,8 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         stdout = OutputRedirect(self, True)
         stderr = OutputRedirect(self, False)
 
+        self.dark_mode: bool = False
+
         self.setGeometry(0, 0, 768, 432)
 
         qt_rectangle = self.frameGeometry()
@@ -465,8 +467,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         self.log_field.setTextColor(color)
         self.log_field.insertPlainText(text)
 
-    @staticmethod
-    def extract_color(raw_text: str) -> tuple[str, QColor]:
+    def extract_color(self, raw_text: str) -> tuple[str, QColor]:
         if raw_text.startswith("{#"):
             parts = raw_text.split("}")
             text = "}".join(parts[1:])
@@ -475,7 +476,10 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
             color = QColor.fromRgb(color_value)
             return text, color
         else:
-            color = QColor.fromRgb(0)
+            if self.dark_mode:
+                color = QColor.fromRgb(255, 255, 255)
+            else:
+                color = QColor.fromRgb(0)
             return raw_text, color
 
     def add_history_entry(self, name: str, url: str, date: str, count: int):
@@ -571,7 +575,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         """
         # If user wants to be prompted and if url is in the history
         if self.rerip_ask and item in self.get_column_data(1):
-            if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.Yes:  # Ask user to re-rip
+            if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.StandardButton.Yes.value:  # Ask user to re-rip
                 self.url_queue.put(item)
         else:  # If user always wants to re-rip
             self.url_queue.put(item)
@@ -583,7 +587,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         :return: user selection of QMessageBox.Yes or QMessageBox.No based on option selected
         """
         message_box = QMessageBox()
-        return message_box.question(self, '', message, QMessageBox.Yes | QMessageBox.No)
+        return message_box.question(self, '', message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
     def update_url_queue(self):
         """
@@ -763,6 +767,7 @@ if __name__ == "__main__":
         win = NicheImageRipperGUI()
 
         apply_stylesheet(app, theme='dark_red.xml')
+        win.dark_mode = True
 
         win.show()
         sys.exit(app.exec())

@@ -50,6 +50,12 @@ class ImageLink:
             "link_info": self.link_info
         }
         return object_data
+    
+    def rename(self, new_stem: str | int):
+        if isinstance(new_stem, int):
+            new_stem = str(new_stem)
+        ext = os.path.splitext(self.filename)[1]
+        self.filename = new_stem + ext
 
     def __generate_url(self, url: str) -> str:
         url = url.replace("\n", "")
@@ -69,10 +75,10 @@ class ImageLink:
         elif "saint.to" in url:
             self.referer = "https://saint.to/"
             return url
-        elif "redgifs.com" in url:
-            self.link_info = LinkInfo.M3U8
-            id_ = url.split("/")[3].split(".")[0]
-            return f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
+        # elif "redgifs.com" in url:
+        #     self.link_info = LinkInfo.M3U8
+        #     id_ = url.split("/")[3].split(".")[0].lower() # Redgifs IDs are case-sensitive
+        #     return f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
         else:
             return url
 
@@ -111,7 +117,7 @@ class ImageLink:
             file_name = f"{parts[-2]}.{ext}"
         elif "thothub.lol/" in url and "/?rnd=" in url:
             file_name = url.split("/")[-2]
-        elif ("kemono.party/" in url or "coomer.party/" in url) and "?f=" in url:
+        elif ("kemono.su/" in url or "coomer.su/" in url) and "?f=" in url:
             file_name = url.split("?f=")[-1]
             if "http" in file_name:
                 file_name = url.split("?f=")[0].split("/")[-1]
