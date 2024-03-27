@@ -1,4 +1,7 @@
 ﻿using System.Text.Json;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Drive.v3;
+using Google.Apis.Util.Store;
 
 namespace Core;
 
@@ -38,7 +41,7 @@ public class TokenManager
         return token;
     }
 
-    private async Task<Token> GenerateToken(string key)
+    private static async Task<Token> GenerateToken(string key)
     {
         return key switch
         {
@@ -47,7 +50,7 @@ public class TokenManager
         };
     }
 
-    private async Task<Token> GenerateRedgifsToken()
+    private static async Task<Token> GenerateRedgifsToken()
     {
         var client = new HttpClient();
         var response = await client.GetAsync("https://api.redgifs.com/v2/auth/temporary");
@@ -61,5 +64,16 @@ public class TokenManager
         }
         
         return new Token(token, expiration);
+    }
+
+    public static async Task<UserCredential> GDriveAuthenticate()
+    {
+        await using var stream = new FileStream("client_secrets.json", FileMode.Open, FileAccess.Read);
+        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+            (await GoogleClientSecrets.FromStreamAsync(stream)).Secrets,
+            new[] { DriveService.Scope.DriveReadonly },
+            "user", CancellationToken.None, new FileDataStore("GDriveCredentialCache"));
+
+        return credential;
     }
 }
