@@ -1,6 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Reflection;
 using Core.Enums;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 
 namespace Core;
@@ -27,7 +26,8 @@ public class HtmlParser
         set => Driver.Url = value;
     }
 
-    public HtmlParser(Dictionary<string, string> requestHeaders, string siteName, FilenameScheme filenameScheme = FilenameScheme.Original)
+    public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
+        FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         var options = InitializeOptions(siteName);
         Driver = new FirefoxDriver(options);
@@ -134,4 +134,96 @@ public class HtmlParser
     }
 
     #endregion
+    
+    public RipInfo TestParse(string givenUrl, bool debug, bool printSite)
+    {
+        try
+        {
+            var options = new FirefoxOptions();
+            if (!debug)
+            {
+                options.AddArgument("-headless");
+            }
+            options.AddArgument(DriverHeader);
+            Driver = new FirefoxDriver(options);
+            CurrentUrl = givenUrl.Replace("members.", "www.");
+            SiteName = TestSiteCheck(givenUrl);
+            if (SiteName == "999hentai")
+            {
+                SiteName = "nine99hentai";
+            }
+            Console.WriteLine($"Testing: {SiteName}Parse");
+            var start = DateTime.Now;
+            var data = EvaluateParser(SiteName);
+            var end = DateTime.Now;
+            Console.WriteLine(data.Urls[0].Referer);
+            Console.WriteLine($"Time Elapsed: {end - start}");
+            var outData = data.Urls.Select(d => d.Url).ToList();
+            JsonUtility.Serialize("test.json", outData);
+            return data;
+        }
+        catch
+        {
+            File.WriteAllText("test.html", Driver.PageSource);
+            throw;
+        }
+        finally
+        {
+            if (printSite)
+            {
+                File.WriteAllText("test.html", Driver.PageSource);
+            }
+            Driver.Quit();
+        }
+    }
+
+    private RipInfo EvaluateParser(string siteName)
+    {
+        var methodName = $"{siteName}Parse";
+        var method = GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        if (method != null)
+        {
+            return (RipInfo)(method.Invoke(this, null) ?? throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
+        }
+
+        // Handle the case where the method does not exist
+        Console.WriteLine($"Method {methodName} not found.");
+        throw new InvalidOperationException();
+    }
+    
+    private string TestSiteCheck(string url)
+    {
+        var domain = new Uri(url).Host;
+        RequestHeaders["referer"] = $"https://{domain}/";
+        domain = DomainNameOverride(domain);
+        if (url.Contains("https://members.hanime.tv/") || url.Contains("https://hanime.tv/"))
+        {
+            RequestHeaders["referer"] = "https://cdn.discordapp.com/";
+        }
+        else if (url.Contains("https://kemono.party/"))
+        {
+            RequestHeaders["referer"] = "";
+        }
+        return domain;
+    }
+    
+    /*
+     * def _test_site_check(self, url: str) -> str:
+        domain = urlparse(url).netloc
+        requests_header['referer'] = "".join([SCHEME, domain, "/"])
+        domain = self._domain_name_override(domain)
+        # Hosts images on a different domain
+        if "https://members.hanime.tv/" in url or "https://hanime.tv/" in url:
+            requests_header['referer'] = "https://cdn.discordapp.com/"
+        elif "https://kemono.party/" in url:
+            requests_header['referer'] = ""
+        return domain
+     */
+
+    private static string DomainNameOverride(string url)
+    {
+        string[] specialDomains = ["inven.co.kr", "danbooru.donmai.us"];
+        var urlSplit = url.Split(".");
+        return specialDomains.Any(url.Contains) ? urlSplit[^3] : urlSplit[^2];
+    }
 }
