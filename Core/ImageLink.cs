@@ -22,6 +22,12 @@ public class ImageLink
         Filename = filename;
     }
 
+    public void Rename(int index)
+    {
+        var ext = Path.GetExtension(Filename);
+        Filename = index + ext;
+    }
+    
     public void Rename(string newStem)
     {
         var ext = Path.GetExtension(Filename);

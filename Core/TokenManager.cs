@@ -13,7 +13,7 @@ public class TokenManager
     
     public static TokenManager Instance => _instance ??= new TokenManager();
 
-    public Dictionary<string, Token> Tokens { get; init; }
+    private Dictionary<string, Token> Tokens { get; }
     
     private TokenManager()
     {
