@@ -1,4 +1,6 @@
-﻿namespace Core;
+﻿using System.Web;
+
+namespace Core;
 
 public static class ExtensionMethods
 {
@@ -23,9 +25,26 @@ public static class ExtensionMethods
         var request = new HttpRequestMessage(method, url);
         foreach (var (key, value) in headers)
         {
-            request.Headers.Add(key, value);
+            request.Headers.TryAddWithoutValidation(key, value);
         }
         
         return request;
+    }
+    
+    public static string ToQueryString(this string url, Dictionary<string, string> dict)
+    {
+        var uriBuilder = new UriBuilder(url);
+        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+        foreach (var (key, value) in dict)
+        {
+            query[key] = value;
+        }
+        uriBuilder.Query = query.ToString();
+        return uriBuilder.ToString();
+    }
+    
+    public static string HexDigest(this byte[] bytes)
+    {
+        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
     }
 }

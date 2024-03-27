@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.Enums;
 using Core.Exceptions;
+using Google.Apis.Drive.v3;
+using Google.Apis.Services;
 
 namespace Core;
 
@@ -326,9 +328,19 @@ public partial class ImageRipper
         return Task.CompletedTask;
     }
 
-    private static Task DownloadGDriveFile(string path, ImageLink imageLink)
+    private static async Task DownloadGDriveFile(string path, ImageLink imageLink)
     {
-        throw new NotImplementedException();
+        var destinationPath = Path.Combine(path, imageLink.Filename);
+        Directory.CreateDirectory(path);
+        var credentials = await TokenManager.GDriveAuthenticate();
+        var service = new DriveService(new BaseClientService.Initializer
+        {
+            HttpClientInitializer = credentials,
+            ApplicationName = "ImageRipper"
+        });
+        var request = service.Files.Get(imageLink.Url);
+        await using var stream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
+        await request.DownloadAsync(stream);
     }
     
     private static Task DownloadIframeMedia(string path, ImageLink imageLink)
@@ -336,14 +348,49 @@ public partial class ImageRipper
         throw new NotImplementedException();
     }
     
-    private static Task DownloadMegaFiles(string path, ImageLink imageLink)
+    private Task DownloadMegaFiles(string path, ImageLink imageLink)
     {
-        throw new NotImplementedException();
+        var (email, password) = Config.Instance.Logins["Mega"];
+        if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
+        {
+           PersistentLogins["Mega"] = MegaApi.WhoAmI() == email || MegaApi.Login(email, password);
+        }
+        else
+        {
+            if (!loggedIn)
+            {
+                PersistentLogins["Mega"] = MegaApi.WhoAmI() == email || MegaApi.Login(email, password);
+            }
+        }
+        
+        if(!PersistentLogins["Mega"])
+        {
+            throw new Exception("Unable to login to MegaCmd");
+        }
+        
+        MegaApi.Download(imageLink.Url, path);
+        return Task.CompletedTask;
     }
     
-    private static Task DownloadPixelDrainFiles(string path, ImageLink imageLink)
+    private static async Task DownloadPixelDrainFiles(string path, ImageLink imageLink)
     {
-        throw new NotImplementedException();
+        var apiKey = Config.Instance.Keys["Pixeldrain"];
+        var authString = $":{apiKey}";
+        var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
+        var headers = new Dictionary<string, string>
+        {
+            ["User-Agent"] =
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+            ["Authorization"] = $"Basic {base64Auth}"
+        };
+        using var client = new HttpClient();
+        foreach (var (key, value) in headers)
+        {
+            client.DefaultRequestHeaders.Add(key, value);
+        }
+        var response = await client.GetAsync($"https://pixeldrain.com/api/file/{imageLink.Url}", HttpCompletionOption.ResponseHeadersRead);
+        await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+        await response.Content.CopyToAsync(fileStream);
     }
 
     private async Task DownloadFile(string imagePath, string url)
