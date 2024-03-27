@@ -10,6 +10,7 @@ public partial class BunnyVideoDrm
 {
     private static readonly HttpClient Session = new();
     private static readonly Random Random = new();
+
     private static readonly Dictionary<string, string> UserAgent = new()
     {
         ["sec-ch-ua"] = """
@@ -49,7 +50,7 @@ public partial class BunnyVideoDrm
             ["sec-fetch-mode"] = "navigate",
             ["sec-fetch-site"] = "cross-site",
             ["upgrade-insecure-requests"] = "1"
-            },
+        },
         ["ping|activate"] = new Dictionary<string, string>
         {
             ["accept"] = "*/*",
@@ -75,13 +76,15 @@ public partial class BunnyVideoDrm
             ["sec-fetch-site"] = "same-origin"
         }
     };
+
     public string ServerId { get; set; }
     public string ContextId { get; set; }
     public string Secret { get; set; }
     public string Filename { get; set; }
     public string Path { get; set; }
-    
-    public BunnyVideoDrm(string referer = "https://127.0.0.1/", string embedUrl = "", string name = "", string path = "")
+
+    public BunnyVideoDrm(string referer = "https://127.0.0.1/", string embedUrl = "", string name = "",
+        string path = "")
     {
         Referer = !string.IsNullOrEmpty(referer) ? referer : throw new Exception();
         EmbedUrl = !string.IsNullOrEmpty(embedUrl) ? embedUrl : throw new Exception();
@@ -100,7 +103,7 @@ public partial class BunnyVideoDrm
         {
             throw new Exception();
         }
-        
+
         Headers["ping|activate"].Add("authority", $"video-{ServerId}.mediadelivery.net");
         var search = ContextIdAndSecretRegex().Match(embedPage);
         ContextId = search.Groups[1].Value;
@@ -115,6 +118,7 @@ public partial class BunnyVideoDrm
             var fileEscaped = HttpUtility.HtmlDecode(fileUnescaped);
             Filename = FilenameRegex().Replace(fileEscaped, ".mp4");
         }
+
         Path = !string.IsNullOrEmpty(path) ? path : "~/Videos/Bunny CDN/";
     }
 
@@ -123,76 +127,78 @@ public partial class BunnyVideoDrm
         Ping(time: 0, paused: "true", resolution: "0");
         Activate();
         var resolution = MainPlaylist();
-        VideoPlaylist();
+        VideoPlaylist(resolution);
         for (var i = 0; i < 29; i += 4) // first 28 seconds, arbitrary
         {
-            Ping(time: i + (int) Math.Round(Random.NextDouble(), 6), paused: "false", resolution: resolution.Split('x')[^1]);
+            Ping(time: i + (int)Math.Round(Random.NextDouble(), 6), paused: "false",
+                resolution: resolution.Split('x')[^1]);
         }
+
         Session.Dispose();
         return resolution;
+    }
 
-        void Ping(int time, string paused, string resolution)
+    private void Ping(int time, string paused, string resolution)
+    {
+        var md5Hash = MD5.HashData(Encoding.UTF8.GetBytes($"{Secret}_{ContextId}_{time}_{paused}_{resolution}"))
+            .HexDigest();
+        var parameters = new Dictionary<string, string>
         {
-            var md5Hash = MD5.HashData(Encoding.UTF8.GetBytes($"{Secret}_{ContextId}_{time}_{paused}_{resolution}"))
-                .HexDigest();
-            var parameters = new Dictionary<string, string>
-            {
-                ["hash"] = md5Hash,
-                ["time"] = time.ToString(),
-                ["paused"] = paused,
-                ["chosen_res"] = resolution
-            };
-            var requestUrl =
-                $"https://video-{ServerId}.mediadelivery.net/.drm/{ContextId}/ping".ToQueryString(parameters);
-            var requestMessage = Headers["ping|activate"].ToRequest(HttpMethod.Get, requestUrl);
-            Session.Send(requestMessage);
+            ["hash"] = md5Hash,
+            ["time"] = time.ToString(),
+            ["paused"] = paused,
+            ["chosen_res"] = resolution
+        };
+        var requestUrl =
+            $"https://video-{ServerId}.mediadelivery.net/.drm/{ContextId}/ping".ToQueryString(parameters);
+        var requestMessage = Headers["ping|activate"].ToRequest(HttpMethod.Get, requestUrl);
+        Session.Send(requestMessage);
+    }
+
+    private void Activate()
+    {
+        var requestUrl = $"https://video-{ServerId}.mediadelivery.net/.drm/{ContextId}/activate";
+        var requestMessage = Headers["ping|activate"].ToRequest(HttpMethod.Get, requestUrl);
+        Session.Send(requestMessage);
+    }
+
+    private string MainPlaylist()
+    {
+        var parameters = new Dictionary<string, string>
+        {
+            ["contextId"] = ContextId,
+            ["secret"] = Secret
+        };
+        var requestUrl = $"https://iframe.mediadelivery.net/{Guid}/playlist.drm".ToQueryString(parameters);
+        var requestMessage = Headers["playlist"].ToRequest(HttpMethod.Get, requestUrl);
+        var response = Session.Send(requestMessage);
+        var resolutions = ResolutionRegex().Matches(response.Content.ReadAsStringAsync().Result);
+        if (resolutions.Count == 0)
+        {
+            throw new FileNotFoundException();
         }
 
-        void Activate()
-        {
-            var requestUrl = $"https://video-{ServerId}.mediadelivery.net/.drm/{ContextId}/activate";
-            var requestMessage = Headers["ping|activate"].ToRequest(HttpMethod.Get, requestUrl);
-            Session.Send(requestMessage);
-        }
+        // highest resolution, 0 for lowest
+        return resolutions[^1].Groups[1].Value;
+    }
 
-        string MainPlaylist()
+    private void VideoPlaylist(string resolution)
+    {
+        var parameters = new Dictionary<string, string>
         {
-            var parameters = new Dictionary<string, string>
-            {
-                ["contextId"] = ContextId,
-                ["secret"] = Secret
-            };
-            var requestUrl = $"https://iframe.mediadelivery.net/{Guid}/playlist.drm".ToQueryString(parameters);
-            var requestMessage = Headers["playlist"].ToRequest(HttpMethod.Get, requestUrl);
-            var response = Session.Send(requestMessage);
-            var resolutions = ResolutionRegex().Matches(response.Content.ReadAsStringAsync().Result);
-            if (resolutions.Count == 0)
-            {
-                throw new FileNotFoundException();
-            }
-
-            // highest resolution, 0 for lowest
-            return resolutions[^1].Groups[1].Value;
-        }
-
-        void VideoPlaylist()
-        {
-            var parameters = new Dictionary<string, string>
-            {
-                ["contextId"] = ContextId
-            };
-            var requestUrl = $"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm"
-                .ToQueryString(parameters);
-            var requestMessage = Headers["playlist"].ToRequest(HttpMethod.Get, requestUrl);
-            Session.Send(requestMessage);
-        }
+            ["contextId"] = ContextId
+        };
+        var requestUrl = $"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm"
+            .ToQueryString(parameters);
+        var requestMessage = Headers["playlist"].ToRequest(HttpMethod.Get, requestUrl);
+        Session.Send(requestMessage);
     }
 
     public async Task Download()
     {
         var resolution = PrepareDl();
         string[] url =
-            [ $"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm?contextId={ContextId}" ];
+            [$"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm?contextId={ContextId}"];
         /*var ydlOpts = new Dictionary<string, object>
         {
             ["http_headers"] = new Dictionary<string, string>
@@ -255,12 +261,16 @@ public partial class BunnyVideoDrm
 
     [GeneratedRegex(@"https://video-(.*?)\.mediadelivery\.net")]
     private static partial Regex ServerIdRegex();
+
     [GeneratedRegex(@"contextId=(.*?)&secret=(.*?)""")]
     private static partial Regex ContextIdAndSecretRegex();
+
     [GeneratedRegex(@"og:title"" content=""(.*?)""")]
     private static partial Regex FileUnescapedRegex();
+
     [GeneratedRegex(@"\.[^.]*$.*")]
     private static partial Regex FilenameRegex();
+
     [GeneratedRegex("RESOLUTION=(.*)")]
     private static partial Regex ResolutionRegex();
 }
