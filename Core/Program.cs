@@ -9,9 +9,12 @@ var requestHeaders = new Dictionary<string, string>
     {"cookie", ""}
 };
 
-var parser = new HtmlParser(requestHeaders);
-var output = parser.TestParse("https://imhentai.xxx/", false, false);
-Console.WriteLine(output);
+// var parser = new HtmlParser(requestHeaders);
+// var output = parser.TestParse("https://imhentai.xxx/", false, false);
+// Console.WriteLine(output);
+
+await GDriveHelper.Test("https://drive.google.com/drive/folders/1byo5cCWoeFP749_mLNXHeAfk_HO08H0-");
+
 // var video = new BunnyVideoDrm(
 //     // insert the referer between the quotes below (address of your webpage)
 //     referer: "https://iframe.mediadelivery.net/5056fb0a-a739-416e-92af-acfa505e7b3a/playlist.drm?contextId=99959a4c-f523-4e30-ade5-710de730cad4&secret=1b0ccff3-d931-42e1-b7ce-656f347ec164",
