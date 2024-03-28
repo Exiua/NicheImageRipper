@@ -8,7 +8,7 @@ public class RipInfo
 {
     private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
         
-    private string _directoryName;
+    private string _directoryName = null!; // Initialized through the property setter
     
     public FilenameScheme FilenameScheme { get; set; }
     public List<ImageLink> Urls { get; set; }
