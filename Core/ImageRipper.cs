@@ -93,7 +93,7 @@ public partial class ImageRipper
     private async Task FileGetter()
     {
         var htmlParser = new HtmlParser(RequestHeaders, SiteName, FilenameScheme);
-        var folderInfo = htmlParser.ParseSite(GivenUrl);
+        var folderInfo = await htmlParser.ParseSite(GivenUrl);
         var fullPath = Path.Combine(SavePath, folderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
         {

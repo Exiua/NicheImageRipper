@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Google.Apis.Drive.v3" Version="1.67.0.3309" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.60" />
       <PackageReference Include="Selenium.WebDriver" Version="4.18.1" />
       <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.34.0" />
     </ItemGroup>

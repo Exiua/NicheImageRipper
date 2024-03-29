@@ -70,7 +70,7 @@ public class RipInfo
                     imageLinks.AddRange(imageLink);
                     linkCounter = newLinkCounter;
                 }
-                catch (GoogleApiException e) // googleapiclient.errors.HttpError
+                catch (GoogleApiException _) // googleapiclient.errors.HttpError
                 {
                     // pass
                 }
@@ -93,56 +93,19 @@ public class RipInfo
 
     private async Task<(List<ImageLink>, int)> QueryGDriveLinks(string gDriveUrl, int index)
     {
-        await TokenManager.GDriveAuthenticate();
+        var service = await GDriveHelper.AuthenticateGDrive();
         var (id, singleFile) = ExtractId(gDriveUrl);
-        var token = await TokenManager.Instance.GetToken("gdrive");
-        var resource = new Dictionary<string, string>
+        var files = await service.GetFiles(id);
+        var imageLinks = new List<ImageLink>();
+        var counter = index;
+        foreach (var file in files)
         {
-            {"id", id},
-            {"oauth2", token.Value}, // TODO: Fix
-            {"fields", "files(name,id)"}
-        };
-
-        throw new NotImplementedException();
-    }
-    /*
-     * def __query_gdrive_links(self, gdrive_url: str, index: int) -> tuple[list[ImageLink], int]:
-        self.authenticate()
-        id_, single_file = self.__extract_id(gdrive_url)
-        resource = {
-            "id": id_,
-            "oauth2": self.gdrive_creds,
-            "fields": "files(name,id)",
+            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.Name, linkInfo: LinkInfo.GDrive);
+            imageLinks.Add(imgLink);
+            counter++;
         }
-        res = getfilelist.GetFileList(resource)
-        if not self.__dir_name:
-            dir_name = res["searchedFolder"]["name"] if not single_file else res["searchedFolder"]["id"]
-            self.__dir_name = self.clean_dir_name(dir_name)
-        links: list[ImageLink] = []
-        counter = index
-        if single_file:
-            filename = res["searchedFolder"]["name"]
-            file_id = id_
-            img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, link_info=LinkInfo.GDRIVE)
-            links.append(img_link)
-            counter += 1
-        else:
-            file_lists = res["fileList"]
-            folder_ids = res["folderTree"]["id"]
-            folder_names = res["folderTree"]["names"]
-            folder_names = self.get_gdrive_folder_names(folder_ids, folder_names)
-            for i, file_list in enumerate(file_lists):
-                files = file_list["files"]
-                parent_folder = folder_names[i]
-                for file in files:
-                    file_id = file["id"]
-                    filename = os.path.join(parent_folder, file["name"])
-                    img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename,
-                                         link_info=LinkInfo.GDRIVE)
-                    links.append(img_link)
-                    counter += 1
-        return links, counter
-     */
+        return (imageLinks, counter);
+    }
 
     private static (string, bool) ExtractId(string url)
     {
