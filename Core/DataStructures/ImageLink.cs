@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Core.Enums;
 
-namespace Core;
+namespace Core.DataStructures;
 
 public class ImageLink
 {

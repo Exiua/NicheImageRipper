@@ -2,7 +2,7 @@
 using Core.Enums;
 using Google;
 
-namespace Core;
+namespace Core.DataStructures;
 
 public class RipInfo
 {

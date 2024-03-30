@@ -1,17 +1,36 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using Core;
+using Core.ArgParse;
+using Core.SiteParsing;
 
-var requestHeaders = new Dictionary<string, string>
+var arguments = ArgumentParser.Parse(args);
+switch (arguments.RunMode)
 {
-    {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"},
-    {"referer", "https://imhentai.xxx/"},
-    {"cookie", ""}
-};
+    case RunMode.Test:
+        var requestHeaders = new Dictionary<string, string>
+        {
+            {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"},
+            {"referer", "https://imhentai.xxx/"},
+            {"cookie", ""}
+        };
 
-var parser = new HtmlParser(requestHeaders);
-var output = await parser.TestParse("https://imhentai.xxx/gallery/1227359/", false, false);
-Console.WriteLine(output);
+        var parser = new HtmlParser(requestHeaders);
+        // Null check performed in ArgumentParser.Parse
+        var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
+        Console.WriteLine(output);
+        break;
+    case RunMode.Gui:
+        //await Gui();
+        break;
+    case RunMode.Cli:
+        //await Cli();
+        break;
+    default:
+        throw new ArgumentOutOfRangeException();
+}
+
+
 
 //await GDriveHelper.Test("https://drive.google.com/drive/folders/1byo5cCWoeFP749_mLNXHeAfk_HO08H0-");
 

@@ -1,11 +1,12 @@
 ﻿using System.Reflection;
+using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 
-namespace Core;
+namespace Core.SiteParsing;
 
 public class HtmlParser
 {
@@ -62,7 +63,7 @@ public class HtmlParser
         url = url.Replace("members.", "www.");
         GivenUrl = url;
         CurrentUrl = url;
-        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         var siteParser = GetParser(SiteName);
         try
         {
@@ -459,7 +460,7 @@ public class HtmlParser
                 {
                     continue;
                 }
-                var link = UrlUtility.ExtractUrl(url);
+                var link = Utility.UrlUtility.ExtractUrl(url);
                 if (link != "")
                 {
                     externalLinks[site].Add(link + '\n');
@@ -487,7 +488,7 @@ public class HtmlParser
                     {
                         continue;
                     }
-                    var link = UrlUtility.ExtractUrl(part);
+                    var link = Utility.UrlUtility.ExtractUrl(part);
                     if (link != "")
                     {
                         externalLinks[site].Add(link + '\n');

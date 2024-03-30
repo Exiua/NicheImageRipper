@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Core.ExtensionMethods;
 
-namespace Core;
+namespace Core.FileDownloading;
 
 public partial class BunnyVideoDrm
 {
