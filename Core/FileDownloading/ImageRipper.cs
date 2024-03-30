@@ -5,13 +5,15 @@ using System.Security.Authentication;
 using System.Text;
 using System.Text.RegularExpressions;
 using Core.Configuration;
+using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.SiteParsing;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 
-namespace Core;
+namespace Core.FileDownloading;
 
 public partial class ImageRipper
 {
@@ -82,7 +84,7 @@ public partial class ImageRipper
     {
         SleepTime = 0.2f;   // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
-        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         if (CookiesNeeded())
         {
             AddCookies();

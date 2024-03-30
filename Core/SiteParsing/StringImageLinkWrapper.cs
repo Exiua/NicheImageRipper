@@ -1,4 +1,6 @@
-﻿namespace Core;
+﻿using Core.DataStructures;
+
+namespace Core;
 
 public struct StringImageLinkWrapper
 {

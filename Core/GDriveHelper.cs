@@ -7,17 +7,6 @@ namespace Core;
 
 public static class GDriveHelper
 {
-    public static async Task Test(string url)
-    {
-        var service = await AuthenticateGDrive();
-
-        var files = await service.GetFiles("1byo5cCWoeFP749_mLNXHeAfk_HO08H0-");
-        foreach (var file in files)
-        {
-            Console.WriteLine(file.GetPath());
-        }
-    }
-    
     public static async Task<DriveService> AuthenticateGDrive()
     {
         var creds = await TokenManager.GDriveAuthenticate();
@@ -34,7 +23,7 @@ public class GDriveItem
     public string Id { get; set; }
     public string Name { get; set; }
     public bool IsFolder { get; set; }
-    public GDriveItem? Parent { get; set; }
+    private GDriveItem? Parent { get; set; }
 
     public GDriveItem(File file)
     {
