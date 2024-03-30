@@ -1,6 +1,6 @@
 ﻿using System.Web;
 
-namespace Core;
+namespace Core.ExtensionMethods;
 
 public static class ExtensionMethods
 {
@@ -46,5 +46,26 @@ public static class ExtensionMethods
     public static string HexDigest(this byte[] bytes)
     {
         return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+    }
+    
+    public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> enumerable,
+        Func<TSource, TResult> selectPredicate, Func<TResult, bool> wherePredicate)
+    {
+        return enumerable.Select(selectPredicate).Where(wherePredicate);
+    }
+    
+    public static bool AnyIn(this IEnumerable<string> enumerable, string other)
+    {
+        return enumerable.Any(other.Contains);
+    }
+
+    public static List<T> RemoveDuplicates<T>(this IEnumerable<T> src)
+    {
+        return src.Distinct().ToList();
+    }
+    
+    public static List<StringImageLinkWrapper> ToWrapperList(this List<string> src)
+    {
+        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
     }
 }

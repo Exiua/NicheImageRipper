@@ -1,4 +1,4 @@
-﻿namespace Core;
+﻿namespace Core.ExtensionMethods;
 
 public static class DebugExtensionMethods
 {

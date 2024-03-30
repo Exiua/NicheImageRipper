@@ -9,11 +9,11 @@ var requestHeaders = new Dictionary<string, string>
     {"cookie", ""}
 };
 
-// var parser = new HtmlParser(requestHeaders);
-// var output = parser.TestParse("https://imhentai.xxx/", false, false);
-// Console.WriteLine(output);
+var parser = new HtmlParser(requestHeaders);
+var output = await parser.TestParse("https://imhentai.xxx/gallery/1227359/", false, false);
+Console.WriteLine(output);
 
-await GDriveHelper.Test("https://drive.google.com/drive/folders/1byo5cCWoeFP749_mLNXHeAfk_HO08H0-");
+//await GDriveHelper.Test("https://drive.google.com/drive/folders/1byo5cCWoeFP749_mLNXHeAfk_HO08H0-");
 
 // var video = new BunnyVideoDrm(
 //     // insert the referer between the quotes below (address of your webpage)

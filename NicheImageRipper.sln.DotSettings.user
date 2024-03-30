@@ -2,6 +2,7 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=471a6e44_002D26b4_002D4471_002D8669_002D61339d6e2ece/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="GDriveLinkParseTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
     &lt;TestId&gt;xUnit::08B555C3-E0CA-4E1B-A43A-05405B2DA6E4::net8.0::CoreTest.UrlUtilityTest.GDriveLinkParseTest&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::08B555C3-E0CA-4E1B-A43A-05405B2DA6E4::net8.0::CoreTest.UrlUtilityTest.MegaLinkParseTest&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	

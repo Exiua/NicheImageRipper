@@ -21,7 +21,7 @@ public class RipInfo
     public string DirectoryName
     {
         get => _directoryName;
-        set => _directoryName = ClearDirectoryName(value);
+        set => _directoryName = CleanDirectoryName(value);
     }
 
     private List<string>? Filenames { get; set; }
@@ -141,7 +141,7 @@ public class RipInfo
         return newUrls;
     }
     
-    private static string ClearDirectoryName(string directoryName)
+    private static string CleanDirectoryName(string directoryName)
     {
         var dirName = new StringBuilder();
         foreach (var c in directoryName)
@@ -153,13 +153,51 @@ public class RipInfo
         }
         if (dirName[^1] != ')' && dirName[^1] != ']' && dirName[^1] != '}')
         {
-            dirName.Remove(dirName.Length - 1, 1);
+            RStripPunctuation(dirName);
         }
         if (dirName[0] != '(' && dirName[0] != '[' && dirName[0] != '{')
         {
-            dirName.Remove(0, 1);
+            LStripPunctuation(dirName);
         }
         return dirName.ToString();
+    }
+    
+    private static void LStripPunctuation(StringBuilder input)
+    {
+        if (input.Length == 0)
+        {
+            return;
+        }
+
+        var i = 0;
+        while (i < input.Length && char.IsPunctuation(input[i]))
+        {
+            i++;
+        }
+
+        if (i > 0)
+        {
+            input.Remove(0, i); // Remove leading punctuation
+        }
+    }
+    
+    private static void RStripPunctuation(StringBuilder input)
+    {
+        if (input.Length == 0)
+        {
+            return;
+        }
+
+        var i = input.Length - 1;
+        while (i >= 0 && char.IsPunctuation(input[i]))
+        {
+            i--;
+        }
+
+        if (i < input.Length - 1)
+        {
+            input.Length = i + 1; // Adjust the length to trim the punctuation
+        }
     }
     
     private static void SaveRawUrls(List<StringImageLinkWrapper> urls)
