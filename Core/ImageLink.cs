@@ -19,7 +19,7 @@ public class ImageLink
         Referer = "";
         LinkInfo = linkInfo;
         Url = GenerateUrl(url);
-        Filename = filename;
+        Filename = GenerateFilename(url, filenameScheme, index, filename);
     }
 
     public void Rename(int index)
@@ -67,7 +67,7 @@ public class ImageLink
 
     private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename = "")
     {
-        if(filename != "")
+        if(filename == "")
         {
             filename = ExtractFilename(url);
         }

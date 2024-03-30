@@ -38,10 +38,43 @@ public class UrlUtilityTest
                 ""
             },
         };
+
+    public static IEnumerable<object[]> MegaLinks =>
+        new List<object[]>
+        {
+            new object[]
+            {
+                "https://mega.nz/folder/s7dmnSIS#RmFL5zxGBHwsUjHJgEocbwSorry",
+                "https://mega.nz/folder/s7dmnSIS#RmFL5zxGBHwsUjHJgEocbw"
+            },
+            new object[]
+            {
+                "https://mega.nz/folder/0nt1WZCY#s-uB3iozoQUSoYGU",
+                ""
+            },
+            new object[]
+            {
+                "https://mega.nz/file/ti9gkSab#daz8ahh0y0DcTrHIRKpxxxabxjFWH_lklU9scNaVvb8The",
+                "https://mega.nz/file/ti9gkSab#daz8ahh0y0DcTrHIRKpxxxabxjFWH_lklU9scNaVvb8"
+            },
+            new object[]
+            {
+                "link:https://mega.nz/folder/InkHmaSS#ugwe1m_6qH1OXmGbS7qqLA",
+                "https://mega.nz/folder/InkHmaSS#ugwe1m_6qH1OXmGbS7qqLA"
+            }
+        };
     
     [Theory]
     [MemberData(nameof(GDriveLinks))]
     public void GDriveLinkParseTest(string link, string expected)
+    {
+        var actual = UrlUtility.ExtractUrl(link);
+        Assert.Equal(expected, actual);    
+    }
+    
+    [Theory]
+    [MemberData(nameof(MegaLinks))]
+    public void MegaLinkParseTest(string link, string expected)
     {
         var actual = UrlUtility.ExtractUrl(link);
         Assert.Equal(expected, actual);    
