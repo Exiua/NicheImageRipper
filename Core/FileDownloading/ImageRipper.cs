@@ -96,8 +96,8 @@ public partial class ImageRipper
     private async Task FileGetter()
     {
         var htmlParser = new HtmlParser(RequestHeaders, SiteName, FilenameScheme);
-        var folderInfo = await htmlParser.ParseSite(GivenUrl);
-        var fullPath = Path.Combine(SavePath, folderInfo.DirectoryName);
+        FolderInfo = await htmlParser.ParseSite(GivenUrl);
+        var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
         {
             // TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
@@ -114,20 +114,20 @@ public partial class ImageRipper
         }
         else
         {
-            start = folderInfo.MustGenerateManually ? 1 : 0;
+            start = FolderInfo.MustGenerateManually ? 1 : 0;
         }
 
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
-        if (folderInfo.MustGenerateManually)
+        if (FolderInfo.MustGenerateManually)
         {
             // Gets the general url for all images in this album
-            var trimmedUrl = TrimUrl(GivenUrl);
+            var trimmedUrl = TrimUrl(FolderInfo.Urls[0].Url);
             string[] extensions = [".jpg", ".gif", ".png", ".mp4", "t.jpg"];
             
             // Downloads all images from the general url by incrementing the file number
             //  (eg. https://domain/gallery/##.jpg)
-            for (var index = start; index < folderInfo.NumUrls + 1; index++)
+            for (var index = start; index < FolderInfo.NumUrls + 1; index++)
             {
                 CurrentIndex = index;
                 
@@ -157,15 +157,15 @@ public partial class ImageRipper
             {
                 // Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
                 case "cyberdrop":
-                    CyberdropDownload(fullPath, folderInfo.Urls[0]);
+                    CyberdropDownload(fullPath, FolderInfo.Urls[0]);
                     break;
                 case "deviantart":
-                    DeviantArtDownload(fullPath, folderInfo.Urls[0].Url);
+                    DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
                     break;
                 default:
                 {
                     List<ImageLink> cyberdropFiles = [];
-                    foreach (var (i, link) in folderInfo.Urls[start..].Enumerate())
+                    foreach (var (i, link) in FolderInfo.Urls[start..].Enumerate())
                     {
                         var index = start + i;
                         CurrentIndex = index;

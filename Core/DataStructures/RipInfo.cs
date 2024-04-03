@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Core.Enums;
 using Google;
+using JetBrains.Annotations;
 
 namespace Core.DataStructures;
 
@@ -14,9 +15,7 @@ public class RipInfo
     public List<ImageLink> Urls { get; set; }
     public bool MustGenerateManually { get; set; }
     
-    private int UrlCount { get; set; }
-
-    public int NumUrls => UrlCount;
+    public int NumUrls { get; set; }
 
     public string DirectoryName
     {
@@ -26,8 +25,13 @@ public class RipInfo
 
     private List<string>? Filenames { get; set; }
 
+    [UsedImplicitly]
+    public RipInfo()
+    {
+    }
+
     public RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "", FilenameScheme filenameScheme = FilenameScheme.Original,
-        bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
+                   bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
     {
         // SaveRawUrls(urls);
         FilenameScheme = filenameScheme;
@@ -35,7 +39,7 @@ public class RipInfo
         Filenames = filenames;
         Urls = ConvertUrlsToImageLink(urls, discardBlobs).Result;
         MustGenerateManually = generate;
-        UrlCount = generate ? numUrls : Urls.Count;
+        NumUrls = generate ? numUrls : Urls.Count;
     }
 
     private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob)
