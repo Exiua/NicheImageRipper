@@ -1,4 +1,4 @@
-﻿namespace Core;
+﻿namespace Core.Configuration;
 
 public class Token(string value, DateTime expiration)
 {

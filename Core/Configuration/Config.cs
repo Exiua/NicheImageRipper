@@ -1,4 +1,5 @@
 ﻿using Core.Enums;
+using JetBrains.Annotations;
 
 namespace Core.Configuration;
 
@@ -20,16 +21,18 @@ public class Config
         }
     }
 
-    public string SavePath { get; set; }
-    public string Theme { get; set; }
+    public string SavePath { get; set; } = null!;
+    public string Theme { get; set; } = null!;
     public FilenameScheme FilenameScheme { get; set; }
     public UnzipProtocol UnzipProtocol { get; set; }
     public bool AskToReRip { get; set; }
     public bool LiveHistory { get; set; }
     public int NumThreads { get; set; }
-    public Dictionary<string, Credentials> Logins { get; private set; }
-    public Dictionary<string, string> Keys { get; private set; }
+    public Dictionary<string, Credentials> Logins { get; private set; } = null!;
+    public Dictionary<string, string> Keys { get; private set; } = null!;
 
+    // Used for deserialization
+    [UsedImplicitly]
     public Config()
     {
         
@@ -65,7 +68,7 @@ public class Config
         return config;
     }
 
-    private void SaveConfig()
+    public void SaveConfig()
     {
         JsonUtility.Serialize(ConfigPath, this);
     }

@@ -24,7 +24,8 @@ switch (arguments.RunMode)
         //await Gui();
         break;
     case RunMode.Cli:
-        //await Cli();
+        var ripper = new NicheImageRipperCli();
+        ripper.Run();
         break;
     default:
         throw new ArgumentOutOfRangeException();

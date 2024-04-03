@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Core.Enums;
+using JetBrains.Annotations;
 
 namespace Core.DataStructures;
 
@@ -14,6 +15,12 @@ public class ImageLink
     
     public bool IsBlob => Url.StartsWith("blob:");
 
+    [UsedImplicitly]
+    public ImageLink()
+    {
+        
+    }
+    
     public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", LinkInfo linkInfo = LinkInfo.None)
     {
         Referer = "";
