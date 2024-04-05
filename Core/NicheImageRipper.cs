@@ -122,9 +122,9 @@ public abstract class NicheImageRipper
         }
         var url = UrlQueue.Peek();
         Console.WriteLine(url);
-        var ripper = new ImageRipper(FilenameScheme, UnzipProtocol);
+        Ripper = new ImageRipper(FilenameScheme, UnzipProtocol);
         Interrupted = true;
-        await ripper.Rip(url);
+        await Ripper.Rip(url);
         Interrupted = false;
         UrlQueue.Dequeue();
         return url;
@@ -198,7 +198,7 @@ public abstract class NicheImageRipper
     ///     Retrieve the latest version of the NicheImageRipper from the remote git repo
     /// </summary>
     /// <returns>Latest version of the NicheImageRipper or 0.0.0 if unable to connect to the repo</returns>
-    public static async Task<Version> GetLatestVersion()
+    private static async Task<Version> GetLatestVersion()
     {
         var client = new HttpClient();
         client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");

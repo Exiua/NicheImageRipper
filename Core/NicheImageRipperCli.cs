@@ -40,7 +40,8 @@ public class NicheImageRipperCli : NicheImageRipper
     {
         while (UrlQueue.Count != 0)
         {
-            await RipUrl();
+            var url = await RipUrl();
+            UpdateHistory(Ripper, url);
         }
     }
 
@@ -91,6 +92,16 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "history":
                         PrintHistory();
+                        break;
+                    case "l":
+                    case "load":
+                        var cmds = userInput.Split(' ');
+                        List<string> unfinished;
+                        unfinished = JsonUtility.Deserialize<List<string>>(cmds.Length != 2 ? "UnfinishedRips.json" : cmds[1]);
+                        foreach (var url in unfinished)
+                        {
+                            AddToUrlQueue(url);
+                        }
                         break;
                     default:
                         QueueUrls(userInput);

@@ -17,8 +17,8 @@ public class HtmlParser
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
     
     private static bool LoggedIn;
-    
-    public FirefoxDriver Driver { get; set; }
+
+    public static FirefoxDriver Driver { get; set; } = new FirefoxDriver(InitializeOptions(""));
     public bool Interrupted { get; set; }
     public string SiteName { get; set; }
     public float SleepTime { get; set; }
@@ -36,8 +36,8 @@ public class HtmlParser
     public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
         FilenameScheme filenameScheme = FilenameScheme.Original)
     {
-        var options = InitializeOptions(siteName);
-        Driver = new FirefoxDriver(options);
+        //var options = InitializeOptions(siteName);
+        //Driver = new FirefoxDriver(options);
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
         Interrupted = false;
@@ -74,12 +74,8 @@ public class HtmlParser
         }
         catch
         {
-            Console.WriteLine(CurrentUrl);
+            Print(CurrentUrl);
             throw;
-        }
-        finally
-        {
-            Driver.Quit();
         }
     }
     
@@ -89,7 +85,9 @@ public class HtmlParser
         {
             "imhentai" => ImhentaiParse,
             "kemono" => KemonoParse,
-            _ => throw new Exception("Site not supported")
+            "sankakucomplex" => SankakuComplexParse,
+            "omegascans" => OmegaScansParse,
+            _ => throw new Exception("Site not supported/implemented")
         };
     }
     
@@ -125,6 +123,8 @@ public class HtmlParser
 
     #region Site Parsers
 
+    #region Generic Site Parsers
+
     private async Task<RipInfo> DotPartyParse(string domainUrl)
     {
         var cookies = Driver.Manage().Cookies.AllCookies;
@@ -149,7 +149,7 @@ public class HtmlParser
         while (true)
         {
             page += 1;
-            Console.WriteLine($"Parsing page {page}");
+            Print($"Parsing page {page}");
             var imageList = soup.SelectSingleNode("//div[@class='card-list__items']").SelectNodes("//article");
             foreach (var image in imageList)
             {
@@ -157,7 +157,7 @@ public class HtmlParser
                 imageLinks.Add($"{baseUrl}/post/{id}");
             }
             var nextUrl = $"{pageUrl}?o={page * 50}";
-            Console.WriteLine(nextUrl);
+            Print(nextUrl);
             soup = await Soupify(nextUrl);
             if (soup.SelectSingleNode("//h2[@class='site-section__subheading']") is not null || CurrentUrl == origUrl)
             {
@@ -177,8 +177,8 @@ public class HtmlParser
 
         foreach (var (i, link) in imageLinks.Enumerate())
         {
-            Console.WriteLine($"Parsing post {i + 1} of {numPosts}");
-            Console.WriteLine(link);
+            Print($"Parsing post {i + 1} of {numPosts}");
+            Print(link);
             soup = await Soupify(link);
             var links = soup.SelectNodes("//a").GetHrefs();
             var possibleLinksP = soup.SelectNodes("//p");
@@ -247,6 +247,8 @@ public class HtmlParser
         return new RipInfo(stringLinks, dirName, FilenameScheme);
     }
 
+    #endregion
+    
     private async Task<RipInfo> DropboxParse(string dropboxUrl = "")
     {
         var internalUse = false;
@@ -275,7 +277,7 @@ public class HtmlParser
                 {
                     return new RipInfo([], "Deleted", FilenameScheme);
                 }
-                Console.WriteLine(CurrentUrl);
+                Print(CurrentUrl);
                 throw;
             }
         }
@@ -352,11 +354,6 @@ public class HtmlParser
         }
     }
     
-    private async Task<RipInfo> KemonoParse()
-    {
-        return await DotPartyParse("https://kemono.party");
-    }
-    
     /// <summary>
     ///     Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -379,7 +376,76 @@ public class HtmlParser
         
         return new RipInfo([images], dirName, generate: true, numUrls: numPages);
     }
+    
+    private async Task<RipInfo> KemonoParse()
+    {
+        return await DotPartyParse("https://kemono.party");
+    }
 
+    /// <summary>
+    ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
+    private async Task<RipInfo> SankakuComplexParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
+        var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
+        var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image).Select(dummy => (StringImageLinkWrapper)dummy).ToList();
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
+    private async Task<RipInfo> OmegaScansParse()
+    {
+        await Task.Delay(5000);
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='text-xl md:text-3xl text-primary font-bold text-center lg:text-left']")
+            .InnerText;
+        var chapterCountStr = soup.SelectSingleNode("//div[@class='space-y-2 rounded p-5 bg-foreground']")
+            .SelectNodes("./div[@class='flex justify-between']")[3]
+            .SelectSingleNode(".//span[@class='text-secondary line-clamp-1']").InnerText;
+        var chapterCount = int.Parse(chapterCountStr.Trim().Split(' ')[0]);
+        List<string> chapters = [];
+        while (true)
+        {
+            var links = soup.SelectSingleNode("//ul[@class='grid grid-cols-1 gap-y-8']")
+                .SelectNodes("./a[@href]").GetHrefs().Select(link => $"https://omegascans.org{link}").ToList();
+            chapters.AddRange(links);
+            if (chapters.Count == chapterCount)
+            {
+                break;
+            }
+            
+            Driver.FindElement(By.XPath("//nav[@class='mx-auto flex w-full justify-center gap-x-2']/ul[last()]//a")).Click();
+            soup = await Soupify();
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var (i, chapter) in chapters.Enumerate())
+        {
+            Print($"Parsing chapter {i + 1} of {chapterCount}");
+            CurrentUrl = chapter;
+            await LazyLoad(scrollBy: true, increment: 5000);
+            soup = await Soupify();
+            var post = soup.SelectSingleNode("//p[@class='flex flex-col justify-center items-center']");
+            if (post is null)
+            {
+                await PrintAsync("Post not found", true);
+                continue;
+            }
+            var imgs = post.SelectNodes("./img[@src]").GetSrcs();
+            images.AddRange(imgs.Select(img => (StringImageLinkWrapper)img));
+        }
+        
+        images.Reverse();
+        // Files are numbered per chapter, so original will have the files overwrite each other
+        return new RipInfo(images, dirName, FilenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : FilenameScheme);
+    }
+    
     #endregion
 
     private async Task<HtmlNode> Soupify(string? url = null, int delay = 0, HttpResponseMessage? response = null, string xpath = "")
@@ -425,19 +491,6 @@ public class HtmlParser
         }
         return true;
     }
-    
-    /*
-     * def __wait_for_element(self, xpath: str, delay: float = 0.1, timeout: float = 10) -> bool:
-        if timeout != -1:
-            timeout *= 1_000_000_000  # Convert seconds to nanoseconds
-        start_time = time.time_ns()
-        while not self.driver.find_elements(By.XPATH, xpath):
-            sleep(delay)
-            curr_time = time.time_ns()
-            if timeout != -1 and curr_time - start_time >= timeout:
-                return False
-        return True
-     */
     
     private static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
@@ -553,7 +606,79 @@ public class HtmlParser
         }
         return resolvedLinks;
     }
+
+    /// <summary>
+    ///     Scroll through the page to lazy load images
+    /// </summary>
+    /// <param name="scrollBy">Whether to scroll through the page or instantly scroll to the bottom</param>
+    /// <param name="increment">Distance to scroll by each iteration</param>
+    /// <param name="scrollPauseTime">Seconds to wait between each scroll</param>
+    /// <param name="scrollBack">Distance to scroll back by after reaching the bottom of the page</param>
+    /// <param name="rescroll">Whether scrolling through the page again</param>
+    private static async Task LazyLoad(bool scrollBy = false, int increment = 2500, int scrollPauseTime = 500,
+                                       int scrollBack = 0, bool rescroll = false)
+    {
+        var lastHeight = (long)Driver.ExecuteScript("return window.pageYOffset");
+        if (rescroll)
+        {
+            Driver.ExecuteScript("window.scrollTo(0, 0);");
+        }
+
+        string scrollScript;
+        string heightCheckScript;
+        if (scrollBy)
+        {
+            scrollScript = $"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});";
+            heightCheckScript = "return window.pageYOffset";
+        }
+        else
+        {
+            scrollScript = "window.scrollTo(0, document.body.scrollHeight);";
+            heightCheckScript = "return document.body.scrollHeight";
+        }
+
+        while (true)
+        {
+            Driver.ExecuteScript(scrollScript);
+            await Task.Delay(scrollPauseTime);
+            var newHeight = Convert.ToInt64(Driver.ExecuteScript(heightCheckScript));
+            if (newHeight == lastHeight)
+            {
+                if (scrollBack > 0)
+                {
+                    for (var i = 0; i < scrollBack; i++)
+                    {
+                        Driver.ExecuteScript($"window.scrollBy({{top: {-increment}, left: 0, behavior: 'smooth'}});");
+                        await Task.Delay(scrollPauseTime);
+                    }
+                    await Task.Delay(scrollPauseTime);
+                }
+                break;
+            }
+            lastHeight = newHeight;
+        }
+        //Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10); // TODO: Check if this is necessary
+    }
+
+    private static void Print(object? value)
+    {
+        Console.WriteLine(value);
+    }
+
+    private static async Task PrintAsync(string? value, bool error = false)
+    {
+        if (error)
+        {
+            await Console.Error.WriteLineAsync(value);
+        }
+        else
+        {
+            await Console.Out.WriteLineAsync(value);
+        }
+    }
     
+    #region Parser Testing
+
     public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite)
     {
         try
@@ -571,14 +696,19 @@ public class HtmlParser
             {
                 SiteName = "nine99hentai";
             }
-            Console.WriteLine($"Testing: {SiteName}Parse");
+            Print($"Testing: {SiteName}Parse");
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName);
             var end = DateTime.Now;
-            Console.WriteLine(data.Urls[0].Referer);
-            Console.WriteLine($"Time Elapsed: {end - start}");
+            Print(data.Urls[0].Referer);
+            Print($"Time Elapsed: {end - start}");
             var outData = data.Urls.Select(d => d.Url).ToList();
             JsonUtility.Serialize("test.json", outData);
+            if (debug)
+            {
+                Print("Press any key to exit...");
+                Console.ReadKey();
+            }
             return data;
         }
         catch
@@ -600,14 +730,24 @@ public class HtmlParser
     {
         siteName = siteName[0].ToString().ToUpper() + siteName[1..];
         var methodName = $"{siteName}Parse";
-        var method = GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        var method = GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         if (method != null)
         {
             return (Task<RipInfo>)(method.Invoke(this, null) ?? throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
         }
 
+        var methods = typeof(HtmlParser).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
+        var normalizedName = siteName.ToLower();
+        foreach (var m in methods)
+        {
+            if (m.Name.Contains(normalizedName, StringComparison.CurrentCultureIgnoreCase))
+            {
+                return (Task<RipInfo>)(m.Invoke(this, null) ?? throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
+            }
+        }
+
         // Handle the case where the method does not exist
-        Console.WriteLine($"Method {methodName} not found.");
+        Print($"Method {methodName} not found.");
         throw new InvalidOperationException();
     }
     
@@ -633,4 +773,7 @@ public class HtmlParser
         var urlSplit = url.Split(".");
         return specialDomains.Any(url.Contains) ? urlSplit[^3] : urlSplit[^2];
     }
+
+    #endregion
+    
 }

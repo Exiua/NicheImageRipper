@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using Core.Enums;
 using Google;
 using JetBrains.Annotations;
@@ -147,13 +148,11 @@ public class RipInfo
     
     private static string CleanDirectoryName(string directoryName)
     {
+        directoryName = WebUtility.HtmlDecode(directoryName);
         var dirName = new StringBuilder();
-        foreach (var c in directoryName)
+        foreach (var c in directoryName.Where(c => !ForbiddenChars.Contains(c)))
         {
-            if (!ForbiddenChars.Contains(c))
-            {
-                dirName.Append(c);
-            }
+            dirName.Append(c);
         }
         if (dirName[^1] != ')' && dirName[^1] != ']' && dirName[^1] != '}')
         {
