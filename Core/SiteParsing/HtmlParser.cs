@@ -1,7 +1,12 @@
-﻿using System.Reflection;
+﻿using System.Net.Http.Json;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Utility;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
@@ -18,16 +23,17 @@ public class HtmlParser
     
     private static bool LoggedIn;
 
-    public static FirefoxDriver Driver { get; set; } = new FirefoxDriver(InitializeOptions(""));
+    private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(""));
+    
     public bool Interrupted { get; set; }
-    public string SiteName { get; set; }
+    private string SiteName { get; set; }
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
-    public string GivenUrl { get; set; }
-    public FilenameScheme FilenameScheme { get; set; }
-    public Dictionary<string, string> RequestHeaders { get; set; }
-    
-    public string CurrentUrl
+    private string GivenUrl { get; set; }
+    private FilenameScheme FilenameScheme { get; set; }
+    private Dictionary<string, string> RequestHeaders { get; set; }
+
+    private static string CurrentUrl
     {
         get => Driver.Url;
         set => Driver.Url = value;
@@ -63,7 +69,7 @@ public class HtmlParser
         url = url.Replace("members.", "www.");
         GivenUrl = url;
         CurrentUrl = url;
-        (SiteName, SleepTime) = Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         var siteParser = GetParser(SiteName);
         try
         {
@@ -87,13 +93,14 @@ public class HtmlParser
             "kemono" => KemonoParse,
             "sankakucomplex" => SankakuComplexParse,
             "omegascans" => OmegaScansParse,
+            "redgifs" => RedGifsParse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
     
     private static Dictionary<string, PartialSaveEntry> ReadPartialSave()
     {
-        return JsonUtility.Deserialize<Dictionary<string, PartialSaveEntry>>("partial.json");
+        return JsonUtility.Deserialize<Dictionary<string, PartialSaveEntry>>("partial.json")!;
     }
     
     private void WritePartialSave(RipInfo ripInfo, string url)
@@ -444,6 +451,40 @@ public class HtmlParser
         images.Reverse();
         // Files are numbered per chapter, so original will have the files overwrite each other
         return new RipInfo(images, dirName, FilenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for redgifs.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
+    private async Task<RipInfo> RedGifsParse()
+    {
+        await Task.Delay(3000);
+        var baseRequest = "https://api.redgifs.com/v2/gifs?ids=";
+        await LazyLoad(scrollBy: true, increment: 1250);
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='userName']").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var posts = soup.SelectSingleNode("//div[@class='tileFeed']").SelectNodes("./a[@href]").GetHrefs();
+        var ids = posts.Select(post => post.Split("/")[^1].Split("#")[0]).ToList();
+        var idChunks = ids.Chunk(100);
+        var session = new HttpClient();
+        var token = await TokenManager.Instance.GetToken("redgifs");
+        RequestHeaders["Authorization"] = $"Bearer {token.Value}";
+        foreach (var chunk in idChunks)
+        {
+            var idParam = string.Join("%2C", chunk);
+            var request = RequestHeaders.ToRequest(HttpMethod.Get, $"{baseRequest}{idParam}");
+            var response = await session.SendAsync(request);
+            var responseJson = (await response.Content.ReadFromJsonAsync<JsonNode>())!;
+            var gifs = responseJson["gifs"]!.AsArray();
+            images.AddRange(gifs
+                           .Select(gif => gif!["urls"]!["hd"]!
+                               .Deserialize<string>())
+                           .Select(gifUrl => gifUrl!)
+                           .Select(dummy => (StringImageLinkWrapper)dummy));
+        }
+        return new RipInfo(images, dirName, FilenameScheme);
     }
     
     #endregion
