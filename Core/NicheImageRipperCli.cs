@@ -1,31 +1,7 @@
-﻿using Core.DataStructures;
-using Core.FileDownloading;
-using Core.Utility;
-
-namespace Core;
+﻿namespace Core;
 
 public class NicheImageRipperCli : NicheImageRipper
 {
-    public override void UpdateHistory(ImageRipper ripper, string url)
-    {
-        var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripper.FolderInfo.DirectoryName);
-        if (duplicate is not null)
-        {
-            History.Remove(duplicate);
-            History.Add(duplicate); // Move to the end
-        }
-        else
-        {
-            var folderInfo = ripper.FolderInfo;
-            History.Add(new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls));
-        }
-    }
-
-    protected override void AddToUrlQueue(string url)
-    {
-        UrlQueue.Enqueue(url);
-    }
-
     private async Task Rip()
     {
         while (UrlQueue.Count != 0)
@@ -85,7 +61,7 @@ public class NicheImageRipperCli : NicheImageRipper
                                 UrlQueue.Clear();
                                 break;
                             default:
-                                Console.WriteLine("Invalid command.");
+                                ClearCache();
                                 break;
                         }
 
@@ -98,16 +74,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "l":
                     case "load":
-                        var unfinished = JsonUtility.Deserialize<List<string>>(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
-                        if (unfinished is null)
-                        {
-                            Console.WriteLine("No unfinished rips found.");
-                            break;
-                        }
-                        foreach (var url in unfinished)
-                        {
-                            AddToUrlQueue(url);
-                        }
+                        LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
                         break;
                     default:
                         QueueUrls(userInput);
