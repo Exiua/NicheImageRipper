@@ -1,23 +1,15 @@
-﻿using Core.FileDownloading;
+﻿using Core.DataStructures;
+using Core.FileDownloading;
+using Core.Utility;
 
 namespace Core;
 
 public class NicheImageRipperCli : NicheImageRipper
 {
-    protected override List<List<string>> GetHistoryData()
-    {
-        return History;
-    }
-
-    protected override void LoadHistory()
-    {
-        History = LoadHistoryData();
-    }
-
     public override void UpdateHistory(ImageRipper ripper, string url)
     {
-        var duplicate = History.FirstOrDefault(x => x[0] == ripper.FolderInfo.DirectoryName);
-        if (duplicate != null)
+        var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripper.FolderInfo.DirectoryName);
+        if (duplicate is not null)
         {
             History.Remove(duplicate);
             History.Add(duplicate); // Move to the end
@@ -25,9 +17,7 @@ public class NicheImageRipperCli : NicheImageRipper
         else
         {
             var folderInfo = ripper.FolderInfo;
-            History.Add([
-                folderInfo.DirectoryName, url, DateTime.Now.ToString("yyyy-MM-dd"), folderInfo.NumUrls.ToString()
-            ]);
+            History.Add(new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls));
         }
     }
 
@@ -52,7 +42,7 @@ public class NicheImageRipperCli : NicheImageRipper
         Console.WriteLine("+----------------------------------------+");
         foreach (var entry in History)
         {
-            Console.WriteLine($"| {entry[0]} | {entry[1]} | {entry[2]} | {entry[3]} |");
+            Console.WriteLine($"| {entry.DirectoryName} | {entry.Url} | {entry.Date} | {entry.NumUrls} |");
             Console.WriteLine("+----------------------------------------+");
         }
     }
@@ -70,7 +60,8 @@ public class NicheImageRipperCli : NicheImageRipper
                     continue;
                 }
 
-                switch (userInput)
+                var cmdParts = userInput.Split(' ');
+                switch (cmdParts[0])
                 {
                     case "q":
                     case "quit":
@@ -85,7 +76,19 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "c":
                     case "clear":
-                        UrlQueue.Clear();
+                        switch (cmdParts[1])
+                        {
+                            case "cache":
+                                ClearCache();
+                                break;
+                            case "queue":
+                                UrlQueue.Clear();
+                                break;
+                            default:
+                                Console.WriteLine("Invalid command.");
+                                break;
+                        }
+
                         break;
                     case "save":
                         SaveData();
@@ -95,9 +98,12 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "l":
                     case "load":
-                        var cmds = userInput.Split(' ');
-                        List<string> unfinished;
-                        unfinished = JsonUtility.Deserialize<List<string>>(cmds.Length != 2 ? "UnfinishedRips.json" : cmds[1]);
+                        var unfinished = JsonUtility.Deserialize<List<string>>(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
+                        if (unfinished is null)
+                        {
+                            Console.WriteLine("No unfinished rips found.");
+                            break;
+                        }
                         foreach (var url in unfinished)
                         {
                             AddToUrlQueue(url);

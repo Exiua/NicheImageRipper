@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Core.Configuration;
+using Core.DataStructures;
 using Core.Enums;
 using Core.FileDownloading;
 using Core.Utility;
@@ -27,10 +28,13 @@ public abstract class NicheImageRipper
     public Version Version { get; set; } = new(2, 2, 0);
     public string SaveFolder { get; set; } = ".";
     
-    public List<List<string>> History { get; set; } = [];
+    public List<HistoryEntry> History { get; set; } = [];
 
-    protected abstract List<List<string>> GetHistoryData();
-    protected abstract void LoadHistory();
+    protected virtual void LoadHistory()
+    {
+        History = LoadHistoryData();
+    }
+    
     public abstract void UpdateHistory(ImageRipper ripper, string url);
 
     protected NicheImageRipper()
@@ -63,7 +67,7 @@ public abstract class NicheImageRipper
 
     protected void LoadUrlFile(string filepath)
     {
-        var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath);
+        var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
         foreach (var url in loadedUrls)
         {
             AddToUrlQueue(url);
@@ -72,9 +76,9 @@ public abstract class NicheImageRipper
     
     protected abstract void AddToUrlQueue(string url);
 
-    protected static List<List<string>> LoadHistoryData()
+    private static List<HistoryEntry> LoadHistoryData()
     {
-        return JsonUtility.Deserialize<List<List<string>>>("RipHistory.json");
+        return JsonUtility.Deserialize<List<HistoryEntry>>("RipHistory.json") ?? [];
     }
 
     protected void QueueUrls(string urls)
@@ -129,8 +133,8 @@ public abstract class NicheImageRipper
         UrlQueue.Dequeue();
         return url;
     }
-    
-    public void SaveData()
+
+    protected void SaveData()
     {
         if (UrlQueue.Count > 0)
         {
@@ -142,7 +146,7 @@ public abstract class NicheImageRipper
             File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
         }
         
-        JsonUtility.Serialize("RipHistory.json", GetHistoryData());
+        JsonUtility.Serialize("RipHistory.json", History);
         Config.Instance.SaveConfig();
     }
     

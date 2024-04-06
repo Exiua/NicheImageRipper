@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
 
-namespace Core;
+namespace Core.Utility;
 
-public class JsonUtility
+public static class JsonUtility
 {
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -15,9 +15,9 @@ public class JsonUtility
         File.WriteAllText(filepath, json);
     }
 
-    public static T Deserialize<T>(string filepath) where T : new()
+    public static T? Deserialize<T>(string filepath)
     {
         var json = File.ReadAllText(filepath);
-        return JsonSerializer.Deserialize<T>(json) ?? new T();
+        return JsonSerializer.Deserialize<T>(json);
     }
 }

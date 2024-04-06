@@ -1,4 +1,7 @@
-﻿using System.Text.Json;
+﻿using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Core.Utility;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Util.Store;
@@ -18,7 +21,7 @@ public class TokenManager
     private TokenManager()
     {
         Tokens = File.Exists(TokenPath)
-            ? JsonUtility.Deserialize<Dictionary<string, Token>>(TokenPath)
+            ? JsonUtility.Deserialize<Dictionary<string, Token>>(TokenPath)!
             : new Dictionary<string, Token>();
     }
 
@@ -53,11 +56,15 @@ public class TokenManager
     private static async Task<Token> GenerateRedgifsToken()
     {
         var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("User-Agent", Config.UserAgent);
         var response = await client.GetAsync("https://api.redgifs.com/v2/auth/temporary");
-        var jsonStream = await response.Content.ReadAsStreamAsync();
-        using var json = await JsonDocument.ParseAsync(jsonStream);
+        if(!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException("Failed to get Redgifs token");
+        }
+        var json = (await response.Content.ReadFromJsonAsync<JsonNode>())!;
         var expiration = DateTime.Now + TimeSpan.FromHours(24);
-        var token = json.RootElement.GetProperty("token").GetString();
+        var token = json["token"].Deserialize<string>();
         if (token is null)
         {
             throw new InvalidOperationException("Failed to get Redgifs token");
