@@ -34,8 +34,6 @@ public abstract class NicheImageRipper
     {
         History = LoadHistoryData();
     }
-    
-    public abstract void UpdateHistory(ImageRipper ripper, string url);
 
     protected NicheImageRipper()
     {
@@ -73,14 +71,13 @@ public abstract class NicheImageRipper
             AddToUrlQueue(url);
         }
     }
-    
-    protected abstract void AddToUrlQueue(string url);
 
     private static List<HistoryEntry> LoadHistoryData()
     {
         return JsonUtility.Deserialize<List<HistoryEntry>>("RipHistory.json") ?? [];
     }
 
+    // FIXME: Error handling is not implemented
     protected void QueueUrls(string urls)
     {
         var urlList = SeparateString(urls, "https://");
@@ -231,6 +228,26 @@ public abstract class NicheImageRipper
         catch (HttpRequestException)
         {
             return new Version(0, 0, 0);
+        }
+    }
+
+    protected virtual void AddToUrlQueue(string url)
+    {
+        UrlQueue.Enqueue(url);
+    }
+
+    public virtual void UpdateHistory(ImageRipper ripper, string url)
+    {
+        var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripper.FolderInfo.DirectoryName);
+        if (duplicate is not null)
+        {
+            History.Remove(duplicate);
+            History.Add(duplicate); // Move to the end
+        }
+        else
+        {
+            var folderInfo = ripper.FolderInfo;
+            History.Add(new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls));
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
@@ -13,7 +14,7 @@ using OpenQA.Selenium.Firefox;
 
 namespace Core.SiteParsing;
 
-public class HtmlParser
+public partial class HtmlParser
 {
     private const string DriverHeader =
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
@@ -94,6 +95,7 @@ public class HtmlParser
             "sankakucomplex" => SankakuComplexParse,
             "omegascans" => OmegaScansParse,
             "redgifs" => RedGifsParse,
+            "rule34" => Rule34Parse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
@@ -384,23 +386,15 @@ public class HtmlParser
         return new RipInfo([images], dirName, generate: true, numUrls: numPages);
     }
     
+    /// <summary>
+    ///     Parses the html for kemono.party and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
     private async Task<RipInfo> KemonoParse()
     {
         return await DotPartyParse("https://kemono.party");
     }
 
-    /// <summary>
-    ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns></returns>
-    private async Task<RipInfo> SankakuComplexParse()
-    {
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
-        var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
-        var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image).Select(dummy => (StringImageLinkWrapper)dummy).ToList();
-        return new RipInfo(images, dirName, FilenameScheme);
-    }
 
     /// <summary>
     ///     Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
@@ -430,7 +424,8 @@ public class HtmlParser
             Driver.FindElement(By.XPath("//nav[@class='mx-auto flex w-full justify-center gap-x-2']/ul[last()]//a")).Click();
             soup = await Soupify();
         }
-        
+
+        chapters.Reverse();
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, chapter) in chapters.Enumerate())
         {
@@ -448,7 +443,6 @@ public class HtmlParser
             images.AddRange(imgs.Select(img => (StringImageLinkWrapper)img));
         }
         
-        images.Reverse();
         // Files are numbered per chapter, so original will have the files overwrite each other
         return new RipInfo(images, dirName, FilenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : FilenameScheme);
     }
@@ -484,6 +478,46 @@ public class HtmlParser
                            .Select(gifUrl => gifUrl!)
                            .Select(dummy => (StringImageLinkWrapper)dummy));
         }
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
+    private async Task<RipInfo> Rule34Parse()
+    {
+        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
+        tags = Uri.UnescapeDataString(tags);
+        var dirName = "[Rule34] " + tags.Replace("+", " ").Replace("tags=", "");
+        var session = new HttpClient();
+        var response = await session.GetAsync($"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var data = json!.AsArray();
+        var images = new List<StringImageLinkWrapper>();
+        var pid = 1;
+        while (data.Count != 0)
+        {
+            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
+            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+            response = await session.GetAsync($"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
+            pid += 1;
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            data = json!.AsArray();
+        }
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
+    ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
+    private async Task<RipInfo> SankakuComplexParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
+        var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
+        var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image).Select(dummy => (StringImageLinkWrapper)dummy).ToList();
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
@@ -815,6 +849,9 @@ public class HtmlParser
         return specialDomains.Any(url.Contains) ? urlSplit[^3] : urlSplit[^2];
     }
 
+    [GeneratedRegex("(tags=[^&]+)")]
+    private static partial Regex Rule34Regex();
+
     #endregion
-    
+
 }
