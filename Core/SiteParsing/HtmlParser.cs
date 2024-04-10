@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -18,6 +19,9 @@ public partial class HtmlParser
 {
     private const string DriverHeader =
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
+
+    private const string UserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
 
     private static readonly string[] ExternalSites = ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
@@ -92,10 +96,16 @@ public partial class HtmlParser
         {
             "imhentai" => ImhentaiParse,
             "kemono" => KemonoParse,
+            "coomer" => CoomerParse,
             "sankakucomplex" => SankakuComplexParse,
             "omegascans" => OmegaScansParse,
             "redgifs" => RedGifsParse,
             "rule34" => Rule34Parse,
+            "gelbooru" => GelbooruParse,
+            "danbooru" => DanbooruParse,
+            "google" => GoogleParse,
+            "dropbox" => DropboxParse,
+            "imgur" => ImgurParse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
@@ -257,8 +267,55 @@ public partial class HtmlParser
     }
 
     #endregion
+
+    /// <summary>
+    ///     Parses the html for coomer.party and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CoomerParse()
+    {
+        return await DotPartyParse("https://coomer.su");
+    }
     
-    private async Task<RipInfo> DropboxParse(string dropboxUrl = "")
+    /// <summary>
+    ///     Parses the html for danbooru.donmai.us and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns></returns>
+    private async Task<RipInfo> DanbooruParse()
+    {
+        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
+        tags = Uri.UnescapeDataString(tags);
+        var dirName = "[Danbooru] " + tags.Replace("+", " ").Replace("tags=", "");
+        var images = new List<StringImageLinkWrapper>();
+        var session = new HttpClient();
+        session.DefaultRequestHeaders.Add("User-Agent", "NicheImageRipper");
+        var response = await session.GetAsync($"https://danbooru.donmai.us/posts.json?{tags}");
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var data = json!.AsArray();
+        var i = 0;
+        while (data.Count != 0)
+        {
+            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
+            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+            response = await session.GetAsync($"https://danbooru.donmai.us/posts.json?{tags}&page={i}");
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            data = json!.AsArray();
+            i += 1;
+        }
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    private async Task<RipInfo> DropboxParse()
+    {
+        return await DropboxParse("");
+    }
+    
+    /// <summary>
+    ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <param name="dropboxUrl"></param>
+    /// <returns></returns>
+    private async Task<RipInfo> DropboxParse(string dropboxUrl)
     {
         var internalUse = false;
         if (!string.IsNullOrEmpty(dropboxUrl))
@@ -361,6 +418,94 @@ public partial class HtmlParser
         {
             // ignored
         }
+    }
+
+    /// <summary>
+    ///     Parses the html for gelbooru.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> GelbooruParse()
+    {
+        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
+        tags = Uri.UnescapeDataString(tags);
+        var dirName = "[Gelbooru] " + tags.Replace("+", " ").Replace("tags=", "");
+        var session = new HttpClient();
+        var response = await session.GetAsync($"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var data = json!["post"]!.AsArray();
+        var images = new List<StringImageLinkWrapper>();
+        var pid = 1;
+        while (true)
+        {
+            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
+            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+            response = await session.GetAsync($"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
+            pid += 1;
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var posts = json!["post"];
+            if (posts is null)
+            {
+                break;
+            }
+            data = posts.AsArray();
+        }
+        
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    private async Task<RipInfo> GoogleParse()
+    {
+        return await GoogleParse("");
+    }
+    
+    /// <summary>
+    ///     Query the google drive API to get file information to download
+    /// </summary>
+    /// <param name="gdriveUrl">The url to parse (default: CurrentUrl)</param>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> GoogleParse(string gdriveUrl)
+    {
+        if (string.IsNullOrEmpty(gdriveUrl))
+        {
+            gdriveUrl = CurrentUrl;
+        }
+        
+        // Actual querying happens within the RipInfo object
+        return new RipInfo([ gdriveUrl ], "", FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for imgur.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> ImgurParse()
+    {
+        var clientId = Config.Instance.Keys["Imgur"];
+        if (clientId == "")
+        {
+            Print("Client Id not properly set");
+            Print("Follow to generate Client Id: https://apidocs.imgur.com/#intro");
+            Print("Then add Client Id to Imgur in config.json under Keys");
+            throw new Exception("Client Id Not Set");
+        }
+        
+        RequestHeaders["Authorization"] = "Client-ID " + clientId;
+        var albumHash = CurrentUrl.Split("/")[5];
+        var session = new HttpClient();
+        var request = RequestHeaders.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/album/{albumHash}");
+        var response = await session.SendAsync(request);
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            Print("Client Id is incorrect");
+            throw new Exception("Client Id Incorrect");
+        }
+        
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var jsonData = json!["data"]!.AsObject();
+        var dirName = jsonData["title"]!.Deserialize<string>()!;
+        var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();
+        
+        return new RipInfo(images.ToWrapperList(), dirName, FilenameScheme);
     }
     
     /// <summary>
