@@ -13,17 +13,7 @@ public class Config
     public static string UserAgent =>
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
-    public static Config Instance
-    {
-        get
-        {
-            if (_config is null)
-            {
-                _config = LoadConfig();
-            }
-            return _config;
-        }
-    }
+    public static Config Instance => _config ??= LoadConfig();
 
     public string SavePath { get; set; } = null!;
     public string Theme { get; set; } = null!;
@@ -32,8 +22,8 @@ public class Config
     public bool AskToReRip { get; set; }
     public bool LiveHistory { get; set; }
     public int NumThreads { get; set; }
-    public Dictionary<string, Credentials> Logins { get; private set; } = null!;
-    public Dictionary<string, string> Keys { get; private set; } = null!;
+    public Dictionary<string, Credentials> Logins { get; set; } = null!;
+    public Dictionary<string, string> Keys { get; set; } = null!;
 
     // Used for deserialization
     [UsedImplicitly]
@@ -80,7 +70,7 @@ public class Config
     private static Config LoadConfig()
     {
         return File.Exists(ConfigPath)
-            ? JsonUtility.Deserialize<Config>(ConfigPath)
+            ? JsonUtility.Deserialize<Config>(ConfigPath)!
             : CreateTemplateConfig();
     }
 }
