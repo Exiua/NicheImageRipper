@@ -41,6 +41,11 @@ public class ImageLink
         Filename = newStem + ext;
     }
     
+    public bool Contains(string url)
+    {
+        return Url.Contains(url);
+    }
+    
     private string GenerateUrl(string url)
     {
         url = url.Replace("\n", "");

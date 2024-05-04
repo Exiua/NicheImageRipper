@@ -171,7 +171,7 @@ public partial class ImageRipper
                         CurrentIndex = index;
                         // while(pause) { sleep(1); }
                         await Task.Delay((int) SleepTime * 1000);
-                        if(CyberdropDomains.Any(domain => link.Url.Contains(domain)))
+                        if(CyberdropDomains.Any(domain => link.Contains(domain)))
                         {
                             cyberdropFiles.Add(link);
                             continue;

@@ -23,13 +23,15 @@ public partial class HtmlParser
     private const string UserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
 
-    private static readonly string[] ExternalSites = ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
+    private static readonly string[] ExternalSites =
+        ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
+
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
-    
+
     private static bool LoggedIn;
 
     private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(""));
-    
+
     public bool Interrupted { get; set; }
     private string SiteName { get; set; }
     public float SleepTime { get; set; }
@@ -45,7 +47,7 @@ public partial class HtmlParser
     }
 
     public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
-        FilenameScheme filenameScheme = FilenameScheme.Original)
+                      FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         //var options = InitializeOptions(siteName);
         //Driver = new FirefoxDriver(options);
@@ -71,6 +73,7 @@ public partial class HtmlParser
                 return value.RipInfo;
             }
         }
+
         url = url.Replace("members.", "www.");
         GivenUrl = url;
         CurrentUrl = url;
@@ -89,7 +92,7 @@ public partial class HtmlParser
             throw;
         }
     }
-    
+
     private Func<Task<RipInfo>> GetParser(string siteName)
     {
         return siteName switch
@@ -106,15 +109,16 @@ public partial class HtmlParser
             "google" => GoogleParse,
             "dropbox" => DropboxParse,
             "imgur" => ImgurParse,
+            "newgrounds" => NewgroundsParse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
-    
+
     private static Dictionary<string, PartialSaveEntry> ReadPartialSave()
     {
         return JsonUtility.Deserialize<Dictionary<string, PartialSaveEntry>>("partial.json")!;
     }
-    
+
     private void WritePartialSave(RipInfo ripInfo, string url)
     {
         var partialSaveEntry = new PartialSaveEntry
@@ -123,27 +127,61 @@ public partial class HtmlParser
             Referer = RequestHeaders["referer"],
             RipInfo = ripInfo
         };
-        var partialSave = new Dictionary<string, PartialSaveEntry> {{url, partialSaveEntry}};
+        var partialSave = new Dictionary<string, PartialSaveEntry> { { url, partialSaveEntry } };
         JsonUtility.Serialize("partial.json", partialSave);
     }
 
     private static FirefoxOptions InitializeOptions(string siteName)
     {
         var options = new FirefoxOptions();
-        if(siteName != "v2ph" || LoggedIn)
+        if (siteName != "v2ph" || LoggedIn)
         {
             options.AddArgument("-headless");
         }
+
         options.AddArgument(DriverHeader);
         options.SetPreference("dom.disable_beforeunload", true);
         options.SetPreference("browser.tabs.warnOnClose", false);
         return options;
     }
 
+    private Task<bool> SiteLogin()
+    {
+        return SiteName switch
+        {
+            "newgrounds" => NewgroundsLogin(),
+            _ => throw new Exception("Site authentication not implemented")
+        };
+    }
+
+    private static async Task<bool> NewgroundsLogin()
+    {
+        var currUrl = CurrentUrl;
+        var (username, password) = Config.Instance.Logins["Newgrounds"];
+        CurrentUrl = "https://newgrounds.com/passport";
+        Driver.FindElement(By.XPath("//input[@name='username']"))
+              .SendKeys(username);
+        Driver.FindElement(By.XPath("//input[@name='password']"))
+              .SendKeys(password);
+        Driver.FindElement(By.XPath("//button[@name='login']")).Click();
+        while (CurrentUrl != "https://www.newgrounds.com/social")
+        {
+            await Task.Delay(1000);
+        }
+
+        CurrentUrl = currUrl;
+        return true;
+    }
+
     #region Site Parsers
 
     #region Generic Site Parsers
 
+    /// <summary>
+    ///     Parses the html for kemono.su and coomer.su and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <param name="domainUrl">The domain url of the site</param>
+    /// <returns></returns>
     private async Task<RipInfo> DotPartyParse(string domainUrl)
     {
         var cookies = Driver.Manage().Cookies.AllCookies;
@@ -157,7 +195,7 @@ public partial class HtmlParser
         await Task.Delay(5000);
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
-            .SelectSingleNode("//span[@itemprop='name']").InnerText;
+                          .SelectSingleNode("//span[@itemprop='name']").InnerText;
         dirName = $"{dirName} - ({sourceSite})";
 
         #region Get All Posts
@@ -175,6 +213,7 @@ public partial class HtmlParser
                 var id = image.GetAttributeValue("data-id", "");
                 imageLinks.Add($"{baseUrl}/post/{id}");
             }
+
             var nextUrl = $"{pageUrl}?o={page * 50}";
             Print(nextUrl);
             soup = await Soupify(nextUrl);
@@ -187,7 +226,7 @@ public partial class HtmlParser
         #endregion
 
         #region Parse All Posts
-        
+
         var images = new List<string>();
         var externalLinks = CreateExternalLinkDict();
         var numPosts = imageLinks.Count;
@@ -209,6 +248,7 @@ public partial class HtmlParser
             {
                 externalLinks[site].AddRange(extLinks[site]);
             }
+
             extLinks = ExtractPossibleExternalUrls(possibleLinks);
             foreach (var site in extLinks.Keys)
             {
@@ -222,22 +262,26 @@ public partial class HtmlParser
                 {
                     continue;
                 }
-                
+
                 var attachment = l.Contains(domainUrl) || l.Contains("http") /* Includes https */ ? l : domainUrl + l;
                 attachments.Add(attachment);
             }
+
             images.AddRange(attachments);
             foreach (var site in ParsableSites)
             {
                 images.AddRange(externalLinks[site]);
             }
+
             var imageListContainer = soup.SelectSingleNode("//div[@class='post__files']");
-            if (imageListContainer is not null)
+            if (imageListContainer is null)
             {
-                var imageList = imageListContainer.SelectNodes("//a[@class='fileThumb image-link']");
-                var imageListLinks = imageList.GetHrefs();
-                images.AddRange(imageListLinks);
+                continue;
             }
+
+            var imageList = imageListContainer.SelectNodes("//a[@class='fileThumb image-link']");
+            var imageListLinks = imageList.GetHrefs();
+            images.AddRange(imageListLinks);
         }
 
         #endregion
@@ -246,6 +290,7 @@ public partial class HtmlParser
         {
             externalLinks[site] = externalLinks[site].RemoveDuplicates();
         }
+
         SaveExternalLinks(externalLinks);
         images = images.RemoveDuplicates();
         var oldLinks = images;
@@ -262,21 +307,41 @@ public partial class HtmlParser
                 stringLinks.AddRange(ripInfo.Urls.Select(x => new StringImageLinkWrapper(x)));
             }
         }
-        
-        return new RipInfo(stringLinks, dirName, FilenameScheme);
+
+        // Remove duplicates
+        var seen = new HashSet<string>();
+        var unique = new List<StringImageLinkWrapper>();
+        foreach (var link in stringLinks)
+        {
+            var domainName = new Uri(link).Host.Split('.')[0];
+            var linkStr = link.ToString();
+            if (!linkStr.Contains(domainName)) // Only native links get duplicated
+            {
+                unique.Add(link);
+                continue;
+            }
+
+            var fileName = linkStr.Split("/")[^1];
+            if (seen.Add(fileName))
+            {
+                unique.Add(link);
+            }
+        }
+
+        return new RipInfo(unique, dirName, FilenameScheme);
     }
 
     #endregion
 
     /// <summary>
-    ///     Parses the html for coomer.party and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for coomer.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> CoomerParse()
     {
         return await DotPartyParse("https://coomer.su");
     }
-    
+
     /// <summary>
     ///     Parses the html for danbooru.donmai.us and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -302,14 +367,15 @@ public partial class HtmlParser
             data = json!.AsArray();
             i += 1;
         }
+
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
+
     private async Task<RipInfo> DropboxParse()
     {
         return await DropboxParse("");
     }
-    
+
     /// <summary>
     ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -325,9 +391,11 @@ public partial class HtmlParser
                 dropboxUrl = dropboxUrl.Replace("dl=0", "dl=1");
                 return new RipInfo([dropboxUrl], "", FilenameScheme);
             }
+
             CurrentUrl = dropboxUrl;
             internalUse = true;
         }
+
         var soup = await Soupify(xpath: "//span[@class='dig-Breadcrumb-link-text']");
         string dirName;
         if (!internalUse)
@@ -338,11 +406,13 @@ public partial class HtmlParser
             }
             catch (NullReferenceException)
             {
-                var deletedNotice = soup.SelectSingleNode("//h2[@class='dig-Title dig-Title--size-large dig-Title--color-standard']");
+                var deletedNotice =
+                    soup.SelectSingleNode("//h2[@class='dig-Title dig-Title--size-large dig-Title--color-standard']");
                 if (deletedNotice is not null)
                 {
                     return new RipInfo([], "Deleted", FilenameScheme);
                 }
+
                 Print(CurrentUrl);
                 throw;
             }
@@ -351,12 +421,12 @@ public partial class HtmlParser
         {
             dirName = "";
         }
-        
+
         if (CurrentUrl.Contains("/scl/fi/"))
         {
             return new RipInfo([CurrentUrl.Replace("dl=0", "dl=1")], "", FilenameScheme);
         }
-        
+
         var images = new List<string>();
         var filenames = new List<string>();
         var postsNodes = soup.SelectSingleNode("//ol[@class='_sl-grid-body_6yqpe_26']");
@@ -367,17 +437,20 @@ public partial class HtmlParser
             foreach (var post in posts)
             {
                 soup = await Soupify(post, xpath: "//img[@class='_fullSizeImg_1anuf_16']");
-                GetDropboxFile(soup, post, filenames, images, posts); // The method modifies the posts list which is being iterated over...
+                GetDropboxFile(soup, post, filenames, images,
+                    posts); // The method modifies the posts list which is being iterated over...
             }
         }
         else
         {
             GetDropboxFile(soup, CurrentUrl, filenames, images, posts);
         }
+
         return new RipInfo(images.ToWrapperList(), dirName, FilenameScheme, filenames: filenames);
     }
-    
-    private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images, List<string> posts)
+
+    private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images,
+                                       List<string> posts)
     {
         var filename = post.Split("/")[^1].Split("?")[0];
         filenames.Add(filename);
@@ -406,10 +479,10 @@ public partial class HtmlParser
                 else
                 {
                     var newPosts = soup
-                        .SelectSingleNode("//ol[@class='_sl-grid-body_6yqpe_26']")
-                        .SelectNodes("//a")
-                        .GetHrefs()
-                        .RemoveDuplicates();
+                                  .SelectSingleNode("//ol[@class='_sl-grid-body_6yqpe_26']")
+                                  .SelectNodes("//a")
+                                  .GetHrefs()
+                                  .RemoveDuplicates();
                     posts.AddRange(newPosts);
                 }
             }
@@ -430,7 +503,8 @@ public partial class HtmlParser
         tags = Uri.UnescapeDataString(tags);
         var dirName = "[Gelbooru] " + tags.Replace("+", " ").Replace("tags=", "");
         var session = new HttpClient();
-        var response = await session.GetAsync($"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
+        var response =
+            await session.GetAsync($"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var data = json!["post"]!.AsArray();
         var images = new List<StringImageLinkWrapper>();
@@ -439,7 +513,8 @@ public partial class HtmlParser
         {
             var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
             images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
-            response = await session.GetAsync($"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
+            response = await session.GetAsync(
+                $"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
             pid += 1;
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             var posts = json!["post"];
@@ -447,9 +522,10 @@ public partial class HtmlParser
             {
                 break;
             }
+
             data = posts.AsArray();
         }
-        
+
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
@@ -457,7 +533,7 @@ public partial class HtmlParser
     {
         return await GoogleParse("");
     }
-    
+
     /// <summary>
     ///     Query the google drive API to get file information to download
     /// </summary>
@@ -469,9 +545,9 @@ public partial class HtmlParser
         {
             gdriveUrl = CurrentUrl;
         }
-        
+
         // Actual querying happens within the RipInfo object
-        return new RipInfo([ gdriveUrl ], "", FilenameScheme);
+        return new RipInfo([gdriveUrl], "", FilenameScheme);
     }
 
     /// <summary>
@@ -488,7 +564,7 @@ public partial class HtmlParser
             Print("Then add Client Id to Imgur in config.json under Keys");
             throw new Exception("Client Id Not Set");
         }
-        
+
         RequestHeaders["Authorization"] = "Client-ID " + clientId;
         var albumHash = CurrentUrl.Split("/")[5];
         var session = new HttpClient();
@@ -499,15 +575,15 @@ public partial class HtmlParser
             Print("Client Id is incorrect");
             throw new Exception("Client Id Incorrect");
         }
-        
+
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var jsonData = json!["data"]!.AsObject();
         var dirName = jsonData["title"]!.Deserialize<string>()!;
         var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();
-        
+
         return new RipInfo(images.ToWrapperList(), dirName, FilenameScheme);
     }
-    
+
     /// <summary>
     ///     Parses the html for imhentai.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -519,27 +595,78 @@ public partial class HtmlParser
             var galCode = CurrentUrl.Split("/")[4];
             CurrentUrl = $"https://imhentai.xxx/gallery/{galCode}/";
         }
+
         var soup = await Soupify();
         var images = soup.SelectSingleNode("//img[@class='lazy preloader']").GetAttributeValue("data-src", "");
-        if(images == "")
+        if (images == "")
         {
             throw new NotFoundException("Image not found");
         }
+
         var numPages = int.Parse(soup.SelectSingleNode("//li[@class='pages']").InnerText.Split()[1]);
         var dirName = soup.SelectSingleNode("//h1").InnerText;
-        
+
         return new RipInfo([images], dirName, generate: true, numUrls: numPages);
     }
-    
+
     /// <summary>
-    ///     Parses the html for kemono.party and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for kemono.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
     private async Task<RipInfo> KemonoParse()
     {
-        return await DotPartyParse("https://kemono.party");
+        return await DotPartyParse("https://kemono.su");
     }
 
+    /// <summary>
+    ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NewgroundsParse()
+    {
+        if (CurrentUrl.EndsWith("/art/"))
+        {
+            var url = CurrentUrl.Split("/")[..3];
+            CurrentUrl = $"{"/".Join(url)}/art/";
+        }
+
+        DebugUtility.Print("Logging in to Newgrounds");
+        await SiteLogin();
+        DebugUtility.Print("Loading Newgrounds page");
+        await LazyLoad(scrollBy: true);
+        DebugUtility.Print("Parsing Newgrounds page");
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//a[@class='user-link']").InnerText!.Trim();
+        var postYears = soup.SelectSingleNode("//div[@class='userpage-browse-content']")
+                            .SelectSingleNode("./div")
+                            .SelectNodes("./div")
+                            .ToList();
+        var posts = new List<string>();
+        foreach (var postYear in postYears)
+        {
+            var yearPosts = postYear.SelectNodes(".//div[@class='span-1 align-center']");
+            foreach (var post in yearPosts)
+            {
+                var postLink = post.SelectSingleNode("./a").GetAttributeValue("href", "")!;
+                posts.Add(postLink);
+            }
+        }
+
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var post in posts)
+        {
+            CurrentUrl = post;
+            soup = await Soupify();
+            var divContainer = soup.SelectSingleNode("//div[@class='ng-img-container-sync art-item-container']");
+            var anchor = divContainer is null
+                ? soup.SelectSingleNode("//a[@class='medium_image']")
+                : divContainer.SelectSingleNode(".//a");
+            var imgLink = anchor.GetAttributeValue("href", "");
+            images.Add(imgLink);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
 
     /// <summary>
     ///     Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
@@ -549,24 +676,28 @@ public partial class HtmlParser
     {
         await Task.Delay(5000);
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='text-xl md:text-3xl text-primary font-bold text-center lg:text-left']")
-            .InnerText;
+        var dirName = soup
+                     .SelectSingleNode(
+                          "//h1[@class='text-xl md:text-3xl text-primary font-bold text-center lg:text-left']")
+                     .InnerText;
         var chapterCountStr = soup.SelectSingleNode("//div[@class='space-y-2 rounded p-5 bg-foreground']")
-            .SelectNodes("./div[@class='flex justify-between']")[3]
-            .SelectSingleNode(".//span[@class='text-secondary line-clamp-1']").InnerText;
+                                  .SelectNodes("./div[@class='flex justify-between']")[3]
+                                  .SelectSingleNode(".//span[@class='text-secondary line-clamp-1']").InnerText;
         var chapterCount = int.Parse(chapterCountStr.Trim().Split(' ')[0]);
         List<string> chapters = [];
         while (true)
         {
             var links = soup.SelectSingleNode("//ul[@class='grid grid-cols-1 gap-y-8']")
-                .SelectNodes("./a[@href]").GetHrefs().Select(link => $"https://omegascans.org{link}").ToList();
+                            .SelectNodes("./a[@href]").GetHrefs().Select(link => $"https://omegascans.org{link}")
+                            .ToList();
             chapters.AddRange(links);
             if (chapters.Count == chapterCount)
             {
                 break;
             }
-            
-            Driver.FindElement(By.XPath("//nav[@class='mx-auto flex w-full justify-center gap-x-2']/ul[last()]//a")).Click();
+
+            Driver.FindElement(By.XPath("//nav[@class='mx-auto flex w-full justify-center gap-x-2']/ul[last()]//a"))
+                  .Click();
             soup = await Soupify();
         }
 
@@ -584,12 +715,14 @@ public partial class HtmlParser
                 await PrintAsync("Post not found", true);
                 continue;
             }
+
             var imgs = post.SelectNodes("./img[@src]").GetSrcs();
             images.AddRange(imgs.Select(img => (StringImageLinkWrapper)img));
         }
-        
+
         // Files are numbered per chapter, so original will have the files overwrite each other
-        return new RipInfo(images, dirName, FilenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : FilenameScheme);
+        return new RipInfo(images, dirName,
+            FilenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : FilenameScheme);
     }
 
     /// <summary>
@@ -623,6 +756,7 @@ public partial class HtmlParser
                            .Select(gifUrl => gifUrl!)
                            .Select(dummy => (StringImageLinkWrapper)dummy));
         }
+
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
@@ -636,7 +770,8 @@ public partial class HtmlParser
         tags = Uri.UnescapeDataString(tags);
         var dirName = "[Rule34] " + tags.Replace("+", " ").Replace("tags=", "");
         var session = new HttpClient();
-        var response = await session.GetAsync($"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
+        var response =
+            await session.GetAsync($"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var data = json!.AsArray();
         var images = new List<StringImageLinkWrapper>();
@@ -645,14 +780,16 @@ public partial class HtmlParser
         {
             var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
             images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
-            response = await session.GetAsync($"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
+            response = await session.GetAsync(
+                $"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
             pid += 1;
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             data = json!.AsArray();
         }
+
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
+
     /// <summary>
     ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -662,25 +799,29 @@ public partial class HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
         var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
-        var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image).Select(dummy => (StringImageLinkWrapper)dummy).ToList();
+        var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image)
+                               .Select(dummy => (StringImageLinkWrapper)dummy).ToList();
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
+
     #endregion
 
-    private async Task<HtmlNode> Soupify(string? url = null, int delay = 0, HttpResponseMessage? response = null, string xpath = "")
+    private async Task<HtmlNode> Soupify(string? url = null, int delay = 0, HttpResponseMessage? response = null,
+                                         string xpath = "")
     {
-        if(response is not null)
+        if (response is not null)
         {
             var content = await response.Content.ReadAsStringAsync();
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(content);
             return htmlDocument.DocumentNode;
         }
+
         if (url is not null)
         {
             CurrentUrl = url;
         }
+
         if (delay > 0)
         {
             await Task.Delay(delay);
@@ -690,18 +831,19 @@ public partial class HtmlParser
         {
             await WaitForElement(xpath);
         }
+
         var doc = new HtmlDocument();
         doc.LoadHtml(Driver.PageSource);
         return doc.DocumentNode;
     }
-    
+
     private async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
         var startTime = DateTime.Now;
         while (Driver.FindElements(By.XPath(xpath)).Count == 0)
         {
-            await Task.Delay((int) (delay * 1000));
+            await Task.Delay((int)(delay * 1000));
             var currTime = DateTime.Now;
             // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (timeout != -1 && currTime - startTime >= timeoutSpan)
@@ -709,9 +851,10 @@ public partial class HtmlParser
                 return false;
             }
         }
+
         return true;
     }
-    
+
     private static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
         var externalLinks = new Dictionary<string, List<string>>();
@@ -719,6 +862,7 @@ public partial class HtmlParser
         {
             externalLinks[site] = [];
         }
+
         return externalLinks;
     }
 
@@ -733,6 +877,7 @@ public partial class HtmlParser
                 {
                     continue;
                 }
+
                 var link = Utility.UrlUtility.ExtractUrl(url);
                 if (link != "")
                 {
@@ -740,9 +885,10 @@ public partial class HtmlParser
                 }
             }
         }
+
         return externalLinks;
     }
-    
+
     private static Dictionary<string, List<string>> ExtractPossibleExternalUrls(List<string> possibleUrls)
     {
         var externalLinks = CreateExternalLinkDict();
@@ -754,6 +900,7 @@ public partial class HtmlParser
                 {
                     continue;
                 }
+
                 var parts = text.Split();
                 foreach (var part in parts)
                 {
@@ -761,6 +908,7 @@ public partial class HtmlParser
                     {
                         continue;
                     }
+
                     var link = Utility.UrlUtility.ExtractUrl(part);
                     if (link != "")
                     {
@@ -769,9 +917,10 @@ public partial class HtmlParser
                 }
             }
         }
+
         return externalLinks;
     }
-    
+
     private static void SaveExternalLinks(Dictionary<string, List<string>> links)
     {
         foreach (var (site, siteLinks) in links)
@@ -780,14 +929,16 @@ public partial class HtmlParser
             {
                 continue;
             }
+
             File.AppendAllLines($"{site}_links.txt", siteLinks);
         }
     }
-    
-    private static async Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict, Dictionary<string, List<string>> dstDict)
+
+    private static async Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict,
+                                                                     Dictionary<string, List<string>> dstDict)
     {
         var downloadableLinks = new List<string>();
-        var downloadableSites = new[] {"sendvid.com"};
+        var downloadableSites = new[] { "sendvid.com" };
         foreach (var site in srcDict.Keys)
         {
             if (downloadableSites.Contains(site))
@@ -800,10 +951,10 @@ public partial class HtmlParser
                 dstDict[site].AddRange(srcDict[site]);
             }
         }
-        
+
         return await ResolveDownloadableLinks(downloadableLinks);
     }
-    
+
     private static async Task<List<string>> ResolveDownloadableLinks(List<string> links)
     {
         var resolvedLinks = new List<string>();
@@ -816,7 +967,8 @@ public partial class HtmlParser
                 var content = await response.Content.ReadAsStringAsync();
                 var soup = new HtmlDocument();
                 soup.LoadHtml(content);
-                var sourceLink = soup.DocumentNode.SelectSingleNode("//source[@id='video_source']").GetAttributeValue("src", "");
+                var sourceLink = soup.DocumentNode.SelectSingleNode("//source[@id='video_source']")
+                                     .GetAttributeValue("src", "");
                 resolvedLinks.Add(sourceLink);
             }
             else
@@ -824,6 +976,7 @@ public partial class HtmlParser
                 resolvedLinks.Add(link);
             }
         }
+
         return resolvedLinks;
     }
 
@@ -871,10 +1024,13 @@ public partial class HtmlParser
                         Driver.ExecuteScript($"window.scrollBy({{top: {-increment}, left: 0, behavior: 'smooth'}});");
                         await Task.Delay(scrollPauseTime);
                     }
+
                     await Task.Delay(scrollPauseTime);
                 }
+
                 break;
             }
+
             lastHeight = newHeight;
         }
         //Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10); // TODO: Check if this is necessary
@@ -896,7 +1052,7 @@ public partial class HtmlParser
             await Console.Out.WriteLineAsync(value);
         }
     }
-    
+
     #region Parser Testing
 
     public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite)
@@ -908,6 +1064,7 @@ public partial class HtmlParser
             {
                 options.AddArgument("-headless");
             }
+
             options.AddArgument(DriverHeader);
             Driver = new FirefoxDriver(options);
             CurrentUrl = givenUrl.Replace("members.", "www.");
@@ -916,6 +1073,7 @@ public partial class HtmlParser
             {
                 SiteName = "nine99hentai";
             }
+
             Print($"Testing: {SiteName}Parse");
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName);
@@ -929,6 +1087,7 @@ public partial class HtmlParser
                 Print("Press any key to exit...");
                 Console.ReadKey();
             }
+
             return data;
         }
         catch
@@ -942,6 +1101,7 @@ public partial class HtmlParser
             {
                 await File.WriteAllTextAsync("test.html", Driver.PageSource);
             }
+
             Driver.Quit();
         }
     }
@@ -953,7 +1113,8 @@ public partial class HtmlParser
         var method = GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         if (method != null)
         {
-            return (Task<RipInfo>)(method.Invoke(this, null) ?? throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
+            return (Task<RipInfo>)(method.Invoke(this, null) ??
+                                   throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
         }
 
         var methods = typeof(HtmlParser).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
@@ -962,7 +1123,8 @@ public partial class HtmlParser
         {
             if (m.Name.Contains(normalizedName, StringComparison.CurrentCultureIgnoreCase))
             {
-                return (Task<RipInfo>)(m.Invoke(this, null) ?? throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
+                return (Task<RipInfo>)(m.Invoke(this, null) ??
+                                       throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
             }
         }
 
@@ -970,7 +1132,7 @@ public partial class HtmlParser
         Print($"Method {methodName} not found.");
         throw new InvalidOperationException();
     }
-    
+
     private string TestSiteCheck(string url)
     {
         var domain = new Uri(url).Host;
@@ -984,6 +1146,7 @@ public partial class HtmlParser
         {
             RequestHeaders["referer"] = "";
         }
+
         return domain;
     }
 
@@ -998,5 +1161,4 @@ public partial class HtmlParser
     private static partial Regex Rule34Regex();
 
     #endregion
-
 }
