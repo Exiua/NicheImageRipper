@@ -76,4 +76,9 @@ public static class ExtensionMethods
             yield return list.GetRange(i, Math.Min(size, list.Count - i));
         }
     }
+
+    public static string Join(this string separator, IEnumerable<string> values)
+    {
+        return string.Join(separator, values);
+    }
 }

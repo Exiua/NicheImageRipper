@@ -29,7 +29,7 @@ public class NicheImageRipperCli : NicheImageRipper
         {
             try
             {
-                Console.Write("Enter a URL to rip or 'quit' to exit: ");
+                Console.Write("NicheImageRipper> ");
                 var userInput = Console.ReadLine();
                 if (string.IsNullOrEmpty(userInput))
                 {
@@ -41,6 +41,7 @@ public class NicheImageRipperCli : NicheImageRipper
                 {
                     case "q":
                     case "quit":
+                        Console.WriteLine("Exiting...");
                         SaveData();
                         return;
                     case "r":
@@ -56,18 +57,22 @@ public class NicheImageRipperCli : NicheImageRipper
                         {
                             case "cache":
                                 ClearCache();
+                                Console.WriteLine("Cache cleared");
                                 break;
                             case "queue":
                                 UrlQueue.Clear();
+                                Console.WriteLine("Queue cleared");
                                 break;
                             default:
                                 ClearCache();
+                                Console.WriteLine("Cache cleared");
                                 break;
                         }
 
                         break;
                     case "save":
                         SaveData();
+                        Console.WriteLine("Data saved");
                         break;
                     case "history":
                         PrintHistory();
@@ -75,6 +80,7 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "l":
                     case "load":
                         LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
+                        Console.WriteLine("URLs loaded");
                         break;
                     default:
                         QueueUrls(userInput);
