@@ -448,7 +448,7 @@ public partial class HtmlParser
 
         return new RipInfo(images.ToWrapperList(), dirName, FilenameScheme, filenames: filenames);
     }
-
+    
     private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images,
                                        List<string> posts)
     {
@@ -493,6 +493,51 @@ public partial class HtmlParser
         }
     }
 
+    private async Task<RipInfo> EHentaiParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[id='gn']").InnerText;
+        var imageLinks = new List<string>();
+        var pageCount = 1;
+        while (true)
+        {
+            await PrintAsync($"Parsing page {pageCount}");
+            var imageTags = soup.SelectNodes("//div[@class='gdt']//a").GetHrefs();
+            imageLinks.AddRange(imageTags);
+            var nextPage = soup.SelectSingleNode("//table[@class='ptb']").SelectNodes("//a").GetHrefs().Last();
+            if (nextPage == CurrentUrl)
+            {
+                break;
+            }
+            
+            await Task.Delay(5000);
+            try
+            {
+                pageCount += 1;
+                CurrentUrl = nextPage;
+            }
+            catch (WebDriverTimeoutException)
+            {
+                await PrintAsync("Timed out. Sleeping for 10 seconds before retrying...", true);
+                await Task.Delay(10000);
+                CurrentUrl = nextPage;
+            }
+            soup = await Soupify();
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var (i, link) in imageLinks.Enumerate())
+        {
+            await PrintAsync($"Parsing image {i + 1}/{imageLinks.Count}");
+            await Task.Delay(2500);
+            soup = await Soupify(link);
+            var img = soup.SelectSingleNode("//img[@id='img']").GetAttributeValue("src", "");
+            images.Add(img);
+        }
+        
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for gelbooru.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
