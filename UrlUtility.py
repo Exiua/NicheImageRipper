@@ -20,30 +20,35 @@ def gdrive_link_parse(url: str) -> str:
     if start == -1:
         return ""
     m = re.search(r"(\?usp=sharing|\?usp=share_link|\?id=)", url)
-    if m is None:
-        print(url, file=sys.stderr)
-        return ""
-    match m.group(1):
-        case "?usp=sharing":
-            end = m.span(1)[0] + len("?usp=sharing")
-        case "?usp=share_link":
-            end = m.span(1)[0] + len("?usp=share_link")
-        case "?id=":
-            end = m.span(1)[0] + len("?id=") + 33
-        case _:
-            m = re.search(r"(/folders/|/file/d/)", url)
-            if m is None:
+    if m is not None:
+        match m.group(1):
+            case "?usp=sharing":
+                end = m.span(1)[0] + len("?usp=sharing")
+            case "?usp=share_link":
+                end = m.span(1)[0] + len("?usp=share_link")
+            case "?id=":
+                end = m.span(1)[0] + len("?id=") + 33
+            case _:
                 print(url, file=sys.stderr)
                 return ""
-            match m.group(1):
-                case "/folders/":
-                    end = m.span(1)[0] + len("/folders/") + 33
-                case "/file/d/":
-                    end = m.span(1)[0] + len("/file/d/") + 33
-                case _:
-                    print(url, file=sys.stderr)
-                    return ""
-    return url[start:end]
+        
+        return url[start:end] if len(url) >= end else ""
+    
+    m = re.search(r"(/folders/|/file/d/)", url)
+    if m is not None:
+        match m.group(1):
+            case "/folders/":
+                end = m.span(1)[0] + len("/folders/") + 33
+            case "/file/d/":
+                end = m.span(1)[0] + len("/file/d/") + 33
+            case _:
+                print(url, file=sys.stderr)
+                return ""
+
+        return url[start:end] if len(url) >= end else ""
+    
+    print(url, file=sys.stderr)
+    return ""
 
 
 def mega_link_parse(url: str) -> str:
@@ -66,9 +71,8 @@ def mega_link_parse(url: str) -> str:
         case _:
             print("No Match", url, file=sys.stderr)
             return ""
-    if len(url) < end:
-        return ""
-    return url[start:end]
+
+    return url[start:end] if len(url) >= end else ""
 
 
 if __name__ == "__main__":

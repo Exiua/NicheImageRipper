@@ -47,17 +47,16 @@ class RipInfo:
         return iter(self.urls)
 
     @property
-    def num_urls(self):
+    def num_urls(self) -> int:
         return self.url_count
 
     @property
-    def dir_name(self):
+    def dir_name(self) -> str:
         return self.__dir_name
 
     @dir_name.setter
-    def dir_name(self, value):
-        self.__dir_name = value
-        self.__dir_name = self.clean_dir_name(self.__dir_name)
+    def dir_name(self, value: str):
+        self.__dir_name = self.clean_dir_name(value)
 
     def __save_raw_urls(self, urls: list):
         serialized_urls = []

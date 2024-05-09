@@ -20,7 +20,6 @@ import selenium
 import tldextract
 import urllib3.exceptions
 from bs4 import BeautifulSoup
-from pathlib import Path
 from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -2259,29 +2258,34 @@ class HtmlParser:
         """
         sleep(5)
         soup = self.soupify()
-        dir_name = soup.find("h1", class_="__className_280070 text-center text-2xl lg:text-[70px] lg:text-left text-gray-50 leading-[1.2] uppercase").text
-        chapter_count: str = soup.find_all("span", class_="p-4 mr-[5px] inline-block border-b-gray-50 border-b")[1].text
+        dir_name = soup.find("h1", class_="text-xl md:text-3xl text-primary font-bold text-center lg:text-left").text
+        chapter_count: str = soup.find("div", class_="space-y-2 rounded p-5 bg-foreground").find_all("div", class_="flex justify-between")[3]\
+                                    .find("span", class_="text-secondary line-clamp-1").text
         chapter_count = int(chapter_count.strip().split(" ")[0])
-        base_url = self.current_url
+        chapters = []
+        while True:
+            links = soup.find("ul", class_="grid grid-cols-1 gap-y-8").find_all("a", recursive=False)
+            links = [f"https://omegascans.org{link.get("href")}" for link in links]
+            chapters.extend(links)
+            if len(chapters) == chapter_count:
+                break
+
+            self.driver.find_element(By.XPATH, f"//nav[@class='mx-auto flex w-full justify-center gap-x-2']/ul[last()]//a").click()
+            soup = self.soupify()
+
         images = []
-        for i in range(0, chapter_count):
-            for j in range(2):
-                if j == 0:
-                    self.current_url = f"{base_url}/chapter-{i}-5"
-                else:
-                    self.current_url = f"{base_url}/chapter-{i+1}"
-                self.lazy_load(scroll_by=True, increment=5000)
-                soup = self.soupify()
-                post = soup.find("p", class_="flex flex-col justify-center items-center")
-                if post is None:
-                    continue
-                if j == 0:
-                    print(f"Parsing page {i}.5 of {chapter_count}")
-                else:
-                    print(f"Parsing page {i+1} of {chapter_count}")
-                imgs = post.find_all("img", recursive=False)
-                images.extend([img.get("src") for img in imgs])
-        return RipInfo(images, dir_name, self.filename_scheme)
+        for i, chapter in enumerate(chapters):
+            print(f"Parsing chapter {i+1}/{chapter_count}")
+            soup = self.soupify(url=chapter, lazy_load_args={"scroll_by": True, "increment": 5000})
+            post = soup.find("p", class_="flex flex-col justify-center items-center")
+            if post is None:
+                print("Post not found")
+                continue
+            imgs = post.find_all("img", recursive=False)
+            images.extend([img.get("src") for img in imgs])
+        images.reverse()
+        # Files are numbered per chapter, so original will have the files overwrite each other
+        return RipInfo(images, dir_name, FilenameScheme.CHRONOLOGICAL if self.filename_scheme == FilenameScheme.ORIGINAL else self.filename_scheme) 
 
     def pbabes_parse(self) -> RipInfo:
         """Parses the html for pbabes.com and extracts the relevant information necessary for downloading images from the site"""
