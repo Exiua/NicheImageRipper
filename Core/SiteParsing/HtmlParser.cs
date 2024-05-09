@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Utility;
 using HtmlAgilityPack;
@@ -110,6 +111,7 @@ public partial class HtmlParser
             "dropbox" => DropboxParse,
             "imgur" => ImgurParse,
             "newgrounds" => NewgroundsParse,
+            "wnacg" => WnacgParse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
@@ -846,6 +848,52 @@ public partial class HtmlParser
         var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
         var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image)
                                .Select(dummy => (StringImageLinkWrapper)dummy).ToList();
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    private async Task<RipInfo> WnacgParse()
+    {
+        if (CurrentUrl.Contains("-slist-"))
+        {
+            CurrentUrl = CurrentUrl.Replace("-slist-", "-index-");
+        }
+        
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h2").InnerText;
+        var imageLinks = new List<string>();
+
+        while (true)
+        {
+            var imageList = soup
+                           .SelectNodes("//li[@class='li tb gallary_item']")
+                           .Select(n => n.SelectSingleNode(".//img"))
+                           .GetSrcs();
+            imageLinks.AddRange(imageList);
+            var nextPageButton = soup.SelectSingleNode("//span[@class='next']");
+            if (nextPageButton is null)
+            {
+                break;
+            }
+            
+            var nextPageUrl = nextPageButton.SelectSingleNode(".//a").GetAttributeValue("href", "");
+            if (nextPageUrl == "")
+            {
+                throw new RipperException("Next page url not found");
+            }
+            
+            soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var (i, image) in imageLinks.Enumerate())
+        {
+            var url = $"https:{image}";
+            url = url.Replace("t4.", "img5.").Replace("/t/", "/");
+            url = "/".Join(url.Split("/")[..^1]);
+            url += $"/{i+1:D2}.jpg";
+            images.Add(url);
+        }
+        
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
