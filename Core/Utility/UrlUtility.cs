@@ -67,7 +67,8 @@ public static partial class UrlUtility
         "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
         "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
         "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
-        "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/"
+        "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
+        "https://www.wnacg.com/"
     ];
     
     /// <summary>

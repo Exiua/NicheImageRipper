@@ -19,4 +19,12 @@ public static class HtmlAgilityPackExtensionMethods
                 node.GetAttributeValue("src", string.Empty), link => link != string.Empty)
             .ToList();
     }
+    
+    public static List<string> GetSrcs(this IEnumerable<HtmlNode> nodes)
+    {
+        return nodes
+              .SelectWhere(node => 
+                   node.GetAttributeValue("src", string.Empty), link => link != string.Empty)
+              .ToList();
+    }
 }
