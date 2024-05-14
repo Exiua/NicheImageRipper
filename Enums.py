@@ -25,6 +25,7 @@ class LinkInfo(CustomIntEnum):
     IFRAME_MEDIA = 3
     MEGA = 4
     PIXELDRAIN = 5
+    ARTSTATION = 6
 
 
 class QueueResult(CustomIntEnum):

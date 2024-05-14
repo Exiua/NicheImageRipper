@@ -589,19 +589,19 @@ class HtmlParser:
             Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
-        soup = self.soupify()
+        #soup = self.soupify()
         username = self.current_url.split("/")[3]
-        dir_name = soup.find("h1", class_="artist-name").text
-        cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
+        dir_name = username #soup.find("h1", class_="artist-name").text
+        #cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
 
         # region Id Extraction
 
-        start_ = cache_script.find("quick.json")
-        end_ = cache_script.rfind(");")
-        json_data = cache_script[start_ + 14:end_ - 1].replace("\n", "").replace(r'\"', '"')
-        json_data = json.loads(json_data)
-        user_id = json_data["id"]
-        user_name = json_data["full_name"]
+        # start_ = cache_script.find("quick.json")
+        # end_ = cache_script.rfind(");")
+        # json_data = cache_script[start_ + 14:end_ - 1].replace("\n", "").replace(r'\"', '"')
+        # json_data = json.loads(json_data)
+        # user_id = json_data["id"]
+        # user_name = json_data["full_name"]
 
         # endregion
 
@@ -619,6 +619,7 @@ class HtmlParser:
             response = scraper.get(url)
             response_data = response.json()
             data = response_data["data"]
+            d: str
             for d in data:
                 posts.append(d["permalink"].split("/")[4])
             if first_iter:
@@ -642,7 +643,7 @@ class HtmlParser:
                 sleep(5)
                 response = scraper.get(url)
             response_data = response.json()
-            assets = response_data["assets"]
+            assets: str = response_data["assets"]
             urls = [asset["image_url"].replace("/large/", "/4k/") for asset in assets]
             images.extend(urls)
 

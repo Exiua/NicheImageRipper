@@ -344,7 +344,7 @@ class ImageRipper:
         elif image_link.link_info == LinkInfo.PIXELDRAIN:
             self.__download_pixeldrain_files(image_path, image_link)
         else:
-            self.__download_file(image_path, rip_url)
+            self.__download_file(image_path, rip_url, image_link.link_info)
         sleep(0.05)
 
     @staticmethod
@@ -424,14 +424,14 @@ class ImageRipper:
                 if i == 3:
                     self.__log_failed_url(image_link.url)
 
-    def __download_file(self, image_path: str, rip_url: str):
+    def __download_file(self, image_path: str, rip_url: str, link_info: LinkInfo):
         """Download the given file"""
         if image_path[-1] == "/":
             image_path = image_path[:-2]    # [:-1] would make sense, but idr why [:-2] works
 
         try:
             for _ in range(4):  # Try 4 times before giving up
-                if self.__download_file_helper(rip_url, image_path):
+                if self.__download_file_helper(rip_url, image_path, link_info):
                     break
             return  # Failed to download file
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
@@ -447,7 +447,7 @@ class ImageRipper:
             ext = self.__get_correct_ext(image_path)
             os.replace(image_path, image_path + ext)
 
-    def __download_file_helper(self, url: str, image_path: str) -> bool:
+    def __download_file_helper(self, url: str, image_path: str, link_info: LinkInfo) -> bool:
         bad_cert = False
         sleep(self.sleep_time)
         token_needed = "redgifs" in url
@@ -468,10 +468,17 @@ class ImageRipper:
             return False
 
         if not response.ok and not bad_cert:
-            if response.status_code == 403 and self.site_name == "kemono" and ".psd" not in url:
-                raise BadSubdomain
+            supress_response = False
+            if response.status_code == 403:
+                if self.site_name == "kemono" and ".psd" not in url:
+                    raise BadSubdomain
+                elif link_info == LinkInfo.ARTSTATION:
+                    url = url.replace("/4k/", "/large/")
+                    response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
+                    supress_response = True
 
-            print(response)
+            if not supress_response:
+                print(response)
 
             if response.status_code == 404:
                 self.__log_failed_url(url)
