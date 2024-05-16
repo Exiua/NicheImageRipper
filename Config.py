@@ -55,7 +55,8 @@ CONFIG_TEMPLATE: dict = {
         "Imgur": "",
         "Google": "",
         "Dropbox": "",
-        "Pixeldrain": ""
+        "Pixeldrain": "",
+        "Twitter": ""
     }
 }
 
@@ -73,10 +74,10 @@ class Config:
                 self._config = json.load(f)
             self.__validate_config()
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> str:
         return self._config[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: str):
         self._config[key] = value
         self.__save_config()
 

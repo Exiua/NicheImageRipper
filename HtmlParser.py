@@ -32,7 +32,7 @@ from Config import Config
 from Enums import FilenameScheme, LinkInfo
 from ImageLink import ImageLink
 from RipInfo import RipInfo
-from RipperExceptions import InvalidSubdomain, RipperError
+from RipperExceptions import InvalidLoginRequest, InvalidSubdomain, RipperError
 from TemporaryTokenManager import TokenManager
 from UrlUtility import extract_url
 from Util import SCHEME, url_check, get_login_creds
@@ -208,7 +208,8 @@ class HtmlParser:
             "bunkrr": self.bunkrr_parse,
             "omegascans": self.omegascans_parse,
             "toonily": self.toonily_parse,
-            "pornhub": self.pornhub_parse
+            "pornhub": self.pornhub_parse,
+            "twitter": self.twitter_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -341,33 +342,11 @@ class HtmlParser:
         if self.site_name == "simpcity":
             return self.__simpcity_login()
 
+        raise InvalidLoginRequest(f"Site {self.site_name} does not support login")
+
     def sleep(self, seconds: float):
         jitter = random.random() * self.jitter
         sleep(seconds + jitter)
-
-    def __porn3dx_login(self) -> bool:
-        def try_send_key(xpath: str, key: str):
-            fields = self.driver.find_elements(By.XPATH, xpath)
-            for field in fields:
-                try:
-                    field.send_keys(key)
-                    break
-                except selenium.common.exceptions.ElementNotInteractableException:
-                    pass
-
-        curr_url = self.current_url
-        username, password = get_login_creds("Porn3dx")
-        self.current_url = "https://porn3dx.com/login"
-        logged_in_to_site = False
-        if username and password:
-            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="text"]', username)
-            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="password"]', password)
-            self.driver.find_elements(By.XPATH, '//button[@type="submit"]')[-1].click()
-            while "/login" in self.driver.current_url:
-                sleep(1)
-            logged_in_to_site = True
-            self.current_url = curr_url
-        return logged_in_to_site
 
     def __newgrounds_login(self) -> bool:
         curr_url = self.current_url
@@ -397,6 +376,49 @@ class HtmlParser:
         self.current_url = orig_url
         return True
 
+    def __porn3dx_login(self) -> bool:
+        def try_send_key(xpath: str, key: str):
+            fields = self.driver.find_elements(By.XPATH, xpath)
+            for field in fields:
+                try:
+                    field.send_keys(key)
+                    break
+                except selenium.common.exceptions.ElementNotInteractableException:
+                    pass
+
+        curr_url = self.current_url
+        username, password = get_login_creds("Porn3dx")
+        self.current_url = "https://porn3dx.com/login"
+        logged_in_to_site = False
+        if username and password:
+            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="text"]', username)
+            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="password"]', password)
+            self.driver.find_elements(By.XPATH, '//button[@type="submit"]')[-1].click()
+            while "/login" in self.driver.current_url:
+                sleep(1)
+            logged_in_to_site = True
+            self.current_url = curr_url
+        return logged_in_to_site
+
+    def __simpcity_login(self) -> bool:
+        download_url = self.current_url
+        username, password = get_login_creds("SimpCity")
+        self.current_url = "https://simpcity.su/login/login"
+        login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        while not login_input:
+            sleep(0.1)
+            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        login_input.send_keys(username)
+        password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
+        password_input.send_keys(password)
+        btn_xpath = '//button[@class="button--primary button button--icon button--icon--login rippleButton"]'
+        button = self.driver.find_element(By.XPATH, btn_xpath)
+        button.click()
+        while self.try_find_element(By.XPATH, btn_xpath):
+            sleep(0.1)
+        self.current_url = download_url
+        return True
+
     def __titsintops_login(self) -> bool:
         download_url = self.current_url
         username, password = get_login_creds("TitsInTops")
@@ -414,25 +436,6 @@ class HtmlParser:
         button.click()
         while self.try_find_element(By.XPATH,
                                     '//button[@class="button--primary button button--icon button--icon--login"]'):
-            sleep(0.1)
-        self.current_url = download_url
-        return True
-
-    def __simpcity_login(self) -> bool:
-        download_url = self.current_url
-        username, password = get_login_creds("SimpCity")
-        self.current_url = "https://simpcity.su/login/login"
-        login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
-        while not login_input:
-            sleep(0.1)
-            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
-        login_input.send_keys(username)
-        password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
-        password_input.send_keys(password)
-        btn_xpath = '//button[@class="button--primary button button--icon button--icon--login rippleButton"]'
-        button = self.driver.find_element(By.XPATH, btn_xpath)
-        button.click()
-        while self.try_find_element(By.XPATH, btn_xpath):
             sleep(0.1)
         self.current_url = download_url
         return True
@@ -3012,6 +3015,130 @@ class HtmlParser:
             images.append(src)
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def twitter_parse(self) -> RipInfo:
+        """
+            Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site
+        """
+        def twitter_parse_helper(post_link: str, failed_urls: list[tuple[int, str]]) -> list[str]:
+            print(post_link)
+            post_images: list[str] = []
+            streak = 0
+            for j in range(max_retries):
+                media_found = False
+                try:
+                    soup = self.soupify(post_link, delay=wait_time, xpath="//article")
+                    content: bs4.element.Tag  = soup.find("article")
+                    content = content.find("div").find("div")
+                    contents = content.find_all("div", recursive=False)
+                    if len(contents) < 3:
+                        vid = content.find("video")
+                        link = vid.get("src")
+                        post_images.append(link)
+                        media_found = True
+                        continue
+                    content = contents[2]
+                    content = content.find_all("div", recursive=False)[1]
+                    anchors = content.find_all("a")
+                    anchor: bs4.element.Tag
+                    for anchor in anchors:
+                        img = anchor.find("img")
+                        if img is not None:
+                            link = img.get("src")
+                            link = link.split("&name=")[0]
+                            link = f"{link}&name=4096x4096" # Get the highest resolution image
+                            post_images.append(link)
+                            media_found = True
+                            break
+                        vid = anchor.find("video")
+                        if vid is not None:
+                            post_images.append(vid.get("src"))
+                            media_found = True
+                            break
+                        else:
+                            raise Exception(f"No image or video found: {post_link} > {anchor}")
+                    break
+                except:
+                    streak = 0
+                    if j == max_retries - 1:
+                        print(f"Failed to get media: {post_link}")
+                        self.log_failed_url(post_link)
+                        failed_urls.append((len(post_images), post_link))
+                        continue
+
+                    if j == max_retries - 2:
+                        base_wait_time = wait_time
+                        sleep(300) # Wait 5 minutes before retrying
+                        # Arbitrary, but should be enough time to get around rate limiting
+                    wait_time = min(base_wait_time * (2 ** j), max_wait_time)
+                    jitter = random.uniform(0, wait_time)
+                    wait_time += jitter
+                    print(f"Attempt {j+1} failed. Retrying in {wait_time:.2f} seconds...")
+                    sleep(wait_time)
+
+                if media_found:
+                    if j == 0:
+                        streak += 1
+                        if streak == 3:
+                            base_wait_time *= 0.9 # Reduce wait time if successful on first try
+                            base_wait_time = max(base_wait_time, true_base_wait_time)
+                    break
+
+            return post_images
+
+        true_base_wait_time = 2.5
+        base_wait_time = true_base_wait_time
+        max_wait_time = 60
+        wait_time = base_wait_time
+        max_retries = 4
+        cookie_value = Config.config.keys["Twitter"]
+        self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
+        dir_name = self.current_url.split("/")[3]
+        if "/media" not in self.current_url:
+            self.current_url = f"https://twitter.com/{dir_name}/media"
+        
+        sleep(wait_time)
+        post_links = {} # Acts as an ordered set # Python 3.7+
+        new_posts = True
+        while new_posts:
+            new_posts = False
+            soup = self.soupify()
+            rows = soup.find("section").find("div").find("div").find_all("div", recursive=False)
+            row: bs4.element.Tag
+            for row in rows:
+                posts = row.find_all("li")
+                post: bs4.element.Tag
+                for post in posts:
+                    post_link = post.find("a")
+                    if post_link is None:
+                        continue
+                    post_link = post_link.get("href")
+                    if post_link not in post_links:
+                        post_links[post_link] = None
+                        new_posts = True
+            if new_posts:
+                self.scroll_page()
+                sleep(wait_time)
+        
+        images = []
+        failed_urls = []
+        num_posts = len(post_links)
+        for i, link in enumerate(post_links):
+            print(f"Post {i+1}/{num_posts}")
+            post_link = f"https://twitter.com{link}"
+            links = twitter_parse_helper(post_link, images, failed_urls)
+            images.extend(links)
+
+        if failed_urls:
+            failed = [x for x in failed_urls] # Copy list
+            failed_urls = []
+            for i, link in failed:
+                print(f"Retrying failed post {i+1}/{len(failed)}")
+                post_link = link
+                links = twitter_parse_helper(post_link, images, failed_urls)
+                images[i:i] = links # Insert at index i
+
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def wantedbabes_parse(self) -> RipInfo:
         """Parses the html for wantedbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -3135,6 +3262,7 @@ class HtmlParser:
         except Exception:
             with open("test.html", "w", encoding="utf-16") as f:
                 f.write(self.driver.page_source)
+            self.driver.get_screenshot_as_file("test.png")
             raise
         finally:
             if print_site:
@@ -3401,9 +3529,9 @@ class HtmlParser:
         :param url: Url to switch to before getting the BeautifulSoup object of the html (not needed if WebDriver is
             currently at this url)
         :param delay: Seconds to wait (for JS and other events) before creating BeautifulSoup object
-        :param lazy_load_args: Arguments to use when lazy loading the page
+        :param lazy_load_args: Arguments to use when lazy loading the page (occurs after delay and xpath if either are set)
         :param response: Response object to create BeautifulSoup object from (if set, ignores other arguments)
-        :param xpath: XPath to an element the WebDriver should wait until it exists before creating the BeautifulSoup object
+        :param xpath: XPath to an element the WebDriver should wait until it exists before creating the BeautifulSoup object (if delay is set, waits for xpath after delay)
         """
         if response:
             return BeautifulSoup(response.content, PARSER)

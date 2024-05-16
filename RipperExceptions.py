@@ -30,3 +30,7 @@ class FileNotFoundAtUrl(RipperError):
 class SiteParseError(RipperError):
     """Unable to parse given url"""
     pass
+
+class InvalidLoginRequest(RipperError):
+    """Site not supported for logging in"""
+    pass
