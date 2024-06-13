@@ -1557,9 +1557,16 @@ def profile_test():
         print(f"{fib(35)}")
         Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
 
+def nhentai_parse_test():
+    response = requests.get("https://nhentai.net/g/510544/")
+    soup = BeautifulSoup(response.content, "lxml")
+    with open("test.html", "w", encoding="utf-8") as f:
+        f.write(str(soup))
+    
+
 if __name__ == "__main__":
     #profile_test()
     # iterations = 1000
     # total_time = timeit("test_sig_lookup()", number=iterations, globals=globals())
     # print(f"Average time is {total_time / iterations:.2f} seconds")
-    m3u8_ffmpeg()
+    nhentai_parse_test()

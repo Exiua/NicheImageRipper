@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import json
 import string
 from typing import Iterator
@@ -122,7 +123,11 @@ class RipInfo:
             "oauth2": self.gdrive_creds,
             "fields": "files(name,id)",
         }
-        res = getfilelist.GetFileList(resource)
+        try:
+            res = getfilelist.GetFileList(resource) # Library calls sys.exit on error
+        except SystemExit:
+            print(f"Failed to get file list for {gdrive_url}", file=sys.stderr)
+            return [], index
         if not self.__dir_name:
             dir_name = res["searchedFolder"]["name"] if not single_file else res["searchedFolder"]["id"]
             self.__dir_name = self.clean_dir_name(dir_name)

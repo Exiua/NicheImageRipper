@@ -29,7 +29,7 @@ def gdrive_link_parse(url: str) -> str:
             case "?id=":
                 end = m.span(1)[0] + len("?id=") + 33
             case _:
-                print(url, file=sys.stderr)
+                print(f"Unable to identify gdrive url by parameter: {url}", file=sys.stderr)
                 return ""
         
         return url[start:end] if len(url) >= end else ""
@@ -42,12 +42,12 @@ def gdrive_link_parse(url: str) -> str:
             case "/file/d/":
                 end = m.span(1)[0] + len("/file/d/") + 33
             case _:
-                print(url, file=sys.stderr)
+                print(f"Unable to identify gdrive url by path: {url}", file=sys.stderr)
                 return ""
 
         return url[start:end] if len(url) >= end else ""
     
-    print(url, file=sys.stderr)
+    print(f"Unable to identify gdrive url: {url}", file=sys.stderr)
     return ""
 
 
@@ -57,7 +57,7 @@ def mega_link_parse(url: str) -> str:
         return ""
     m = re.search(r"(/folder/|/#F!|/#!|/file/)", url)
     if m is None:
-        print(url, file=sys.stderr)
+        print("Unable to identify mega url", file=sys.stderr)
         return ""
     match m.group(1):
         case "/folder/":
@@ -69,7 +69,7 @@ def mega_link_parse(url: str) -> str:
         case "/file/":
             end = m.span(1)[0] + len("/file/") + 52
         case _:
-            print("No Match", url, file=sys.stderr)
+            print(f"Unable to identify mega url by path: {url}", file=sys.stderr)
             return ""
 
     return url[start:end] if len(url) >= end else ""

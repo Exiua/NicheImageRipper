@@ -19,7 +19,7 @@ import requests
 import selenium
 import tldextract
 import urllib3.exceptions
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, ResultSet, Tag
 from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -43,6 +43,7 @@ DRIVER_HEADER: str = (
     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0")
 # Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
 # Chrome/W.X.Y.Z‡ Safari/537.36")
+ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp")
 EXTERNAL_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com")
 PARSEABLE_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "sendvid.com", "dropbox.com")
 
@@ -64,6 +65,7 @@ class HtmlParser:
         global logged_in
         options = self.__initialize_options(site_name)
         self.driver: webdriver.Firefox = webdriver.Firefox(options=options)
+        self.driver.implicitly_wait(0)
         self.driver_pid: Popen = self.driver.service.process.pid
         self.interrupted: bool = False
         self.site_name: str = site_name
@@ -209,7 +211,8 @@ class HtmlParser:
             "omegascans": self.omegascans_parse,
             "toonily": self.toonily_parse,
             "pornhub": self.pornhub_parse,
-            "twitter": self.twitter_parse
+            "twitter": self.twitter_parse,
+            "x": self.twitter_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -272,7 +275,7 @@ class HtmlParser:
 
         special_domains = ("inven.co.kr", "danbooru.donmai.us")
         domain = urlparse(self.given_url).netloc
-        requests_header['referer'] = "".join([SCHEME, domain, "/"])
+        requests_header['referer'] = f"{SCHEME}{domain}/" #"".join([SCHEME, domain, "/"])
         domain_parts = domain.split(".")
         domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
             domain_parts[-2]
@@ -463,10 +466,12 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def __dot_party_parse(self, domain_url: str):
+        WAIT_TIME = 0.5
+
         cookies = self.driver.get_cookies()
         cookie_str = ''
         for c in cookies:
-            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+            cookie_str += f"{c['name']}={c['value']};" #"".join([c['name'], '=', c['value'], ';']) 
         requests_header["cookie"] = cookie_str
         base_url = self.driver.current_url
         base_url = base_url.split("/")
@@ -491,11 +496,13 @@ class HtmlParser:
             image_links.extend(image_list)
             next_page = f"{page_url}?o={str(page * 50)}"
             print(next_page)
-            soup = self.soupify(next_page)
-            self.__print_html(soup)
-            test_str = soup.find("h2", class_="site-section__subheading")
-            if test_str is not None or self.current_url == orig_url:
+            soup = self.soupify(next_page, delay=WAIT_TIME)
+            #self.__print_html(soup)
+            if "?o=" not in self.current_url or self.current_url == orig_url:
                 break
+            # test_str = soup.find("h2", class_="site-section__subheading")
+            # if test_str is not None or self.current_url == orig_url:
+            #     break
 
         # endregion
 
@@ -504,16 +511,16 @@ class HtmlParser:
         images = []
         external_links: dict[str, list[str]] = self.__create_external_link_dict()
         num_posts = len(image_links)
-        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp")
         for i, link in enumerate(image_links):
             print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
             print(link)
-            soup = self.soupify(link)
-            links = soup.find_all("a")
+            soup = self.soupify(link, delay=WAIT_TIME)
+            self.__print_html(soup)
+            links: ResultSet[Tag] = soup.find_all("a")
             links = [link.get("href") for link in links]
-            possible_links_p = soup.find_all("p")
+            possible_links_p: ResultSet[Tag] = soup.find_all("p")
             possible_links = [tag.text for tag in possible_links_p]
-            possible_links_div = soup.find_all("div")
+            possible_links_div: ResultSet[Tag] = soup.find_all("div")
             possible_links.extend([tag.text for tag in possible_links_div])
             ext_links = self.__extract_external_urls(links)
             for site in ext_links:
@@ -523,9 +530,13 @@ class HtmlParser:
                 external_links[site].extend(ext_links[site])
             attachments = [domain_url + link if domain_url not in link and not any(protocol in link for protocol in
                                                                                    ("https", "http")) else link for link
-                           in links if any(ext in link for ext in ATTACHMENTS)]
-            # domain + link if domain_url is not in link and link doesn't contain http or https else link
-            # for links that contain any of the attachment extensions anywhere in the link
+                           in links if link and any(ext in link for ext in ATTACHMENTS)]
+            # This should really be a for loop rather than list comprehension
+            # domain + link [1] if domain_url is not in link and link doesn't contain http or https [2] else link
+            # for links that contain any of the attachment extensions anywhere in the link [3]
+            # [1]: String concatenation of the domain and the link
+            # [2]: Href may only contain the path and not the domain as that gets automatically added by the browser when clicking the anchor tag
+            # [3]: Attachment extensions are prefixed with a period so they can only be found at the end of the link (assuming correctly formatted links)
             images.extend(attachments)
             for site in PARSEABLE_SITES:
                 images.extend(external_links[site])
@@ -592,21 +603,8 @@ class HtmlParser:
             Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
-        #soup = self.soupify()
         username = self.current_url.split("/")[3]
-        dir_name = username #soup.find("h1", class_="artist-name").text
-        #cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
-
-        # region Id Extraction
-
-        # start_ = cache_script.find("quick.json")
-        # end_ = cache_script.rfind(");")
-        # json_data = cache_script[start_ + 14:end_ - 1].replace("\n", "").replace(r'\"', '"')
-        # json_data = json.loads(json_data)
-        # user_id = json_data["id"]
-        # user_name = json_data["full_name"]
-
-        # endregion
+        dir_name = username
 
         # region Get Posts
 
@@ -2091,6 +2089,32 @@ class HtmlParser:
                 images.append(image_url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def nhentai_parse(self) -> RipInfo:
+        """
+            Parses the html for nhentai.net and extracts the relevant information necessary for downloading images from the site
+        """
+        # Parses the html of the site
+        self.lazy_load(True, increment=1250)
+        btn = self.try_find_element(By.ID, "show-all-images-button") #self.driver.find_element(By.XPATH, "//button[@id='show-all-images-button']")
+        if btn:
+            self.driver.execute_script("arguments[0].scrollIntoView();", btn)
+            btn.click()
+        self.lazy_load(True, increment=1250)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="title").text
+        thumbnails = soup.find("div", class_="thumbs").find_all("img")
+        thumbnails = [img.get("data-src") for img in thumbnails]
+        images = []
+        thumb: str
+        for thumb in thumbnails:
+            if not thumb:
+                continue
+            thumb = re.sub(r"t\d\.", "i7.", thumb)
+            thumb = thumb.replace("t.", ".")
+            images.append(thumb)
+
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def nightdreambabe_parse(self) -> RipInfo:
         """Parses the html for nightdreambabe.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -3019,14 +3043,28 @@ class HtmlParser:
         """
             Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site
         """
-        def twitter_parse_helper(post_link: str, failed_urls: list[tuple[int, str]]) -> list[str]:
-            print(post_link)
+        
+        # region Method-Global Variables
+
+        true_base_wait_time = 2.5
+        base_wait_time = true_base_wait_time
+        max_wait_time = 60
+        wait_time = base_wait_time
+        max_retries = 4
+
+        # endregion
+
+        def twitter_parse_helper(post_link: str, log_failure: bool) -> tuple[list[str], list[tuple[int, str]]]:
+            #print(post_link)
+            nonlocal base_wait_time, wait_time
             post_images: list[str] = []
+            failed_urls: list[tuple[int, str]] = []
             streak = 0
-            for j in range(max_retries):
+            found = 0
+            for i in range(max_retries):
                 media_found = False
                 try:
-                    soup = self.soupify(post_link, delay=wait_time, xpath="//article")
+                    soup = self.soupify(post_link, delay=base_wait_time, xpath="//article")
                     content: bs4.element.Tag  = soup.find("article")
                     content = content.find("div").find("div")
                     contents = content.find_all("div", recursive=False)
@@ -3034,8 +3072,9 @@ class HtmlParser:
                         vid = content.find("video")
                         link = vid.get("src")
                         post_images.append(link)
+                        found += 1
                         media_found = True
-                        continue
+                        break
                     content = contents[2]
                     content = content.find_all("div", recursive=False)[1]
                     anchors = content.find_all("a")
@@ -3047,11 +3086,13 @@ class HtmlParser:
                             link = link.split("&name=")[0]
                             link = f"{link}&name=4096x4096" # Get the highest resolution image
                             post_images.append(link)
+                            found += 1
                             media_found = True
                             break
                         vid = anchor.find("video")
                         if vid is not None:
                             post_images.append(vid.get("src"))
+                            found += 1
                             media_found = True
                             break
                         else:
@@ -3059,37 +3100,35 @@ class HtmlParser:
                     break
                 except:
                     streak = 0
-                    if j == max_retries - 1:
+                    wait_boost = 0
+                    if i == max_retries - 1:
                         print(f"Failed to get media: {post_link}")
-                        self.log_failed_url(post_link)
-                        failed_urls.append((len(post_images), post_link))
+                        if log_failure:
+                            self.log_failed_url(post_link)
+                        failed_urls.append((found, post_link))
                         continue
 
-                    if j == max_retries - 2:
-                        base_wait_time = wait_time
-                        sleep(300) # Wait 5 minutes before retrying
+                    if i == max_retries - 2:
+                        #base_wait_time = wait_time
+                        wait_boost = 300 # Wait 5 minutes before retrying
                         # Arbitrary, but should be enough time to get around rate limiting
-                    wait_time = min(base_wait_time * (2 ** j), max_wait_time)
+                    wait_time = min(base_wait_time * (2 ** i), max_wait_time)
                     jitter = random.uniform(0, wait_time)
-                    wait_time += jitter
-                    print(f"Attempt {j+1} failed. Retrying in {wait_time:.2f} seconds...")
+                    wait_time += jitter + wait_boost
+                    print(f"Attempt {i+1} failed. Retrying in {wait_time:.2f} seconds...")
                     sleep(wait_time)
 
                 if media_found:
-                    if j == 0:
+                    if i == 0:
                         streak += 1
                         if streak == 3:
-                            base_wait_time *= 0.9 # Reduce wait time if successful on first try
-                            base_wait_time = max(base_wait_time, true_base_wait_time)
+                            pass
+                            #base_wait_time *= 0.9 # Reduce wait time if successful on first try
+                            #base_wait_time = max(base_wait_time, true_base_wait_time)
                     break
 
-            return post_images
+            return post_images, failed_urls
 
-        true_base_wait_time = 2.5
-        base_wait_time = true_base_wait_time
-        max_wait_time = 60
-        wait_time = base_wait_time
-        max_retries = 4
         cookie_value = Config.config.keys["Twitter"]
         self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
         dir_name = self.current_url.split("/")[3]
@@ -3123,19 +3162,24 @@ class HtmlParser:
         failed_urls = []
         num_posts = len(post_links)
         for i, link in enumerate(post_links):
-            print(f"Post {i+1}/{num_posts}")
             post_link = f"https://twitter.com{link}"
-            links = twitter_parse_helper(post_link, images, failed_urls)
+            print(f"Post {i+1}/{num_posts}: {post_link}")
+            links, retry_urls = twitter_parse_helper(post_link, False)
+            total_found = len(images)
             images.extend(links)
+            failed_urls.extend([(total_found + i, link) for i, link in retry_urls])
 
         if failed_urls:
+            self.driver.delete_all_cookies()
+            self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
+            sleep(600) # Wait 10 minutes before retrying failed links
             failed = [x for x in failed_urls] # Copy list
+            num_failed = len(failed)
             failed_urls = []
-            for i, link in failed:
-                print(f"Retrying failed post {i+1}/{len(failed)}")
-                post_link = link
-                links = twitter_parse_helper(post_link, images, failed_urls)
-                images[i:i] = links # Insert at index i
+            for i, (index, link) in enumerate(failed):
+                print(f"Retrying failed post {i+1}/{num_failed}: {link}")
+                links, _ = twitter_parse_helper(link, True) # Not retrying failed links
+                images[index:index] = links # Insert at index i
 
         return RipInfo(images, dir_name, self.filename_scheme)
 
@@ -3480,7 +3524,7 @@ class HtmlParser:
         if rescroll:
             self.driver.execute_script("window.scrollTo(0, 0);")
         if scroll_by:
-            scroll_script = "".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"])
+            scroll_script = f"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});"
             height_check_script = "return window.pageYOffset"
         else:
             scroll_script = "window.scrollTo(0, document.body.scrollHeight);"
@@ -3492,14 +3536,12 @@ class HtmlParser:
             if new_height == last_height:
                 if scroll_back > 0:
                     for _ in range(scroll_back):
-                        self.driver.execute_script(
-                            "".join(
-                                ["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
+                        self.driver.execute_script(f"window.scrollBy({{top: {-increment}, left: 0, behavior: 'smooth'}});")
                         sleep(scroll_pause_time)
                     sleep(scroll_pause_time)
                 break
             last_height = new_height
-        self.driver.implicitly_wait(10)
+        #self.driver.implicitly_wait(10)
 
     @staticmethod
     def try_click(element: WebElement, func: Callable[[], None]):
@@ -3511,7 +3553,7 @@ class HtmlParser:
     @staticmethod
     def log_failed_url(url: str):
         with open("failed.txt", "a") as f:
-            f.write("".join([url, "\n"]))
+            f.write(f"{url}\n")
 
     def try_find_element(self, by: str, value: str) -> WebElement | None:
         try:

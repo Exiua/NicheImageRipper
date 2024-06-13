@@ -128,6 +128,11 @@ class ImageLink:
             file_name = url.split("/")[-1].split("?")
             file_name = f"{file_name[1]}{file_name[0]}"
             self.link_info = LinkInfo.ARTSTATION
+        elif "pbs.twimg.com" in url:
+            file_name = url.split("/")[-1].split("?")[0]
+            ext = re.search(r"format=(\w+)", url)
+            if ext:
+                file_name = f"{file_name}.{ext.group(1)}"
         else:
             file_name = os.path.basename(urlparse(url).path)
         return file_name
