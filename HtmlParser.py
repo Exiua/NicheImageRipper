@@ -39,10 +39,7 @@ from Util import SCHEME, url_check, get_login_creds
 
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # The XML parsing engine to be used by BeautifulSoup
-DRIVER_HEADER: str = (
-    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0")
-# Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-# Chrome/W.X.Y.Z‡ Safari/537.36")
+USER_AGENT: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0"
 ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp")
 EXTERNAL_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com")
 PARSEABLE_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "sendvid.com", "dropbox.com")
@@ -212,7 +209,8 @@ class HtmlParser:
             "toonily": self.toonily_parse,
             "pornhub": self.pornhub_parse,
             "twitter": self.twitter_parse,
-            "x": self.twitter_parse
+            "x": self.twitter_parse,
+            "wnacg": self.wnacg_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -235,10 +233,10 @@ class HtmlParser:
     def __initialize_options(site_name: str = "") -> Options:
         options = Options()
         if site_name != "v2ph" or logged_in:
-            options.add_argument("-headless")
-        options.add_argument(DRIVER_HEADER)
-        options.set_preference("dom.disable_beforeunload", True)
-        options.set_preference("browser.tabs.warnOnClose", False)
+            options.add_argument("--headless")
+        options.set_preference("general.useragent.override", USER_AGENT)
+        # options.set_preference("dom.disable_beforeunload", True)
+        # options.set_preference("browser.tabs.warnOnClose", False)
         return options
 
     def parse_site(self, url: str) -> RipInfo:
@@ -3192,6 +3190,47 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def wnacg_parse(self) -> RipInfo:
+        """
+            Parses the html for wnacg.com and extracts the relevant information necessary for downloading images from the site
+        """
+        if "-slist-" in self.current_url:
+            self.current_url = self.current_url.replace("-slist-", "-index-")
+        soup = self.soupify()
+        dir_name = soup.find("h2").text
+        num_images = soup.find("span", class_="name tb").text # Count number placements e.g. 100 -> 3, 1000 -> 4
+        magnitude = len(num_images)
+        image_links: list[str] = []
+        while True:
+            image_list = soup.find_all("li", class_="li tb gallary_item")
+            image_list = [img.find("img").get("src") for img in image_list]
+            image_links.extend(image_list)
+            next_page_button = soup.find("span", class_="next")
+            if next_page_button is None:
+                break
+            next_page_url = next_page_button.find("a").get("href")
+            if next_page_url == "":
+                raise RipperError("Next page url not found")
+            soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
+
+        images = []
+        for i, image in enumerate(image_links):
+            ext = image.split(".")[-1]
+            url = f"https:{image}"
+            url = url.replace("t4.", "img5.").replace("/t/", "/")
+            url = "/".join(url.split("/")[:-1])
+            match magnitude:
+                case 1:
+                    url += f"/{i + 1:01d}.{ext}"
+                case 2:
+                    url += f"/{i + 1:02d}.{ext}"
+                case 3:
+                    url += f"/{i + 1:03d}.{ext}"
+                case _:
+                    raise RipperError("Invalid number of digits in number of images")
+            images.append(url)
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     # TODO: Work on saving self.driver across sites to avoid relogging in
     def v2ph_parse(self) -> RipInfo:
         """Parses the html for v2ph.com and extracts the relevant information necessary for downloading images from the site"""
@@ -3283,10 +3322,7 @@ class HtmlParser:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
         try:
-            options = Options()
-            if not debug:
-                options.add_argument("-headless")
-            options.add_argument(DRIVER_HEADER)
+            options = self.__initialize_options("debug")
             self.driver = webdriver.Firefox(options=options)
             self.current_url = given_url.replace("members.", "www.")
             site_name = self._test_site_check(given_url)
@@ -3312,7 +3348,8 @@ class HtmlParser:
             if print_site:
                 with open("test.html", "w") as f:
                     f.write(self.driver.page_source)
-            self.driver.quit()
+            if self.driver:
+                self.driver.quit()
 
     def _test_site_check(self, url: str) -> str:
         domain = urlparse(url).netloc

@@ -40,7 +40,7 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
 from Enums import FilenameScheme
-from HtmlParser import DRIVER_HEADER
+from HtmlParser import USER_AGENT
 from ImageLink import ImageLink
 from UrlUtility import gdrive_link_parse, mega_link_parse
 
@@ -421,7 +421,7 @@ def get_webdriver(headless: bool = True) -> webdriver.Firefox:
     options = Options()
     if headless:
         options.add_argument("-headless")
-    options.add_argument(DRIVER_HEADER)
+    options.set_preference("general.useragent.override", USER_AGENT)
     driver = webdriver.Firefox(options=options)
     return driver
 
@@ -1562,11 +1562,20 @@ def nhentai_parse_test():
     soup = BeautifulSoup(response.content, "lxml")
     with open("test.html", "w", encoding="utf-8") as f:
         f.write(str(soup))
-    
+
+def webdriver_test():
+    driver = get_webdriver()
+    driver.get("https://www.google.com")
+
+def mega_query_test():
+    link = ""
+    driver = get_webdriver(False)
+    driver.get(link)
+    input("Press Enter to continue")
 
 if __name__ == "__main__":
     #profile_test()
     # iterations = 1000
     # total_time = timeit("test_sig_lookup()", number=iterations, globals=globals())
     # print(f"Average time is {total_time / iterations:.2f} seconds")
-    nhentai_parse_test()
+    mega_query_test()
