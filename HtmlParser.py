@@ -3203,7 +3203,7 @@ class HtmlParser:
         image_links: list[str] = []
         while True:
             image_list = soup.find_all("li", class_="li tb gallary_item")
-            image_list = [img.find("img").get("src") for img in image_list]
+            image_list = [img.find("a").get("href") for img in image_list]
             image_links.extend(image_list)
             next_page_button = soup.find("span", class_="next")
             if next_page_button is None:
@@ -3214,22 +3214,44 @@ class HtmlParser:
             soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
 
         images = []
-        for i, image in enumerate(image_links):
-            ext = image.split(".")[-1]
-            url = f"https:{image}"
-            url = url.replace("t4.", "img5.").replace("/t/", "/")
-            url = "/".join(url.split("/")[:-1])
-            match magnitude:
-                case 1:
-                    url += f"/{i + 1:01d}.{ext}"
-                case 2:
-                    url += f"/{i + 1:02d}.{ext}"
-                case 3:
-                    url += f"/{i + 1:03d}.{ext}"
-                case _:
-                    raise RipperError("Invalid number of digits in number of images")
-            images.append(url)
+        for i, image_link in enumerate(image_links):
+            soup = self.soupify(f"https://www.wnacg.com{image_link}")
+            img = soup.find("img", id="picarea")
+            img_src = img.get("src")
+            images.append(img_src if "https:" in img_src else f"https:{img_src}")
+
         return RipInfo(images, dir_name, self.filename_scheme)
+
+        # while True:
+        #     image_list = soup.find_all("li", class_="li tb gallary_item")
+        #     image_list = [img.find("img").get("src") for img in image_list]
+        #     image_links.extend(image_list)
+        #     next_page_button = soup.find("span", class_="next")
+        #     if next_page_button is None:
+        #         break
+        #     next_page_url = next_page_button.find("a").get("href")
+        #     if next_page_url == "":
+        #         raise RipperError("Next page url not found")
+        #     soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
+
+        # images = []
+        # for i, image in enumerate(image_links):
+        #     ext = image.split(".")[-1]
+        #     url = f"https:{image}"
+        #     url = url.replace("t4.", "img5.").replace("/t/", "/")
+        #     if num_images.isnumeric():
+        #         url = "/".join(url.split("/")[:-1])
+        #         match magnitude:
+        #             case 1:
+        #                 url += f"/{i + 1:01d}.{ext}"
+        #             case 2:
+        #                 url += f"/{i + 1:02d}.{ext}"
+        #             case 3:
+        #                 url += f"/{i + 1:03d}.{ext}"
+        #             case _:
+        #                 raise RipperError("Invalid number of digits in number of images")
+        #     images.append(url)
+        # return RipInfo(images, dir_name, self.filename_scheme)
 
     # TODO: Work on saving self.driver across sites to avoid relogging in
     def v2ph_parse(self) -> RipInfo:
