@@ -55,8 +55,11 @@ CONFIG_TEMPLATE: dict = {
         "Imgur": "",
         "Google": "",
         "Dropbox": "",
-        "Pixeldrain": "",
-        "Twitter": ""
+        "Pixeldrain": ""
+    },
+    "Cookies": {
+        "Twitter": "",
+        "Newgrounds": ""
     }
 }
 
@@ -86,8 +89,12 @@ class Config:
         return self._config["Logins"]
 
     @property
-    def keys(self):
+    def keys(self) -> dict[str, str]:
         return self._config["Keys"]
+    
+    @property
+    def cookies(self) -> dict[str, str]:
+        return self._config["Cookies"]
 
     def __create_config(self):
         self._config = copy.deepcopy(CONFIG_TEMPLATE)

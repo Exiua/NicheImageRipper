@@ -53,7 +53,7 @@ requests_header: dict[str, str] = {
     'cookie':
         ''
 }
-logged_in: bool
+logged_in: bool = False
 
 
 class HtmlParser:
@@ -232,7 +232,7 @@ class HtmlParser:
     @staticmethod
     def __initialize_options(site_name: str = "") -> Options:
         options = Options()
-        if site_name != "v2ph" or logged_in:
+        if site_name not in ("v2ph", "debug") or logged_in:
             options.add_argument("--headless")
         options.set_preference("general.useragent.override", USER_AGENT)
         # options.set_preference("dom.disable_beforeunload", True)
@@ -2066,25 +2066,98 @@ class HtmlParser:
 
     def newgrounds_parse(self) -> RipInfo:
         """Parses the html for newgrounds.com and extracts the relevant information necessary for downloading images from the site"""
+        
+        def get_posts(soup: BeautifulSoup, movies: bool) -> list[str]:
+            posts = []
+            post_years = soup.find("div", class_="userpage-browse-content").find("div").find_all("div", recursive=False)
+            for post_year in post_years:
+                if not movies:
+                    post_links = post_year.find_all("div", class_="span-1 align-center")
+                else:
+                    post_links = post_year.find_all("div", class_="portalsubmission-cell")
+                post_links = [post.find("a").get("href") for post in post_links]
+                posts.extend(post_links)
+            return posts
+        
         # Parses the html of the site
-        if self.current_url.endswith("/art/"):
-            url = self.current_url.split("/")[:3]
-            url = "/".join(url)
-            self.current_url = f"{url}/art/"
-        self.site_login()
-        self.lazy_load(scroll_by=True)
-        soup = self.soupify()
+        lazy_load_args = {"scroll_by": True}
+        cookie_value = Config.config.cookies["Newgrounds"]
+        self.driver.add_cookie({"name": "vmk1du5I8m", "value": cookie_value})
+        base_url = self.current_url.split("/")[:3]
+        base_url = "/".join(base_url)
+        soup = self.soupify(base_url)
         dir_name = soup.find("a", class_="user-link").text.strip()
+        header_buttons = soup.find("div", class_="user-header-buttons").find_all("a")
+        has_movies = False
+        has_art = False
+        for button in header_buttons:
+            href = button.get("href")
+            if href == "/movies":
+                has_movies = True
+            elif href == "/art":
+                has_art = True
+
         images = []
-        post_years = soup.find("div", class_="userpage-browse-content").find("div").find_all("div", recursive=False)
-        for post_year in post_years:
-            posts = post_year.find_all("div", class_="span-1 align-center")
+        if has_art:
+            soup = self.soupify(f"{base_url}/art", lazy_load_args=lazy_load_args)
+            posts = get_posts(soup, False)
             for post in posts:
-                image_title = post.find("a").get("href").split("/")[-1]
-                thumbnail_url = post.find("img").get("src")
-                image_url = thumbnail_url.replace("/thumbnails/", "/images/") \
-                    .replace("_full", f"_{dir_name}_{image_title}").replace(".webp", ".png")
-                images.append(image_url)
+                #print(post)
+                soup = self.soupify(post, lazy_load_args=lazy_load_args)
+                art_images = soup.find("div", {"class": "art-images"})
+                if art_images:
+                    art_images = art_images.find_all("img")
+                    art_images = [img.get("src") for img in art_images]
+                    images.extend(art_images)
+                else:
+                    art_view_gallery = soup.find("div", class_="art-view-gallery")
+                    if art_view_gallery:
+                        seen = set()
+                        while True:
+                            art_view_gallery = soup.find("div", class_="art-view-gallery")
+                            container = art_view_gallery.find("div", class_="ng-img-container-sync relative")
+                            anchor = container.find("a")
+                            link = anchor.get("href")
+                            if link in seen:
+                                break
+                            seen.add(link)
+                            images.append(link)
+                            next_btn = self.try_find_element(By.XPATH, "//a[@class='gallery-nav right']")
+                            try:
+                                next_btn.click()
+                            except selenium.common.exceptions.ElementClickInterceptedException:
+                                blackout_zone = self.try_find_element(By.XPATH, "(//div[@class='blackout-bookend'])[3]")
+                                blackout_zone.click()
+                                next_btn.click()
+                            sleep(0.5)
+                            soup = self.soupify()
+                    else:
+                        img = soup.find("div", class_="image").find("img")
+                        images.append(img.get("src"))
+
+        if has_movies:
+            soup = self.soupify(f"{base_url}/movies", lazy_load_args=lazy_load_args)
+            posts = get_posts(soup, True)
+            for post in posts:
+                self.current_url = post
+                self.lazy_load(scroll_by=True)
+                video_start = self.try_find_element(By.XPATH, "//div[@class='video-barrier']/child::*[2]")
+                try:
+                    video_start.click()
+                except selenium.common.exceptions.ElementClickInterceptedException:
+                    blackout_zone = self.try_find_element(By.XPATH, "(//div[@class='blackout-bookend'])[3]")
+                    blackout_zone.click()
+                    video_start.click()
+                sleep(0.5)
+                options_btn = self.try_find_element(By.XPATH, "//button[@title='Display Options']")
+                options_btn.click()
+                highest_res = self.try_find_element(By.XPATH, "//div[@class='ng-option-select']/child::*[2]/child::*[1]")
+                if highest_res:
+                    highest_res.click()
+                soup = self.soupify()
+                video = soup.find("video")
+                video_url = video.find("source").get("src")
+                images.append(video_url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def nhentai_parse(self) -> RipInfo:
@@ -3039,7 +3112,7 @@ class HtmlParser:
 
     def twitter_parse(self) -> RipInfo:
         """
-            Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site
+            Parses the html for twitter.com/x.com and extracts the relevant information necessary for downloading images from the site
         """
         
         # region Method-Global Variables
@@ -3127,7 +3200,7 @@ class HtmlParser:
 
             return post_images, failed_urls
 
-        cookie_value = Config.config.keys["Twitter"]
+        cookie_value = Config.config.cookies["Twitter"]
         self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
         dir_name = self.current_url.split("/")[3]
         if "/media" not in self.current_url:
@@ -3344,7 +3417,7 @@ class HtmlParser:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
         try:
-            options = self.__initialize_options("debug")
+            options = self.__initialize_options("debug" if debug else "")
             self.driver = webdriver.Firefox(options=options)
             self.current_url = given_url.replace("members.", "www.")
             site_name = self._test_site_check(given_url)
