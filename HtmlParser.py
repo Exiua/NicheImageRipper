@@ -2142,22 +2142,30 @@ class HtmlParser:
                 self.current_url = post
                 self.lazy_load(scroll_by=True)
                 video_start = self.try_find_element(By.XPATH, "//div[@class='video-barrier']/child::*[2]")
-                try:
-                    video_start.click()
-                except selenium.common.exceptions.ElementClickInterceptedException:
-                    blackout_zone = self.try_find_element(By.XPATH, "(//div[@class='blackout-bookend'])[3]")
-                    blackout_zone.click()
-                    video_start.click()
-                sleep(0.5)
-                options_btn = self.try_find_element(By.XPATH, "//button[@title='Display Options']")
-                options_btn.click()
-                highest_res = self.try_find_element(By.XPATH, "//div[@class='ng-option-select']/child::*[2]/child::*[1]")
-                if highest_res:
-                    highest_res.click()
-                soup = self.soupify()
-                video = soup.find("video")
-                video_url = video.find("source").get("src")
-                images.append(video_url)
+                if video_start:
+                    try:
+                        video_start.click()
+                    except selenium.common.exceptions.ElementClickInterceptedException:
+                        blackout_zone = self.try_find_element(By.XPATH, "(//div[@class='blackout-bookend'])[3]")
+                        blackout_zone.click()
+                        video_start.click()
+                    sleep(0.5)
+                    options_btn = self.try_find_element(By.XPATH, "//button[@title='Display Options']")
+                    options_btn.click()
+                    highest_res = self.try_find_element(By.XPATH, "//div[@class='ng-option-select']/child::*[2]/child::*[1]")
+                    if highest_res:
+                        highest_res.click()
+                    soup = self.soupify()
+                    video = soup.find("video")
+                    video_url = video.find("source").get("src")
+                    images.append(video_url)
+                else:
+                    soup = self.soupify()
+                    # Assumes the video is an emulated flash video
+                    script = soup.find("div", class_="body-guts top").find_all("script")[1].text
+                    video_url = re.findall(r"swf: ?\"([^\"]+)\"", script)[0]
+                    #print(video_url)
+                    images.append(video_url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def nhentai_parse(self) -> RipInfo:
