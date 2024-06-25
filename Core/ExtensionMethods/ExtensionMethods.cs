@@ -81,4 +81,14 @@ public static class ExtensionMethods
     {
         return string.Join(separator, values);
     }
+    
+    public static string Join(this IEnumerable<string> values, string separator)
+    {
+        return string.Join(separator, values);
+    }
+    
+    public static string Remove(this string src, string toRemove)
+    {
+        return src.Replace(toRemove, string.Empty);
+    }
 }

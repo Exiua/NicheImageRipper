@@ -149,7 +149,7 @@ public class RipInfo
     
     private static string CleanDirectoryName(string directoryName)
     {
-        directoryName = WebUtility.HtmlDecode(directoryName);
+        directoryName = WebUtility.HtmlDecode(directoryName).Trim(' ', '\t', '\n', '\r');
         var dirName = new StringBuilder();
         foreach (var c in directoryName.Where(c => !ForbiddenChars.Contains(c)))
         {
