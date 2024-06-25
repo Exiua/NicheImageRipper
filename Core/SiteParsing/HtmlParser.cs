@@ -18,11 +18,10 @@ namespace Core.SiteParsing;
 
 public partial class HtmlParser
 {
-    private const string DriverHeader =
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
-
     private const string UserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
+
+    private const string Protocol = "https:";
 
     private static readonly string[] ExternalSites =
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
@@ -112,6 +111,21 @@ public partial class HtmlParser
             "imgur" => ImgurParse,
             "newgrounds" => NewgroundsParse,
             "wnacg" => WnacgParse,
+            "arca" => ArcaParse,
+            "babecentrum" => BabeCentrumParse,
+            "babeimpact" => BabeImpactParse,
+            "babeuniversum" => BabeUniversumParse,
+            "babesandbitches" => BabesAndBitchesParse,
+            "babesandgirls" => BabesAndGirlsParse,
+            "babesaround" => BabesAroundParse,
+            "babesbang" => BabesBangParse,
+            "babesinporn" => BabesInPornParse,
+            "babesmachine" => BabesMachineParse,
+            "bestprettygirl" => BestPrettyGirlParse,
+            "bitchesgirls" => BitchesGirlsParse,
+            "bunkr" => BunkrParse,
+            "buondua" => BuonduaParse,
+            "bustybloom" => BustyBloomParse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
@@ -136,14 +150,14 @@ public partial class HtmlParser
     private static FirefoxOptions InitializeOptions(string siteName)
     {
         var options = new FirefoxOptions();
-        if (siteName != "v2ph" || LoggedIn)
+        if (siteName != "v2ph" || LoggedIn || siteName == "debug")
         {
-            options.AddArgument("-headless");
+            options.AddArgument("--headless");
         }
 
-        options.AddArgument(DriverHeader);
-        options.SetPreference("dom.disable_beforeunload", true);
-        options.SetPreference("browser.tabs.warnOnClose", false);
+        options.SetPreference("general.useragent.override", UserAgent);
+        options.SetPreference("media.volume_scale", "0.0");
+        
         return options;
     }
 
@@ -333,10 +347,121 @@ public partial class HtmlParser
         return new RipInfo(unique, dirName, FilenameScheme);
     }
 
-    #endregion
+    /// <summary>
+    ///     
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath)
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode(dirNameXpath)
+                          .InnerText;
+        var images = soup.SelectNodes(imageContainerXpath)
+                         .SelectMany(im => im.SelectNodes(".//img"))
+                         .Select(img => Protocol + img.GetSrc().Remove("tn_"))
+                         .Select(dummy => (StringImageLinkWrapper)dummy)
+                         .ToList();
+        
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> GenericHtmlParser()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//img[@title='Click To Enlarge!']")
+                          .GetAttributeValue("alt")
+                          .Split(" ")
+                          .TakeWhile(s => s != "-")
+                          .Join(" ");
+        var images = soup.SelectNodes("//div[@class='gallery_thumb']")
+                            .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /*
+     * def __generic_html_parser_2(self):
+        # Parses the html of the site
+        soup = self.soupify()
+        dir_name = soup.find("img", title="Click To Enlarge!").get("alt").split()
+        for i in range(len(dir_name)):
+            if dir_name[i] == '-':
+                del dir_name[i:]
+                break
+        dir_name = " ".join(dir_name)
+        images = soup.find_all("div", class_="gallery_thumb")
+        images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+     */
+
+    #endregion
+
+    // TODO: Test that method works
+    /// <summary>
+    ///     Parses the html for agirlpic.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> AGirlPicParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='entry-title'").InnerText;
+        var baseUrl = CurrentUrl;
+        var numPages = soup.SelectSingleNode("//div[@class='page-links']")
+                          .SelectNodes("./a")
+                          .Count + 1;
+        var images = new List<StringImageLinkWrapper>();
+        for (var i = 1; i <= numPages; i++)
+        {
+            var tags = soup.SelectSingleNode("//div[@class='entry-content clear']")
+                           .SelectNodes("./div[@class='separator']")
+                           .ToList();
+            foreach (var imgTags in tags.Select(tag => tag.SelectNodes(".//img")))
+            {
+                images.AddRange(imgTags.Select(img => img.GetSrc()).Select(dummy => (StringImageLinkWrapper)dummy));
+            }
+
+            if (i != numPages)
+            {
+                soup = await Soupify($"{baseUrl}{i + 1}/");
+            }
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for arca.live and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> ArcaParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='title']").InnerText;
+        var mainTag = soup.SelectSingleNode("//div[@class='fr-view article-content']");
+        var imageList = mainTag.SelectNodes(".//img").GetSrcs();
+        var images = imageList
+                    .Select(image => image.Split("?")[0] + "?type=orig") // Remove query string and add type=orig
+                    .Select(img => !img.Contains("https:") ? "https:" + img : img) // Add protocol if missing
+                    .Select(dummy => (StringImageLinkWrapper)dummy) // Convert to StringImageLinkWrapper
+                    .ToList();
+        var videoList = mainTag.SelectNodes(".//video").GetSrcs();
+        var videos = videoList
+                    .Select(video => !video.Contains("https:") ? "https:" + video : video)
+                    .Select(dummy => (StringImageLinkWrapper)dummy)
+                    .ToList();
+        images.AddRange(videos);
+        
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
+    ///     Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> ArtstationParse()
@@ -421,6 +546,347 @@ public partial class HtmlParser
         #endregion
         
         return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for babecentrum.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BabeCentrumParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='pageHeading']")
+                          .SelectNodes(".//cufontext")
+                          .Select(w => w.InnerText)
+                          .Join(" ")
+                          .Trim();
+        var images = soup.SelectSingleNode("//table")
+                            .SelectNodes(".//img")
+                            .Select(img => Protocol + img.GetAttributeValue("src", "").Remove("tn_"))
+                            .Select(dummy => (StringImageLinkWrapper)dummy)   
+                            .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for babeimpact.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BabeImpactParse()
+    {
+        var soup = await Soupify();
+        var title = soup.SelectSingleNode("//h1[@class='blockheader pink center lowercase']").InnerText;
+        var sponsor = soup.SelectSingleNode("//div[@class='c']")
+                         .SelectNodes(".//a")[1]
+                         .InnerText
+                         .Trim();
+        sponsor = $"({sponsor})";
+        var dirName = $"{sponsor} {title}";
+        var tags = soup.SelectNodes("//div[@class='list gallery']");
+        var tagList = new List<HtmlNode>();
+        foreach (var tag in tags)
+        {
+            tagList.AddRange(tag.SelectNodes(".//div[@class='item']"));
+        }
+
+        var images = new List<StringImageLinkWrapper>();
+        var imageList = tagList.Select(tag => tag.SelectSingleNode(".//a")).Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
+        foreach (var image in imageList)
+        {
+            soup = await Soupify(image);
+            var img = soup.SelectSingleNode("//div[@class='image-wrapper']")
+                         .SelectSingleNode(".//img")
+                         .GetSrc();
+            images.Add((StringImageLinkWrapper)(Protocol + img));
+        }
+        
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for babeuniversum.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BabeUniversumParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='title']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var images = soup.SelectSingleNode("//div[@class='three-column']")
+                         .SelectNodes(".//div[@class='thumbnail']")
+                         .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+                         .Select(dummy => (StringImageLinkWrapper)dummy)
+                         .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for babesandbitches.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BabesAndBitchesParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@id='title']")
+                          .InnerText
+                          .Split("picture")[0]
+                          .Trim();
+        var images = soup.SelectNodes("//a[@class='gallery-thumb']")
+                            .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for babesandgirls.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BabesAndGirlsParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='title']")
+                          .InnerText;
+        var images = soup.SelectSingleNode("//div[@class='block-post album-item']")
+                            .SelectNodes(".//a[@class='item-post']")
+                            .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for babesaround.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> BabesAroundParse()
+    {
+        return GenericBabesHtmlParser("//section[@class='outer-section']//h2", "//div[@class='lightgallery thumbs quadruple fivefold']");
+    }
+
+    /// <summary>
+    ///     Parses the html for babesbang.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> BabesBangParse()
+    {
+        return GenericBabesHtmlParser("//div[@class='main-title']", "//div[@class='gal-block']");
+    }
+
+    /// <summary>
+    ///     Parses the html for babesinporn.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> BabesInPornParse()
+    {
+        return GenericBabesHtmlParser("//h1[@class='blockheader pink center lowercase']", "//div[@class='list gallery']");
+    }
+
+    /// <summary>
+    ///     Parses the html for babesmachine.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BabesMachineParse()
+    {
+        var soup = await Soupify();
+        var gallery = soup.SelectSingleNode("//div[@id='gallery']");
+        var dirName = gallery.SelectSingleNode(".//h2")
+                             .SelectSingleNode(".//a")
+                             .InnerText;
+        var images = gallery.SelectSingleNode(".//table").SelectNodes(".//tr")
+                            .Select(img => img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+                            .Select(img => Protocol + img)
+                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for bestprettygirl.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BestPrettyGirlParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='elementor-heading-title elementor-size-large']").InnerText;
+        var images = soup.SelectNodes("//img[@class='aligncenter size-full']")
+                         .Select(img => img.GetSrc())
+                         .Select(dummy => (StringImageLinkWrapper)dummy)
+                         .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for bitchesgirls.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BitchesGirlsParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='album-name']").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var baseUrl = CurrentUrl;
+        if (baseUrl[^1] != '/')
+        {
+            baseUrl += "/";
+        }
+        
+        var page = 1;
+        while (true)
+        {
+            if (page != 1)
+            {
+                soup = await Soupify($"{baseUrl}{page}");
+            }
+
+            var posts = soup.SelectSingleNode("//div[@class='albumgrid']")
+                            .SelectNodes("./a[@class='post-container']")
+                            .Select(post => post.GetHref())
+                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .ToList();
+            images.AddRange(posts);
+            var loadBtn = soup.SelectSingleNode("//a[@id='loadMore']");
+            if (loadBtn is not null)
+            {
+                page += 1;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for bunkr.si and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> BunkrParse()
+    {
+        return BunkrParse("");
+    }
+    
+    /// <summary>
+    ///     Parses the html for bunkr.si and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BunkrParse(string url)
+    {
+        if (url != "")
+        {
+            CurrentUrl = url;
+        }
+        
+        var soup = await Soupify();
+        string dirName;
+        if (url == "")
+        {
+            dirName = soup.SelectSingleNode("//h1[@class='text-[24px] font-bold text-dark dark:text-white']")
+                          .InnerText;
+        }
+        else
+        {
+            dirName = "internal-use";
+        }
+
+        List<StringImageLinkWrapper> images;
+        if (CurrentUrl.Contains("/a/"))
+        {
+            images = [];
+            var imagePosts = soup.SelectSingleNode("//div[@class='grid-images']")
+                                 .SelectNodes(".//a");
+            foreach (var post in imagePosts)
+            {
+                var href = post.GetHref();
+                var ext = href.Split('.')[^1];
+                var link = ext switch
+                {
+                    "mp4" or "webm" or "avi" or "rar" or "zip" or "7z" => $"https://fries.bunkrr.su{href}".Replace("/d/", "/"),
+                    _ => post.SelectSingleNode(".//img")
+                            .GetSrc()
+                            .Replace("/thumbs/", "/")
+                            .Replace(".png", $".{ext}")
+                };
+                images.Add((StringImageLinkWrapper)link);
+            }
+        }
+        else
+        {
+            var anchor =
+                soup.SelectSingleNode(
+                    "//a[@class='text-white inline-flex items-center justify-center rounded-[5px] py-2 px-4 text-center text-base font-bold hover:text-white mb-2']");
+            var link = anchor.GetHref();
+            images = [(StringImageLinkWrapper)link];
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for buondua.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> BuonduaParse()
+    {
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
+        {
+            ScrollBy = true
+        });
+        var dirName = soup.SelectSingleNode("//div[@class='article-header']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var dirNameSplit = dirName.Split("(");
+        if (dirName.Contains("pictures") || dirName.Contains("photos"))
+        {
+            dirName = dirNameSplit[..^1].Join("(");
+        }
+        
+        var pages = soup.SelectSingleNode("//div[@class='pagination-list']")
+                       .SelectNodes(".//span")
+                       .Count;
+        var currUrl = CurrentUrl.Replace("?page=1", "");
+        
+        var images = new List<StringImageLinkWrapper>();
+        for (var i = 0; i < pages; i++)
+        {
+            var imageList = soup.SelectSingleNode("//div[@class='article-fulltext']")
+                               .SelectNodes(".//img")
+                               .Select(img => img.GetSrc())
+                               .Select(dummy => (StringImageLinkWrapper)dummy)
+                               .ToList();
+            images.AddRange(imageList);
+            if (i >= pages - 1)
+            {
+                continue;
+            }
+
+            var nextPage = $"{currUrl}?page={i + 2}";
+            CurrentUrl = nextPage;
+            soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
+            {
+                ScrollBy = true
+            });
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for bustybloom.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> BustyBloomParse()
+    {
+        return GenericHtmlParser();
     }
     
     /// <summary>
@@ -1001,8 +1467,8 @@ public partial class HtmlParser
 
     #endregion
 
-    private async Task<HtmlNode> Soupify(string? url = null, int delay = 0, HttpResponseMessage? response = null,
-                                         string xpath = "")
+    private async Task<HtmlNode> Soupify(string? url = null, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
+                                         HttpResponseMessage? response = null, string xpath = "")
     {
         if (response is not null)
         {
@@ -1025,6 +1491,11 @@ public partial class HtmlParser
         if (xpath != "")
         {
             await WaitForElement(xpath);
+        }
+
+        if (lazyLoadArgs is not null)
+        {
+            await LazyLoad(lazyLoadArgs);
         }
 
         var doc = new HtmlDocument();
@@ -1176,6 +1647,15 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Scrolls through the page to lazy load images
+    /// </summary>
+    /// <param name="args">Arguments for lazy loading</param>
+    private static Task LazyLoad(LazyLoadArgs args)
+    {
+        return LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll);
+    }
+    
+    /// <summary>
     ///     Scroll through the page to lazy load images
     /// </summary>
     /// <param name="scrollBy">Whether to scroll through the page or instantly scroll to the bottom</param>
@@ -1254,13 +1734,7 @@ public partial class HtmlParser
     {
         try
         {
-            var options = new FirefoxOptions();
-            if (!debug)
-            {
-                options.AddArgument("-headless");
-            }
-
-            options.AddArgument(DriverHeader);
+            var options = InitializeOptions(debug ? "debug" : "");
             Driver = new FirefoxDriver(options);
             CurrentUrl = givenUrl.Replace("members.", "www.");
             SiteName = TestSiteCheck(givenUrl);
@@ -1288,6 +1762,9 @@ public partial class HtmlParser
         catch
         {
             await File.WriteAllTextAsync("test.html", Driver.PageSource);
+            //var screenshot = Driver.GetFullPageScreenshot();
+            var screenshot = Driver.GetScreenshot();
+            screenshot.SaveAsFile("test.png");
             throw;
         }
         finally
@@ -1308,8 +1785,16 @@ public partial class HtmlParser
         var method = GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         if (method != null)
         {
-            return (Task<RipInfo>)(method.Invoke(this, null) ??
-                                   throw new InvalidOperationException()); // The second parameter is null because the method has no parameters
+            try
+            {
+                // The second parameter is null because the method (usually) has no parameters
+                return (Task<RipInfo>)(method.Invoke(this, null) ?? new InvalidOperationException());
+            }
+            catch (TargetParameterCountException)
+            {
+                // The second parameter is string
+                return (Task<RipInfo>)(method.Invoke(this, [""]) ?? new InvalidOperationException());
+            }
         }
 
         var methods = typeof(HtmlParser).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
