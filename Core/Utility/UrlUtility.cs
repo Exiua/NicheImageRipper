@@ -151,7 +151,7 @@ public static partial class UrlUtility
                     end = m.Groups[1].Index + "?id=".Length + 33;
                     break;
                 default:
-                    Console.WriteLine($"Incorrect Match: {url}");
+                    PrintUtility.Print($"Incorrect Match: {url}");
                     return "";
             }
 
@@ -171,14 +171,14 @@ public static partial class UrlUtility
                     end = m.Groups[1].Index + "/file/d/".Length + 33;
                     break;
                 default:
-                    Console.WriteLine(url);
+                    PrintUtility.Print(url);
                     return "";
             }
             
             return url.Length < end ? "" : url[start..end];
         }
 
-        Console.WriteLine(url);
+        PrintUtility.Print(url);
         return "";
     }
 
@@ -192,7 +192,7 @@ public static partial class UrlUtility
         var m = MegaLinkRegex().Match(url);
         if (!m.Success)
         {
-            Console.WriteLine(url);
+            PrintUtility.Print(url);
             return "";
         }
 
@@ -212,7 +212,7 @@ public static partial class UrlUtility
                 end = m.Groups[1].Index + "/file/".Length + 52;
                 break;
             default:
-                Console.WriteLine($"Incorrect Match: {url}");
+                PrintUtility.Print($"Incorrect Match: {url}");
                 return "";
         }
         

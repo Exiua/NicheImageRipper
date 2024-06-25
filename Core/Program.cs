@@ -22,6 +22,7 @@ switch (arguments.RunMode)
         break;
     case RunMode.Gui:
         //await Gui();
+        Console.WriteLine("Run the GUI through the GUI project");
         break;
     case RunMode.Cli:
         var ripper = new NicheImageRipperCli();

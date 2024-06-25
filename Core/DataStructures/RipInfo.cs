@@ -13,8 +13,8 @@ public class RipInfo
         
     private string _directoryName = null!; // Initialized through the property setter
     
-    public FilenameScheme FilenameScheme { get; set; }
-    public List<ImageLink> Urls { get; set; }
+    public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
+    public List<ImageLink> Urls { get; set; } = null!;
     public bool MustGenerateManually { get; set; }
     
     public int NumUrls { get; set; }

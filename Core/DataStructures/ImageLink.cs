@@ -8,10 +8,10 @@ namespace Core.DataStructures;
 
 public class ImageLink
 {
-    public string Referer { get; set; }
-    public LinkInfo LinkInfo { get; set; }
-    public string Url { get; set; }
-    public string Filename { get; set; }
+    public string Referer { get; set; } = null!;
+    public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
+    public string Url { get; set; } = null!;
+    public string Filename { get; set; } = null!;
     
     public bool IsBlob => Url.StartsWith("blob:");
 
