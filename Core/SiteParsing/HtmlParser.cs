@@ -336,6 +336,94 @@ public partial class HtmlParser
     #endregion
 
     /// <summary>
+    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> ArtstationParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='artist-name']").InnerText;
+        var username = CurrentUrl.Split("/")[3];
+        var cacheScript = soup.SelectSingleNode("//div[@class='wrapper-main']").SelectNodes(".//script")[1].InnerText;
+        
+        #region Id Extraction
+        
+        var start = cacheScript.IndexOf("quick.json", StringComparison.Ordinal);
+        var end = cacheScript.LastIndexOf(");", StringComparison.Ordinal);
+        var jsonData = cacheScript[(start + 14)..(end - 1)].Replace("\n", "").Replace('\"', '"');
+        var json = JsonSerializer.Deserialize<JsonNode>(jsonData);
+        var userId = json!["id"]!.Deserialize<string>()!;
+        var userName = json["full_name"]!.Deserialize<string>()!;
+        
+        #endregion
+        
+        #region Get Posts
+        
+        var total = 1;
+        var pageCount = 1;
+        var firstIter = true;
+        var posts = new List<string>();
+        var client = new HttpClient();
+
+        while (total > 0)
+        {
+            Console.WriteLine(pageCount);
+            var url = $"https://www.artstation.com/users/{username}/projects.json?page={pageCount}";
+            Console.WriteLine(url);
+            var response = await client.GetAsync(url);
+            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var data = responseData!["data"]!.AsArray();
+            foreach (var d in data)
+            {
+                var link = d!["permalink"]!.Deserialize<string>()!.Split("/")[4];
+                posts.Add(link);
+            }
+            
+            if (firstIter)
+            {
+                total = responseData["total_count"]!.Deserialize<int>() - data.Count;
+                firstIter = false;
+            }
+            else
+            {
+                total -= data.Count;
+            }
+            
+            pageCount += 1;
+            await Task.Delay(100);
+        }
+        
+        #endregion
+        
+        #region Get Media Links
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var post in posts)
+        {
+            var url = $"https://www.artstation.com/projects/{post}.json";
+            HttpResponseMessage response;
+            try
+            {
+                response = await client.GetAsync(url);
+            }
+            catch (HttpRequestException)
+            {
+                await Task.Delay(5000);
+                response = await client.GetAsync(url);
+            }
+            
+            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var assets = responseData!["assets"]!.AsArray();
+            var urls = assets.Select(asset => asset!["image_url"]!.Deserialize<string>()!.Replace("/large/", "/4k/"));
+            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+        }
+        
+        #endregion
+        
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for coomer.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -860,6 +948,13 @@ public partial class HtmlParser
         
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h2").InnerText;
+        //var numImages = soup.SelectSingleNode("//div[@class='asTBcell uwconn']").SelectNodes("./label")[1].InnerText;
+        //Console.WriteLine(numImages);
+        //numImages = numImages.Split('：')[^1][..^1];
+        // Get log_10 of the number of images to get the number of digits
+        //var magnitude = (int)Math.Log10(int.Parse(numImages)) + 1;
+        var numImages = soup.SelectSingleNode("//span[@class='name tb']").InnerText;
+        var magnitude = numImages.Length;
         var imageLinks = new List<string>();
 
         while (true)
@@ -887,10 +982,17 @@ public partial class HtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, image) in imageLinks.Enumerate())
         {
+            var ext = image.Split(".")[^1];
             var url = $"https:{image}";
             url = url.Replace("t4.", "img5.").Replace("/t/", "/");
             url = "/".Join(url.Split("/")[..^1]);
-            url += $"/{i+1:D2}.jpg";
+            url += magnitude switch
+            {
+                1 => $"/{i + 1:D1}.{ext}",
+                2 => $"/{i + 1:D2}.{ext}",
+                3 => $"/{i + 1:D3}.{ext}",
+                _ => throw new Exception("Invalid number of digits in number of images")
+            };
             images.Add(url);
         }
         

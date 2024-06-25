@@ -5,13 +5,14 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <SelfContained>True</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Google.Apis.Drive.v3" Version="1.67.0.3309" />
       <PackageReference Include="HtmlAgilityPack" Version="1.11.60" />
       <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
-      <PackageReference Include="Selenium.WebDriver" Version="4.18.1" />
+      <PackageReference Include="Selenium.WebDriver" Version="4.20.0" />
       <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.34.0" />
     </ItemGroup>
 

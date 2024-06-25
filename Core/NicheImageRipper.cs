@@ -118,11 +118,11 @@ public abstract class NicheImageRipper
     {
         if (UrlQueue.Count == 0)
         {
-            Console.WriteLine("No URLs to rip.");
+            PrintUtility.Print("No URLs to rip.");
             return "";
         }
         var url = UrlQueue.Peek();
-        Console.WriteLine(url);
+        PrintUtility.Print(url);
         Ripper = new ImageRipper(FilenameScheme, UnzipProtocol);
         Interrupted = true;
         await Ripper.Rip(url);
