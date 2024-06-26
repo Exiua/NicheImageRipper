@@ -126,6 +126,12 @@ public partial class HtmlParser
             "bunkr" => BunkrParse,
             "buondua" => BuonduaParse,
             "bustybloom" => BustyBloomParse,
+            "camwhores" => CamwhoresParse,
+            "cherrynudes" => CherryNudesParse,
+            "chickteases" => ChickTeasesParse,
+            "cool18" => Cool18Parse,
+            "cutegirlporn" => CuteGirlPornParse,
+            "cyberdrop" => CyberDropParse,
             _ => throw new Exception("Site not supported/implemented")
         };
     }
@@ -444,18 +450,30 @@ public partial class HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//div[@class='title']").InnerText;
         var mainTag = soup.SelectSingleNode("//div[@class='fr-view article-content']");
-        var imageList = mainTag.SelectNodes(".//img").GetSrcs();
-        var images = imageList
-                    .Select(image => image.Split("?")[0] + "?type=orig") // Remove query string and add type=orig
-                    .Select(img => !img.Contains("https:") ? "https:" + img : img) // Add protocol if missing
-                    .Select(dummy => (StringImageLinkWrapper)dummy) // Convert to StringImageLinkWrapper
-                    .ToList();
-        var videoList = mainTag.SelectNodes(".//video").GetSrcs();
-        var videos = videoList
-                    .Select(video => !video.Contains("https:") ? "https:" + video : video)
-                    .Select(dummy => (StringImageLinkWrapper)dummy)
-                    .ToList();
-        images.AddRange(videos);
+
+        var images = new List<StringImageLinkWrapper>();
+        var imgNodes = mainTag.SelectNodes(".//img");
+        if(imgNodes is not null)
+        {
+            var imageList = mainTag.SelectNodes(".//img").GetSrcs();
+            var imgs = imageList
+                        .Select(image => image.Split("?")[0] + "?type=orig") // Remove query string and add type=orig
+                        .Select(img => !img.Contains(Protocol) ? Protocol + img : img) // Add protocol if missing
+                        .Select(dummy => (StringImageLinkWrapper)dummy) // Convert to StringImageLinkWrapper
+                        .ToList();
+            images.AddRange(imgs);
+        }
+        
+        var videoNodes = mainTag.SelectNodes(".//video");
+        if(videoNodes is not null)
+        {
+            var videoList = mainTag.SelectNodes(".//video").GetSrcs();
+            var videos = videoList
+                        .Select(video => !video.Contains(Protocol) ? Protocol + video : video)
+                        .Select(dummy => (StringImageLinkWrapper)dummy)
+                        .ToList();
+            images.AddRange(videos);
+        }
         
         return new RipInfo(images, dirName, FilenameScheme);
     }
@@ -888,6 +906,83 @@ public partial class HtmlParser
     {
         return GenericHtmlParser();
     }
+
+    /// <summary>
+    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> CamwhoresParse()
+    {
+        return CamwhoresParse("");
+    }
+    
+    /// <summary>
+    ///     Parses the html for camwhores.tv and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CamwhoresParse(string url)
+    {
+        if (url != "")
+        {
+            CurrentUrl = url;
+        }
+        
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='headline']").SelectSingleNode(".//h1").InnerText;
+        var video = soup.SelectSingleNode(".//div[@class='fp-player']").SelectSingleNode(".//video");
+        var videoUrl = video.GetSrc();
+        var images = new List<StringImageLinkWrapper> { videoUrl };
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for cherrynudes.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CherryNudesParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//title")
+                          .InnerText
+                          .Split("-")[0]
+                          .Trim();
+        var contentUrl = CurrentUrl.Replace("www", "cdn");
+        var images = soup.SelectSingleNode("//div[@class='article__gallery-images']")
+                            .SelectNodes(".//a")
+                            .Select(img => img.GetHref())
+                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for chickteases.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> ChickTeasesParse()
+    {
+        return GenericBabesHtmlParser("//h1[@id='galleryModelName']", "//div[@class='minithumbs']");
+    }
+
+    /// <summary>
+    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Cool18Parse()
+    {
+        var soup = await Soupify();
+        var showContent = soup.SelectSingleNode("//td[@class='show_content']");
+        var dirName = showContent.SelectSingleNode(".//b").InnerText;
+        var images = showContent.SelectSingleNode(".//pre")
+                                .SelectNodes(".//img")
+                                .Select(img => img.GetSrc())
+                                .Select(dummy => (StringImageLinkWrapper)dummy)
+                                .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
     
     /// <summary>
     ///     Parses the html for coomer.su and extracts the relevant information necessary for downloading images from the site
@@ -898,6 +993,54 @@ public partial class HtmlParser
         return await DotPartyParse("https://coomer.su");
     }
 
+    // TODO: Remove cup-e.club as the site is no longer active
+
+    /// <summary>
+    ///     Parses the html for cutegirlporn.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CuteGirlPornParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='gal-title']").InnerText;
+        var images = soup.SelectSingleNode("//ul[@class='gal-thumbs']")
+                         .SelectNodes(".//li")
+                         .Select(img => "https://cutegirlporn.com" + img.SelectSingleNode(".//img").GetSrc().Replace("/t", "/"))
+                         .Select(dummy => (StringImageLinkWrapper)dummy)
+                         .ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for cyberdrop.me and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CyberDropParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@id='title']").InnerText;
+        var imageList = soup.SelectNodes("//div[@class='image-container column']")
+                            .Select(image => image
+                                            .SelectSingleNode(".//a[@class='image']")
+                                            .GetHref())
+                            .Select(url => $"https://cyberdrop.me{url}");
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var image in imageList)
+        {
+            CurrentUrl = image;
+            await WaitForElement("//div[@id='imageContainer']//img", timeout: -1);
+            soup = await Soupify();
+            var url = soup
+                            .SelectSingleNode("//div[@id='imageContainer']")
+                            .SelectSingleNode(".//img")
+                            .GetSrc();
+            images.Add((StringImageLinkWrapper)url);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
     /// <summary>
     ///     Parses the html for danbooru.donmai.us and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -906,7 +1049,7 @@ public partial class HtmlParser
     {
         var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
         tags = Uri.UnescapeDataString(tags);
-        var dirName = "[Danbooru] " + tags.Replace("+", " ").Replace("tags=", "");
+        var dirName = "[Danbooru] " + tags.Remove("+").Remove("tags=");
         var images = new List<StringImageLinkWrapper>();
         var session = new HttpClient();
         session.DefaultRequestHeaders.Add("User-Agent", "NicheImageRipper");
@@ -1503,6 +1646,13 @@ public partial class HtmlParser
         return doc.DocumentNode;
     }
 
+    /// <summary>
+    ///     Wait for an element to exist on the page
+    /// </summary>
+    /// <param name="xpath">XPath of the element to wait for</param>
+    /// <param name="delay">Delay between each check</param>
+    /// <param name="timeout">Timeout for the wait (-1 for no timeout)</param>
+    /// <returns>True if the element exists, false if the timeout is reached</returns>
     private async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
