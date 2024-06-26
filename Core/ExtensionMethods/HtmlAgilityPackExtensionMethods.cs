@@ -16,16 +16,14 @@ public static class HtmlAgilityPackExtensionMethods
     public static List<string> GetSrcs(this HtmlNodeCollection nodes)
     {
         return nodes
-            .SelectWhere(node => 
-                node.GetAttributeValue("src", string.Empty), link => link != string.Empty)
+            .Select(node => node.GetSrc())
             .ToList();
     }
     
     public static List<string> GetSrcs(this IEnumerable<HtmlNode> nodes)
     {
         return nodes
-              .SelectWhere(node => 
-                   node.GetAttributeValue("src", string.Empty), link => link != string.Empty)
+              .Select(node => node.GetSrc())
               .ToList();
     }
 

@@ -64,8 +64,7 @@ public class NicheImageRipperCli : NicheImageRipper
                                 Console.WriteLine("Queue cleared");
                                 break;
                             default:
-                                ClearCache();
-                                Console.WriteLine("Cache cleared");
+                                Console.WriteLine("Missing argument: cache or queue");
                                 break;
                         }
 
