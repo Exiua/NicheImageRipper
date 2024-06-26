@@ -42,7 +42,7 @@ public static class HtmlAgilityPackExtensionMethods
         var attribute = node.GetAttributeValue(attributeName, string.Empty);
         if (string.IsNullOrEmpty(attribute))
         {
-            throw new RipperException($"No {attributeName} attribute found");
+            throw new AttributeNotFoundException($"No {attributeName} attribute found");
         }
         
         return attribute;

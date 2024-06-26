@@ -1,6 +1,6 @@
 ﻿namespace Core.Exceptions;
 
-public class ImproperlyFormattedSubdomainException : Exception
+public class ImproperlyFormattedSubdomainException : RipperException
 {
     public ImproperlyFormattedSubdomainException()
     {

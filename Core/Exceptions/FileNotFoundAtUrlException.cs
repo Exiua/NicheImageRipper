@@ -1,6 +1,6 @@
 ﻿namespace Core.Exceptions;
 
-public class FileNotFoundAtUrlException : Exception
+public class FileNotFoundAtUrlException : RipperException
 {
     public FileNotFoundAtUrlException()
     {
