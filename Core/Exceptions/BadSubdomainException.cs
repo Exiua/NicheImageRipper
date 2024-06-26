@@ -1,6 +1,6 @@
 ﻿namespace Core.Exceptions;
 
-public class BadSubdomainException : Exception
+public class BadSubdomainException : RipperException
 {
     public BadSubdomainException()
     {

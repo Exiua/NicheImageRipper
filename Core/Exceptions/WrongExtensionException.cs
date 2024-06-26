@@ -1,6 +1,6 @@
 ﻿namespace Core.Exceptions;
 
-public class WrongExtensionException : Exception
+public class WrongExtensionException : RipperException
 {
     public WrongExtensionException()
     {
