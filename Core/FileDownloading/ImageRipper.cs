@@ -44,7 +44,7 @@ public partial class ImageRipper
         ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36",
         ["referer"] = "https://imhentai.xxx/",
         ["cookie"] = "",
-        ["Authorization"] = ""
+        //["Authorization"] = ""
     };
     
     public FilenameScheme FilenameScheme { get; set; }
@@ -117,6 +117,7 @@ public partial class ImageRipper
             start = FolderInfo.MustGenerateManually ? 1 : 0;
         }
 
+        var downloadStats = new DownloadStats();
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
         if (FolderInfo.MustGenerateManually)
@@ -137,13 +138,14 @@ public partial class ImageRipper
                 {
                     try
                     {
-                        await DownloadFromUrl(trimmedUrl, index.ToString(), fullPath, ext);
+                        await DownloadFromUrl(trimmedUrl, index.ToString(), fullPath, ext, downloadStats);
                         break;
                     }
                     catch // TODO: Narrow down exceptions
                     {
                         if (i == 3)
                         {
+                            downloadStats.FailedDownloads++;
                             Console.WriteLine("Image not found");
                         }
                     }
@@ -178,7 +180,7 @@ public partial class ImageRipper
                         }
                         try
                         {
-                            await DownloadFromList(link, fullPath, index);
+                            await DownloadFromList(link, fullPath, index, downloadStats);
                         }
                         // catch (PIL.UnidentifiedImageError)
                         // {
@@ -193,6 +195,7 @@ public partial class ImageRipper
                         {
                             if (link.LinkInfo == LinkInfo.IframeMedia)
                             {
+                                downloadStats.FailedDownloads++;
                                 await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
                             }
                         }
@@ -214,7 +217,7 @@ public partial class ImageRipper
         
         if(UnzipProtocol != UnzipProtocol.None)
         {
-            UnzipFiles(fullPath);
+            UnzipFiles(fullPath, downloadStats);
         }
         
         Console.WriteLine("Download Complete"); //{#00FF00}
@@ -272,7 +275,8 @@ public partial class ImageRipper
     /// <param name="filename">Name of the file to download</param>
     /// <param name="fullPath">Full path of the directory to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
-    private async Task DownloadFromUrl(string url, string filename, string fullPath, string ext)
+    /// <param name="downloadStats">DownloadStats object to update with results</param>
+    private async Task DownloadFromUrl(string url, string filename, string fullPath, string ext, DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
@@ -280,7 +284,7 @@ public partial class ImageRipper
         var numProgress = $"({filename}/{numFiles})";
         Console.WriteLine($"{ripUrl}    {numProgress}");
         var imagePath = Path.Combine(fullPath, $"{filename}{ext}");
-        await DownloadFile(imagePath, ripUrl);
+        await DownloadFile(imagePath, ripUrl, downloadStats);
         await Task.Delay(50);
     }
 
@@ -290,7 +294,8 @@ public partial class ImageRipper
     /// <param name="imageLink">ImageLink containing data on the file to download</param>
     /// <param name="fullPath">Full path of the directory to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
-    private async Task DownloadFromList(ImageLink imageLink, string fullPath, int currentFileNum)
+    /// <param name="downloadStats">DownloadStats object to update with results</param>
+    private async Task DownloadFromList(ImageLink imageLink, string fullPath, int currentFileNum, DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
@@ -317,7 +322,7 @@ public partial class ImageRipper
                 break;
             case LinkInfo.None:
             default:
-                await DownloadFile(imagePath, ripUrl);
+                await DownloadFile(imagePath, ripUrl, downloadStats);
                 break;
         }
         await Task.Delay(50);
@@ -396,11 +401,11 @@ public partial class ImageRipper
         await response.Content.CopyToAsync(fileStream);
     }
 
-    private async Task DownloadFile(string imagePath, string url)
+    private async Task DownloadFile(string imagePath, string url, DownloadStats downloadStats)
     {
         if(imagePath[^1] == '/')
         {
-            imagePath = imagePath[..^2];  // [..^1] would make sense, but idr why [..^2] works
+            imagePath = imagePath[..^1];
         }
 
         try
@@ -417,6 +422,7 @@ public partial class ImageRipper
 
             if (!successful)
             {
+                downloadStats.FailedDownloads++;
                 return; // Failed to download file
             }
         }
@@ -462,7 +468,7 @@ public partial class ImageRipper
                 using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
                 using var insecureClient = new HttpClient(new HttpClientHandler
                 {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+                    ServerCertificateCustomValidationCallback = (_, _, _, _) => true
                 });
                 response = await insecureClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 badCert = true;
@@ -487,22 +493,105 @@ public partial class ImageRipper
 
             Console.WriteLine($"<Response {response.StatusCode}>");
             
-            if (response.StatusCode == HttpStatusCode.NotFound)
+            switch (response.StatusCode)
             {
-                LogFailedUrl(url);
-                if (SiteName != "imhentai")
+                case HttpStatusCode.NotFound:
                 {
-                    return false;
-                }
+                    LogFailedUrl(url);
+                    if (SiteName != "imhentai")
+                    {
+                        return false;
+                    }
 
-                throw new WrongExtensionException();
+                    throw new WrongExtensionException();
+                }
+                case HttpStatusCode.Unauthorized:
+                    await Task.Delay(500);
+                    return false;
+
+                #region Unused Status Codes
+                
+                case HttpStatusCode.Continue:
+                case HttpStatusCode.SwitchingProtocols:
+                case HttpStatusCode.Processing:
+                case HttpStatusCode.EarlyHints:
+                case HttpStatusCode.OK:
+                case HttpStatusCode.Created:
+                case HttpStatusCode.Accepted:
+                case HttpStatusCode.NonAuthoritativeInformation:
+                case HttpStatusCode.NoContent:
+                case HttpStatusCode.ResetContent:
+                case HttpStatusCode.PartialContent:
+                case HttpStatusCode.MultiStatus:
+                case HttpStatusCode.AlreadyReported:
+                case HttpStatusCode.IMUsed:
+                case HttpStatusCode.Ambiguous:
+                case HttpStatusCode.Moved:
+                case HttpStatusCode.Found:
+                case HttpStatusCode.RedirectMethod:
+                case HttpStatusCode.NotModified:
+                case HttpStatusCode.UseProxy:
+                case HttpStatusCode.Unused:
+                case HttpStatusCode.RedirectKeepVerb:
+                case HttpStatusCode.PermanentRedirect:
+                case HttpStatusCode.BadRequest:
+                case HttpStatusCode.PaymentRequired:
+                case HttpStatusCode.Forbidden:
+                case HttpStatusCode.MethodNotAllowed:
+                case HttpStatusCode.NotAcceptable:
+                case HttpStatusCode.ProxyAuthenticationRequired:
+                case HttpStatusCode.RequestTimeout:
+                case HttpStatusCode.Conflict:
+                case HttpStatusCode.Gone:
+                case HttpStatusCode.LengthRequired:
+                case HttpStatusCode.PreconditionFailed:
+                case HttpStatusCode.RequestEntityTooLarge:
+                case HttpStatusCode.RequestUriTooLong:
+                case HttpStatusCode.UnsupportedMediaType:
+                case HttpStatusCode.RequestedRangeNotSatisfiable:
+                case HttpStatusCode.ExpectationFailed:
+                case HttpStatusCode.MisdirectedRequest:
+                case HttpStatusCode.UnprocessableEntity:
+                case HttpStatusCode.Locked:
+                case HttpStatusCode.FailedDependency:
+                case HttpStatusCode.UpgradeRequired:
+                case HttpStatusCode.PreconditionRequired:
+                case HttpStatusCode.TooManyRequests:
+                case HttpStatusCode.RequestHeaderFieldsTooLarge:
+                case HttpStatusCode.UnavailableForLegalReasons:
+                case HttpStatusCode.InternalServerError:
+                case HttpStatusCode.NotImplemented:
+                case HttpStatusCode.BadGateway:
+                case HttpStatusCode.ServiceUnavailable:
+                case HttpStatusCode.GatewayTimeout:
+                case HttpStatusCode.HttpVersionNotSupported:
+                case HttpStatusCode.VariantAlsoNegotiates:
+                case HttpStatusCode.InsufficientStorage:
+                case HttpStatusCode.LoopDetected:
+                case HttpStatusCode.NotExtended:
+                case HttpStatusCode.NetworkAuthenticationRequired:
+                default:
+                    break;
+                
+                #endregion
             }
         }
 
-        if (!await WriteToFile(response, imagePath))
+        var result = await WriteToFile(response, imagePath);
+        switch (result)
         {
-            LogFailedUrl(url);
-            return false;
+            case DownloadStatus.None:
+                // Should not occur
+                break;
+            case DownloadStatus.Ok:
+                break;
+            case DownloadStatus.ConnectionReset:
+                return false;
+            case DownloadStatus.Failed:
+                LogFailedUrl(url);
+                return false;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
 
         if (tokenNeeded)
@@ -554,38 +643,55 @@ public partial class ImageRipper
     {
         await Task.Delay((int)(SleepTime * 1000));
 
-        HttpResponseMessage response;
-        try
+        for(var _ = 0; _ < RetryCount; _++)
         {
-            using var request = RequestHeaders.ToRequest(HttpMethod.Get, ripUrl);
-            response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-        }
-        catch (HttpRequestException)
-        {
-            Console.WriteLine($"Unable to establish connection to {ripUrl}");
-            return;
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            if(response.StatusCode == HttpStatusCode.Forbidden && !ripUrl.Contains(".psd"))
+            HttpResponseMessage response;
+            try
             {
-                throw new BadSubdomainException();
+                using var request = RequestHeaders.ToRequest(HttpMethod.Get, ripUrl);
+                response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             }
-            
-            Console.WriteLine($"<Response {response.StatusCode}>");
-            
-            if (response.StatusCode == HttpStatusCode.NotFound)
+            catch (HttpRequestException)
             {
-                LogFailedUrl(ripUrl);
-                throw new FileNotFoundAtUrlException(ripUrl);
+                Console.WriteLine($"Unable to establish connection to {ripUrl}");
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == HttpStatusCode.Forbidden && !ripUrl.Contains(".psd"))
+                {
+                    throw new BadSubdomainException();
+                }
+
+                Console.WriteLine($"<Response {response.StatusCode}>");
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    LogFailedUrl(ripUrl);
+                    throw new FileNotFoundAtUrlException(ripUrl);
+                }
+            }
+
+            var result = await WriteToFile(response, imagePath);
+            switch (result)
+            {
+                case DownloadStatus.None:
+                    // Should not occur
+                    break;
+                case DownloadStatus.Ok:
+                    goto BreakLoop;
+                case DownloadStatus.ConnectionReset:
+                    continue;
+                case DownloadStatus.Failed:
+                    LogFailedUrl(ripUrl);
+                    goto BreakLoop;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
         
-        if (!await WriteToFile(response, imagePath))
-        {
-            LogFailedUrl(ripUrl);
-        }
+        BreakLoop: ;
     }
     
     /// <summary>
@@ -594,42 +700,39 @@ public partial class ImageRipper
     /// <param name="response">Response to write to file</param>
     /// <param name="path">Filepath to write to</param>
     /// <returns>Boolean based on successfulness</returns>
-    private static async Task<bool> WriteToFile(HttpResponseMessage response, string path)
+    private static async Task<DownloadStatus> WriteToFile(HttpResponseMessage response, string path)
     {
         var expandedFilePath = path.StartsWith('~')
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..])
             : path;
 
         var savePath = Path.GetFullPath(expandedFilePath);
-        for (var _ = 0; _ < RetryCount; _++)
+        try
         {
-            try
-            {
-                await using var fileStream =
-                    new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await response.Content.CopyToAsync(fileStream);
-                return true; // Success
-            }
-            catch (HttpRequestException)
-            {
-                Console.WriteLine("Connection Reset, Retrying...");
-                await Task.Delay(1000); // Wait for 1 second before retrying
-            }
-            catch (IOException)
-            {
-                Console.WriteLine($"Failed to open file: {savePath}");
-                // break; // No retry on file operation errors
-            }
+            await using var fileStream =
+                new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await response.Content.CopyToAsync(fileStream);
+            return DownloadStatus.Ok; // Success
         }
-
-        return false; // Failure
+        catch (HttpRequestException)
+        {
+            Console.WriteLine("Connection Reset, Retrying...");
+            await Task.Delay(1000); // Wait for 1 second before retrying
+            return DownloadStatus.ConnectionReset;
+        }
+        catch (IOException)
+        {
+            Console.WriteLine($"Failed to open file: {savePath}");
+            return DownloadStatus.Failed; // No retry on file operation errors
+        }
     }
-    
+
     /// <summary>
     ///     Recursively unzip all files in a given directory
     /// </summary>
     /// <param name="directoryPath">Path of directory to unzip files in</param>
-    private void UnzipFiles(string directoryPath)
+    /// <param name="downloadStats">DownloadStats object to update with results</param>
+    private void UnzipFiles(string directoryPath, DownloadStats downloadStats)
     {
         var files = Directory.GetFiles(directoryPath, "*.zip", SearchOption.AllDirectories);
         var count = 0;
@@ -647,7 +750,10 @@ public partial class ImageRipper
                 error++;
             }
         }
-        Console.WriteLine($"Results:\n\tExtracted: {count}\n\tFailed: {error}");
+        
+        downloadStats.ArchivesExtracted += count;
+        downloadStats.FailedDownloads += error;
+        Console.WriteLine($"Archive Results:\n\tExtracted: {count}\n\tFailed: {error}");
     }
 
     /// <summary>
@@ -675,26 +781,6 @@ public partial class ImageRipper
             File.Delete(zipPath);
         }
     }
-    
-    /*
-     * def __unzip_file(self, zip_path: Path):
-        """
-            Unzip a given file
-        :param zip_path: File to unzip
-        """
-        extract_path = zip_path.with_suffix("")
-        extract_path.mkdir(parents=True, exist_ok=True)
-        try:
-            with zipfile.ZipFile(zip_path, "r") as f:
-                f.extractall(extract_path)
-        except zipfile.BadZipfile:
-            ext = self.__get_correct_ext(str(zip_path))
-            new_path = zip_path.with_suffix(ext)
-            zip_path.rename(new_path)
-            return
-        if self.unzip_protocol == UnzipProtocol.EXTRACT_DELETE:
-            zip_path.unlink()
-     */
 
     /// <summary>
     ///     Get correct extension for a file based on file signature
@@ -702,7 +788,7 @@ public partial class ImageRipper
     /// <param name="filepath">Path to the file to analyze</param>
     /// <returns>True extension of the file or the original extension if the file signature is unknown (will default to
     ///     .bin if the file does not have a file extension)</returns>
-    public string GetCorrectExtension(string filepath)
+    public static string GetCorrectExtension(string filepath)
     {
         var signature = ReadSignature(filepath, 8);
         if (signature is null)
@@ -711,11 +797,11 @@ public partial class ImageRipper
         }
 
         var signatureInt = BitConverter.ToUInt64(signature, 0);
-        string[] masks = ["0xFFFFFFFFFFFFFFFF", "0xFFFFFF00", "0xFFFF0000", "0xFFF00000", "0x0000FFFF"];
+        ulong[] masks = [ 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FF00_0000_0000, 0xFFFF_0000_0000_0000, 0xFFF0_0000_0000_0000, 0x0000_0000_0000_FFFF ];
 
         foreach (var mask in masks)
         {
-            var maskedSignature = signatureInt & Convert.ToUInt64(mask, 16);
+            var maskedSignature = signatureInt & mask;
             if (FileSignatures.TryGetValue(maskedSignature, out var ext))
             {
                 return ext; // Return the extension if a matching signature is found

@@ -4,10 +4,10 @@ namespace Core.DataStructures;
 
 public class HistoryEntry
 {
-    public string DirectoryName { get; } = null!;
-    public string Url { get; } = null!;
-    public DateTime Date { get; }
-    public int NumUrls { get; }
+    public string DirectoryName { get; set; } = null!;
+    public string Url { get; set; } = null!;
+    public DateTime Date { get; set; }
+    public int NumUrls { get; set; }
     
     [JsonConstructor]
     public HistoryEntry()
