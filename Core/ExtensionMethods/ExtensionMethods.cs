@@ -1,4 +1,6 @@
-﻿using System.Web;
+﻿using System.Runtime.CompilerServices;
+using System.Web;
+using Core.SiteParsing;
 
 namespace Core.ExtensionMethods;
 
@@ -18,6 +20,20 @@ public static class ExtensionMethods
         {
             yield return (i, list[i]);
         }
+    }
+
+    public static IEnumerable<(int i, char)> Enumerate(this string s, int start = 0)
+    {
+        for(var i = start; i < s.Length; i++)
+        {
+            yield return (i, s[i]);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string ToTitle(this string src)
+    {
+        return src[0].ToString().ToUpper() + src[1..];
     }
 
     public static HttpRequestMessage ToRequest(this Dictionary<string, string> headers, HttpMethod method, string url)

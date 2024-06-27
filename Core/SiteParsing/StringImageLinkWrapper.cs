@@ -1,7 +1,7 @@
 ﻿using Core.DataStructures;
 using Core.Exceptions;
 
-namespace Core;
+namespace Core.SiteParsing;
 
 public struct StringImageLinkWrapper
 {
@@ -20,6 +20,26 @@ public struct StringImageLinkWrapper
         ImageLink = imageLink;
     }
 
+    public bool StartsWith(string value)
+    {
+        return Url?.StartsWith(value) ?? ImageLink?.Url.StartsWith(value) ?? false;
+    }
+    
+    public bool Contains(string value)
+    {
+        return Url?.Contains(value) ?? ImageLink?.Url.Contains(value) ?? false;
+    }
+    
+    public bool EndsWith(string value)
+    {
+        return Url?.EndsWith(value) ?? ImageLink?.Url.EndsWith(value) ?? false;
+    }
+    
+    public StringImageLinkWrapper Replace(string oldValue, string newValue)
+    {
+        return Url?.Replace(oldValue, newValue) ?? ImageLink?.Url.Replace(oldValue, newValue) ?? throw new RipperException("StringImageLinkWrapper is empty.");
+    }
+    
     public override string ToString()
     {
         return Url ?? ImageLink?.Url ?? throw new RipperException("StringImageLinkWrapper is empty.");
