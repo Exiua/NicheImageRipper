@@ -107,4 +107,9 @@ public static class ExtensionMethods
     {
         return src.Replace(toRemove, string.Empty);
     }
+    
+    public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
+    {
+        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
+    }
 }
