@@ -38,7 +38,7 @@ public static partial class UrlUtility
         "https://www.nakedgirls.xxx/", "https://www.mainbabes.com/",
         "https://www.hotstunners.com/", "https://www.sexynakeds.com/",
         "https://www.nudity911.com/", "https://www.pbabes.com/",
-        "https://www.sexybabesart.com/", "https://www.heymanhustle.com/", "https://sexhd.pics/",
+        "https://www.sexybabesart.com/", "https://hustlebootytemptats.com/", "https://sexhd.pics/",
         "http://www.gyrls.com/",
         "https://www.pinkfineart.com/", "https://www.sensualgirls.org/",
         "https://www.novoglam.com/", "https://www.cherrynudes.com/", "https://www.join2babes.com/",
