@@ -90,7 +90,7 @@ public static partial class UrlUtility
             throw new Exception("Not a support site"); // TODO: RipperError
         }
         
-        var specialDomains = new[] {"inven.co.kr", "danbooru.donmai.us"};
+        string[] specialDomains = [ "inven.co.kr", "danbooru.donmai.us" ];
         var domain = new Uri(givenUrl).Host;
         requestHeaders["referer"] = $"https://{domain}/";
         var domainParts = domain.Split('.');
@@ -99,7 +99,7 @@ public static partial class UrlUtility
         {
             requestHeaders["referer"] = "https://cdn.discordapp.com/";
         }
-        else if (givenUrl.Contains("https://kemono.party/"))
+        else if (givenUrl.Contains("https://kemono.party/") || givenUrl.Contains("inven.co.kr"))
         {
             requestHeaders["referer"] = "";
         }

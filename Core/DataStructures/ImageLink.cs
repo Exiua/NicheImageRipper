@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 
 namespace Core.DataStructures;
 
-public class ImageLink
+public partial class ImageLink
 {
     public string Referer { get; set; } = null!;
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
@@ -73,6 +73,18 @@ public class ImageLink
             Referer = "https://saint.to/";
             return url;
         }
+        if (url.Contains("youtube.com"))
+        {
+            LinkInfo = LinkInfo.Youtube;
+            if (!url.Contains("/embed/"))
+            {
+                return url;
+            }
+
+            var match = YoutubeEmbedRegex().Match(url);
+            return match.Success ? $"https://www.youtube.com/watch?v={match.Groups[1].Value}" : url;
+
+        }
         
         return url;
     }
@@ -115,7 +127,7 @@ public class ImageLink
         if(url.Contains("https://titsintops.com/") && url[^1] == '/')
         {
             fileName = url.Split("/")[^2];
-            fileName = Regex.Replace(fileName, @"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?", ".$1");
+            fileName = ExtensionRegex().Replace(fileName, ".$1");
         }
         else if(url.Contains("sendvid.com") && url.Contains(".m3u8"))
         {
@@ -161,4 +173,9 @@ public class ImageLink
     {
         return Referer != "" ? $"({Url}, {Filename}, {Referer}, {LinkInfo})" : $"({Url}, {Filename}, {LinkInfo})";
     }
+
+    [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]
+    private static partial Regex ExtensionRegex();
+    [GeneratedRegex("/embed/([a-zA-Z0-9-]+)")]
+    private static partial Regex YoutubeEmbedRegex();
 }

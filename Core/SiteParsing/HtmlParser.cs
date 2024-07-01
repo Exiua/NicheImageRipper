@@ -165,6 +165,8 @@ public partial class HtmlParser
             "hotgirl" => HotGirlParse,
             "hotstunners" => HotStunnersParse,
             "hottystop" => HottyStopParse,
+            "100bucksbabes" => HundredBucksBabesParse,
+            "imgbox" => ImgBoxParse,
             "influencersgonewild" => InfluencersGoneWildParse,
             "inven" => InvenParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
@@ -2119,13 +2121,52 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> HustleBootyTempTatsParse()
     {
-        await Task.Delay(1000);
-        var soup = await Soupify();
+        var pauseButton = Driver.TryFindElement(By.XPath("//div[@class='galleria-playback-button pause']"));
+        pauseButton?.Click();
+        var soup = await Soupify(delay: 1000);
         var dirName = soup.SelectSingleNode("//h1[@class='zox-post-title left entry-title']").InnerText;
-        var images = soup.SelectNodes("//div[@class='galleria-thumbnails']//img")
-                         .Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0])
-                         .Select(dummy => (StringImageLinkWrapper)dummy)
-                         .ToList();
+        var imagesNode = soup.SelectNodes("//div[@class='galleria-thumbnails']//img");
+        List<StringImageLinkWrapper> images;
+        if (imagesNode is not null)
+        {
+            images = imagesNode.Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0])
+                               .ToStringImageLinkWrapperList();
+        }
+        else
+        {
+            var nextButton = Driver.TryFindElement(By.XPath("//div[@class='galleria-image-nav-right']"));
+            if (nextButton is not null)
+            {
+                images = [];
+                var seen = new HashSet<string>();
+                var newImages = true;
+                while (newImages)
+                {
+                    var imageNodes = Driver.FindElements(By.XPath("//div[@class='galleria-image']//img"));
+                    newImages = false;
+                    foreach (var imageNode in imageNodes)
+                    {
+                        var src = imageNode.GetAttribute("src");
+                        if (!seen.Add(src))
+                        {
+                            continue;
+                        }
+
+                        newImages = true;
+                        images.Add(src);
+                    }
+
+                    nextButton.Click();
+                    await Task.Delay(1000);
+                }
+            }
+            else
+            {
+                var iframe = soup.SelectSingleNode("//iframe");
+                var iframeUrl = iframe.GetSrc();
+                images = [ iframeUrl ]; // youtube video (probably)
+            }
+        }
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
@@ -2152,7 +2193,7 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
-    // TODO: hotpornpics parse cause images weren't loading
+    // TODO: hotpornpics parse cause images weren't loading (cdn issue)
     /*
      * def hotpornpics_parse(self) -> RipInfo:
         """Parses the html for hotpornpics.com and extracts the relevant information necessary for downloading images from the site"""
@@ -2328,7 +2369,9 @@ public partial class HtmlParser
             switch (post.Name)
             {
                 case "img":
-                    images.Add("https://influencersgonewild.com" + post.GetSrc());
+                    var src = post.GetSrc();
+                    var url = src.Contains(Protocol) ? src : "https://influencersgonewild.com" + src;
+                    images.Add(url);
                     break;
                 case "video":
                     images.Add(post.SelectSingleNode(".//source").GetSrc()); // Unable to actually download videos

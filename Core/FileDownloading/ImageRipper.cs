@@ -157,10 +157,10 @@ public partial class ImageRipper
         {
             switch (SiteName)
             {
-                // Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
-                case "cyberdrop":
-                    CyberdropDownload(fullPath, FolderInfo.Urls[0]);
-                    break;
+                // // Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
+                // case "cyberdrop":
+                //     CyberdropDownload(fullPath, FolderInfo.Urls[0]);
+                //     break;
                 case "deviantart":
                     DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
                     break;
@@ -173,11 +173,11 @@ public partial class ImageRipper
                         CurrentIndex = index;
                         // while(pause) { sleep(1); }
                         await Task.Delay((int) SleepTime * 1000);
-                        if(CyberdropDomains.Any(domain => link.Contains(domain)))
-                        {
-                            cyberdropFiles.Add(link);
-                            continue;
-                        }
+                        // if(CyberdropDomains.Any(domain => link.Contains(domain)))
+                        // {
+                        //     cyberdropFiles.Add(link);
+                        //     continue;
+                        // }
                         try
                         {
                             await DownloadFromList(link, fullPath, index, downloadStats);
@@ -205,10 +205,10 @@ public partial class ImageRipper
                             throw;
                         }
                     }
-                    if (cyberdropFiles.Count > 0)
-                    {
-                        CyberdropDownload(fullPath, cyberdropFiles);
-                    }
+                    // if (cyberdropFiles.Count > 0)
+                    // {
+                    //     CyberdropDownload(fullPath, cyberdropFiles);
+                    // }
 
                     break;
                 }
@@ -219,7 +219,9 @@ public partial class ImageRipper
         {
             UnzipFiles(fullPath, downloadStats);
         }
-        
+
+        var downloadResults = downloadStats.GetStats();
+        Console.WriteLine(downloadResults);
         Console.WriteLine("Download Complete"); //{#00FF00}
     }
 
@@ -320,6 +322,9 @@ public partial class ImageRipper
             case LinkInfo.PixelDrain:
                 await DownloadPixelDrainFiles(imagePath, imageLink);
                 break;
+            case LinkInfo.Youtube:
+                await DownloadYoutubeFile(imagePath, imageLink);
+                break;
             case LinkInfo.None:
             default:
                 await DownloadFile(imagePath, ripUrl, downloadStats);
@@ -401,6 +406,14 @@ public partial class ImageRipper
         await response.Content.CopyToAsync(fileStream);
     }
 
+    private static Task DownloadYoutubeFile(string path, ImageLink url)
+    {
+        Directory.CreateDirectory(path);
+        var cmd = new List<string> { "yt-dlp", "-P", $"\"{path}\"", url.Url };
+        RunSubprocess(cmd, "Starting youtube-dl download", "youtube-dl download finished");
+        return Task.CompletedTask;
+    }
+    
     private async Task DownloadFile(string imagePath, string url, DownloadStats downloadStats)
     {
         if(imagePath[^1] == '/')
@@ -508,6 +521,8 @@ public partial class ImageRipper
                 case HttpStatusCode.Unauthorized:
                     await Task.Delay(500);
                     return false;
+                case HttpStatusCode.Forbidden:
+                    return false;
 
                 #region Unused Status Codes
                 
@@ -536,7 +551,6 @@ public partial class ImageRipper
                 case HttpStatusCode.PermanentRedirect:
                 case HttpStatusCode.BadRequest:
                 case HttpStatusCode.PaymentRequired:
-                case HttpStatusCode.Forbidden:
                 case HttpStatusCode.MethodNotAllowed:
                 case HttpStatusCode.NotAcceptable:
                 case HttpStatusCode.ProxyAuthenticationRequired:
@@ -591,7 +605,7 @@ public partial class ImageRipper
                 LogFailedUrl(url);
                 return false;
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException($"Enum value not handled: {result}");
         }
 
         if (tokenNeeded)
@@ -753,7 +767,7 @@ public partial class ImageRipper
         
         downloadStats.ArchivesExtracted += count;
         downloadStats.FailedDownloads += error;
-        Console.WriteLine($"Archive Results:\n\tExtracted: {count}\n\tFailed: {error}");
+        //Console.WriteLine($"Archive Results:\n\tExtracted: {count}\n\tFailed: {error}");
     }
 
     /// <summary>
