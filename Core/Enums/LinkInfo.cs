@@ -8,4 +8,5 @@ public enum LinkInfo
     IframeMedia,
     Mega,
     PixelDrain,
+    Youtube,
 }
