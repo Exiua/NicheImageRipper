@@ -24,6 +24,7 @@ public class Config
     public int NumThreads { get; set; }
     public Dictionary<string, Credentials> Logins { get; set; } = null!;
     public Dictionary<string, string> Keys { get; set; } = null!;
+    public Dictionary<string, string> Cookies { get; set; } = null!;
 
     // Used for deserialization
     [UsedImplicitly]
@@ -57,6 +58,13 @@ public class Config
         foreach (var site in siteKeys)
         {
             config.Keys[site] = "";
+        }
+        
+        config.Cookies = new Dictionary<string, string>();
+        string[] siteCookies = ["Twitter", "Newgrounds"];
+        foreach (var site in siteCookies)
+        {
+            config.Cookies[site] = "";
         }
 
         return config;

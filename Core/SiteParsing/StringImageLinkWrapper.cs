@@ -40,6 +40,11 @@ public struct StringImageLinkWrapper
         return Url?.Replace(oldValue, newValue) ?? ImageLink?.Url.Replace(oldValue, newValue) ?? throw new RipperException("StringImageLinkWrapper is empty.");
     }
     
+    public string[] Split(string separator)
+    {
+        return Url?.Split(separator) ?? ImageLink?.Url.Split(separator) ?? throw new RipperException("StringImageLinkWrapper is empty.");
+    }
+    
     public override string ToString()
     {
         return Url ?? ImageLink?.Url ?? throw new RipperException("StringImageLinkWrapper is empty.");

@@ -53,6 +53,12 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "c":
                     case "clear":
+                        if (cmdParts.Length != 2)
+                        {
+                            Console.WriteLine("Missing argument: cache or queue");
+                            break;
+                        }
+                        
                         switch (cmdParts[1])
                         {
                             case "cache":
@@ -68,6 +74,10 @@ public class NicheImageRipperCli : NicheImageRipper
                                 break;
                         }
 
+                        break;
+                    case "skip":
+                        var url = UrlQueue.Dequeue();
+                        Console.WriteLine($"Skipping {url}");
                         break;
                     case "save":
                         SaveData();
