@@ -62,7 +62,13 @@ public static class HtmlAgilityPackExtensionMethods
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string? GetNullableAttributeValue(this HtmlNode node, string attributeName)
+    public static string? GetNullableHref(this HtmlNode node)
+    {
+        return node.GetNullableAttributeValue("href");
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string? GetNullableAttributeValue(this HtmlNode node, string attributeName)
     {
         return node.GetAttributeValue(attributeName, null);
     }

@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -13,6 +14,7 @@ using Core.Utility;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
+using Cookie = OpenQA.Selenium.Cookie;
 
 namespace Core.SiteParsing;
 
@@ -169,6 +171,28 @@ public partial class HtmlParser
             "imgbox" => ImgBoxParse,
             "influencersgonewild" => InfluencersGoneWildParse,
             "inven" => InvenParse,
+            "jkforum" => JkForumParse,
+            "join2babes" => Join2BabesParse,
+            "joymiihub" => JoyMiiHubParse,
+            "leakedbb" => LeakedBbParse,
+            "livejasminbabes" => LiveJasminBabesParse,
+            "luscious" => LusciousParse,
+            "mainbabes" => MainBabesParse,
+            "manganato" or "chapmanganato" => ManganatoParse,
+            "metarthunter" => MetArtHunterParse,
+            "morazzia" => MorazziaParse,
+            "myhentaigallery" => MyHentaiGalleryParse,
+            "micmicdoll" => MicMicDollParse,
+            "nakedgirls" => NakedGirlsParse,
+            "nhentai" => NHentaiParse,
+            "nightdreambabe" => NightDreamBabeParse,
+            "nijie" => NijieParse,
+            "animeh" => AnimehParse,
+            "novoglam" => NovoGlamParse,
+            "novohot" => NovoHotParse,
+            "novoporn" => NovoPornParse,
+            "nudebird" => NudeBirdParse,
+            "nudity911" => Nudity911Parse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -208,29 +232,55 @@ public partial class HtmlParser
     {
         return SiteName switch
         {
-            "newgrounds" => NewgroundsLogin(),
+            "nijie" => NijieLogin(),
             _ => throw new Exception("Site authentication not implemented")
         };
     }
 
-    private static async Task<bool> NewgroundsLogin()
+    private static async Task<bool> NijieLogin()
     {
-        var currUrl = CurrentUrl;
-        var (username, password) = Config.Instance.Logins["Newgrounds"];
-        CurrentUrl = "https://newgrounds.com/passport";
-        Driver.FindElement(By.XPath("//input[@name='username']"))
-              .SendKeys(username);
-        Driver.FindElement(By.XPath("//input[@name='password']"))
-              .SendKeys(password);
-        Driver.FindElement(By.XPath("//button[@name='login']")).Click();
-        while (CurrentUrl != "https://www.newgrounds.com/social")
+        var origUrl = CurrentUrl;
+        var (username, password) = Config.Instance.Logins["Nijie"];
+        CurrentUrl = "https://nijie.info/login.php";
+        if (CurrentUrl.Contains("age_ver.php"))
         {
-            await Task.Delay(1000);
+            Driver.FindElement(By.XPath("//li[@class='ok']")).Click();
+            while (!CurrentUrl.Contains("login.php"))
+            {
+                await Task.Delay(100);
+            }
         }
-
-        CurrentUrl = currUrl;
+        
+        Driver.FindElement(By.XPath("//input[@name='email']")).SendKeys(username);
+        Driver.FindElement(By.XPath("//input[@name='password']")).SendKeys(password);
+        Driver.FindElement(By.XPath("//input[@class='login_button']")).Click();
+        while (CurrentUrl.Contains("login.php"))
+        {
+            await Task.Delay(100);
+        }
+        
+        CurrentUrl = origUrl;
         return true;
     }
+
+    /*
+     * def __nijie_login(self) -> bool:
+        orig_url = self.current_url
+        username, password = get_login_creds("Nijie")
+        self.current_url = "https://nijie.info/login.php"
+        if "age_ver.php" in self.current_url:
+            self.driver.find_element(By.XPATH, '//li[@class="ok"]').click()
+            while "login.php" not in self.current_url:
+                sleep(0.1)
+        self.driver.find_element(By.XPATH, '//input[@name="email"]').send_keys(username)
+        self.driver.find_element(By.XPATH, '//input[@name="password"]').send_keys(password)
+        self.driver.find_element(By.XPATH, '//input[@class="login_button"]').click()
+        while "login.php" in self.current_url:
+            sleep(0.1)
+        self.current_url = orig_url
+        return True
+
+     */
 
     #region Site Parsers
 
@@ -414,7 +464,7 @@ public partial class HtmlParser
         {
             "bustybloom" => GenericHtmlParserHelper1(), // Formerly 2
             "elitebabes" => GenericHtmlParserHelper2(),
-            "femjoyhunter" or "ftvhunter" or "hegrehunter" => GenericHtmlParserHelper3(),
+            "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub" or "metarthunter" => GenericHtmlParserHelper3(),
             _ => throw new RipperException($"Invalid site name: {siteName}")
         };
     }
@@ -508,6 +558,36 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for animeh.to and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> AnimehParse()
+    {
+        CurrentUrl = CurrentUrl.Split("?")[0] + "?tab=reading";
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='main-night container']").InnerText
+                          .Split(" ")[2..]
+                          .Join(" ");
+        var metadata = soup.SelectSingleNode("//div[@class='col-md-8 col-sm-12']");
+        var pageCountRaw = metadata.SelectNodes("./div")[2].InnerText.Split(" ")[1];
+        var pageCount = int.Parse(pageCountRaw);
+        var imageUrl = soup.SelectSingleNode("//div[@id='pictureViewer']")
+                           .SelectSingleNode(".//img")
+                           .GetSrc();
+        var urlParts = imageUrl.Split("/");
+        imageUrl = "/".Join(urlParts[..^1]);
+        var extension = urlParts[^1].Split(".")[1];
+        List<StringImageLinkWrapper> images = [];
+        for (var i = 1; i <= pageCount; i++)
+        {
+            var image = $"{imageUrl}/{i}.{extension}";
+            images.Add(image);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for arca.live and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -2400,6 +2480,45 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for jkforum.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> JkForumParse()
+    {
+        var soup = await Soupify(delay: 1000);
+        var dirName = soup.SelectSingleNode("//div[@class='title-cont']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var images = soup.SelectSingleNode("//td[@class='t_f']")
+                            .SelectNodes(".//img")
+                            .Select(img => img.GetSrc().Remove(".thumb.jpg"))
+                            .ToStringImageLinkWrapperList();
+        // TODO: Find a way to download videos as well
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for join2babes.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Join2BabesParse()
+    {
+        return await GenericBabesHtmlParser("//div[@class='gallery_title_div']//h1", "//div[@class='gthumbs']");
+    }
+
+    /// <summary>
+    ///     Parses the html for joymiihub.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> JoyMiiHubParse()
+    {
+        return await GenericHtmlParser("joymiihub");
+    }
+    
+    // TODO: Remove jpg.church as it's down
+    
+    /// <summary>
     ///     Parses the html for kemono.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
@@ -2409,53 +2528,629 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for leakedbb.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> LeakedBbParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='flow-text left']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var imageLinks = soup.SelectSingleNode("//div[@class='post_body scaleimages']")
+                            .SelectNodes("./img")
+                            .Select(img => img.GetSrc())
+                            .ToList();
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var link in imageLinks)
+        {
+            if (!link.Contains("postimg.cc"))
+            {
+                images.Add(link);
+                continue;
+            }
+
+            soup = await Soupify(link);
+            var img = soup.SelectSingleNode("//a[@id='download']").GetHref().Split("?")[0];
+            images.Add(img);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for livejasminbabes.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> LiveJasminBabesParse()
+    {
+        return await GenericBabesHtmlParser("//div[@id='gallery_header']//h1", "//div[@class='gallery_thumb']");
+    }
+    
+    // TODO: Remove lovefap as it's not loading
+
+    /// <summary>
+    ///     Parses the html for luscious.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> LusciousParse()
+    {
+        if (CurrentUrl.Contains("members."))
+        {
+            CurrentUrl = CurrentUrl.Replace("members.", "www.");
+        }
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='o-h1 album-heading']").InnerText;
+        const string endpoint = "https://members.luscious.net/graphqli/?";
+        var albumId = CurrentUrl.Split("/")[4].Split("_")[^1];
+        var variables = new Dictionary<string, object>
+        {
+            ["input"] = new Dictionary<string, object>
+            {
+                ["page"] = 1,
+                ["display"] = "date_newest",
+                ["filters"] = new List<Dictionary<string, string>>
+                {
+                    new()
+                    {
+                        ["name"] = "album_id",
+                        ["value"] = albumId
+                    }
+                }
+            }
+        };
+        const string query = """
+                             query PictureQuery($input: PictureListInput!) {
+                                 picture {
+                                     list(input: $input) {
+                                         info {
+                                             total_items
+                                             has_next_page
+                                         }
+                                         items {
+                                             id
+                                             title
+                                             url_to_original
+                                             tags{
+                                                 id
+                                                 text
+                                             }
+                                         }
+                                     }
+                                 }
+                             }
+                             """;
+
+        var session = new HttpClient();
+        var nextPage = true;
+        var images = new List<StringImageLinkWrapper>();
+        while (nextPage)
+        {
+            var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new
+            {
+                operationName = "PictureQuery",
+                query,
+                variables
+            }), Encoding.UTF8, "application/json"));
+            var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var jsonData = json!["data"]!["picture"]!["list"]!;
+            nextPage = jsonData["info"]!["has_next_page"]!.Deserialize<bool>();
+            var inputDict = (Dictionary<string, object>)variables["input"];
+            inputDict["page"] = (int)inputDict["page"] + 1;
+            var items = jsonData["items"]!.AsArray();
+            images.AddRange(items.Select(item => (StringImageLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
+        }
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for mainbabes.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> MainBabesParse()
+    {
+        return GenericBabesHtmlParser("//div[@class='heading']//h2[@class='title']", "//div[@class='thumbs_box']//div[@class='thumb_box']");
+    }
+
+    /// <summary>
+    ///     Parses the html for manganato.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> ManganatoParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='story-info-right']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var nextChapter = soup.SelectSingleNode("//ul[@class='row-content-chapter']")
+                            .SelectNodes("./li")[^1]
+                            .SelectSingleNode(".//a");
+        var images = new List<StringImageLinkWrapper>();
+        var counter = 1;
+        while (nextChapter is not null)
+        {
+            Print($"Parsing Chapter {counter}");
+            counter += 1;
+            soup = await Soupify(nextChapter.GetHref());
+            var chapterImages = soup.SelectSingleNode("//div[@class='container-chapter-reader']")
+                                  .SelectNodes(".//img");
+            images.AddRange(chapterImages.Select(img => (StringImageLinkWrapper)img.GetSrc()));
+            nextChapter = soup.SelectSingleNode("//a[@class='navi-change-chapter-btn-next a-h']");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    // TODO: Remove maturewoman.xyz as the bulk of the content is behind premium download links
+
+    /// <summary>
+    ///     Parses the html for metarthunter.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> MetArtHunterParse()
+    {
+        return GenericHtmlParser("metarthunter");
+    }
+    
+    // TODO: Remove mitaku.net as it uses ad-based link shortener download links
+
+    /// <summary>
+    ///     Parses the html for sex.micmicdoll.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> MicMicDollParse()
+    {
+        try
+        {
+            Driver.SwitchTo().Alert().Dismiss();
+        }
+        catch (NoAlertPresentException)
+        {
+            // ignored
+        }
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h3[@class='post-title entry-title']").InnerText;
+        var images = soup.SelectNodes("//div[@class='post-body entry-content']//a")
+                         .Select(a => a.GetNullableHref())
+                         .Where(item => item is not null)
+                         .Select(item => item!)
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
+    ///     Parses the html for morazzia.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> MorazziaParse()
+    {
+        return GenericBabesHtmlParser("//h1[@class='title']", "//div[@class='block-post album-item']//a");
+    }
+
+    /// <summary>
+    ///     Parses the html for myhentaigallery.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> MyHentaiGalleryParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='comic-description']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var images = soup.SelectSingleNode("//ul[@class='comics-grid clear']")
+                            .SelectNodes("./li")
+                            .Select(img => img.SelectSingleNode(".//img")
+                                              .GetSrc()
+                                              .Replace("/thumbnail/", "/original/"))
+                            .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for nakedgirls.xxx and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NakedGirlsParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='content']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var images = soup.SelectSingleNode("//div[@class='content']")
+                            .SelectNodes(".//div[@class='thumb']")
+                            .Select(img => "https://www.nakedgirls.xxx" + img.SelectSingleNode(".//a").GetHref())
+                            .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> NewgroundsParse()
     {
-        if (CurrentUrl.EndsWith("/art/"))
+        // TODO: Test
+        var lazyLoadArgs = new LazyLoadArgs
         {
-            var url = CurrentUrl.Split("/")[..3];
-            CurrentUrl = $"{"/".Join(url)}/art/";
-        }
-
-        DebugUtility.Print("Logging in to Newgrounds");
-        await SiteLogin();
-        DebugUtility.Print("Loading Newgrounds page");
-        await LazyLoad(scrollBy: true);
-        DebugUtility.Print("Parsing Newgrounds page");
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//a[@class='user-link']").InnerText!.Trim();
-        var postYears = soup.SelectSingleNode("//div[@class='userpage-browse-content']")
-                            .SelectSingleNode("./div")
-                            .SelectNodes("./div")
-                            .ToList();
-        var posts = new List<string>();
-        foreach (var postYear in postYears)
+            ScrollBy = true
+        };
+        var cookieValue = Config.Instance.Cookies["Newgrounds"];
+        var cookieJar = Driver.Manage().Cookies;
+        cookieJar.DeleteAllCookies();
+        cookieJar.AddCookie(new Cookie("vmk1du5I8m", cookieValue));
+        var baseUri = CurrentUrl.Split("/")[..3];
+        var baseUriString = string.Join("/", baseUri);
+        var soup = await Soupify(baseUriString);
+        var dirName = soup.SelectSingleNode("//a[@class='user-link']").InnerText.Trim();
+        var headerButtons = soup.SelectSingleNode("//div[@class='user-header-buttons']")
+                                 .SelectNodes(".//a");
+        var hasMovies = false;
+        var hasArt = false;
+        foreach (var button in headerButtons)
         {
-            var yearPosts = postYear.SelectNodes(".//div[@class='span-1 align-center']");
-            foreach (var post in yearPosts)
+            var href = button.GetHref();
+            switch (href)
             {
-                var postLink = post.SelectSingleNode("./a").GetAttributeValue("href", "")!;
-                posts.Add(postLink);
+                case "/movies":
+                    hasMovies = true;
+                    break;
+                case "/art":
+                    hasArt = true;
+                    break;
+            }
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        if (hasArt)
+        {
+            soup = await Soupify($"{baseUriString}/art", lazyLoadArgs: lazyLoadArgs);
+            var posts = GetPosts(soup, false);
+            var numPosts = posts.Count;
+            foreach (var (i, post) in posts.Enumerate())
+            {
+                Print($"Parsing Art Post {i + 1}/{numPosts}");
+                soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs, delay: 100);
+                var artImages = soup.SelectSingleNode("//div[contains(@class, 'art-images')]");
+                if (artImages is not null)
+                {
+                    var links = artImages.SelectNodes(".//img")
+                                         .Select(img => (StringImageLinkWrapper)img.GetSrc());
+                    images.AddRange(links);
+                }
+                else
+                {
+                    var artViewGallery = soup.SelectSingleNode("//div[@class='art-view-gallery']");
+                    if (artViewGallery is not null)
+                    {
+                        var seen = new HashSet<string>();
+                        while (true)
+                        {
+                            artViewGallery = soup.SelectSingleNode("//div[@class='art-view-gallery']");
+                            var container =
+                                artViewGallery.SelectSingleNode(".//div[@class='ng-img-container-sync relative']");
+                            var anchor = container.SelectSingleNode(".//a");
+                            var link = anchor.GetHref();
+                            if (!seen.Add(link))
+                            {
+                                break;
+                            }
+
+                            images.Add(link);
+                            var nextBtn = Driver.FindElement(By.XPath("//a[@class='gallery-nav right']"));
+                            try
+                            {
+                                nextBtn.Click();
+                            }
+                            catch (ElementClickInterceptedException)
+                            {
+                                var blackoutZone = Driver.FindElement(By.XPath("(//div[@class='blackout-bookend'])[3]"));
+                                blackoutZone.Click();
+                                nextBtn.Click();
+                            }
+
+                            await Task.Delay(500);
+                            soup = await Soupify();
+                        }
+                    }
+                    else
+                    {
+                        var img = soup.SelectSingleNode("//div[@class='image']")
+                                      .SelectSingleNode(".//img");
+                        images.Add(img.GetSrc());
+                    }
+                }
             }
         }
 
-        var images = new List<StringImageLinkWrapper>();
-        foreach (var post in posts)
+        if (hasMovies)
         {
-            CurrentUrl = post;
-            soup = await Soupify();
-            var divContainer = soup.SelectSingleNode("//div[@class='ng-img-container-sync art-item-container']");
-            var anchor = divContainer is null
-                ? soup.SelectSingleNode("//a[@class='medium_image']")
-                : divContainer.SelectSingleNode(".//a");
-            var imgLink = anchor.GetAttributeValue("href", "");
-            images.Add(imgLink);
+            soup = await Soupify($"{baseUriString}/movies", lazyLoadArgs: lazyLoadArgs);
+            var posts = GetPosts(soup, true);
+            var numPosts = posts.Count;
+            foreach (var (i, post) in posts.Enumerate())
+            {
+                await Task.Delay(100);
+                Print($"Parsing Movie Post {i + 1}/{numPosts}");
+                CurrentUrl = post;
+                await LazyLoad(lazyLoadArgs);
+                var videoStart = Driver.TryFindElement(By.XPath("//div[@class='video-barrier']/child::*[2]"));
+                if (videoStart is not null)
+                {
+                    try
+                    {
+                        videoStart.Click();
+                    }
+                    catch (ElementClickInterceptedException)
+                    {
+                        var blackoutZone = Driver.FindElement(By.XPath("(//div[@class='blackout-bookend'])[3]"));
+                        blackoutZone.Click();
+                        videoStart.Click();
+                    }
+                    await Task.Delay(500);
+                    var optionsBtn = Driver.FindElement(By.XPath("//button[@title='Display Options']"));
+                    optionsBtn.Click();
+                    var highestRes = Driver.TryFindElement(By.XPath("//div[@class='ng-option-select']/child::*[2]/child::*[1]"));
+                    if (highestRes is not null)
+                    {
+                        var classes = highestRes.GetAttribute("class");
+                        if (!classes.Contains("selected"))
+                        {
+                            highestRes.Click();
+                        }
+                    }
+                    soup = await Soupify();
+                    var video = soup.SelectSingleNode("//video");
+                    var videoUrl = video.SelectSingleNode(".//source").GetSrc();
+                    while (videoUrl.StartsWith("data:"))
+                    {
+                        await Task.Delay(1000);
+                        soup = await Soupify();
+                        video = soup.SelectSingleNode("//video");
+                        videoUrl = video.SelectSingleNode(".//source").GetSrc();
+                    }
+                    images.Add(videoUrl);
+                }
+                else
+                {
+                    soup = await Soupify();
+                    // Assumes the video is an emulated flash video
+                    var script = soup.SelectSingleNode("//div[@class='body-guts top']")
+                                     .SelectNodes(".//script")[1]
+                                     .InnerText;
+                    var videoUrl = NewgroundsRegex().Match(script).Value;
+                    images.Add(videoUrl);
+                }
+            }
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
+
+        List<string> GetPosts(HtmlNode soup, bool movies)
+        {
+            var posts = new List<string>();
+            var postYears = soup.SelectSingleNode("//div[@class='userpage-browse-content']//div")
+                                .SelectNodes("./div");
+            foreach (var postYear in postYears)
+            {
+                var postLinks = postYear.SelectNodes(!movies 
+                    ? ".//div[@class='span-1 align-center']" 
+                    : ".//div[@class='portalsubmission-cell']");
+
+                var postLinksList = postLinks.Select(post => post.SelectSingleNode(".//a").GetHref());
+                posts.AddRange(postLinksList);
+            }
+
+            return posts;
+        }
+    }
+
+    /// <summary>
+    ///     Parses the html for nhentai.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NHentaiParse()
+    {
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250
+        };
+        await LazyLoad(lazyLoadArgs);
+        var btn = Driver.TryFindElement(By.Id("show-all-images-button"));
+        if (btn is not null)
+        {
+            Driver.ExecuteScript("arguments[0].scrollIntoView();", btn);
+            btn.Click();
+        }
+        await LazyLoad(lazyLoadArgs);
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='title']").InnerText;
+        var thumbnails = soup.SelectSingleNode("//div[@class='thumbs']")
+                           .SelectNodes(".//img")
+                           .Select(img => img.GetNullableAttributeValue("data-src"))
+                           .ToList();
+        var images = (from thumb in thumbnails
+                      where !string.IsNullOrEmpty(thumb)
+                      select NHentaiRegex().Replace(thumb, "i7.")
+                      into newThumb
+                      select newThumb.Replace("t.", ".")).ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for nightdreambabe.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> NightDreamBabeParse()
+    {
+        return GenericBabesHtmlParser("//section[@class='outer-section']//h2[@class='section-title title']",
+            "//div[@class='lightgallery thumbs quadruple fivefold']//a[@class='gallery-card']");
+    }
+
+    /// <summary>
+    ///     Parses the html for nijie.info and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NijieParse()
+    {
+        const int delay = 500;
+        const int retries = 4;
+        SiteName = "nijie";
+        await SiteLogin();
+        var memberId = NijieRegex().Match(CurrentUrl).Groups[1].Value;
+        var soup = await Soupify($"https://nijie.info/members_illust.php?id={memberId}", delay: delay);
+        var dirName = soup.SelectSingleNode("//a[@class='name']").InnerText;
+        var posts = new List<string>();
+        var count = 1;
+        while (true)
+        {
+            Print($"Parsing illustration posts page {count}");
+            count++;
+            var postTags = soup.SelectSingleNode("//div[@class='mem-index clearboth']")
+                                .SelectNodes(".//p[@class='nijiedao']");
+            var postLinks = postTags.Select(link => link.SelectSingleNode(".//a").GetHref());
+            posts.AddRange(postLinks);
+            var nextPageBtn = soup.SelectSingleNode("//div[@class='right']");
+            if (nextPageBtn is null)
+            {
+                break;
+            }
+            
+            nextPageBtn = nextPageBtn.SelectSingleNode(".//p[@class='page_button']");
+            if (nextPageBtn is not null)
+            {
+                var nextPage = nextPageBtn.SelectSingleNode(".//a").GetHref().Replace("&amp;", "&");
+                soup = await Soupify($"https://nijie.info{nextPage}", delay: delay);
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+        Print("Collected all illustration posts...");
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var (i, post) in posts.Enumerate())
+        {
+            Print($"Parsing illustration post {i + 1}/{posts.Count}");
+            var postId = post.Split("?")[^1];
+            soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
+            IEnumerable<StringImageLinkWrapper> imgs = null!;
+            for(var retryCount = 0; retryCount < retries; retryCount++)
+            {
+                try
+                {
+                    imgs = soup.SelectSingleNode("//div[@id='img_window']")
+                               .SelectNodes(".//img")
+                               .Select(img => (StringImageLinkWrapper)(Protocol + img.GetSrc()));
+                    break;
+                }
+                catch (NullReferenceException)
+                {
+                    await Task.Delay(delay * 10);
+                    soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
+                    if (retryCount == retries - 1)
+                    {
+                        throw new RipperException("Failed to parse illustration post");
+                    }
+                }
+            }
+            
+            images.AddRange(imgs);
+        }
+        
+        // TODO: Add doujinshi support
+        soup = await Soupify($"https://nijie.info/members_dojin.php?id={memberId}", delay: delay);
+        posts = [];
+        var doujins = soup.SelectSingleNode("//div[@class='mem-index clearboth']")
+                          .SelectNodes("./div");
+        if (doujins is null)
+        {
+            return new RipInfo(images, dirName, FilenameScheme);
+        }
+        
+        posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNode(".//a").GetHref()));
+        foreach (var (i, post) in posts.Enumerate())
+        {
+            Print($"Parsing doujin post {i + 1}/{posts.Count}");
+            var postId = post.Split("?")[^1];
+            soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
+            var imgs = soup.SelectSingleNode("//div[@id='img_window']")
+                           .SelectNodes(".//img")
+                           .Select(img => (StringImageLinkWrapper)(Protocol + img.GetSrc()));
+            images.AddRange(imgs);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    // TODO: Remove nonsummerjack.com as the site is down
+
+    /// <summary>
+    ///     Parses the html for novoglam.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> NovoGlamParse()
+    {
+        return GenericBabesHtmlParser("//div[@id='heading']//h1", "//ul[@id='myGalleryThumbs']");
+    }
+
+    /// <summary>
+    ///     Parses the html for novohot.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> NovoHotParse()
+    {
+        return GenericBabesHtmlParser("//div[@id='viewIMG']//h1", "//div[@class='runout']/a");
+    }
+    
+    // TODO: novojoy.com may be compromised
+
+    /// <summary>
+    ///     Parses the html for novoporn.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NovoPornParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//section[@class='outer-section']")
+                          .SelectSingleNode(".//h2")
+                          .InnerText
+                          .Split("porn")[0]
+                          .Trim();
+        var images = soup.SelectNodes("//div[@class='thumb grid-item']")
+                         .Select(img => img.SelectSingleNode(".//img").GetSrc().Replace("tn_", ""))
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for nudebird.biz and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NudeBirdParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='title single-title entry-title']").InnerText;
+        var images = soup.SelectNodes("//a[@class='fancybox-thumb']")
+                         .Select(img => img.GetHref())
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for nudity911.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> Nudity911Parse()
+    {
+        return GenericBabesHtmlParser("//h1", "//tr[@valign='top']//td[@align='center']//table[@width='650']//td[@width='33%']");
     }
 
     /// <summary>
@@ -2762,6 +3457,27 @@ public partial class HtmlParser
         return true;
     }
 
+    private static IWebElement? TryFindElement(By by)
+    {
+        try
+        {
+            return Driver.FindElement(by);
+        }
+        catch (NoSuchElementException)
+        {
+            return null;
+        }
+    }
+    
+    /*
+     *  def try_find_element(self, by: str, value: str) -> WebElement | None:
+        try:
+            return self.driver.find_element(by, value)
+        except selenium.common.exceptions.NoSuchElementException:
+            return None
+
+     */
+
     private static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
         var externalLinks = new Dictionary<string, List<string>>();
@@ -3049,6 +3765,11 @@ public partial class HtmlParser
         {
             siteName = siteName.Replace("100bucksbabes", "HundredBucksBabes");
         }
+
+        if (siteName.Contains("chapmanganato"))
+        {
+            siteName = siteName.Replace("chapmanganato", "Manganato");
+        }
         
         if (siteName[0] >= '0' && siteName[0] <= '9')
         {
@@ -3104,6 +3825,12 @@ public partial class HtmlParser
     private static partial Regex Rule34Regex();
     [GeneratedRegex(@"(/p=\d+)")]
     private static partial Regex HentaiCosplayRegex();
+    [GeneratedRegex(@"t\d\.")]
+    private static partial Regex NHentaiRegex();
+    [GeneratedRegex(@"swf: ?""([^""]+)""")]
+    private static partial Regex NewgroundsRegex();
+    [GeneratedRegex(@"id=(\d+)")]
+    private static partial Regex NijieRegex();
 
     #endregion
 }
