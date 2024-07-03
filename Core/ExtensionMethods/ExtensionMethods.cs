@@ -117,4 +117,16 @@ public static class ExtensionMethods
     {
         return int.Parse(s);
     }
+
+    public static T[] Pop<T>(this T[] src, int index)
+    {
+        if (src.Length <= 1)
+        {
+            return [];
+        }
+        var newArr = new T[src.Length - 1];
+        Array.Copy(src, 0, newArr, 0, index);
+        Array.Copy(src, index + 1, newArr, index, src.Length - index - 1);
+        return newArr;
+    }
 }
