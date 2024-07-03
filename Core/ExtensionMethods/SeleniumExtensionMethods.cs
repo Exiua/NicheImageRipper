@@ -15,4 +15,14 @@ public static class SeleniumExtensionMethods
             return null;
         }
     }
+    
+    public static void Reload(this IWebDriver driver)
+    {
+        driver.Navigate().Refresh();
+    }
+    
+    public static ICookieJar GetCookieJar(this IWebDriver driver)
+    {
+        return driver.Manage().Cookies;
+    }
 }

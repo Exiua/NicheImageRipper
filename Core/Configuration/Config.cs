@@ -47,7 +47,7 @@ public class Config
             Logins = new Dictionary<string, Credentials>()
         };
         
-        string[] siteLogins = ["Sexy-Egirls", "V2Ph", "Porn3dx", "DeviantArt", "Mega", "TitsInTops", "Newgrounds", "Nijie", "SimpCity"];
+        string[] siteLogins = ["Sexy-Egirls", "V2Ph", "DeviantArt", "Mega", "TitsInTops", "Newgrounds", "Nijie", "SimpCity"];
         foreach (var site in siteLogins)
         {
             config.Logins[site] = new Credentials();
@@ -61,7 +61,7 @@ public class Config
         }
         
         config.Cookies = new Dictionary<string, string>();
-        string[] siteCookies = ["Twitter", "Newgrounds"];
+        string[] siteCookies = ["Twitter", "Newgrounds", "Porn3dx", "Pornhub"];
         foreach (var site in siteCookies)
         {
             config.Cookies[site] = "";
