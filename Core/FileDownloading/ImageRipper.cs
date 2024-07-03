@@ -356,9 +356,37 @@ public partial class ImageRipper
         await request.DownloadAsync(stream);
     }
     
-    private static Task DownloadIframeMedia(string path, ImageLink imageLink)
+    private static async Task DownloadIframeMedia(string folderPath, ImageLink imageLink)
     {
-        throw new NotImplementedException();
+        var parentPathInfo = Directory.GetParent(folderPath)!;
+        var parentPath = parentPathInfo.FullName; 
+        Directory.CreateDirectory(parentPath);
+        for(var i = 0; i < RetryCount; i++)
+        {
+            try
+            {
+                var video = new BunnyVideoDrm(
+                    referer: imageLink.Url,
+                    embedUrl: imageLink.Referer,
+                    name: Path.GetFileName(folderPath),
+                    path: parentPath
+                );
+                await video.Download();
+                foreach (var f in parentPathInfo.EnumerateFiles(".*"))
+                {
+                    f.Delete();
+                }
+
+                break;
+            }
+            catch (UnauthorizedAccessException) // except (yt_dlp.utils.DownloadError, PermissionError)
+            {
+                if (i == 3)
+                {
+                    LogFailedUrl(imageLink.Url);
+                }
+            }
+        }
     }
     
     private Task DownloadMegaFiles(string path, ImageLink imageLink)

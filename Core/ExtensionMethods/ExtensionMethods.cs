@@ -113,11 +113,8 @@ public static class ExtensionMethods
         return src.Select(url => new StringImageLinkWrapper(url)).ToList();
     }
 
-    public static string[] Pop(this string[] array, int index)
+    public static int ToInt(this string s)
     {
-        var newArray = new string[array.Length - 1];
-        Array.Copy(array, 0, newArray, 0, index);
-        Array.Copy(array, index + 1, newArray, index, array.Length - index - 1);
-        return newArray;
-    } 
+        return int.Parse(s);
+    }
 }

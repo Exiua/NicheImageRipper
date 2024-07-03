@@ -136,7 +136,7 @@ public partial class ImageLink
         }
         else if(url.Contains("iframe.mediadelivery.net"))
         {
-            fileName = url.Split("/")[^2];
+            fileName = url.Split("/")[^1].Split("?")[0] + ".mp4"; // Assume mp4
         }
         else if(url.Contains("erocdn.co"))
         {
@@ -158,7 +158,8 @@ public partial class ImageLink
         }
         else if(url.Contains("phncdn.com"))
         {
-            fileName = url.Split("/")[8];
+            var parts = url.Split("/");
+            fileName = parts.Length >= 9 ? parts[8] : parts[^1].Split(")")[0];
             LinkInfo = LinkInfo.M3U8;
         }
         else

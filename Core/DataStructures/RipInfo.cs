@@ -64,12 +64,12 @@ public class RipInfo
                 continue;
             }
 
-            if (url.Url is null)
+            if (url.IsImageLink)
             {
                 continue;
             }
 
-            if (url.Url.Contains("drive.google.com"))
+            if (url.Url!.Contains("drive.google.com"))
             {
                 try
                 {
@@ -77,7 +77,7 @@ public class RipInfo
                     imageLinks.AddRange(imageLink);
                     linkCounter = newLinkCounter;
                 }
-                catch (GoogleApiException _) // googleapiclient.errors.HttpError
+                catch (GoogleApiException) // googleapiclient.errors.HttpError
                 {
                     // pass
                 }
@@ -91,10 +91,12 @@ public class RipInfo
                 linkCounter++;
             }
         }
+        
         if (discardBlob)
         {
             imageLinks = imageLinks.Where(imageLink => !imageLink.IsBlob).ToList();
         }
+        
         return imageLinks;
     }
 

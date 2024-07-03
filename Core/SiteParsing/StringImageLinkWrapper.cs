@@ -8,6 +8,8 @@ public struct StringImageLinkWrapper
     public string? Url { get; set; }
     public ImageLink? ImageLink { get; set; }
     
+    public bool IsImageLink => ImageLink is not null;
+    
     public StringImageLinkWrapper(string url)
     {
         Url = url;
