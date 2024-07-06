@@ -135,7 +135,7 @@ public partial class BunnyVideoDrm
                 resolution: resolution.Split('x')[^1]);
         }
 
-        Session.Dispose();
+        //Session.Dispose();
         return resolution;
     }
 
@@ -200,30 +200,6 @@ public partial class BunnyVideoDrm
         var resolution = PrepareDl();
         string[] url =
             [$"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm?contextId={ContextId}"];
-        /*var ydlOpts = new Dictionary<string, object>
-        {
-            ["http_headers"] = new Dictionary<string, string>
-            {
-                ["Referer"] = EmbedUrl,
-                ["User-Agent"] = UserAgent["user-agent"]
-            },
-            ["concurrent_fragment_downloads"] = 10,
-            ["nocheckcertificate"] = true,
-            ["outtmpl"] = Filename,
-            ["restrictfilenames"] = true,
-            ["windowsfilenames"] = true,
-            ["nopart"] = true,
-            ["paths"] = new Dictionary<string, string>
-            {
-                ["home"] = Path,
-                ["temp"] = $".{Filename}/"
-            },
-            ["retries"] = float.PositiveInfinity,
-            ["extractor_retries"] = float.PositiveInfinity,
-            ["fragment_retries"] = float.PositiveInfinity,
-            ["skip_unavailable_fragments"] = false,
-            ["no_warnings"] = true
-        };*/
         await DownloadVideoAsync(url[0]);
     }
 
