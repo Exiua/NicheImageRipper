@@ -16,7 +16,7 @@ public abstract class NicheImageRipper
     
     public string Title { get; set; } = "NicheImageRipper";
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
-    public Queue<string> UrlQueue { get; set; } = new();
+    public List<string> UrlQueue { get; set; } = [];
     public bool LiveUpdate { get; set; } = false;
     public bool ReRipAsk { get; set; } = true;
     public bool Interrupted { get; set; } = false;
@@ -27,6 +27,8 @@ public abstract class NicheImageRipper
     // self.ripper_thread: threading.Thread = threading.Thread()
     public Version Version { get; set; } = new(2, 2, 0);
     public string SaveFolder { get; set; } = ".";
+    public int MaxRetries { get; set; } = 4;
+    public int RetryDelay { get; set; } = 1000; // In milliseconds
     
     public List<HistoryEntry> History { get; set; } = [];
 
@@ -121,13 +123,33 @@ public abstract class NicheImageRipper
             PrintUtility.Print("No URLs to rip.");
             return "";
         }
-        var url = UrlQueue.Peek();
+        var url = UrlQueue[0];
         PrintUtility.Print(url);
         Ripper = new ImageRipper(FilenameScheme, UnzipProtocol);
         Interrupted = true;
-        await Ripper.Rip(url);
+        var retry = 0;
+        do
+        {
+            try
+            {
+                await Ripper.Rip(url);
+                break;
+            }
+            catch (Exception e)
+            {
+                if (retry != MaxRetries - 1)
+                {
+                    retry++;
+                    await Task.Delay(RetryDelay);
+                    continue;
+                }
+
+                PrintUtility.Print($"Failed to rip {url} after {MaxRetries} attempts.");
+                throw;
+            }
+        } while (retry < MaxRetries);
         Interrupted = false;
-        UrlQueue.Dequeue();
+        UrlQueue.RemoveAt(0);
         return url;
     }
 
@@ -233,7 +255,7 @@ public abstract class NicheImageRipper
 
     protected virtual void AddToUrlQueue(string url)
     {
-        UrlQueue.Enqueue(url);
+        UrlQueue.Add(url);
     }
 
     public virtual void UpdateHistory(ImageRipper ripper, string url)
