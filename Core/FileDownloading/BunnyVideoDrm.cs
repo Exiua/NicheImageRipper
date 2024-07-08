@@ -7,6 +7,10 @@ using Core.ExtensionMethods;
 
 namespace Core.FileDownloading;
 
+/// <summary>
+///    Class for downloading videos from BunnyVideo CDN with DRM protection. This is a C# port of the Python script:
+///     https://github.com/MaZED-UP/bunny-cdn-drm-video-dl/blob/main/b-cdn-drm-vod-dl.py
+/// </summary>
 public partial class BunnyVideoDrm
 {
     private static readonly HttpClient Session = new();
@@ -118,6 +122,10 @@ public partial class BunnyVideoDrm
             var fileUnescaped = FileUnescapedRegex().Match(embedPage).Groups[1].Value;
             var fileEscaped = HttpUtility.HtmlDecode(fileUnescaped);
             Filename = FilenameRegex().Replace(fileEscaped, ".mp4");
+            if (!Filename.EndsWith(".mp4"))
+            {
+                Filename += ".mp4";
+            }
         }
 
         Path = !string.IsNullOrEmpty(path) ? path : "~/Videos/Bunny CDN/";
@@ -176,7 +184,7 @@ public partial class BunnyVideoDrm
         var resolutions = ResolutionRegex().Matches(response.Content.ReadAsStringAsync().Result);
         if (resolutions.Count == 0)
         {
-            throw new FileNotFoundException();
+            throw new Exception("No resolutions found");
         }
 
         // highest resolution, 0 for lowest
@@ -231,9 +239,9 @@ public partial class BunnyVideoDrm
         // Converts the Python dictionary of options into yt-dlp command-line arguments.
         return $"--add-headers Referer:\"{EmbedUrl}\" --add-headers User-Agent:\"{UserAgent["user-agent"]}\" " +
                $"--concurrent-fragments 10 --no-check-certificates --output \"{Filename}\" " +
-               $"--restrict-filenames --windows-filenames --no-part --paths home:\"{Path}\",temp:\".{Filename}/\" " +
+               $"--restrict-filenames --windows-filenames --no-part --paths \"{Path}\" --paths temp:\".{Filename}/\" " +
                $"--retries infinite --extractor-retries infinite --fragment-retries infinite " +
-               $"--skip-unavailable-fragments --no-warnings \"{url}\"";
+               $"--no-skip-unavailable-fragments --no-warnings \"{url}\"";
     }
 
     [GeneratedRegex(@"https://video-(.*?)\.mediadelivery\.net")]
@@ -248,6 +256,6 @@ public partial class BunnyVideoDrm
     [GeneratedRegex(@"\.[^.]*$.*")]
     private static partial Regex FilenameRegex();
 
-    [GeneratedRegex("RESOLUTION=(.*)")]
+    [GeneratedRegex(@"\s*(.*?)\s*/video\.drm")]
     private static partial Regex ResolutionRegex();
 }
