@@ -24,19 +24,19 @@ public partial class ImageRipper
 
     private static readonly Dictionary<ulong, string> FileSignatures = new()
     {
-        [0x52_61_72_21_1A_07_00_00] = ".rar",   // /6
         [0x89_50_4E_47_0D_0A_1A_0A] = ".png",   // /8
-        [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
+        [0x43_53_46_43_48_55_4E_4B] = ".clip",  // /8
+        [0x3C_21_44_4F_43_54_59_50] = ".html",  // /8
+        [0x52_61_72_21_1A_07_00_00] = ".rar",   // /6
+        [0x37_7A_BC_AF_27_1C_00_00] = ".7z",    // /6
         [0x47_49_46_38_00_00_00_00] = ".gif",   // /4
         [0x50_4B_03_04_00_00_00_00] = ".zip",   // /4
         [0x38_42_50_53_00_00_00_00] = ".psd",   // /4
         [0x25_50_44_46_00_00_00_00] = ".pdf",   // /4
-        [0x37_7A_BC_AF_27_1C_00_00] = ".7z",    // /6
         [0x1A_45_DF_A3_00_00_00_00] = ".webm",  // /4
         [0x52_49_46_46_00_00_00_00] = ".webp",  // /4
         [0x00_00_00_00_66_74_79_70] = ".mp4",   // /4 reverse
-        [0x43_53_46_43_48_55_4E_4B] = ".clip",  // /8
-        [0x3C_21_44_4F_43_54_59_50] = ".html"   // /8
+        [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
     };
     
     public Dictionary<string, string> RequestHeaders { get; set; } = new()
@@ -157,40 +157,21 @@ public partial class ImageRipper
         {
             switch (SiteName)
             {
-                // // Easier to use cyberdrop-dl for downloading from cyberdrop to avoid image corruption
-                // case "cyberdrop":
-                //     CyberdropDownload(fullPath, FolderInfo.Urls[0]);
-                //     break;
                 case "deviantart":
                     DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
                     break;
                 default:
                 {
-                    List<ImageLink> cyberdropFiles = [];
                     foreach (var (i, link) in FolderInfo.Urls[start..].Enumerate())
                     {
                         var index = start + i;
                         CurrentIndex = index;
                         // while(pause) { sleep(1); }
                         await Task.Delay((int) SleepTime * 1000);
-                        // if(CyberdropDomains.Any(domain => link.Contains(domain)))
-                        // {
-                        //     cyberdropFiles.Add(link);
-                        //     continue;
-                        // }
                         try
                         {
                             await DownloadFromList(link, fullPath, index, downloadStats);
                         }
-                        // catch (PIL.UnidentifiedImageError)
-                        // {
-                        //     // No image exists, probably
-                        // }
-                        // catch (requests.exceptions.ChunkedEncodingError)
-                        // {
-                        //     await Task.Delay(10000);
-                        //     DownloadFromList(link, fullPath, index);
-                        // }
                         catch (FileNotFoundException)
                         {
                             if (link.LinkInfo == LinkInfo.IframeMedia)
@@ -205,10 +186,6 @@ public partial class ImageRipper
                             throw;
                         }
                     }
-                    // if (cyberdropFiles.Count > 0)
-                    // {
-                    //     CyberdropDownload(fullPath, cyberdropFiles);
-                    // }
 
                     break;
                 }
@@ -225,24 +202,41 @@ public partial class ImageRipper
         Console.WriteLine("Download Complete"); //{#00FF00}
     }
 
-    private static void CyberdropDownload(string path, ImageLink cyberdropFile) => CyberdropDownload(path, [cyberdropFile]);
-    
-    private static void CyberdropDownload(string path, List<ImageLink> cyberdropFiles)
-    {
-        var cmd = new List<string> {"gallery-dl", "-D", path};
-        cmd.AddRange(cyberdropFiles.Select(file => file.Url));
-        Console.WriteLine(cmd);
-        RunSubprocess(cmd, "Starting gallery-dl", "Gallery-dl finished");
-    }
+    // private static void CyberdropDownload(string path, ImageLink cyberdropFile) => CyberdropDownload(path, [cyberdropFile]);
+    //
+    // private static void CyberdropDownload(string path, List<ImageLink> cyberdropFiles)
+    // {
+    //     var cmd = new List<string> {"gallery-dl", "-D", path};
+    //     cmd.AddRange(cyberdropFiles.Select(file => file.Url));
+    //     Console.WriteLine(cmd);
+    //     RunSubprocess(cmd, "Starting gallery-dl", "Gallery-dl finished");
+    // }
     
     private void DeviantArtDownload(string fullPath, string url)
     {
-        var cmd = new List<string> {"gallery-dl", "-D", fullPath, "-u", Logins["DeviantArt"].Username, "-p", 
+        var cmd = new []{"-D", $"\"{fullPath}\"", "-u", Logins["DeviantArt"].Username, "-p", 
             Logins["DeviantArt"].Password, "--write-log", "log.txt", url};
-        RunSubprocess(cmd, "Starting Deviantart download", "Deviantart download finished");
+        var (exitCode, _, _) = RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
+            endMessage: "Deviantart download finished");
+        if (exitCode != 0)
+        {
+            Console.WriteLine("Failed to download from DeviantArt");
+        }
     }
     
-    private static void RunSubprocess(IEnumerable<string> cmd, string? startMessage = null, string? endMessage = null)
+    private static void RunFfmpeg(string[] cmd, string startMessage, string endMessage)
+    {
+        cmd = [ "-loglevel", "quiet", "-y", ..cmd ];
+        var (exitCode, _, _) = RunSubprocess("ffmpeg", cmd, true, true, startMessage: startMessage, endMessage: endMessage);
+        if (exitCode != 0)
+        {
+            Console.WriteLine($"Failed to run ffmpeg: {exitCode}");
+        }
+    }
+
+    private static (int, string, string) RunSubprocess(string executable, string[]? arguments = null,
+                                                       bool captureOutput = false, bool captureError = false,
+                                                       string? startMessage = null, string? endMessage = null)
     {
         if (startMessage is not null)
         {
@@ -253,9 +247,10 @@ public partial class ImageRipper
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/C {string.Join(" ", cmd)}",
-                RedirectStandardOutput = true,
+                FileName = executable,
+                Arguments = arguments is null ? "" : " ".Join(arguments),
+                RedirectStandardOutput = captureOutput,
+                RedirectStandardError = captureError,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
@@ -263,11 +258,15 @@ public partial class ImageRipper
         
         process.Start();
         process.WaitForExit();
-        
+        var exitCode = process.ExitCode;
+        var output = captureOutput ? process.StandardOutput.ReadToEnd() : "";
+        var error = captureError ? process.StandardError.ReadToEnd() : "";
         if (endMessage is not null)
         {
             Console.WriteLine(endMessage);
         }
+        
+        return (exitCode, output, error);
     }
 
     /// <summary>
@@ -315,6 +314,7 @@ public partial class ImageRipper
                 break;
             case LinkInfo.IframeMedia:
                 await DownloadIframeMedia(imagePath, imageLink);
+                // TODO: Figure out how to delete temp directories
                 break;
             case LinkInfo.Mega:
                 await DownloadMegaFiles(imagePath, imageLink);
@@ -335,9 +335,26 @@ public partial class ImageRipper
     
     private static Task DownloadM3U8ToMp4(string path, string url)
     {
-        var cmd = new List<string> {"ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", url, "-c",
-            "copy", path};
-        RunSubprocess(cmd, "Starting ffmpeg download", "ffmpeg download finished");
+        if (!path.Contains('.'))
+        {
+            if (url.Contains(".mp4"))
+            {
+                path += ".mp4";
+            }
+            else if (url.Contains(".webm"))
+            {
+                path += ".webm";
+            }
+            else
+            {
+                path += ".ts";
+            }
+        }
+        
+        var cmd = new []{"-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
+            "-i", url, "-c", "copy", $"\"{path}\""
+        };
+        RunFfmpeg(cmd, "Starting ffmpeg download", "ffmpeg download finished");
         return Task.CompletedTask;
     }
 
@@ -368,7 +385,7 @@ public partial class ImageRipper
                 var video = new BunnyVideoDrm(
                     referer: imageLink.Url,
                     embedUrl: imageLink.Referer,
-                    name: Path.GetFileName(folderPath),
+                    name: Path.GetFileName(folderPath).Split('.')[0],
                     path: parentPath
                 );
                 await video.Download();
@@ -437,8 +454,9 @@ public partial class ImageRipper
     private static Task DownloadYoutubeFile(string path, ImageLink url)
     {
         Directory.CreateDirectory(path);
-        var cmd = new List<string> { "yt-dlp", "-P", $"\"{path}\"", url.Url };
-        RunSubprocess(cmd, "Starting youtube-dl download", "youtube-dl download finished");
+        var cmd = new[] { "-P", $"\"{path}\"", url.Url };
+        RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
+            endMessage: "youtube-dl download finished");
         return Task.CompletedTask;
     }
     
@@ -838,8 +856,15 @@ public partial class ImageRipper
             return ".bin"; // Default extension if reading failed or file is too small
         }
 
-        var signatureInt = BitConverter.ToUInt64(signature, 0);
-        ulong[] masks = [ 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FF00_0000_0000, 0xFFFF_0000_0000_0000, 0xFFF0_0000_0000_0000, 0x0000_0000_0000_FFFF ];
+        var signatureInt = ToUInt64(signature, 0);
+        ulong[] masks =
+        [
+            0xFFFF_FFFF_FFFF_FFFF, // 8 bytes
+            0xFFFF_FFFF_FFFF_0000, // 6 bytes
+            0xFFFF_FFFF_0000_0000, // 4 bytes
+            0x0000_0000_FFFF_FFFF, // 4 bytes reverse
+            0xFFFF_FF00_0000_0000, // 3 bytes
+        ];
 
         foreach (var mask in masks)
         {
@@ -851,6 +876,17 @@ public partial class ImageRipper
         }
 
         return ".bin"; // Default extension if no matching signature is found
+    }
+    
+    private static ulong ToUInt64(byte[] bytes, int startIndex)
+    {
+        var value = 0UL;
+        for (var i = 0; i < 8; i++)
+        {
+            value |= (ulong)bytes[startIndex + i] << (8 * (7 - i));
+        }
+        
+        return value;
     }
 
     private static byte[]? ReadSignature(string filepath, int length)

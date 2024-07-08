@@ -160,7 +160,7 @@ public partial class ImageLink
         {
             var parts = url.Split("/");
             fileName = parts.Length >= 9 ? parts[8] : parts[^1].Split(")")[0];
-            LinkInfo = LinkInfo.M3U8;
+            LinkInfo = url.Contains(".m3u8") ? LinkInfo.M3U8 : LinkInfo.None;
         }
         else
         {
