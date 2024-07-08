@@ -4033,16 +4033,17 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> TheOmegaProjectParse()
     {
-        // TODO: Test
-        // var soup = await Soupify();
-        // var dirName = soup.SelectSingleNode("//h1[@class='omega']").InnerText;
-        // var images = soup.SelectSingleNode("//div[@class='postholder']")
-        //                  .SelectNodes(".//div[@class='picture']")
-        //                  .Select(img => $"{PROTOCOL}{img.SelectSingleNode(".//img").GetSrc().Remove("tn_")}")
-        //                  .ToStringImageLinkWrapperList();
-        //
-        // return new RipInfo(images, dirName, FilenameScheme);
-        return await GenericBabesHtmlParser("//h1[@class='omega']", "//div[@class='postholder']//div[@class='picture']");
+        var soup = await Soupify();
+        var dirName = soup.SelectNodes("//h2[@class='section-title title']")[1].InnerText
+                          .Split("Porn")[0]
+                          .Split("porn")[0]
+                          .Trim();
+        var images = soup.SelectSingleNode("//div[@class='lightgallery thumbs quadruple fivefold']")
+                         .SelectNodes(".//img")
+                         .Select(img => img.GetSrc())
+                         .ToStringImageLinkWrapperList();
+        
+        return new RipInfo(images, dirName, FilenameScheme);
     }
 
     /// <summary>

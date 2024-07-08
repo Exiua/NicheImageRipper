@@ -68,7 +68,7 @@ public static partial class UrlUtility
         "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
         "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
         "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
-        "https://www.wnacg.com/", "https://sex.micmicdoll.com/"
+        "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
     ];
     
     /// <summary>
