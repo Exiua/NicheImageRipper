@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
+using Core.ExtensionMethods;
 using Core.FileDownloading;
 using Core.Utility;
 using File = System.IO.File;
@@ -80,40 +81,47 @@ public abstract class NicheImageRipper
     }
 
     // FIXME: Error handling is not implemented
-    protected void QueueUrls(string urls)
+    protected List<RejectedUrlInfo> QueueUrls(string urls)
     {
         var urlList = SeparateString(urls, "https://");
-        foreach (var url in urlList)
+        var failedUrls = new List<RejectedUrlInfo>();
+        foreach (var (i, url) in urlList.Enumerate())
         {
             if (url.Contains("http://"))
             {
                 var urlsSplit = SeparateString(url, "http://");
-                foreach (var u in urlsSplit)
-                {
-                    AddToUrlQueue(u);
-                }
+                failedUrls.AddRange(urlsSplit.Select(u => AddToUrlQueue(u, i))
+                                             .OfType<RejectedUrlInfo>());
             }
             else
             {
                 if (UrlUtility.UrlCheck(url))
                 {
-                    if (!UrlQueue.Contains(url))
+                    if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, url)))
                     {
-                        AddToUrlQueue(url);
+                        var result = AddToUrlQueue(url, i);
+                        failedUrls.AddNotNull(result);
                     }
                     else
                     {
-                        // if result < QueueResult.ALREADY_QUEUED:
-                        //     result = QueueResult.ALREADY_QUEUED
+                        failedUrls.Add(new RejectedUrlInfo(url, QueueFailureReason.AlreadyQueued));
                     }
                 }
                 else
                 {
-                    // if result < QueueResult.NOT_SUPPORTED:
-                    //     result = QueueResult.NOT_SUPPORTED
+                    failedUrls.Add(new RejectedUrlInfo(url, QueueFailureReason.NotSupported));
                 }
             }
         }
+        
+        return failedUrls;
+    }
+    
+    private static bool CheckIfUrlsAreEqual(string url1, string url2)
+    {
+        var normalizedUrl1 = url1.Split("?")[0];
+        var normalizedUrl2 = url2.Split("?")[0];
+        return normalizedUrl1 == normalizedUrl2;
     }
 
     protected async Task<string> RipUrl()
@@ -253,9 +261,15 @@ public abstract class NicheImageRipper
         }
     }
 
-    protected virtual void AddToUrlQueue(string url)
+    protected virtual RejectedUrlInfo? AddToUrlQueue(string url, int index = -1)
     {
+        if(History.Any(entry => CheckIfUrlsAreEqual(entry.Url, url)))
+        {
+            return new RejectedUrlInfo(url, QueueFailureReason.PreviouslyProcessed, index);
+        }
+        
         UrlQueue.Add(url);
+        return null;
     }
 
     public virtual void UpdateHistory(ImageRipper ripper, string url)

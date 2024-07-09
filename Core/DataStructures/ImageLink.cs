@@ -86,7 +86,7 @@ public partial class ImageLink
 
         }
         
-        return url;
+        return url.StartsWith("//") ? $"https:{url}" : url;
     }
 
     private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename = "")

@@ -2685,15 +2685,15 @@ public partial class HtmlParser
             var json = await response.Content.ReadFromJsonAsync<JsonNode>();
             var jsonData = json!["data"]!["video"]!["get"]!;
             string videoUrl;
-            if(!jsonData["v1080p"]!.IsNull())
+            if(!jsonData["v1080p"].IsNull())
             {
                 videoUrl = jsonData["v1080p"]!.Deserialize<string>()!;
             }
-            else if(!jsonData["v720p"]!.IsNull())
+            else if(!jsonData["v720p"].IsNull())
             {
                 videoUrl = jsonData["v720p"]!.Deserialize<string>()!;
             }
-            else if(!jsonData["v360p"]!.IsNull())
+            else if(!jsonData["v360p"].IsNull())
             {
                 videoUrl = jsonData["v360p"]!.Deserialize<string>()!;
             }

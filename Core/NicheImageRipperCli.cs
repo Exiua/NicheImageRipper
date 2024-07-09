@@ -1,4 +1,5 @@
-﻿using Core.SiteParsing;
+﻿using Core.Enums;
+using Core.SiteParsing;
 
 namespace Core;
 
@@ -160,7 +161,39 @@ public class NicheImageRipperCli : NicheImageRipper
                         Console.WriteLine("URLs loaded");
                         break;
                     default:
-                        QueueUrls(userInput);
+                        var startIndex = UrlQueue.Count;
+                        var offset = 0;
+                        var failedUrls = QueueUrls(userInput);
+                        foreach(var failedUrl in failedUrls)
+                        {
+                            switch (failedUrl.Reason)
+                            {
+                                case QueueFailureReason.None:
+                                    break;
+                                case QueueFailureReason.AlreadyQueued:
+                                    Console.WriteLine($"URL already queued: {failedUrl.Url}");
+                                    break;
+                                case QueueFailureReason.NotSupported:
+                                    Console.WriteLine($"URL not supported: {failedUrl.Url}");
+                                    break;
+                                case QueueFailureReason.PreviouslyProcessed:
+                                    Console.WriteLine($"Re-rip url (y/n)? {failedUrl.Url}");
+                                    var response = Console.ReadLine();
+                                    if (response == "y")
+                                    {
+                                        var correctIndex = startIndex + failedUrl.Index + offset;
+                                        offset++;
+                                        UrlQueue.Insert(correctIndex, failedUrl.Url);
+                                    }
+                                    else
+                                    {
+                                        offset--;
+                                    }
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }
+                        }
                         break;
                 }
             }
