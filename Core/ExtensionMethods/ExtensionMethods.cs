@@ -21,6 +21,15 @@ public static class ExtensionMethods
             yield return (i, list[i]);
         }
     }
+    
+    public static IEnumerable<(int i, T)> Enumerate<T>(this IEnumerable<T> enumerable, int start = 0)
+    {
+        var i = start;
+        foreach (var item in enumerable)
+        {
+            yield return (i++, item);
+        }
+    }
 
     public static IEnumerable<(int i, char)> Enumerate(this string s, int start = 0)
     {
@@ -128,5 +137,13 @@ public static class ExtensionMethods
         Array.Copy(src, 0, newArr, 0, index);
         Array.Copy(src, index + 1, newArr, index, src.Length - index - 1);
         return newArr;
+    }
+    
+    public static void AddNotNull<T>(this List<T> list, T? item)
+    {
+        if (item is not null)
+        {
+            list.Add(item);
+        }
     }
 }

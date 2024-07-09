@@ -10,8 +10,13 @@ public static class JsonNodeExtensionMethods
         return node.GetValueKind() == JsonValueKind.Array;
     }
     
-    public static bool IsNull(this JsonNode node)
+    public static bool IsNull(this JsonNode? node)
     {
+        if (node == null)
+        {
+            return true;
+        }
+        
         return node.GetValueKind() == JsonValueKind.Null;
     }
 }
