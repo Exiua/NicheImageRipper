@@ -25,6 +25,7 @@ public class Config
     public Dictionary<string, Credentials> Logins { get; set; } = null!;
     public Dictionary<string, string> Keys { get; set; } = null!;
     public Dictionary<string, string> Cookies { get; set; } = null!;
+    public Dictionary<string, Dictionary<string, string>> Custom { get; set; } = null!;
 
     // Used for deserialization
     [UsedImplicitly]
@@ -47,7 +48,7 @@ public class Config
             Logins = new Dictionary<string, Credentials>()
         };
         
-        string[] siteLogins = ["Sexy-Egirls", "V2Ph", "DeviantArt", "Mega", "TitsInTops", "Newgrounds", "Nijie", "SimpCity"];
+        string[] siteLogins = ["Sexy-Egirls", "DeviantArt", "Mega", "TitsInTops", "Newgrounds", "Nijie", "SimpCity"];
         foreach (var site in siteLogins)
         {
             config.Logins[site] = new Credentials();
@@ -61,11 +62,21 @@ public class Config
         }
         
         config.Cookies = new Dictionary<string, string>();
-        string[] siteCookies = ["Twitter", "Newgrounds", "Porn3dx", "Pornhub"];
+        string[] siteCookies = ["Twitter", "Newgrounds", "Porn3dx", "Pornhub", "Thothub"];
         foreach (var site in siteCookies)
         {
             config.Cookies[site] = "";
         }
+
+        config.Custom = new Dictionary<string, Dictionary<string, string>>
+        {
+            ["V2PH"] = new()
+            {
+                ["frontend"] = "",
+                ["frontend-rmt"] = "",
+                ["cf_clearance"] = ""
+            }
+        };
 
         return config;
     }

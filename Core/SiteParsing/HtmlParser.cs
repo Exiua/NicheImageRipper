@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Specialized;
+using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Text;
@@ -215,6 +216,14 @@ public partial class HtmlParser
             "sxchinesegirlz01" => SxChineseGirlz01Parse,
             "pleasuregirl" => PleasureGirlParse,
             "theomegaproject" => TheOmegaProjectParse,
+            "thothub" => ThothubParse,
+            "titsintops" => TitsInTopsParse,
+            "toonily" => ToonilyParse,
+            "tsumino" => TsuminoParse,
+            "twitter" => TwitterParse,
+            "x" => TwitterParse,
+            "wantedbabes" => WantedBabesParse,
+            "xarthunter" => XArtHunterParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -260,6 +269,7 @@ public partial class HtmlParser
         var loginTask = SiteName switch
         {
             "nijie" => NijieLogin(),
+            "titsintops" => TitsInTopsLogin(),
             _ => throw new Exception("Site authentication not implemented")
         };
         
@@ -293,6 +303,30 @@ public partial class HtmlParser
         Driver.FindElement(By.XPath("//input[@name='password']")).SendKeys(password);
         Driver.FindElement(By.XPath("//input[@class='login_button']")).Click();
         while (CurrentUrl.Contains("login.php"))
+        {
+            await Task.Delay(100);
+        }
+        
+        CurrentUrl = origUrl;
+        return true;
+    }
+
+    private static async Task<bool> TitsInTopsLogin()
+    {
+        var origUrl = CurrentUrl;
+        var (username, password) = Config.Instance.Logins["TitsInTops"];
+        CurrentUrl = "https://titsintops.com/phpBB2/index.php?login/login";
+        var loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
+        while (loginInput is null)
+        {
+            await Task.Delay(100);
+            loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
+        }
+        loginInput.SendKeys(username);
+        var passwordInput = Driver.FindElement(By.XPath("//input[@name='password']"));
+        passwordInput.SendKeys(password);
+        Driver.FindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")).Click();
+        while (Driver.TryFindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")) is not null)
         {
             await Task.Delay(100);
         }
@@ -484,7 +518,7 @@ public partial class HtmlParser
             "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(), // Formerly 2
             "elitebabes" => GenericHtmlParserHelper2(),
             "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub" 
-                or "metarthunter" or "pmatehunter" => GenericHtmlParserHelper3(),
+                or "metarthunter" or "pmatehunter" or "xarthunter" => GenericHtmlParserHelper3(),
             _ => throw new RipperException($"Invalid site name: {siteName}")
         };
     }
@@ -4052,14 +4086,22 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> ThothubParse()
     {
-        // TODO: Test
+        const string sessionCookieName = "PHPSESSID";
+        var cookieJar = Driver.GetCookieJar();
+        var cookie = cookieJar.GetCookieNamed(sessionCookieName);
+        if (cookie is not null)
+        {
+            cookieJar.DeleteCookie(cookie);
+        }
+        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Instance.Cookies["Thothub"]));
+        Driver.Reload();
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true,
             Increment = 625,
             ScrollPauseTime = 1
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 500);
         var dirName = soup.SelectSingleNode("//div[@class='headline']")
                           .SelectSingleNode(".//h1")
                           .InnerText;
@@ -4087,457 +4129,393 @@ public partial class HtmlParser
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
+
+    // TODO: Remove thotsbay.com as the site may have been compromised
     
-    /*
-
-    def thothub_parse(self) -> RipInfo:
-        """
-            Parses the html for thothub.lol and extracts the relevant information necessary for downloading images from the site
-        """
-        self.lazy_load(True, increment=625, scroll_pause_time=1)
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="headline").find("h1").text
-        if "/videos/" in self.current_url:
-            vid = soup.find("video", class_="fp-engine").get("src")
-            if not vid:
-                vid = soup.find("div", class_="no-player").find("img").get("src")
-            images = [vid]
-        else:
-            posts = soup.find("div", class_="images").find_all("img")
-            images = []
-            for img in posts:
-                url = img.get("src").replace("/main/200x150/", "/sources/")
-                images.append(url)
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def thotsbay_parse(self) -> RipInfo:
-        """Parses the html for thotsbay.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="album-info-title").find("h1").text
-        images = []
-        while not images:
-            soup = self.soupify()
-            images = soup.find("div", class_="album-files").find_all("a")
-            images = [img.get("href") for img in images]
-            sleep(1)
-        vid = []
-        for i, link in enumerate(images):
-            if "/video/" in link:
-                vid.append(i)
-                soup = self.soupify(link)
-                images.append(soup.find("video", id="main-video").find("source").get("src"))
-        for i in reversed(vid):
-            images.pop(i)
-        self.driver.quit()
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def tikhoe_parse(self) -> RipInfo:
-        """Parses the html for tikhoe.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="album-title").find("h1").text
-        file_tag = soup.find("div", class_="album-files")
-        images = file_tag.find_all("a")
-        videos = file_tag.find_all("source")
-        images = [img.get("href") for img in images]
-        videos = [vid.get("src") for vid in videos]
-        images.extend(videos)
-        self.driver.quit()
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def titsintops_parse(self) -> RipInfo:
-        """
-            Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
-        """
-        # Parses the html of the site
-        # noinspection PyPep8Naming
-        SITE_URL = "https://titsintops.com"
-        self.site_login()
-        cookies = self.driver.get_cookies()
-        cookie_str = ''
-        for c in cookies:
-            cookie_str += "".join([c['name'], '=', c['value'], ';'])
-        requests_header["cookie"] = cookie_str
-        soup = self.soupify()
-        dir_name = soup.find("h1", class_="p-title-value").text
-        images = []
-        external_links: dict[str, list[str]] = self.__create_external_link_dict()
-        page_count = 1
-        while True:
-            print(f"Parsing page {page_count}")
-            page_count += 1
-            posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("div",
-                                                                                               class_="message-content js-messageContent")
-            for post in posts:
-                imgs = post.find("article", class_="message-body js-selectToQuote").find_all("img")
-                if imgs:
-                    imgs = [im.get("src") for im in imgs if "http" in im]
-                    images.extend(imgs)
-                videos = post.find_all("video")
-                if videos:
-                    video_urls = [f"{SITE_URL}{vid.find('source').get('src')}" for vid in videos]
-                    images.extend(video_urls)
-                iframes = post.find_all("iframe")
-                if iframes:
-                    # with open("test.html", "w") as f:
-                    #     f.write(str(iframes))
-                    embedded_urls = [em.get("src") for em in iframes]
-                    embedded_urls = self.parse_embedded_urls(embedded_urls)
-                    images.extend(embedded_urls)
-                attachments = post.find("ul", class_="attachmentList")
-                if attachments:
-                    attachments = attachments.find_all("a", class_="file-preview js-lbImage")
-                    if attachments:
-                        attachment_urls = [f"{SITE_URL}{attach.get('href')}" for attach in attachments]
-                        images.extend(attachment_urls)
-                links = post.find("article", class_="message-body js-selectToQuote").find_all("a")
-                if links:
-                    links = [link.get("href") for link in links]
-                    # print(links)
-                    filtered_links = self.__extract_external_urls(links)
-                    downloadable_links = self.__extract_downloadable_links(filtered_links, external_links)
-                    images.extend(downloadable_links)
-            next_page = soup.find("a", class_="pageNav-jump pageNav-jump--next")
-            if next_page:
-                next_page = next_page.get("href")
-                soup = self.soupify(f"{SITE_URL}{next_page}")
-            else:
-                self.__save_external_links(external_links)
-                break
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def toonily_parse(self) -> RipInfo:
-        """
-            Parses the html for toonily.me and extracts the relevant information necessary for downloading images from the site
-        """
-        #self.__wait_for_element('//div[@id="show-more-chapters"]', timeout=-1)
-        btn = self.try_find_element(By.XPATH, '//div[@id="show-more-chapters"]')
-        if btn is not None:
-            self.scroll_element_into_view(btn)
-            btn.click()
-            sleep(1)
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="name box").find("h1").text
-        chapter_list = soup.find("ul", id="chapter-list").find_all("li", recursive=False)
-        chapters = [f"https://toonily.me{chapter.find('a').get('href')}" for chapter in chapter_list]
-        images = []
-        for chapter in reversed(chapters):
-            soup = self.soupify(chapter, lazy_load_args={"scroll_by": True, "increment": 5000})
-            image_list = soup.find("div", id="chapter-images").find_all("img")
-            images.extend([img.get("src") for img in image_list])
-
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def tsumino_parse(self) -> RipInfo:
-        """Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="book-title").text
-        num_pages = int(soup.find("div", id="Pages").text.strip())
-        pager_url = self.driver.current_url.replace("/entry/", "/Read/Index/") + "?page="
-        images = []
-        for i in range(1, num_pages + 1):
-            soup = self.soupify(pager_url + str(i), 3)
-            src = soup.find("img", class_="img-responsive reader-img").get("src")
-            images.append(src)
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def twitter_parse(self) -> RipInfo:
-        """
-            Parses the html for twitter.com/x.com and extracts the relevant information necessary for downloading images from the site
-        """
+    /// <summary>
+    ///     Parses the html for thotsbay.tv and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> ThotsBayParse()
+    {
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+        };
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+        var dirName = soup.SelectSingleNode("//div[@class='actor-name']/h1").InnerText;
+        var container = soup.SelectSingleNode("//div[@id='media-items-all']");
+        var items = container.SelectNodes("./div")
+                             .Select(div => $"https://thotsbay.tv{div.SelectSingleNode(".//a").GetHref()}");
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var item in items)
+        {
+            soup = await Soupify(item, delay: 250);
+        }
         
+        // Unable to download videos from blob, parse in on hold
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    // TODO: Remove tikhoe.com as the site is down
+
+    /// <summary>
+    ///     Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> TitsInTopsParse()
+    {
+        const string siteUrl = "https://titsintops.com";
+        await SiteLogin();
+        var cookies = Driver.GetCookieJar();
+        var cookieStr = cookies.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value};");
+        RequestHeaders["cookie"] = cookieStr;
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='p-title-value']")
+                          .InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var externalLinks = CreateExternalLinkDict();
+        var pageCount = 1;
+        while (true)
+        {
+            Console.WriteLine($"Parsing page {pageCount}");
+            pageCount++;
+            var posts = soup.SelectSingleNode("//div[@class='block-body js-replyNewMessageContainer']")
+                            .SelectNodes(".//div[@class='message-content js-messageContent']");
+            foreach (var post in posts)
+            {
+                var imgs = post.SelectSingleNode(".//article[@class='message-body js-selectToQuote']")
+                               .SelectNodes(".//img");
+                if (imgs is not null)
+                {
+                    var imgList = imgs.Select(im => im.GetSrc())
+                                      .Where(im => im.Contains("http"));
+                    images.AddRange(imgList.Select(im => (StringImageLinkWrapper)im));
+                }
+                
+                var videos = post.SelectNodes(".//video");
+                if (videos is not null)
+                {
+                    var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectSingleNode(".//source").GetSrc()}");
+                    images.AddRange(videoUrls.Select(vid => (StringImageLinkWrapper)vid));
+                }
+                
+                var iframes = post.SelectNodes(".//iframe");
+                if (iframes is not null)
+                {
+                    var embeddedUrls = iframes.Select(em => em.GetSrc())
+                                              .Where(em => em.Contains("http"));
+                    embeddedUrls = await ParseEmbeddedUrls(embeddedUrls);
+                    images.AddRange(embeddedUrls.Select(em => (StringImageLinkWrapper)em));
+                }
+                
+                var attachments = post.SelectSingleNode(".//ul[@class='attachmentList']");
+                if (attachments is not null)
+                {
+                    var attachments2 = attachments.SelectNodes(".//a[@class='file-preview js-lbImage']");
+                    if (attachments2 is not null)
+                    {
+                        var attachList = attachments2.Select(attach => $"https://titsintops.com{attach.GetHref()}");
+                        images.AddRange(attachList.Select(attach => (StringImageLinkWrapper)attach));
+                    }
+                }
+                
+                var links = post.SelectSingleNode(".//article[@class='message-body js-selectToQuote']")
+                                .SelectNodes(".//a");
+                if (links is not null)
+                {
+                    var linkList = links.Select(link => link.GetNullableHref())
+                                        .Where(link => link is not null);
+                    var filteredLinks = ExtractExternalUrls(linkList!);
+                    var downloadableLinks = await ExtractDownloadableLinks(filteredLinks, externalLinks);
+                    images.AddRange(downloadableLinks.Select(link => (StringImageLinkWrapper)link));
+                }
+            }
+
+            var nextPage = soup.SelectSingleNode("//a[@class='pageNav-jump pageNav-jump--next']");
+            if (nextPage is null)
+            {
+                SaveExternalLinks(externalLinks);
+                break;
+            }
+
+            var nextPageUrl = nextPage.GetHref();
+            soup = await Soupify($"{siteUrl}{nextPageUrl}");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for toonily.me and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> ToonilyParse()
+    {
+        var btn = Driver.TryFindElement(By.XPath("//div[@id='show-more-chapters']"));
+        if (btn is not null)
+        {
+            ScrollElementIntoView(btn);
+            await Task.Delay(250);
+            btn.Click();
+            await Task.Delay(1000);
+        }
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='name box']")
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var chapterList = soup.SelectSingleNode("//ul[@id='chapter-list']")
+                             .SelectNodes(".//li");
+        var chapters = chapterList.Select(chapter => $"https://toonily.me{chapter.SelectSingleNode(".//a").GetHref()}");
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var chapter in chapters.Reverse())
+        {
+            soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs {ScrollBy = true, Increment = 5000});
+            var imageList = soup.SelectSingleNode("//div[@id='chapter-images']")
+                                .SelectNodes(".//img");
+            images.AddRange(imageList.Select(img => (StringImageLinkWrapper)img.GetSrc()));
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> TsuminoParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='book-title']")
+                          .InnerText;
+        var numPages = int.Parse(soup.SelectSingleNode("//div[@id='Pages']")
+                                  .InnerText
+                                  .Trim());
+        var pagerUrl = CurrentUrl.Replace("/entry/", "/Read/Index/") + "?page=";
+        var images = new List<StringImageLinkWrapper>();
+        for (var i = 1; i <= numPages; i++)
+        {
+            soup = await Soupify($"{pagerUrl}{i}", delay: 3000);
+            var src = soup.SelectSingleNode("//img[@class='img-responsive reader-img']")
+                          .GetSrc();
+            images.Add(src);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for twitter.com/x.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> TwitterParse()
+    {
         # region Method-Global Variables
 
-        true_base_wait_time = 2.5
-        base_wait_time = true_base_wait_time
-        max_wait_time = 60
-        wait_time = base_wait_time
-        max_retries = 4
+        var trueBaseWaitTime = 2500;
+        var baseWaitTime = trueBaseWaitTime;
+        var maxWaitTime = 60000;
+        var waitTime = baseWaitTime;
+        var maxRetries = 4;
+        var streak = 0;
 
         # endregion
 
-        def twitter_parse_helper(post_link: str, log_failure: bool) -> tuple[list[str], list[tuple[int, str]]]:
-            #print(post_link)
-            nonlocal base_wait_time, wait_time
-            post_images: list[str] = []
-            failed_urls: list[tuple[int, str]] = []
-            streak = 0
-            found = 0
-            for i in range(max_retries):
-                media_found = False
-                try:
-                    soup = self.soupify(post_link, delay=base_wait_time, xpath="//article")
-                    content: bs4.element.Tag  = soup.find("article")
-                    content = content.find("div").find("div")
-                    contents = content.find_all("div", recursive=False)
-                    if len(contents) < 3:
-                        vid = content.find("video")
-                        link = vid.get("src")
-                        post_images.append(link)
-                        found += 1
-                        media_found = True
-                        break
-                    content = contents[2]
-                    content = content.find_all("div", recursive=False)[1]
-                    anchors = content.find_all("a")
-                    anchor: bs4.element.Tag
-                    for anchor in anchors:
-                        img = anchor.find("img")
-                        if img is not None:
-                            link = img.get("src")
-                            link = link.split("&name=")[0]
-                            link = f"{link}&name=4096x4096" # Get the highest resolution image
-                            post_images.append(link)
-                            found += 1
-                            media_found = True
-                            break
-                        vid = anchor.find("video")
-                        if vid is not None:
-                            post_images.append(vid.get("src"))
-                            found += 1
-                            media_found = True
-                            break
-                        else:
-                            raise Exception(f"No image or video found: {post_link} > {anchor}")
-                    break
-                except:
-                    streak = 0
-                    wait_boost = 0
-                    if i == max_retries - 1:
-                        print(f"Failed to get media: {post_link}")
-                        if log_failure:
-                            self.log_failed_url(post_link)
-                        failed_urls.append((found, post_link))
-                        continue
+        async Task<(List<string>, List<(int, string)>)> TwitterParserHelper(string postLink, bool logFailure)
+        {
+            var postImages = new List<string>();
+            var failedUrls = new List<(int, string)>();
+            var found = 0;
+            for (var i = 0; i < maxRetries; i++)
+            {
+                var mediFound = false;
+                try
+                {
+                    var soup = await Soupify(postLink, delay: baseWaitTime, xpath: "//article");
+                    var content = soup.SelectSingleNode("//article")
+                                      .SelectSingleNode(".//div")
+                                      .SelectSingleNode(".//div");
+                    var contents = content.SelectNodes("./div");
+                    if (contents.Count < 3)
+                    {
+                        var vid = content.SelectSingleNode(".//video");
+                        var link = vid.GetSrc();
+                        postImages.Add(link);
+                        found += 1;
+                        mediFound = true;
+                        break;
+                    }
+                    content = contents[2].SelectNodes("./div")[1];
+                    var anchors = content.SelectNodes(".//a");
+                    foreach (var anchor in anchors)
+                    {
+                        var img = anchor.SelectSingleNode(".//img");
+                        if (img is not null)
+                        {
+                            var link = img.GetSrc().Replace("&amp;", "&");
+                            link = link.Split("&name=")[0];
+                            link = $"{link}&name=4096x4096"; // Get the highest resolution image
+                            postImages.Add(link);
+                            found += 1;
+                            mediFound = true;
+                            break;
+                        }
+                        var vid = anchor.SelectSingleNode(".//video");
+                        if (vid is not null)
+                        {
+                            postImages.Add(vid.GetSrc());
+                            found += 1;
+                            mediFound = true;
+                            break;
+                        }
 
-                    if i == max_retries - 2:
-                        #base_wait_time = wait_time
-                        wait_boost = 300 # Wait 5 minutes before retrying
-                        # Arbitrary, but should be enough time to get around rate limiting
-                    wait_time = min(base_wait_time * (2 ** i), max_wait_time)
-                    jitter = random.uniform(0, wait_time)
-                    wait_time += jitter + wait_boost
-                    print(f"Attempt {i+1} failed. Retrying in {wait_time:.2f} seconds...")
-                    sleep(wait_time)
+                        throw new RipperException($"No image or video found: {postLink} > {anchor}");
+                    }
+                    
+                    break;
+                }
+                catch
+                {
+                    streak = 0;
+                    var waitBoost = 0;
+                    if (i == maxRetries - 1)
+                    {
+                        Console.WriteLine($"Failed to get media: {postLink}");
+                        if (logFailure)
+                        {
+                            LogFailedUrl(postLink);
+                        }
+                        failedUrls.Add((found, postLink));
+                        continue;
+                    }
 
-                if media_found:
-                    if i == 0:
-                        streak += 1
-                        if streak == 3:
-                            pass
-                            #base_wait_time *= 0.9 # Reduce wait time if successful on first try
-                            #base_wait_time = max(base_wait_time, true_base_wait_time)
-                    break
+                    if (i == maxRetries - 2)
+                    {
+                        //baseWaitTime = waitTime
+                        waitBoost = 300_000; // Wait 5 minutes before retrying
+                        // Arbitrary, but should be enough time to get around rate limiting
+                    }
 
-            return post_images, failed_urls
+                    waitTime = Math.Min(baseWaitTime * (int)Math.Pow(2, i), maxWaitTime);
+                    var jitter = (int)(Random.Shared.NextDouble() * waitTime);
+                    waitTime += jitter + waitBoost;
+                    Console.WriteLine($"Attempt {i + 1} failed. Retrying in {waitTime/1000.0:F2} seconds...");
+                    await Task.Delay(waitTime);
+                }
 
-        cookie_value = Config.config.cookies["Twitter"]
-        self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
-        dir_name = self.current_url.split("/")[3]
-        if "/media" not in self.current_url:
-            self.current_url = f"https://twitter.com/{dir_name}/media"
+                if (!mediFound)
+                {
+                    continue;
+                }
+
+                if (i == 0)
+                {
+                    streak += 1;
+                    if (streak == 3)
+                    {
+                        //baseWaitTime *= 0.9; // Reduce wait time if successful on first try
+                        //baseWaitTime = Math.Max(baseWaitTime, trueBaseWaitTime);
+                    }
+                }
+                    
+                break;
+            }
+            
+            return (postImages, failedUrls);
+        }
         
-        sleep(wait_time)
-        post_links = {} # Acts as an ordered set # Python 3.7+
-        new_posts = True
-        while new_posts:
-            new_posts = False
-            soup = self.soupify()
-            rows = soup.find("section").find("div").find("div").find_all("div", recursive=False)
-            row: bs4.element.Tag
-            for row in rows:
-                posts = row.find_all("li")
-                post: bs4.element.Tag
-                for post in posts:
-                    post_link = post.find("a")
-                    if post_link is None:
-                        continue
-                    post_link = post_link.get("href")
-                    if post_link not in post_links:
-                        post_links[post_link] = None
-                        new_posts = True
-            if new_posts:
-                self.scroll_page()
-                sleep(wait_time)
+        var cookieValue = Config.Instance.Cookies["Twitter"];
+        var cookieJar = Driver.GetCookieJar();
+        cookieJar.AddCookie("auth_token", cookieValue);
+        var dirName = CurrentUrl.Split("/")[3];
+        if (!CurrentUrl.Contains("/media"))
+        {
+            CurrentUrl = $"https://twitter.com/{dirName}/media";
+        }
         
-        images = []
-        failed_urls = []
-        num_posts = len(post_links)
-        for i, link in enumerate(post_links):
-            post_link = f"https://twitter.com{link}"
-            print(f"Post {i+1}/{num_posts}: {post_link}")
-            links, retry_urls = twitter_parse_helper(post_link, False)
-            total_found = len(images)
-            images.extend(links)
-            failed_urls.extend([(total_found + i, link) for i, link in retry_urls])
+        await Task.Delay(waitTime);
+        var postLinks = new OrderedHashSet<string>();
+        var newPosts = true;
+        while (newPosts)
+        {
+            newPosts = false;
+            var soup = await Soupify();
+            var rows = soup.SelectSingleNode("//section")
+                           .SelectSingleNode(".//div")
+                           .SelectNodes("./div");
+            foreach (var row in rows)
+            {
+                var posts = row.SelectNodes(".//li");
+                foreach (var post in posts)
+                {
+                    var postLinkNode = post.SelectSingleNode(".//a");
+                    if (postLinkNode is null)
+                    {
+                        continue;
+                    }
 
-        if failed_urls:
-            self.driver.delete_all_cookies()
-            self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
-            sleep(600) # Wait 10 minutes before retrying failed links
-            failed = [x for x in failed_urls] # Copy list
-            num_failed = len(failed)
-            failed_urls = []
-            for i, (index, link) in enumerate(failed):
-                print(f"Retrying failed post {i+1}/{num_failed}: {link}")
-                links, _ = twitter_parse_helper(link, True) # Not retrying failed links
-                images[index:index] = links # Insert at index i
+                    var postLink = postLinkNode.GetHref();
+                    if (postLinks.Add(postLink))
+                    {
+                        newPosts = true;
+                    }
+                }
+            }
 
-        return RipInfo(images, dir_name, self.filename_scheme)
+            if (newPosts)
+            {
+                ScrollPage();
+                await Task.Delay(waitTime);
+            }
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        var failedUrls = new List<(int, string)>();
+        foreach (var (i, link) in postLinks.Enumerate())
+        {
+            var postLink = $"https://twitter.com{link}";
+            Console.WriteLine($"Post {i + 1}/{postLinks.Count}: {postLink}");
+            var (links, retryUrls) = await TwitterParserHelper(postLink, false);
+            var totalFound = images.Count;
+            images.AddRange(links.Select(url => (StringImageLinkWrapper)url));
+            foreach (var (j, url) in retryUrls)
+            {
+                failedUrls.Add((totalFound + j, url));
+            }
+        }
+        
+        if (failedUrls.Count > 0)
+        {
+            cookieJar.DeleteAllCookies();
+            cookieJar.AddCookie("auth_token", cookieValue);
+            await Task.Delay(600_000); // Wait 10 minutes before retrying failed links
+            var failed = failedUrls.Select(url => url).ToList();
+            failedUrls = [];
+            var offset = 0;
+            foreach(var (i, (index, link)) in failed.Enumerate())
+            {
+                Console.WriteLine($"Retrying failed post {i + 1}/{failed.Count}: {link}");
+                var (links, retryUrls) = await TwitterParserHelper(link, true);
+                var linkTemp = links.Select(x => (StringImageLinkWrapper)x);
+                images.InsertRange(index + offset, linkTemp);
+                offset += links.Count;
+            }
+        }
 
-    def wantedbabes_parse(self) -> RipInfo:
-        """Parses the html for wantedbabes.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("div", id="main-content").find("h1").text
-        images = soup.find_all("div", class_="gallery")
-        images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
-        return RipInfo(images, dir_name, self.filename_scheme)
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
 
-    def wnacg_parse(self) -> RipInfo:
-        """
-            Parses the html for wnacg.com and extracts the relevant information necessary for downloading images from the site
-        """
-        if "-slist-" in self.current_url:
-            self.current_url = self.current_url.replace("-slist-", "-index-")
-        soup = self.soupify()
-        dir_name = soup.find("h2").text
-        num_images = soup.find("span", class_="name tb").text # Count number placements e.g. 100 -> 3, 1000 -> 4
-        magnitude = len(num_images)
-        image_links: list[str] = []
-        while True:
-            image_list = soup.find_all("li", class_="li tb gallary_item")
-            image_list = [img.find("a").get("href") for img in image_list]
-            image_links.extend(image_list)
-            next_page_button = soup.find("span", class_="next")
-            if next_page_button is None:
-                break
-            next_page_url = next_page_button.find("a").get("href")
-            if next_page_url == "":
-                raise RipperError("Next page url not found")
-            soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
+    /// <summary>
+    ///     Parses the html for wantedbabes.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> WantedBabesParse()
+    {
+        return GenericBabesHtmlParser("//div[@id='main-content']//h1", "//div[@class='gallery']");
+    }
 
-        images = []
-        for i, image_link in enumerate(image_links):
-            soup = self.soupify(f"https://www.wnacg.com{image_link}")
-            img = soup.find("img", id="picarea")
-            img_src = img.get("src")
-            images.append(img_src if "https:" in img_src else f"https:{img_src}")
-
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-        # while True:
-        #     image_list = soup.find_all("li", class_="li tb gallary_item")
-        #     image_list = [img.find("img").get("src") for img in image_list]
-        #     image_links.extend(image_list)
-        #     next_page_button = soup.find("span", class_="next")
-        #     if next_page_button is None:
-        #         break
-        #     next_page_url = next_page_button.find("a").get("href")
-        #     if next_page_url == "":
-        #         raise RipperError("Next page url not found")
-        #     soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
-
-        # images = []
-        # for i, image in enumerate(image_links):
-        #     ext = image.split(".")[-1]
-        #     url = f"https:{image}"
-        #     url = url.replace("t4.", "img5.").replace("/t/", "/")
-        #     if num_images.isnumeric():
-        #         url = "/".join(url.split("/")[:-1])
-        #         match magnitude:
-        #             case 1:
-        #                 url += f"/{i + 1:01d}.{ext}"
-        #             case 2:
-        #                 url += f"/{i + 1:02d}.{ext}"
-        #             case 3:
-        #                 url += f"/{i + 1:03d}.{ext}"
-        #             case _:
-        #                 raise RipperError("Invalid number of digits in number of images")
-        #     images.append(url)
-        # return RipInfo(images, dir_name, self.filename_scheme)
-
-    # TODO: Work on saving self.driver across sites to avoid relogging in
-    def v2ph_parse(self) -> RipInfo:
-        """Parses the html for v2ph.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        global logged_in
-        try:
-            cookies = pickle.load(open("cookies.pkl", "rb"))
-            logged_in = True
-        except IOError:
-            cookies = []
-            logged_in = False
-        for cookie in cookies:
-            self.driver.add_cookie(cookie)
-        LAZY_LOAD_ARGS = (True, 1250, 0.75)
-        self.lazy_load(*LAZY_LOAD_ARGS)
-        soup = self.soupify()
-        dir_name = soup.find("h1", class_="h5 text-center mb-3").text
-        num = soup.find("dl", class_="row mb-0").find_all("dd")[-1].text
-        digits = ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
-        for i, d in enumerate(num):
-            if d not in digits:
-                num = num[:i]
-                break
-        num_pages = int(num)
-        base_url = self.current_url
-        base_url = base_url.split("?")[0]
-        images = []
-        parse_complete = False
-        for i in range(num_pages):
-            if i != 0:
-                next_page = "".join([base_url, "?page=", str(i + 1)])
-                self.current_url = next_page
-                if not logged_in:
-                    curr_page = self.current_url
-                    self.current_url = "https://www.v2ph.com/login?hl=en"
-                    while self.current_url == "https://www.v2ph.com/login?hl=en":
-                        sleep(0.1)
-                    pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
-                    self.current_url = curr_page
-                    logged_in = True
-                self.lazy_load(*LAZY_LOAD_ARGS)
-                soup = self.soupify()
-            while True:
-                image_list = soup.find("div", class_="photos-list text-center").find_all("div",
-                                                                                         class_="album-photo my-2")
-                if len(image_list) == 0:
-                    parse_complete = True
-                    break
-                image_list = [img.find("img").get("src") for img in image_list]
-                if not any([img for img in image_list if "data:image/gif;base64" in img]):
-                    break
-                else:
-                    self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.CONTROL + Keys.HOME)
-                    self.lazy_load(*LAZY_LOAD_ARGS)
-                    soup = self.soupify()
-            images.extend(image_list)
-            if parse_complete:
-                break
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-    def xarthunter_parse(self) -> RipInfo:
-        """Parses the html for xarthunter.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        return self.__generic_html_parser_1()
-
-    def xmissy_parse(self) -> RipInfo:
-        """Parses the html for xmissy.nl and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("h1", id="pagetitle").text
-        images = soup.find("div", id="gallery").find_all("div", class_="noclick-image")
-        images = [
-            img.find("img").get("data-src") if img.find("img").get("data-src") is not None else img.find("img").get(
-                "src")
-            for img in images]
-        return RipInfo(images, dir_name, self.filename_scheme)
-
-     */
-    
     private async Task<RipInfo> WnacgParse()
     {
         if (CurrentUrl.Contains("-slist-"))
@@ -4548,15 +4526,13 @@ public partial class HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h2").InnerText;
         var numImages = soup.SelectSingleNode("//span[@class='name tb']").InnerText;
-        var magnitude = numImages.Length;
         var imageLinks = new List<string>();
 
         while (true)
         {
             var imageList = soup
                            .SelectNodes("//li[@class='li tb gallary_item']")
-                           .Select(n => n.SelectSingleNode(".//img"))
-                           .GetSrcs();
+                           .Select(n => n.SelectSingleNode(".//a").GetHref());
             imageLinks.AddRange(imageList);
             var nextPageButton = soup.SelectSingleNode("//span[@class='next']");
             if (nextPageButton is null)
@@ -4564,32 +4540,126 @@ public partial class HtmlParser
                 break;
             }
             
-            var nextPageUrl = nextPageButton.SelectSingleNode(".//a").GetAttributeValue("href", "");
-            if (nextPageUrl == "")
-            {
-                throw new RipperException("Next page url not found");
-            }
-            
+            var nextPageUrl = nextPageButton.SelectSingleNode(".//a").GetHref();
             soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
         }
         
         var images = new List<StringImageLinkWrapper>();
-        foreach (var (i, image) in imageLinks.Enumerate())
+        foreach (var image in imageLinks)
         {
-            var ext = image.Split(".")[^1];
-            var url = $"https:{image}";
-            url = url.Replace("t4.", "img5.").Replace("/t/", "/");
-            url = "/".Join(url.Split("/")[..^1]);
-            url += magnitude switch
-            {
-                1 => $"/{i + 1:D1}.{ext}",
-                2 => $"/{i + 1:D2}.{ext}",
-                3 => $"/{i + 1:D3}.{ext}",
-                _ => throw new Exception("Invalid number of digits in number of images")
-            };
-            images.Add(url);
+            soup = await Soupify($"https://www.wnacg.com{image}");
+            var img = soup.SelectSingleNode("//img[@id='picarea']");
+            var imgSrc = img.GetSrc();
+            images.Add(imgSrc.Contains("https:") ? imgSrc : $"https:{imgSrc}");
         }
         
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for v2ph.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> V2phParse()
+    {
+        // TODO: Work on bypassing cloudflare
+        // The parser works, but when changing pages, the cf_clearance cookie gets refreshed in a way that causes issues
+        var cookies = Config.Instance.Custom["V2PH"];
+        var frontendCookie = cookies["frontend"];
+        var frontendRmtCookie = cookies["frontend-rmt"];
+        var cfClearanceCookie = cookies["cf_clearance"];
+        var cookieJar = Driver.GetCookieJar();
+        cookieJar.SetCookie("cf_clearance", cfClearanceCookie);
+        Driver.Reload();
+        cookieJar.SetCookie("frontend", frontendCookie);
+        cookieJar.SetCookie("frontend-rmt", frontendRmtCookie);
+        Driver.Reload();
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+            ScrollPauseTime = 750
+        };
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
+        var dirName = soup.SelectSingleNode("//h1[@class='h5 text-center mb-3']")
+                          .InnerText;
+        var numPages = int.Parse(soup.SelectSingleNode("//dl[@class='row mb-0']")
+                                  .SelectNodes(".//dd")[^1]
+                                  .InnerText) / 10 + 1;
+        var baseLink = CurrentUrl.Split("?")[0];
+        var images = new List<StringImageLinkWrapper>();
+        var parseComplete = false;
+        for (var i = 0; i < numPages; i++)
+        {
+            if (i != 0)
+            {
+                var nextPage = $"{baseLink}?page={i + 1}";
+                CurrentUrl = nextPage;
+                var footer = Driver.TryFindElement(By.Id("footer-text"));
+                if (footer is not null && footer.Text.Contains("Cloudflare"))
+                {
+                    cookieJar.SetCookie("cf_clearance", cfClearanceCookie);
+                    Driver.Reload();
+                }
+                soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
+                Console.ReadLine();
+            }
+
+            List<StringImageLinkWrapper> imageList;
+            while (true)
+            {
+                imageList = soup.SelectSingleNode("//div[@class='photos-list text-center']")
+                                .SelectNodes(".//div[@class='album-photo my-2']")
+                                .Select(img => img.SelectSingleNode(".//img").GetSrc())
+                                .ToStringImageLinkWrapperList();
+                if (imageList.Count == 0)
+                {
+                    parseComplete = true;
+                    break;
+                }
+                
+                if (imageList.All(img => !img.Contains("data:image/gif;base64")))
+                {
+                    break;
+                }
+
+                Driver.FindElement(By.TagName("body")).SendKeys(Keys.Control + Keys.Home);
+                soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+            }
+            
+            images.AddRange(imageList);
+            if (parseComplete)
+            {
+                break;
+            }
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for xarthunter.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> XArtHunterParse()
+    {
+        return GenericHtmlParser("xarthunter");
+    }
+
+    /// <summary>
+    ///     Parses the html for xmissy.nl and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> XMissyParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@id='pagetitle']")
+                          .InnerText;
+        var images = soup.SelectSingleNode("//div[@id='gallery']")
+                            .SelectNodes(".//div[@class='noclick-image']")
+                            .Select(img => img.SelectSingleNode(".//img").GetNullableSrc() ?? img.SelectSingleNode(".//img").GetSrc())
+                            .ToStringImageLinkWrapperList();
+
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
@@ -4716,6 +4786,36 @@ public partial class HtmlParser
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
+    private async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
+    {
+        var parsedUrls = new List<string>();
+        var imgurKey = Config.Instance.Keys["Imgur"];
+        var headers = new Dictionary<string, string>
+        {
+            ["Authorization"] = $"Client-Id {imgurKey}"
+        };
+        var client = new HttpClient();
+        foreach (var url in urls)
+        {
+            if (!url.Contains("imgur"))
+            {
+                continue;
+            }
+
+            var response = await client.GetAsync(url);
+            var soup = await Soupify(response: response);
+            var imgurUrl = soup.SelectSingleNode("//a[@id='image-link']")
+                               .GetHref();
+            var imageHash = imgurUrl.Split("#")[^1];
+            var message = headers.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/image/{imageHash}");
+            response = await client.SendAsync(message);
+            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>();
+            parsedUrls.Add(responseJson!["data"]!["link"]!.Deserialize<string>()!);
+        }
+        
+        return parsedUrls;
+    }
+    
     private static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
         var externalLinks = new Dictionary<string, List<string>>();
@@ -4727,14 +4827,15 @@ public partial class HtmlParser
         return externalLinks;
     }
 
-    private static Dictionary<string, List<string>> ExtractExternalUrls(List<string> urls)
+    private static Dictionary<string, List<string>> ExtractExternalUrls(IEnumerable<string> urls)
     {
         var externalLinks = CreateExternalLinkDict();
+        var urlList = urls.ToList();
         foreach (var site in externalLinks.Keys)
         {
-            foreach (var link in urls.Where(url => !string.IsNullOrEmpty(url) && url.Contains(site))
-                                     .Select(UrlUtility.ExtractUrl)
-                                     .Where(link => link != ""))
+            foreach (var link in urlList.Where(url => !string.IsNullOrEmpty(url) && url.Contains(site))
+                                        .Select(UrlUtility.ExtractUrl)
+                                        .Where(link => link != ""))
             {
                 externalLinks[site].Add(link + '\n');
             }
@@ -4899,6 +5000,23 @@ public partial class HtmlParser
         //Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10); // TODO: Check if this is necessary
     }
 
+    private static void ScrollPage(int distance = 1250)
+    {
+        var currHeight = (long)Driver.ExecuteScript("return window.pageYOffset");
+        var scrollScript = $"window.scrollBy({{top: {currHeight + distance}, left: 0, behavior: 'smooth'}});";
+        Driver.ExecuteScript(scrollScript);
+    }
+    
+    private static void ScrollElementIntoView(IWebElement element)
+    {
+        Driver.ExecuteScript("arguments[0].scrollIntoView(true);", element);
+    }
+    
+    private static void LogFailedUrl(string url)
+    {
+        File.AppendAllText("failed.txt", $"{url}\n");
+    }
+    
     private static void Print(object? value)
     {
         Console.WriteLine(value);
@@ -4928,6 +5046,7 @@ public partial class HtmlParser
             SiteName = TestSiteCheck(givenUrl);
 
             Print($"Testing: {SiteName}Parse");
+            Print($"URL: {CurrentUrl}");
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName);
             var end = DateTime.Now;
@@ -4992,6 +5111,11 @@ public partial class HtmlParser
 
     private static string TestSiteConverter(string siteName)
     {
+        if (siteName == "x")
+        {
+            return "twitter";
+        }
+        
         if (siteName.Contains("100bucksbabes"))
         {
             siteName = siteName.Replace("100bucksbabes", "HundredBucksBabes");
