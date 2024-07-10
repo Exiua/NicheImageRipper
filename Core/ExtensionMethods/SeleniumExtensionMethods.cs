@@ -25,4 +25,35 @@ public static class SeleniumExtensionMethods
     {
         return driver.Manage().Cookies;
     }
+
+    /// <summary>
+    ///     Adds a cookie to the current session. Intended for adding a single cookie. If you need to add multiple
+    /// cookies, use the cookie jar directly.
+    /// </summary>
+    /// <param name="driver"></param>
+    /// <param name="cookieName"></param>
+    /// <param name="cookieValue"></param>
+    public static void AddCookie(this IWebDriver driver, string cookieName, string cookieValue)
+    {
+        driver.GetCookieJar().AddCookie(new Cookie(cookieName, cookieValue));   
+    }
+    
+    public static void AddCookie(this ICookieJar cookieJar, string cookieName, string cookieValue)
+    {
+        cookieJar.AddCookie(new Cookie(cookieName, cookieValue));
+    }
+
+    public static void SetCookie(this ICookieJar cookieJar, string cookieName, string newCookieValue)
+    {
+        var newCookie = new Cookie(cookieName, newCookieValue);
+        var cookie = cookieJar.GetCookieNamed(cookieName);
+        if (cookie is not null)
+        {
+            cookieJar.DeleteCookie(cookie);
+            newCookie = new Cookie(cookieName, newCookieValue, cookie.Domain, cookie.Path, cookie.Expiry, cookie.Secure,
+                cookie.IsHttpOnly, cookie.SameSite);
+        }
+        
+        cookieJar.AddCookie(newCookie);
+    }
 }

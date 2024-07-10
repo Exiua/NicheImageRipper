@@ -144,7 +144,7 @@ public partial class ImageLink
             var ext = parts[^1].Split(".")[^1];
             fileName = $"{parts[^2]}.{ext}";
         }
-        else if(url.Contains("thothub.lol/") && url.Contains("/?rnd="))
+        else if(url.Contains("thothub.lol/") && (url.Contains("/?rnd=") || url.Contains("get_image")))
         {
             fileName = url.Split("/")[^2];
         }
