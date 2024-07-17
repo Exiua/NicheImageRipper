@@ -124,7 +124,7 @@ public partial class ImageRipper
         {
             // Gets the general url for all images in this album
             var trimmedUrl = TrimUrl(FolderInfo.Urls[0].Url);
-            string[] extensions = [".jpg", ".gif", ".png", ".mp4", "t.jpg"];
+            string[] extensions = [".jpg", ".gif", ".png", ".webp", ".webm", ".mp4", "t.jpg"];
             
             // Downloads all images from the general url by incrementing the file number
             //  (eg. https://domain/gallery/##.jpg)
@@ -285,7 +285,7 @@ public partial class ImageRipper
         var numProgress = $"({filename}/{numFiles})";
         Console.WriteLine($"{ripUrl}    {numProgress}");
         var imagePath = Path.Combine(fullPath, $"{filename}{ext}");
-        await DownloadFile(imagePath, ripUrl, downloadStats);
+        await DownloadFile(imagePath, ripUrl, downloadStats, true);
         await Task.Delay(50);
     }
 
@@ -327,7 +327,7 @@ public partial class ImageRipper
                 break;
             case LinkInfo.None:
             default:
-                await DownloadFile(imagePath, ripUrl, downloadStats);
+                await DownloadFile(imagePath, ripUrl, downloadStats, false);
                 break;
         }
         await Task.Delay(50);
@@ -460,7 +460,7 @@ public partial class ImageRipper
         return Task.CompletedTask;
     }
     
-    private async Task DownloadFile(string imagePath, string url, DownloadStats downloadStats)
+    private async Task DownloadFile(string imagePath, string url, DownloadStats downloadStats, bool generatingManually)
     {
         if(imagePath[^1] == '/')
         {
@@ -472,7 +472,7 @@ public partial class ImageRipper
             var successful = false;
             for (var _ = 0; _ < RetryCount; _++)
             {
-                if (await DownloadFileHelper(url, imagePath))
+                if (await DownloadFileHelper(url, imagePath, generatingManually))
                 {
                     successful = true;
                     break;
@@ -503,7 +503,7 @@ public partial class ImageRipper
         }
     }
 
-    private async Task<bool> DownloadFileHelper(string url, string imagePath)
+    private async Task<bool> DownloadFileHelper(string url, string imagePath, bool generatingManually)
     {
         var badCert = false;
         await Task.Delay((int)(SleepTime * 1000));
@@ -557,7 +557,7 @@ public partial class ImageRipper
                 case HttpStatusCode.NotFound:
                 {
                     LogFailedUrl(url);
-                    if (SiteName != "imhentai")
+                    if (!generatingManually)
                     {
                         return false;
                     }
@@ -911,7 +911,7 @@ public partial class ImageRipper
     
     private void AddCookies()
     {
-        throw new NotImplementedException();
+        Console.Error.WriteLine("Method not yet implemented...");
     }
     
     private bool CookiesNeeded()

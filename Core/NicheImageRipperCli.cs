@@ -138,14 +138,25 @@ public class NicheImageRipperCli : NicheImageRipper
                             }
                         }
                         
-                        if(index >= UrlQueue.Count)
+                        var normalizedIndex = Math.Abs(index);
+                        if(normalizedIndex >= UrlQueue.Count)
                         {
                             Console.WriteLine("Index out of range");
                             break;
                         }
                         
-                        var url = UrlQueue[index];
-                        UrlQueue.RemoveAt(index);
+                        string url;
+                        if (index < 0)
+                        {
+                            url = UrlQueue[^normalizedIndex];
+                            UrlQueue.RemoveAt(UrlQueue.Count - normalizedIndex);
+                        }
+                        else
+                        {
+                            url = UrlQueue[normalizedIndex];
+                            UrlQueue.RemoveAt(index);
+                        }
+
                         Console.WriteLine($"Skipping {url}");
                         break;
                     case "save":
@@ -159,6 +170,9 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "load":
                         LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
                         Console.WriteLine("URLs loaded");
+                        break;
+                    case "peek":
+                        Console.WriteLine(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[0]);
                         break;
                     default:
                         var startIndex = UrlQueue.Count;

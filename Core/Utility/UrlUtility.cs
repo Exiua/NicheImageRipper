@@ -7,8 +7,8 @@ public static partial class UrlUtility
     private static readonly HashSet<string> SupportedSites =
     [
         "https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/",
-        "https://www.cup-e.club/", "https://girlsreleased.com/", "https://www.bustybloom.com/",
-        "https://www.morazzia.com/", "https://www.novojoy.com/", "https://www.hqbabes.com/",
+        "https://girlsreleased.com/", "https://www.bustybloom.com/",
+        "https://www.morazzia.com/",
         "https://www.silkengirl.com/", "https://www.babesandgirls.com/",
         "https://www.babeimpact.com/", "https://www.100bucksbabes.com/",
         "https://www.sexykittenporn.com/", "https://www.babesbang.com/",
@@ -30,7 +30,7 @@ public static partial class UrlUtility
         "https://www.hegrehunter.com/", "https://hanime.tv/", "https://members.hanime.tv/",
         "https://www.babesaround.com/", "https://www.8boobs.com/",
         "https://www.decorativemodels.com/", "https://www.girlsofdesire.org/",
-        "http://www.hqsluts.com/", "https://www.foxhq.com/",
+        "https://www.foxhq.com/",
         "https://www.rabbitsfun.com/", "https://www.erosberry.com/", "https://www.novohot.com/",
         "https://eahentai.com/",
         "https://www.nightdreambabe.com/", "https://xmissy.nl/", "https://www.glam0ur.com/",
@@ -40,23 +40,22 @@ public static partial class UrlUtility
         "https://www.nudity911.com/", "https://www.pbabes.com/",
         "https://www.sexybabesart.com/", "https://hustlebootytemptats.com/", "https://sexhd.pics/",
         "http://www.gyrls.com/",
-        "https://www.pinkfineart.com/", "https://www.sensualgirls.org/",
+        "https://www.sensualgirls.org/",
         "https://www.novoglam.com/", "https://www.cherrynudes.com/", "https://www.join2babes.com/",
         "https://gofile.io/", "https://www.babecentrum.com/", "http://www.cutegirlporn.com/",
         "https://everia.club/",
-        "https://imgbox.com/", "https://nonsummerjack.com/", "https://myhentaigallery.com/",
+        "https://imgbox.com/", "https://myhentaigallery.com/",
         "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
         "https://www.redgifs.com/", "https://kemono.su/", "https://www.sankakucomplex.com/",
-        "https://www.luscious.net/", "https://sxchinesegirlz.one/", "https://agirlpic.com/",
+        "https://www.luscious.net/", "https://sxchinesegirlz.one/",
         "https://www.v2ph.com/",
         "https://nudebird.biz/", "https://bestprettygirl.com/", "https://coomer.su/",
-        "https://imgur.com/", "https://www.8kcosplay.com/", "https://www.inven.co.kr/",
+        "https://imgur.com/", "https://www.inven.co.kr/",
         "https://arca.live/",
-        "https://www.cool18.com/", "https://maturewoman.xyz/", "https://putmega.com/",
-        "https://thotsbay.com/",
-        "https://tikhoe.com/", "https://lovefap.com/", "https://comics.8muses.com/",
+        "https://www.cool18.com/", "https://putmega.com/",
+        "https://comics.8muses.com/",
         "https://www.jkforum.net/",
-        "https://leakedbb.com/", "https://e-hentai.org/", "https://jpg.church/",
+        "https://leakedbb.com/", "https://e-hentai.org/",
         "https://www.artstation.com/",
         "https://porn3dx.com/", "https://www.deviantart.com/", "https://readmanganato.com/",
         "https://manganato.com/",
@@ -69,8 +68,9 @@ public static partial class UrlUtility
         "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
         "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
+        "https://x.com/", "https://yande.re/"
     ];
-    
+
     /// <summary>
     ///     Check the url to make sure it is from valid site
     /// </summary>
@@ -82,19 +82,21 @@ public static partial class UrlUtility
         var baseUrl = $"{parsedUri.Scheme}://{parsedUri.Host}/";
         return SupportedSites.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
     }
-    
+
     public static (string, float) SiteCheck(string givenUrl, Dictionary<string, string> requestHeaders)
     {
-        if(!UrlCheck(givenUrl))
+        if (!UrlCheck(givenUrl))
         {
             throw new Exception("Not a support site"); // TODO: RipperError
         }
-        
-        string[] specialDomains = [ "inven.co.kr", "danbooru.donmai.us" ];
+
+        string[] specialDomains = ["inven.co.kr", "danbooru.donmai.us"];
         var domain = new Uri(givenUrl).Host;
         requestHeaders["referer"] = $"https://{domain}/";
         var domainParts = domain.Split('.');
-        domain = specialDomains.Any(specialDomain => domain.Contains(specialDomain)) ? domainParts[^3] : domainParts[^2];
+        domain = specialDomains.Any(specialDomain => domain.Contains(specialDomain))
+            ? domainParts[^3]
+            : domainParts[^2];
         if (givenUrl.Contains("https://members.hanime.tv/") || givenUrl.Contains("https://hanime.tv/"))
         {
             requestHeaders["referer"] = "https://cdn.discordapp.com/";
@@ -107,6 +109,7 @@ public static partial class UrlUtility
         {
             return (domain, 5f);
         }
+
         return (domain, 0.2f);
     }
 
@@ -126,7 +129,7 @@ public static partial class UrlUtility
         var start = url.IndexOf("https:", StringComparison.Ordinal);
         return start != -1 ? url[start..] : url;
     }
-    
+
     private static string GDriveLinkParse(string url)
     {
         var start = url.IndexOf("https:", StringComparison.Ordinal);
@@ -134,7 +137,7 @@ public static partial class UrlUtility
         {
             return "";
         }
-        
+
         var m = GDriveLinkRegex1().Match(url);
         if (m.Success)
         {
@@ -157,7 +160,7 @@ public static partial class UrlUtility
 
             return url.Length < end ? "" : url[start..end];
         }
-        
+
         m = GDriveLinkRegex2().Match(url);
         if (m.Success)
         {
@@ -174,7 +177,7 @@ public static partial class UrlUtility
                     PrintUtility.Print(url);
                     return "";
             }
-            
+
             return url.Length < end ? "" : url[start..end];
         }
 
@@ -189,6 +192,7 @@ public static partial class UrlUtility
         {
             return "";
         }
+
         var m = MegaLinkRegex().Match(url);
         if (!m.Success)
         {
@@ -215,14 +219,16 @@ public static partial class UrlUtility
                 PrintUtility.Print($"Incorrect Match: {url}");
                 return "";
         }
-        
+
         return url.Length < end ? "" : url[start..end];
     }
 
     [GeneratedRegex(@"(\?usp=sharing|\?usp=share_link|\?id=)")]
     private static partial Regex GDriveLinkRegex1();
+
     [GeneratedRegex(@"(/folders/|/file/d/)")]
     private static partial Regex GDriveLinkRegex2();
+
     [GeneratedRegex(@"(/folder/|/#F!|/#!|/file/)")]
     private static partial Regex MegaLinkRegex();
 }

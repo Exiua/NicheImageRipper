@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Core.Enums;
 using JetBrains.Annotations;
+using Core.ExtensionMethods;
 
 namespace Core.DataStructures;
 
@@ -144,7 +145,7 @@ public partial class ImageLink
             var ext = parts[^1].Split(".")[^1];
             fileName = $"{parts[^2]}.{ext}";
         }
-        else if(url.Contains("thothub.lol/") && (url.Contains("/?rnd=") || url.Contains("get_image")))
+        else if(url.Contains("thothub.lol/") && (url.Contains("/?rnd=") || url.Contains("get_image") || url.Contains("get_file")))
         {
             fileName = url.Split("/")[^2];
         }
@@ -161,6 +162,11 @@ public partial class ImageLink
             var parts = url.Split("/");
             fileName = parts.Length >= 9 ? parts[8] : parts[^1].Split(")")[0];
             LinkInfo = url.Contains(".m3u8") ? LinkInfo.M3U8 : LinkInfo.None;
+        }
+        else if (url.Contains("yande.re/"))
+        {
+            fileName = url.Split("/")[^1];
+            fileName = fileName.Remove("yande.re").Replace("%20", "-");
         }
         else
         {
