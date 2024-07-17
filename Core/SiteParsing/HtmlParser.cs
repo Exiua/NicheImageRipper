@@ -1,5 +1,4 @@
-﻿using System.Collections.Specialized;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Text;
@@ -30,9 +29,7 @@ public partial class HtmlParser
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
 
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
-
-    private static bool LoggedIn;
-
+    
     private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(""));
     private static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
 
@@ -224,6 +221,8 @@ public partial class HtmlParser
             "x" => TwitterParse,
             "wantedbabes" => WantedBabesParse,
             "xarthunter" => XArtHunterParse,
+            "xmissy" => XMissyParse,
+            "yande" => YandeParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -248,7 +247,7 @@ public partial class HtmlParser
     private static FirefoxOptions InitializeOptions(string siteName)
     {
         var options = new FirefoxOptions();
-        if ((siteName != "v2ph" || LoggedIn) && siteName != "debug")
+        if (siteName != "debug")
         {
             options.AddArgument("--headless");
         }
@@ -515,7 +514,7 @@ public partial class HtmlParser
     {
         return siteName switch
         {
-            "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(), // Formerly 2
+            "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(),
             "elitebabes" => GenericHtmlParserHelper2(),
             "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub" 
                 or "metarthunter" or "pmatehunter" or "xarthunter" => GenericHtmlParserHelper3(),
@@ -576,41 +575,63 @@ public partial class HtmlParser
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
-    #endregion
 
-    // TODO: Test that method works or remove if the site is permanently down
     /// <summary>
-    ///     Parses the html for agirlpic.com and extracts the relevant information necessary for downloading images from the site
+    ///     Make requests to booru-like sites and extract image links
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> AGirlPicParse()
+    private async Task<RipInfo> BooruParse(string siteName, string baseUrl, string pageParameterName, 
+                                           int startingPageIndex, int limit, string[]? jsonObjectNavigation = null, 
+                                           Dictionary<string, string>? headers = null)
     {
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='entry-title'").InnerText;
-        var baseUrl = CurrentUrl;
-        var numPages = soup.SelectSingleNode("//div[@class='page-links']")
-                          .SelectNodes("./a")
-                          .Count + 1;
-        var images = new List<StringImageLinkWrapper>();
-        for (var i = 1; i <= numPages; i++)
+        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
+        tags = Uri.UnescapeDataString(tags);
+        var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
+        var session = new HttpClient();
+        if (headers is not null)
         {
-            var tags = soup.SelectSingleNode("//div[@class='entry-content clear']")
-                           .SelectNodes("./div[@class='separator']")
-                           .ToList();
-            foreach (var imgTags in tags.Select(tag => tag.SelectNodes(".//img")))
+            foreach (var (key, value) in headers)
             {
-                images.AddRange(imgTags.Select(img => img.GetSrc()).Select(dummy => (StringImageLinkWrapper)dummy));
+                session.DefaultRequestHeaders.Add(key, value);
             }
-
-            if (i != numPages)
+        }
+        var querySeparator = baseUrl[^1] == '&' ? "" : "&";
+        
+        var response =
+            await session.GetAsync($"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}");
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        if (jsonObjectNavigation is not null)
+        {
+            json = jsonObjectNavigation.Aggregate(json, (current, obj) => current![obj]);
+        }
+        
+        var data = json!.AsArray();
+        var images = new List<StringImageLinkWrapper>();
+        var pid = startingPageIndex + 1;
+        while (true)
+        {
+            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
+            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+            if(data.Count < limit)
             {
-                soup = await Soupify($"{baseUrl}{i + 1}/");
+                break;
             }
+            
+            response = await session.GetAsync($"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}");
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            if (jsonObjectNavigation is not null)
+            {
+                json = jsonObjectNavigation.Aggregate(json, (current, obj) => current![obj]);
+            }
+            
+            data = json!.AsArray();
+            pid++;
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
+    
+    #endregion
 
     /// <summary>
     ///     Parses the html for animeh.to and extracts the relevant information necessary for downloading images from the site
@@ -628,7 +649,9 @@ public partial class HtmlParser
                               .Split("Manga")[1]
                               .Trim();
             var metadata = soup.SelectSingleNode("//div[@class='col-md-8 col-sm-12']");
-            var pageCountRaw = metadata.SelectNodes("./div")[2].InnerText.Split(" ")[1];
+            var pageCountRaw = metadata.SelectNodes("./div")
+                                       .First(div => div.InnerText.Contains("Page"))
+                                       .InnerText.Split(" ")[1];
             var pageCount = int.Parse(pageCountRaw);
             var imageUrl = soup.SelectSingleNode("//div[@id='pictureViewer']")
                                .SelectSingleNode(".//img")
@@ -642,15 +665,18 @@ public partial class HtmlParser
                 var image = $"{imageUrl}/{i}.{extension}";
                 images.Add(image);
             }
+            
+            return new RipInfo(images, dirName, FilenameScheme, generate: true, numUrls: pageCount);
         }
-        else if (CurrentUrl.Contains("/hepisode/"))
+
+        if (CurrentUrl.Contains("/hepisode/"))
         {
             // var highestQualityButton = Driver.FindElement(By.XPath("(//div[@class='source-btn-group']/a)[2]"));
             // highestQualityButton.Click();
             var soup = await Soupify();
             dirName = soup.SelectSingleNode("//h1[@class='main-night']").InnerText
-                              .Split("Hentai")[1]
-                              .Trim();
+                          .Split("Hentai")[1]
+                          .Trim();
             var playButton = Driver.FindElement(By.XPath("//button[@class='btn btn-play']"));
             playButton.Click();
             await WaitForElement("//iframe[@id='episode-frame']", timeout: -1);
@@ -1241,8 +1267,6 @@ public partial class HtmlParser
         return await DotPartyParse("https://coomer.su");
     }
 
-    // TODO: Remove cup-e.club as the site is no longer active
-
     /// <summary>
     ///     Parses the html for cutegirlporn.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -1293,29 +1317,13 @@ public partial class HtmlParser
     ///     Parses the html for danbooru.donmai.us and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    private async Task<RipInfo> DanbooruParse()
+    private Task<RipInfo> DanbooruParse()
     {
-        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
-        tags = Uri.UnescapeDataString(tags);
-        var dirName = "[Danbooru] " + tags.Remove("+").Remove("tags=");
-        var images = new List<StringImageLinkWrapper>();
-        var session = new HttpClient();
-        session.DefaultRequestHeaders.Add("User-Agent", "NicheImageRipper");
-        var response = await session.GetAsync($"https://danbooru.donmai.us/posts.json?{tags}");
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
-        var data = json!.AsArray();
-        var i = 0;
-        while (data.Count != 0)
-        {
-            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
-            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
-            response = await session.GetAsync($"https://danbooru.donmai.us/posts.json?{tags}&page={i}");
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
-            data = json!.AsArray();
-            i += 1;
-        }
-
-        return new RipInfo(images, dirName, FilenameScheme);
+        return BooruParse("Danbooru", "https://danbooru.donmai.us/posts.json?", 
+            "page", 0, 200, headers: new Dictionary<string, string>
+            {
+                ["User-Agent"] = "NicheImageRipper"
+            });
     }
 
     /// <summary>
@@ -1590,8 +1598,6 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
-    // TODO: Remove 8kcosplay.com as all images are behind premium file hosting sites
-
     /// <summary>
     ///     Parses the html for elitebabes.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -1730,14 +1736,32 @@ public partial class HtmlParser
     private async Task<RipInfo> EroThotsParse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='head-title']")
+        string dirName;
+        List<StringImageLinkWrapper> images;
+        if (CurrentUrl.Contains("/gif/"))
+        {
+            dirName = soup.SelectSingleNode("//h1[@class='mb-0 title']").InnerText;
+            var player = soup.SelectSingleNode("//div[@class='video-player gifs']/video/source");
+            images = [player.GetSrc()];
+        }
+        else if (CurrentUrl.Contains("/video/"))
+        {
+            dirName = soup.SelectSingleNode("//h1[@class='mb-0 title']").InnerText;
+            var player = soup.SelectSingleNode("//video[@class='v-player']/source");
+            images = [player.GetSrc()];
+        }
+        else /*if (CurrentUrl.Contains("/a/"))*/
+        {
+            dirName = soup.SelectSingleNode("//div[@class='head-title']")
                           .SelectSingleNode(".//span")
                           .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='album-gallery']")
+            images = soup.SelectSingleNode("//div[@class='album-gallery']")
                          .SelectNodes("./a")
                          .Select(link => link.GetAttributeValue("data-src"))
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();
+        }
+        
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
@@ -2048,36 +2072,10 @@ public partial class HtmlParser
     ///     Parses the html for gelbooru.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GelbooruParse()
+    private Task<RipInfo> GelbooruParse()
     {
-        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
-        tags = Uri.UnescapeDataString(tags);
-        var dirName = "[Gelbooru] " + tags.Replace("+", " ").Replace("tags=", "");
-        var session = new HttpClient();
-        var response =
-            await session.GetAsync($"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
-        var data = json!["post"]!.AsArray();
-        var images = new List<StringImageLinkWrapper>();
-        var pid = 1;
-        while (true)
-        {
-            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
-            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
-            response = await session.GetAsync(
-                $"https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
-            pid += 1;
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
-            var posts = json!["post"];
-            if (posts is null)
-            {
-                break;
-            }
-
-            data = posts.AsArray();
-        }
-
-        return new RipInfo(images, dirName, FilenameScheme);
+        return BooruParse("Gelbooru", "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&", 
+            "pid", 0, 100, jsonObjectNavigation: ["post"]);
     }
 
     /// <summary>
@@ -2435,9 +2433,6 @@ public partial class HtmlParser
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
-    // TODO: Remove hqbabes as it's 404
-    // TODO: Remove hqsluts as it's down
 
     /// <summary>
     ///     Parses the html for 100bucksbabes.com and extracts the relevant information necessary for downloading images from the site
@@ -2622,8 +2617,6 @@ public partial class HtmlParser
         return await GenericHtmlParser("joymiihub");
     }
     
-    // TODO: Remove jpg.church as it's down
-    
     /// <summary>
     ///     Parses the html for kemono.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -2673,8 +2666,6 @@ public partial class HtmlParser
         return await GenericBabesHtmlParser("//div[@id='gallery_header']//h1", "//div[@class='gallery_thumb']");
     }
     
-    // TODO: Remove lovefap as it's not loading
-
     /// <summary>
     ///     Parses the html for luscious.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -2835,8 +2826,6 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
-    // TODO: Remove maturewoman.xyz as the bulk of the content is behind premium download links
-
     /// <summary>
     ///     Parses the html for metarthunter.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -2846,8 +2835,6 @@ public partial class HtmlParser
         return GenericHtmlParser("metarthunter");
     }
     
-    // TODO: Remove mitaku.net as it uses ad-based link shortener download links
-
     /// <summary>
     ///     Parses the html for sex.micmicdoll.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -3218,7 +3205,6 @@ public partial class HtmlParser
             images.AddRange(imgs);
         }
         
-        // TODO: Add doujinshi support
         soup = await Soupify($"https://nijie.info/members_dojin.php?id={memberId}", delay: delay);
         posts = [];
         var doujins = soup.SelectSingleNode("//div[@class='mem-index clearboth']")
@@ -3259,8 +3245,6 @@ public partial class HtmlParser
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
-    // TODO: Remove nonsummerjack.com as the site is down
 
     /// <summary>
     ///     Parses the html for novoglam.com and extracts the relevant information necessary for downloading images from the site
@@ -3279,8 +3263,6 @@ public partial class HtmlParser
     {
         return GenericBabesHtmlParser("//div[@id='viewIMG']//h1", "//div[@class='runout']/a");
     }
-    
-    // TODO: novojoy.com may be compromised
 
     /// <summary>
     ///     Parses the html for novoporn.com and extracts the relevant information necessary for downloading images from the site
@@ -3390,8 +3372,6 @@ public partial class HtmlParser
     {
         return GenericBabesHtmlParser("(//div[@class='box_654'])[2]//h1", "//div[@style='margin-left:35px;']//a[@rel='nofollow']");
     }
-    
-    // TODO: Remove pinkfineart.com as site is down
 
     private Task<RipInfo> PixelDrainParse()
     {
@@ -3765,30 +3745,10 @@ public partial class HtmlParser
     ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    private async Task<RipInfo> Rule34Parse()
+    private Task<RipInfo> Rule34Parse()
     {
-        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
-        tags = Uri.UnescapeDataString(tags);
-        var dirName = "[Rule34] " + tags.Replace("+", " ").Replace("tags=", "");
-        var session = new HttpClient();
-        var response =
-            await session.GetAsync($"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid=0&{tags}");
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
-        var data = json!.AsArray();
-        var images = new List<StringImageLinkWrapper>();
-        var pid = 1;
-        while (data.Count != 0)
-        {
-            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
-            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
-            response = await session.GetAsync(
-                $"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}");
-            pid += 1;
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
-            data = json!.AsArray();
-        }
-
-        return new RipInfo(images, dirName, FilenameScheme);
+        return BooruParse("Rule34", "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
+            "pid", 0, 1000);
     }
     
     /// <summary>
@@ -4101,7 +4061,7 @@ public partial class HtmlParser
             Increment = 625,
             ScrollPauseTime = 1
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 500);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
         var dirName = soup.SelectSingleNode("//div[@class='headline']")
                           .SelectSingleNode(".//h1")
                           .InnerText;
@@ -4121,17 +4081,28 @@ public partial class HtmlParser
         }
         else
         {
-            var posts = soup.SelectSingleNode("//div[@class='images']")
-                            .SelectNodes(".//img")
-                            .Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/"));
-            images = posts.ToStringImageLinkWrapperList();
+            while (true)
+            {
+                var posts = soup.SelectSingleNode("//div[@class='images']")
+                                .SelectNodes(".//img")
+                                .Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/"))
+                                .ToArray();
+                if(posts.Any(p => p.Contains("data:")))
+                {
+                    await Task.Delay(1000);
+                    ScrollToTop();
+                    soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+                    continue;
+                }
+                
+                images = posts.ToStringImageLinkWrapperList();
+                break;
+            }
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
-    // TODO: Remove thotsbay.com as the site may have been compromised
-    
     /// <summary>
     ///     Parses the html for thotsbay.tv and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -4159,8 +4130,6 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
-    // TODO: Remove tikhoe.com as the site is down
-
     /// <summary>
     ///     Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -4299,7 +4268,8 @@ public partial class HtmlParser
         {
             soup = await Soupify($"{pagerUrl}{i}", delay: 3000);
             var src = soup.SelectSingleNode("//img[@class='img-responsive reader-img']")
-                          .GetSrc();
+                          .GetSrc()
+                          .Replace("&amp;", "&");
             images.Add(src);
         }
 
@@ -4316,9 +4286,9 @@ public partial class HtmlParser
 
         var trueBaseWaitTime = 2500;
         var baseWaitTime = trueBaseWaitTime;
-        var maxWaitTime = 60000;
+        const int maxWaitTime = 60000;
         var waitTime = baseWaitTime;
-        var maxRetries = 4;
+        const int maxRetries = 4;
         var streak = 0;
 
         # endregion
@@ -4330,7 +4300,7 @@ public partial class HtmlParser
             var found = 0;
             for (var i = 0; i < maxRetries; i++)
             {
-                var mediFound = false;
+                var mediaFound = false;
                 try
                 {
                     var soup = await Soupify(postLink, delay: baseWaitTime, xpath: "//article");
@@ -4344,7 +4314,7 @@ public partial class HtmlParser
                         var link = vid.GetSrc();
                         postImages.Add(link);
                         found += 1;
-                        mediFound = true;
+                        mediaFound = true;
                         break;
                     }
                     content = contents[2].SelectNodes("./div")[1];
@@ -4359,7 +4329,7 @@ public partial class HtmlParser
                             link = $"{link}&name=4096x4096"; // Get the highest resolution image
                             postImages.Add(link);
                             found += 1;
-                            mediFound = true;
+                            mediaFound = true;
                             break;
                         }
                         var vid = anchor.SelectSingleNode(".//video");
@@ -4367,7 +4337,7 @@ public partial class HtmlParser
                         {
                             postImages.Add(vid.GetSrc());
                             found += 1;
-                            mediFound = true;
+                            mediaFound = true;
                             break;
                         }
 
@@ -4405,7 +4375,7 @@ public partial class HtmlParser
                     await Task.Delay(waitTime);
                 }
 
-                if (!mediFound)
+                if (!mediaFound)
                 {
                     continue;
                 }
@@ -4623,7 +4593,8 @@ public partial class HtmlParser
                     break;
                 }
 
-                Driver.FindElement(By.TagName("body")).SendKeys(Keys.Control + Keys.Home);
+                //Driver.FindElement(By.TagName("body")).SendKeys(Keys.Control + Keys.Home);
+                ScrollToTop();
                 soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
             }
             
@@ -4652,6 +4623,9 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> XMissyParse()
     {
+        var loadButton = Driver.TryFindElement(By.Id("loadallbutton"));
+        loadButton?.Click();
+        await Task.Delay(1000);
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h1[@id='pagetitle']")
                           .InnerText;
@@ -4663,6 +4637,16 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for yande.re and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private Task<RipInfo> YandeParse()
+    {
+        return BooruParse("Yande.re", "https://yande.re/post.json?", "page", 
+            1, 100);
+    }
+    
     #endregion
 
     private static string ExtractJsonObject(string json)
@@ -4997,7 +4981,6 @@ public partial class HtmlParser
 
             lastHeight = newHeight;
         }
-        //Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10); // TODO: Check if this is necessary
     }
 
     private static void ScrollPage(int distance = 1250)
@@ -5005,6 +4988,11 @@ public partial class HtmlParser
         var currHeight = (long)Driver.ExecuteScript("return window.pageYOffset");
         var scrollScript = $"window.scrollBy({{top: {currHeight + distance}, left: 0, behavior: 'smooth'}});";
         Driver.ExecuteScript(scrollScript);
+    }
+    
+    private static void ScrollToTop()
+    {
+        Driver.ExecuteScript("window.scrollTo(0, 0);");
     }
     
     private static void ScrollElementIntoView(IWebElement element)

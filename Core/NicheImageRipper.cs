@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
@@ -11,7 +12,7 @@ using File = System.IO.File;
 
 namespace Core;
 
-public abstract class NicheImageRipper
+public abstract partial class NicheImageRipper
 {
     public static Config Config { get; set; } = Config.Instance;
     
@@ -119,9 +120,57 @@ public abstract class NicheImageRipper
     
     private static bool CheckIfUrlsAreEqual(string url1, string url2)
     {
+        var host1 = new Uri(url1).Host;
+        var host2 = new Uri(url2).Host;
+        if (host1 != host2)
+        {
+            return false;
+        }
+        
+        if (host1.Contains("pornhub.com"))
+        {
+            return PornhubUrlEquality(url1, url2);
+        }
+
+        if (host1.Contains("yande") || host1.Contains("danbooru") || host1.Contains("gelbooru") || host1.Contains("rule34"))
+        {
+            return BooruUrlEquality(url1, url2);
+        }
+        
         var normalizedUrl1 = url1.Split("?")[0];
         var normalizedUrl2 = url2.Split("?")[0];
         return normalizedUrl1 == normalizedUrl2;
+    }
+
+    private static bool BooruUrlEquality(string url1, string url2)
+    {
+        var tags1 = BooruRegex().Match(url1).Groups[1].Value;
+        var tags2 = BooruRegex().Match(url2).Groups[1].Value;
+        return tags1 == tags2;
+    }
+
+    private static bool PornhubUrlEquality(string url1, string url2)
+    {
+        if(url1.Contains("view_video"))
+        {
+            if(!url2.Contains("view_video"))
+            {
+                return false;
+            }
+
+            var viewKey1 = PornhubViewKeyRegex().Match(url1).Groups[1].Value;
+            var viewKey2 = PornhubViewKeyRegex().Match(url2).Groups[1].Value;
+            return viewKey1 == viewKey2;
+        }
+
+        if (url2.Contains("view_video"))
+        {
+            return false;
+        }
+
+        var url1Parts = url1.Split("/");
+        var url2Parts = url2.Split("/");
+        return url1Parts[4] == url2Parts[4];
     }
 
     protected async Task<string> RipUrl()
@@ -286,4 +335,9 @@ public abstract class NicheImageRipper
             History.Add(new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls));
         }
     }
+
+    [GeneratedRegex("viewkey=([0-9a-z]+)")]
+    private static partial Regex PornhubViewKeyRegex();
+    [GeneratedRegex(@"(tags=[^&]+)")]
+    private static partial Regex BooruRegex();
 }
