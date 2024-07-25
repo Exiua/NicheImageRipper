@@ -425,7 +425,15 @@ public partial class ImageRipper
         {
             throw new Exception("Unable to login to MegaCmd");
         }
-        
+
+        if (imageLink.Url.Contains("/file/"))
+        {
+            path = Path.GetDirectoryName(path)!;
+        }
+        else
+        {
+            Directory.CreateDirectory(path);
+        }
         MegaApi.Download(imageLink.Url, path);
         return Task.CompletedTask;
     }

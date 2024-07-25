@@ -159,6 +159,10 @@ public class NicheImageRipperCli : NicheImageRipper
 
                         Console.WriteLine($"Skipping {url}");
                         break;
+                    case "debug":
+                        HtmlParser.SetDebugMode(true);
+                        Debugging = true;
+                        break;
                     case "save":
                         SaveData();
                         Console.WriteLine("Data saved");

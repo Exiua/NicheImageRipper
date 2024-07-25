@@ -68,7 +68,7 @@ public static partial class UrlUtility
         "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
         "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
-        "https://x.com/", "https://yande.re/"
+        "https://x.com/", "https://yande.re/", "https://cup2d.com/"
     ];
 
     /// <summary>

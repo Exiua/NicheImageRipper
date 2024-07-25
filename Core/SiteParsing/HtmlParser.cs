@@ -46,6 +46,7 @@ public partial class HtmlParser
         get => Driver.Url;
         set => Driver.Url = value;
     }
+    private static bool Debugging { get; set; }
 
     public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
                       FilenameScheme filenameScheme = FilenameScheme.Original)
@@ -61,6 +62,13 @@ public partial class HtmlParser
         GivenUrl = "";
     }
 
+    public static void SetDebugMode(bool debug)
+    {
+        Driver.Quit();
+        Driver = debug ? new FirefoxDriver(InitializeOptions("debug")) : new FirefoxDriver(InitializeOptions(""));
+        Debugging = debug;
+    }
+    
     public async Task<RipInfo> ParseSite(string url)
     {
         if (File.Exists("partial.json"))
@@ -223,6 +231,9 @@ public partial class HtmlParser
             "xarthunter" => XArtHunterParse,
             "xmissy" => XMissyParse,
             "yande" => YandeParse,
+            "18kami" => EighteenKamiParse,
+            "cup2d" => Cup2DParse,
+            "5ge" => FiveGeParse, 
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1268,6 +1279,36 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for cup2d.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Cup2DParse()
+    {
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250
+        });
+        var dirName = soup.SelectSingleNode("//h1[@class='post-title entry-title']/a").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var node = soup.SelectSingleNode("//div[@class='entry-content gridshow-clearfix']/div")
+                       .SelectNodes("./*[self::a or self::iframe]");
+        foreach (var n in node)
+        {
+            if(n.Name == "a")
+            {
+                images.Add((StringImageLinkWrapper)n.GetHref());
+            }
+            else
+            {
+                images.Add((StringImageLinkWrapper)n.GetSrc().Replace("/embed/", "/file/"));
+            }
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for cutegirlporn.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -1580,6 +1621,27 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for 18kami.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> EighteenKamiParse()
+    {
+        var url = CurrentUrl.Split("/")[..5].Join("/").Replace("/album/", "/photo/");
+        var soup = await Soupify(url, lazyLoadArgs: new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250
+        });
+        var dirName = soup.SelectSingleNode("//div[@class='panel-heading']/div[@class='pull-left']").InnerText;
+        var images = soup.SelectSingleNode("//div[@class='row thumb-overlay-albums']")
+                         .SelectNodes(".//img")
+                         .Select(img => $"https://18kami.com{img.GetSrc()}")
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
     ///     Parses the html for 8muses.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -1797,6 +1859,40 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for f5girls.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> F5GirlsParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectNodes("//div[@class='container']")[2]
+                          .SelectSingleNode(".//h1")
+                          .InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var currUrl = CurrentUrl.Replace("?page=1", "");
+        var pages = soup.SelectSingleNode("//ul[@class='pagination']")
+                        .SelectNodes(".//li")
+                        .Count - 1;
+        for (var i = 0; i < pages; i++)
+        {
+            var imageList = soup.SelectNodes("//img[@class='album-image lazy']")
+                                .Select(img => img.GetSrc())
+                                .Select(dummy => (StringImageLinkWrapper)dummy)
+                                .ToList();
+            images.AddRange(imageList);
+            if (i >= pages - 1)
+            {
+                continue;
+            }
+
+            var nextPage = $"{currUrl}?page={i + 2}";
+            soup = await Soupify(nextPage);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for fapello.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -1857,40 +1953,6 @@ public partial class HtmlParser
             soup = await Soupify(((string)img).Remove("video:"));
             var vid = soup.SelectSingleNode("//source").GetSrc();
             images[i] = vid;
-        }
-
-        return new RipInfo(images, dirName, FilenameScheme);
-    }
-
-    /// <summary>
-    ///     Parses the html for f5girls.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> F5GirlsParse()
-    {
-        var soup = await Soupify();
-        var dirName = soup.SelectNodes("//div[@class='container']")[2]
-                          .SelectSingleNode(".//h1")
-                          .InnerText;
-        var images = new List<StringImageLinkWrapper>();
-        var currUrl = CurrentUrl.Replace("?page=1", "");
-        var pages = soup.SelectSingleNode("//ul[@class='pagination']")
-                        .SelectNodes(".//li")
-                        .Count - 1;
-        for (var i = 0; i < pages; i++)
-        {
-            var imageList = soup.SelectNodes("//img[@class='album-image lazy']")
-                                .Select(img => img.GetSrc())
-                                .Select(dummy => (StringImageLinkWrapper)dummy)
-                                .ToList();
-            images.AddRange(imageList);
-            if (i >= pages - 1)
-            {
-                continue;
-            }
-
-            var nextPage = $"{currUrl}?page={i + 2}";
-            soup = await Soupify(nextPage);
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
@@ -1960,6 +2022,27 @@ public partial class HtmlParser
         return GenericHtmlParser("femjoyhunter");
     }
 
+    /// <summary>
+    ///     Parses the html for happy.5ge.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> FiveGeParse()
+    {
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+            ScrollPauseTime = 1000
+        });
+        var dirName = soup.SelectSingleNode("//h1[@class='joe_detail__title']").InnerText;
+        var images = soup.SelectSingleNode("//div[@class='joe_gird']")
+                         .SelectNodes(".//img")
+                         .Select(img => img.GetSrc())
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for flickr.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -3574,8 +3657,80 @@ public partial class HtmlParser
         cookieJar.AddCookie(new Cookie("il", cookie));
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));
         cookieJar.AddCookie(new Cookie("adBlockAlertHidden", "1"));
-        CurrentUrl = CurrentUrl; // Refreshes the page
+        Driver.Reload();
         var soup = await Soupify();
+        string dirName;
+        List<StringImageLinkWrapper> images;
+        if (CurrentUrl.Contains("/model/") || CurrentUrl.Contains("/pornstar/"))
+        {
+            dirName = soup.SelectSingleNode("//h1[@itemprop='name']").InnerText;
+            List<string> posts = [];
+            var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
+            soup = await Soupify($"{baseUrl}/photos/public");
+            var postNodes = soup.SelectNodes("//ul[@id='moreData']//a");
+            if(postNodes is not null)
+            {
+                posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
+            }
+
+            soup = await Soupify($"{baseUrl}/gifs/video");
+            postNodes = soup.SelectNodes("//ul[@id='moreData']//a");
+            if (postNodes is not null)
+            {
+                posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
+            }
+
+            soup = await Soupify($"{baseUrl}/videos");
+            postNodes = soup.SelectNodes("//ul[@id='uploadedVideosSection']//a");
+            if (postNodes is not null)
+            {
+                posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
+            }
+            
+            while(true)
+            {
+                postNodes = soup.SelectNodes("//ul[@id='mostRecentVideosSection']//a");
+                if (postNodes is null)
+                {
+                    break;
+                }
+                
+                posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
+                var nextPage = soup.SelectSingleNode("//li[@class='page_next omega']");
+                if (nextPage is null)
+                {
+                    break;
+                }
+                
+                var nextPageUrl = nextPage.SelectSingleNode("./a").GetHref();
+                soup = await Soupify($"https://www.pornhub.com{nextPageUrl}");
+            }
+            
+            images = [];
+            posts = posts.Where(post => !post.Contains("/channels/")
+                                      && !post.Contains("/pornstar/")
+                                      && !post.Contains("/model/")).ToList();
+            foreach (var (i, post) in posts.Enumerate())
+            {
+                Console.WriteLine($"Parsing post {i + 1}/{posts.Count}");
+                soup = await Soupify(post);
+                var (postImages, _) = await PornhubLinkExtractor(soup);
+                images.AddRange(postImages);
+                if (i % 50 == 0)
+                {
+                    await Task.Delay(5000);
+                }
+            }
+        }
+        else
+        {
+            (images, dirName) = await PornhubLinkExtractor(soup);
+        }
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    private static async Task<(List<StringImageLinkWrapper> images, string dirName)> PornhubLinkExtractor(HtmlNode soup)
+    {
         string dirName;
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("view_video"))
@@ -3629,7 +3784,7 @@ public partial class HtmlParser
                 images.Add(url);
             }
         }
-        else // Assume gif
+        else if(CurrentUrl.Contains("/gif/"))
         {
             dirName = soup.SelectSingleNode("//div[@class='gifTitle']/h1")?.InnerText ?? "";
             if (dirName == "")
@@ -3642,7 +3797,12 @@ public partial class HtmlParser
             var url = soup.SelectSingleNode("//video[@id='gifWebmPlayer']/source").GetSrc();
             images = [url];
         }
-        return new RipInfo(images, dirName, FilenameScheme);
+        else
+        {
+            throw new RipperException($"Unknown url: {CurrentUrl}");
+        }
+
+        return (images, dirName);
     }
 
     /// <summary>
@@ -5112,6 +5272,11 @@ public partial class HtmlParser
         if (siteName.Contains("chapmanganato"))
         {
             siteName = siteName.Replace("chapmanganato", "Manganato");
+        }
+        
+        if(siteName.Contains("18kami"))
+        {
+            siteName = siteName.Replace("18kami", "EighteenKami");
         }
         
         if (siteName[0] >= '0' && siteName[0] <= '9')

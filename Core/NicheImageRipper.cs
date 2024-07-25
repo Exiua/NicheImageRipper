@@ -33,6 +33,8 @@ public abstract partial class NicheImageRipper
     public int RetryDelay { get; set; } = 1000; // In milliseconds
     
     public List<HistoryEntry> History { get; set; } = [];
+    
+    protected bool Debugging { get; set; } = false;
 
     protected virtual void LoadHistory()
     {
@@ -198,6 +200,12 @@ public abstract partial class NicheImageRipper
                 {
                     retry++;
                     await Task.Delay(RetryDelay);
+                    if (Debugging)
+                    {
+                        Console.WriteLine(e);
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadKey();
+                    }
                     continue;
                 }
 
