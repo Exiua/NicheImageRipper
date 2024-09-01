@@ -235,6 +235,7 @@ class HtmlParser:
         if site_name not in ("v2ph", "debug") or logged_in:
             options.add_argument("--headless")
         options.set_preference("general.useragent.override", USER_AGENT)
+        options.set_preference("media.volume_scale", "0.0")
         # options.set_preference("dom.disable_beforeunload", True)
         # options.set_preference("browser.tabs.warnOnClose", False)
         return options
@@ -801,7 +802,7 @@ class HtmlParser:
         if url != "":
             self.current_url = url
         soup = self.soupify()
-        if url != "":
+        if url == "":
             dir_name = soup.find("h1", class_="text-[24px] font-bold text-dark dark:text-white").text
         else:
             dir_name = ""
@@ -2087,7 +2088,7 @@ class HtmlParser:
         base_url = "/".join(base_url)
         soup = self.soupify(base_url)
         dir_name = soup.find("a", class_="user-link").text.strip()
-        header_buttons = soup.find("div", class_="user-header-buttons").find_all("a")
+        header_buttons: ResultSet[Tag] = soup.find("div", class_="user-header-buttons").find_all("a")
         has_movies = False
         has_art = False
         for button in header_buttons:
@@ -2101,9 +2102,10 @@ class HtmlParser:
         if has_art:
             soup = self.soupify(f"{base_url}/art", lazy_load_args=lazy_load_args)
             posts = get_posts(soup, False)
-            for post in posts:
-                #print(post)
-                soup = self.soupify(post, lazy_load_args=lazy_load_args)
+            num_posts = len(posts)
+            for i, post in enumerate(posts):
+                print(f"Parsing Art Post {i + 1}/{num_posts}")
+                soup = self.soupify(post, lazy_load_args=lazy_load_args, delay=0.1)
                 art_images = soup.find("div", {"class": "art-images"})
                 if art_images:
                     art_images = art_images.find_all("img")
@@ -2138,7 +2140,10 @@ class HtmlParser:
         if has_movies:
             soup = self.soupify(f"{base_url}/movies", lazy_load_args=lazy_load_args)
             posts = get_posts(soup, True)
-            for post in posts:
+            num_posts = len(posts)
+            for i, post in enumerate(posts):
+                sleep(0.1)
+                print(f"Parsing Movie Post {i + 1}/{len(posts)}")
                 self.current_url = post
                 self.lazy_load(scroll_by=True)
                 video_start = self.try_find_element(By.XPATH, "//div[@class='video-barrier']/child::*[2]")
@@ -2154,10 +2159,17 @@ class HtmlParser:
                     options_btn.click()
                     highest_res = self.try_find_element(By.XPATH, "//div[@class='ng-option-select']/child::*[2]/child::*[1]")
                     if highest_res:
-                        highest_res.click()
+                        classes = highest_res.get_attribute("class")
+                        if "selected" not in classes:
+                            highest_res.click()
                     soup = self.soupify()
                     video = soup.find("video")
                     video_url = video.find("source").get("src")
+                    while video_url.startswith("data:"):
+                        sleep(1)
+                        soup = self.soupify()
+                        video = soup.find("video")
+                        video_url = video.find("source").get("src")
                     images.append(video_url)
                 else:
                     soup = self.soupify()
