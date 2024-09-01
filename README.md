@@ -19,7 +19,7 @@ NicheImageRipper is an image ripper written in python 3 to download albums from 
 
 ## How To Use
 
-Download `NicheImageRipper.rar` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases), extract all files, install the required dependencies, 
+Download `NicheImageRipper.7z` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases), extract all files, install the required dependencies, 
 and run `NicheImageRipper.py`.
 
 ## Dependencies
@@ -32,7 +32,7 @@ to start the virtual environment. Then run `pip install -r requirements.txt` to 
 
 ### External Dependencies
 
-The program also requires `ffmpeg` and `geckodriver` to be installed.
+The program also requires `ffmpeg`, `geckodriver`, and `MegaCli` to be installed.
 
 ## Sites Currently Supported:
 
