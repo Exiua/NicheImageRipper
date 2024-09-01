@@ -6,10 +6,7 @@ import os
 import pickle
 import random
 import re
-import signal
-import subprocess
 import time
-from math import ceil
 from os import path
 from subprocess import Popen
 from time import sleep
@@ -22,8 +19,7 @@ import requests
 import selenium
 import tldextract
 import urllib3.exceptions
-from bs4 import BeautifulSoup
-from pathlib import Path
+from bs4 import BeautifulSoup, ResultSet, Tag
 from pybooru import Danbooru
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -33,19 +29,20 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
-from Enums import FilenameScheme
+from Enums import FilenameScheme, LinkInfo
 from ImageLink import ImageLink
 from RipInfo import RipInfo
-from RipperExceptions import InvalidSubdomain, RipperError
-from Util import SCHEME, url_check
+from RipperExceptions import InvalidLoginRequest, InvalidSubdomain, RipperError
+from TemporaryTokenManager import TokenManager
+from UrlUtility import extract_url
+from Util import SCHEME, url_check, get_login_creds
 
 PROTOCOL: str = "https:"
 PARSER: str = "lxml"  # The XML parsing engine to be used by BeautifulSoup
-DRIVER_HEADER: str = (
-    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0")
-# Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html)
-# Chrome/W.X.Y.Z‡ Safari/537.36")
-EXTERNAL_SITES: tuple = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com")
+USER_AGENT: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0"
+ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp")
+EXTERNAL_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com")
+PARSEABLE_SITES: tuple[str, ...] = ("drive.google.com", "mega.nz", "sendvid.com", "dropbox.com")
 
 requests_header: dict[str, str] = {
     'User-Agent':
@@ -56,7 +53,7 @@ requests_header: dict[str, str] = {
     'cookie':
         ''
 }
-logged_in: bool
+logged_in: bool = False
 
 
 class HtmlParser:
@@ -65,6 +62,7 @@ class HtmlParser:
         global logged_in
         options = self.__initialize_options(site_name)
         self.driver: webdriver.Firefox = webdriver.Firefox(options=options)
+        self.driver.implicitly_wait(0)
         self.driver_pid: Popen = self.driver.service.process.pid
         self.interrupted: bool = False
         self.site_name: str = site_name
@@ -118,7 +116,6 @@ class HtmlParser:
             "8boobs": self.eightboobs_parse,
             "decorativemodels": self.decorativemodels_parse,
             "girlsofdesire": self.girlsofdesire_parse,
-            "tuyangyan": self.tuyangyan_parse,
             "hqsluts": self.hqsluts_parse,
             "foxhq": self.foxhq_parse,
             "rabbitsfun": self.rabbitsfun_parse,
@@ -205,7 +202,15 @@ class HtmlParser:
             "erome": self.erome_parse,
             "ggoorr": self.ggoorr_parse,
             "google": self.google_parse,
-            "dropbox": self.dropbox_parse
+            "dropbox": self.dropbox_parse,
+            "simpcity": self.simpcity_parse,
+            "bunkrr": self.bunkrr_parse,
+            "omegascans": self.omegascans_parse,
+            "toonily": self.toonily_parse,
+            "pornhub": self.pornhub_parse,
+            "twitter": self.twitter_parse,
+            "x": self.twitter_parse,
+            "wnacg": self.wnacg_parse
         }
 
     def __enter__(self) -> HtmlParser:
@@ -227,11 +232,12 @@ class HtmlParser:
     @staticmethod
     def __initialize_options(site_name: str = "") -> Options:
         options = Options()
-        if site_name != "v2ph" or logged_in:
-            options.add_argument("-headless")
-        options.add_argument(DRIVER_HEADER)
-        options.set_preference("dom.disable_beforeunload", True)
-        options.set_preference("browser.tabs.warnOnClose", False)
+        if site_name not in ("v2ph", "debug") or logged_in:
+            options.add_argument("--headless")
+        options.set_preference("general.useragent.override", USER_AGENT)
+        options.set_preference("media.volume_scale", "0.0")
+        # options.set_preference("dom.disable_beforeunload", True)
+        # options.set_preference("browser.tabs.warnOnClose", False)
         return options
 
     def parse_site(self, url: str) -> RipInfo:
@@ -263,22 +269,23 @@ class HtmlParser:
             Check which site the url is from while also updating requests_header['referer'] to match the domain that
             hosts the files
         """
-        if url_check(self.given_url):
-            special_domains = ("inven.co.kr", "danbooru.donmai.us")
-            domain = urlparse(self.given_url).netloc
-            requests_header['referer'] = "".join([SCHEME, domain, "/"])
-            domain_parts = domain.split(".")
-            domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
-                domain_parts[-2]
-            # Hosts images on a different domain
-            if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
-                requests_header['referer'] = "https://cdn.discordapp.com/"
-            elif "https://kemono.party/" in self.given_url:
-                requests_header['referer'] = ""
-            elif "https://e-hentai.org/" in self.given_url:
-                self.sleep_time = 5
-            return domain
-        raise RipperError("Not a support site")
+        if not url_check(self.given_url):
+            raise RipperError("Not a support site")
+
+        special_domains = ("inven.co.kr", "danbooru.donmai.us")
+        domain = urlparse(self.given_url).netloc
+        requests_header['referer'] = f"{SCHEME}{domain}/" #"".join([SCHEME, domain, "/"])
+        domain_parts = domain.split(".")
+        domain = domain_parts[-3] if any(special_domain in domain for special_domain in special_domains) else \
+            domain_parts[-2]
+        # Hosts images on a different domain
+        if "https://members.hanime.tv/" in self.given_url or "https://hanime.tv/" in self.given_url:
+            requests_header['referer'] = "https://cdn.discordapp.com/"
+        elif "https://kemono.party/" in self.given_url:
+            requests_header['referer'] = ""
+        elif "https://e-hentai.org/" in self.given_url:
+            self.sleep_time = 5
+        return domain
 
     @staticmethod
     def sequential_rename(old_name: str, new_name: str):
@@ -303,7 +310,6 @@ class HtmlParser:
     @staticmethod
     def write_partial_save(site_info: RipInfo, given_url: str):
         """Saves parsed site data to quickly retrieve in event of a failure"""
-        # TODO
         data: dict[str, RipInfo | str] = {
             given_url: site_info.serialize(),
             "cookies": requests_header["cookie"],
@@ -335,42 +341,18 @@ class HtmlParser:
             return self.__nijie_login()
         if self.site_name == "porn3dx":
             return self.__porn3dx_login()
+        if self.site_name == "simpcity":
+            return self.__simpcity_login()
+
+        raise InvalidLoginRequest(f"Site {self.site_name} does not support login")
 
     def sleep(self, seconds: float):
         jitter = random.random() * self.jitter
         sleep(seconds + jitter)
 
-    def __get_login_creds(self, site_name: str) -> tuple[str, str]:
-        login = Config.config.logins[site_name]
-        return login["Username"], login["Password"]
-
-    def __porn3dx_login(self) -> bool:
-        def try_send_key(xpath: str, key: str):
-            fields = self.driver.find_elements(By.XPATH, xpath)
-            for field in fields:
-                try:
-                    field.send_keys(key)
-                    break
-                except selenium.common.exceptions.ElementNotInteractableException:
-                    pass
-
-        curr_url = self.current_url
-        username, password = self.__get_login_creds("Porn3dx")
-        self.current_url = "https://porn3dx.com/login"
-        logged_in_to_site = False
-        if username and password:
-            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="text"]', username)
-            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="password"]', password)
-            self.driver.find_elements(By.XPATH, '//button[@type="submit"]')[-1].click()
-            while "/login" in self.driver.current_url:
-                sleep(1)
-            logged_in_to_site = True
-            self.current_url = curr_url
-        return logged_in_to_site
-
     def __newgrounds_login(self) -> bool:
         curr_url = self.current_url
-        username, password = self.__get_login_creds("Newgrounds")
+        username, password = get_login_creds("Newgrounds")
         self.current_url = "https://newgrounds.com/passport"
         self.driver.find_element(By.XPATH, '//input[@name="username"]').send_keys(username)
         self.driver.find_element(By.XPATH, '//input[@name="password"]').send_keys(password)
@@ -382,7 +364,7 @@ class HtmlParser:
 
     def __nijie_login(self) -> bool:
         orig_url = self.current_url
-        username, password = self.__get_login_creds("Nijie")
+        username, password = get_login_creds("Nijie")
         self.current_url = "https://nijie.info/login.php"
         if "age_ver.php" in self.current_url:
             self.driver.find_element(By.XPATH, '//li[@class="ok"]').click()
@@ -396,9 +378,52 @@ class HtmlParser:
         self.current_url = orig_url
         return True
 
+    def __porn3dx_login(self) -> bool:
+        def try_send_key(xpath: str, key: str):
+            fields = self.driver.find_elements(By.XPATH, xpath)
+            for field in fields:
+                try:
+                    field.send_keys(key)
+                    break
+                except selenium.common.exceptions.ElementNotInteractableException:
+                    pass
+
+        curr_url = self.current_url
+        username, password = get_login_creds("Porn3dx")
+        self.current_url = "https://porn3dx.com/login"
+        logged_in_to_site = False
+        if username and password:
+            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="text"]', username)
+            try_send_key('//form[@class="space-y-4 md:space-y-6"]//input[@type="password"]', password)
+            self.driver.find_elements(By.XPATH, '//button[@type="submit"]')[-1].click()
+            while "/login" in self.driver.current_url:
+                sleep(1)
+            logged_in_to_site = True
+            self.current_url = curr_url
+        return logged_in_to_site
+
+    def __simpcity_login(self) -> bool:
+        download_url = self.current_url
+        username, password = get_login_creds("SimpCity")
+        self.current_url = "https://simpcity.su/login/login"
+        login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        while not login_input:
+            sleep(0.1)
+            login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
+        login_input.send_keys(username)
+        password_input = self.driver.find_element(By.XPATH, '//input[@name="password"]')
+        password_input.send_keys(password)
+        btn_xpath = '//button[@class="button--primary button button--icon button--icon--login rippleButton"]'
+        button = self.driver.find_element(By.XPATH, btn_xpath)
+        button.click()
+        while self.try_find_element(By.XPATH, btn_xpath):
+            sleep(0.1)
+        self.current_url = download_url
+        return True
+
     def __titsintops_login(self) -> bool:
         download_url = self.current_url
-        username, password = self.__get_login_creds("TitsInTops")
+        username, password = get_login_creds("TitsInTops")
         self.current_url = "https://titsintops.com/phpBB2/index.php?login/login"
         # self.driver.find_element(By.XPATH, '//a[@class="p-navgroup-link p-navgroup-link--textual p-navgroup-link--logIn"]').click()
         login_input = self.try_find_element(By.XPATH, '//input[@name="login"]')
@@ -440,10 +465,12 @@ class HtmlParser:
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def __dot_party_parse(self, domain_url: str):
+        WAIT_TIME = 0.5
+
         cookies = self.driver.get_cookies()
         cookie_str = ''
         for c in cookies:
-            cookie_str += "".join([c['name'], '=', c['value'], ';'])
+            cookie_str += f"{c['name']}={c['value']};" #"".join([c['name'], '=', c['value'], ';']) 
         requests_header["cookie"] = cookie_str
         base_url = self.driver.current_url
         base_url = base_url.split("/")
@@ -459,6 +486,7 @@ class HtmlParser:
 
         page = 0
         image_links = []
+        orig_url = self.current_url
         while True:
             page += 1
             print("".join(["Parsing page ", str(page)]))
@@ -467,11 +495,13 @@ class HtmlParser:
             image_links.extend(image_list)
             next_page = f"{page_url}?o={str(page * 50)}"
             print(next_page)
-            soup = self.soupify(next_page)
-            self.__print_html(soup)
-            test_str = soup.find("h2", class_="site-section__subheading")
-            if test_str is not None:
+            soup = self.soupify(next_page, delay=WAIT_TIME)
+            #self.__print_html(soup)
+            if "?o=" not in self.current_url or self.current_url == orig_url:
                 break
+            # test_str = soup.find("h2", class_="site-section__subheading")
+            # if test_str is not None or self.current_url == orig_url:
+            #     break
 
         # endregion
 
@@ -480,16 +510,16 @@ class HtmlParser:
         images = []
         external_links: dict[str, list[str]] = self.__create_external_link_dict()
         num_posts = len(image_links)
-        ATTACHMENTS = (".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp")
         for i, link in enumerate(image_links):
             print("".join(["Parsing post ", str(i + 1), " of ", str(num_posts)]))
             print(link)
-            soup = self.soupify(link)
-            links = soup.find_all("a")
+            soup = self.soupify(link, delay=WAIT_TIME)
+            self.__print_html(soup)
+            links: ResultSet[Tag] = soup.find_all("a")
             links = [link.get("href") for link in links]
-            possible_links_p = soup.find_all("p")
+            possible_links_p: ResultSet[Tag] = soup.find_all("p")
             possible_links = [tag.text for tag in possible_links_p]
-            possible_links_div = soup.find_all("div")
+            possible_links_div: ResultSet[Tag] = soup.find_all("div")
             possible_links.extend([tag.text for tag in possible_links_div])
             ext_links = self.__extract_external_urls(links)
             for site in ext_links:
@@ -499,9 +529,16 @@ class HtmlParser:
                 external_links[site].extend(ext_links[site])
             attachments = [domain_url + link if domain_url not in link and not any(protocol in link for protocol in
                                                                                    ("https", "http")) else link for link
-                           in links if any(ext in link for ext in ATTACHMENTS)]
+                           in links if link and any(ext in link for ext in ATTACHMENTS)]
+            # This should really be a for loop rather than list comprehension
+            # domain + link [1] if domain_url is not in link and link doesn't contain http or https [2] else link
+            # for links that contain any of the attachment extensions anywhere in the link [3]
+            # [1]: String concatenation of the domain and the link
+            # [2]: Href may only contain the path and not the domain as that gets automatically added by the browser when clicking the anchor tag
+            # [3]: Attachment extensions are prefixed with a period so they can only be found at the end of the link (assuming correctly formatted links)
             images.extend(attachments)
-            images.extend(external_links["drive.google.com"])
+            for site in PARSEABLE_SITES:
+                images.extend(external_links[site])
             image_list = soup.find("div", class_="post__files")
             if image_list is not None:
                 image_list = image_list.find_all("a", class_="fileThumb image-link")
@@ -510,7 +547,10 @@ class HtmlParser:
 
         # endregion
 
+        for site in external_links:
+            external_links[site] = self.__remove_duplicates(external_links[site])
         self.__save_external_links(external_links)
+        images = self.__remove_duplicates(images)
         if any("dropbox.com/" in url for url in images):
             old_links = images
             images: list[str | ImageLink] = []
@@ -519,8 +559,7 @@ class HtmlParser:
                     images.append(link)
                 else:
                     rip_info = self.dropbox_parse(link)
-                    if rip_info.dir_name:
-                        images.extend(rip_info.urls)
+                    images.extend(rip_info.urls)
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def agirlpic_parse(self) -> RipInfo:
@@ -563,21 +602,8 @@ class HtmlParser:
             Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
         """
         # Parses the html of the site
-        soup = self.soupify()
         username = self.current_url.split("/")[3]
-        dir_name = soup.find("h1", class_="artist-name").text
-        cache_script = soup.find("div", class_="wrapper-main").find_all("script")[1].text
-
-        # region Id Extraction
-
-        start_ = cache_script.find("quick.json")
-        end_ = cache_script.rfind(");")
-        json_data = cache_script[start_ + 14:end_ - 1].replace("\n", "").replace(r'\"', '"')
-        json_data = json.loads(json_data)
-        user_id = json_data["id"]
-        user_name = json_data["full_name"]
-
-        # endregion
+        dir_name = username
 
         # region Get Posts
 
@@ -593,6 +619,7 @@ class HtmlParser:
             response = scraper.get(url)
             response_data = response.json()
             data = response_data["data"]
+            d: str
             for d in data:
                 posts.append(d["permalink"].split("/")[4])
             if first_iter:
@@ -616,7 +643,7 @@ class HtmlParser:
                 sleep(5)
                 response = scraper.get(url)
             response_data = response.json()
-            assets = response_data["assets"]
+            assets: str = response_data["assets"]
             urls = [asset["image_url"].replace("/large/", "/4k/") for asset in assets]
             images.extend(urls)
 
@@ -768,6 +795,38 @@ class HtmlParser:
                 break
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def bunkrr_parse(self, url: str = "") -> RipInfo:
+        """
+            Parses the html for bunkrr.su and extracts the relevant information necessary for downloading images from the site
+        """
+        if url != "":
+            self.current_url = url
+        soup = self.soupify()
+        if url == "":
+            dir_name = soup.find("h1", class_="text-[24px] font-bold text-dark dark:text-white").text
+        else:
+            dir_name = ""
+
+        if "/a/" in self.current_url:
+            images = []
+            image_posts = soup.find("div", class_="grid-images").find_all("a")
+            for post in image_posts:
+                href = post.get("href")
+                ext = href.split(".")[-1]
+                if ext in ("mp4", "webm", "avi", "rar", "zip", "7z"):
+                    url = f"https://fries.bunkrr.su{href}".replace("/d/", "/")
+                else:
+                    img = post.find("img")
+                    url = img.get("src").replace("/thumbs/", "/")
+                    url = url.replace(".png", f".{ext}")
+                images.append(url)
+        else:
+            anchor = soup.find("a", class_="text-white inline-flex items-center justify-center rounded-[5px] "
+                                           "py-2 px-4 text-center text-base font-bold hover:text-white mb-2")
+            url = anchor.get("href")
+            images = [url]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def buondua_parse(self) -> RipInfo:
         """Parses the html for buondua.com and extracts the relevant information necessary for downloading images
         from the site"""
@@ -796,6 +855,19 @@ class HtmlParser:
     def bustybloom_parse(self) -> RipInfo:
         """Parses the html for bustybloom.com and extracts the relevant information necessary for downloading images from the site"""
         return self.__generic_html_parser_2()
+
+    def camwhores_parse(self, url: str = "") -> RipInfo:
+        """
+            Parses the html for camwhores.tv and extracts the relevant information necessary for downloading images from the site
+        """
+        if url != "":
+            self.current_url = url
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="headline").find("h1").text
+        video = soup.find("div", class_="fp-player").find("video")
+        url = video.get("src")
+        images = [url]
+        return RipInfo(images, dir_name, self.filename_scheme)
 
     def cherrynudes_parse(self) -> RipInfo:
         """Parses the html for cherrynudes.com and extracts the relevant information necessary for downloading images from the site"""
@@ -981,6 +1053,9 @@ class HtmlParser:
 
         internal_use = False
         if dropbox_url:
+            if "/scl/fi/" in dropbox_url:
+                dropbox_url = dropbox_url.replace("dl=0", "dl=1")
+                return RipInfo([dropbox_url], "", self.filename_scheme)
             self.current_url = dropbox_url
             internal_use = True
         soup = self.soupify(xpath='//span[@class="dig-Breadcrumb-link-text"]')
@@ -996,6 +1071,10 @@ class HtmlParser:
                     raise
         else:
             dir_name = ""
+
+        
+        if "/scl/fi/" in self.current_url:
+            return RipInfo([self.current_url.replace("dl=0", "dl=1")], "", self.filename_scheme)
 
         images = []
         filenames = []
@@ -1988,25 +2067,143 @@ class HtmlParser:
 
     def newgrounds_parse(self) -> RipInfo:
         """Parses the html for newgrounds.com and extracts the relevant information necessary for downloading images from the site"""
+        
+        def get_posts(soup: BeautifulSoup, movies: bool) -> list[str]:
+            posts = []
+            post_years = soup.find("div", class_="userpage-browse-content").find("div").find_all("div", recursive=False)
+            for post_year in post_years:
+                if not movies:
+                    post_links = post_year.find_all("div", class_="span-1 align-center")
+                else:
+                    post_links = post_year.find_all("div", class_="portalsubmission-cell")
+                post_links = [post.find("a").get("href") for post in post_links]
+                posts.extend(post_links)
+            return posts
+        
         # Parses the html of the site
-        if self.current_url.endswith("/art/"):
-            url = self.current_url.split("/")[:3]
-            url = "/".join(url)
-            self.current_url = f"{url}/art/"
-        self.site_login()
-        self.lazy_load(scroll_by=True)
-        soup = self.soupify()
+        lazy_load_args = {"scroll_by": True}
+        cookie_value = Config.config.cookies["Newgrounds"]
+        self.driver.add_cookie({"name": "vmk1du5I8m", "value": cookie_value})
+        base_url = self.current_url.split("/")[:3]
+        base_url = "/".join(base_url)
+        soup = self.soupify(base_url)
         dir_name = soup.find("a", class_="user-link").text.strip()
+        header_buttons: ResultSet[Tag] = soup.find("div", class_="user-header-buttons").find_all("a")
+        has_movies = False
+        has_art = False
+        for button in header_buttons:
+            href = button.get("href")
+            if href == "/movies":
+                has_movies = True
+            elif href == "/art":
+                has_art = True
+
         images = []
-        post_years = soup.find("div", class_="userpage-browse-content").find("div").find_all("div", recursive=False)
-        for post_year in post_years:
-            posts = post_year.find_all("div", class_="span-1 align-center")
-            for post in posts:
-                image_title = post.find("a").get("href").split("/")[-1]
-                thumbnail_url = post.find("img").get("src")
-                image_url = thumbnail_url.replace("/thumbnails/", "/images/") \
-                    .replace("_full", f"_{dir_name}_{image_title}").replace(".webp", ".png")
-                images.append(image_url)
+        if has_art:
+            soup = self.soupify(f"{base_url}/art", lazy_load_args=lazy_load_args)
+            posts = get_posts(soup, False)
+            num_posts = len(posts)
+            for i, post in enumerate(posts):
+                print(f"Parsing Art Post {i + 1}/{num_posts}")
+                soup = self.soupify(post, lazy_load_args=lazy_load_args, delay=0.1)
+                art_images = soup.find("div", {"class": "art-images"})
+                if art_images:
+                    art_images = art_images.find_all("img")
+                    art_images = [img.get("src") for img in art_images]
+                    images.extend(art_images)
+                else:
+                    art_view_gallery = soup.find("div", class_="art-view-gallery")
+                    if art_view_gallery:
+                        seen = set()
+                        while True:
+                            art_view_gallery = soup.find("div", class_="art-view-gallery")
+                            container = art_view_gallery.find("div", class_="ng-img-container-sync relative")
+                            anchor = container.find("a")
+                            link = anchor.get("href")
+                            if link in seen:
+                                break
+                            seen.add(link)
+                            images.append(link)
+                            next_btn = self.try_find_element(By.XPATH, "//a[@class='gallery-nav right']")
+                            try:
+                                next_btn.click()
+                            except selenium.common.exceptions.ElementClickInterceptedException:
+                                blackout_zone = self.try_find_element(By.XPATH, "(//div[@class='blackout-bookend'])[3]")
+                                blackout_zone.click()
+                                next_btn.click()
+                            sleep(0.5)
+                            soup = self.soupify()
+                    else:
+                        img = soup.find("div", class_="image").find("img")
+                        images.append(img.get("src"))
+
+        if has_movies:
+            soup = self.soupify(f"{base_url}/movies", lazy_load_args=lazy_load_args)
+            posts = get_posts(soup, True)
+            num_posts = len(posts)
+            for i, post in enumerate(posts):
+                sleep(0.1)
+                print(f"Parsing Movie Post {i + 1}/{len(posts)}")
+                self.current_url = post
+                self.lazy_load(scroll_by=True)
+                video_start = self.try_find_element(By.XPATH, "//div[@class='video-barrier']/child::*[2]")
+                if video_start:
+                    try:
+                        video_start.click()
+                    except selenium.common.exceptions.ElementClickInterceptedException:
+                        blackout_zone = self.try_find_element(By.XPATH, "(//div[@class='blackout-bookend'])[3]")
+                        blackout_zone.click()
+                        video_start.click()
+                    sleep(0.5)
+                    options_btn = self.try_find_element(By.XPATH, "//button[@title='Display Options']")
+                    options_btn.click()
+                    highest_res = self.try_find_element(By.XPATH, "//div[@class='ng-option-select']/child::*[2]/child::*[1]")
+                    if highest_res:
+                        classes = highest_res.get_attribute("class")
+                        if "selected" not in classes:
+                            highest_res.click()
+                    soup = self.soupify()
+                    video = soup.find("video")
+                    video_url = video.find("source").get("src")
+                    while video_url.startswith("data:"):
+                        sleep(1)
+                        soup = self.soupify()
+                        video = soup.find("video")
+                        video_url = video.find("source").get("src")
+                    images.append(video_url)
+                else:
+                    soup = self.soupify()
+                    # Assumes the video is an emulated flash video
+                    script = soup.find("div", class_="body-guts top").find_all("script")[1].text
+                    video_url = re.findall(r"swf: ?\"([^\"]+)\"", script)[0]
+                    #print(video_url)
+                    images.append(video_url)
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def nhentai_parse(self) -> RipInfo:
+        """
+            Parses the html for nhentai.net and extracts the relevant information necessary for downloading images from the site
+        """
+        # Parses the html of the site
+        self.lazy_load(True, increment=1250)
+        btn = self.try_find_element(By.ID, "show-all-images-button") #self.driver.find_element(By.XPATH, "//button[@id='show-all-images-button']")
+        if btn:
+            self.driver.execute_script("arguments[0].scrollIntoView();", btn)
+            btn.click()
+        self.lazy_load(True, increment=1250)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="title").text
+        thumbnails = soup.find("div", class_="thumbs").find_all("img")
+        thumbnails = [img.get("data-src") for img in thumbnails]
+        images = []
+        thumb: str
+        for thumb in thumbnails:
+            if not thumb:
+                continue
+            thumb = re.sub(r"t\d\.", "i7.", thumb)
+            thumb = thumb.replace("t.", ".")
+            images.append(thumb)
+
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def nightdreambabe_parse(self) -> RipInfo:
@@ -2025,7 +2222,7 @@ class HtmlParser:
         self.site_name = "nijie"
         self.site_login()
         soup = self.soupify()
-        if not "members_illust" in self.current_url:
+        if "members_illust" not in self.current_url:
             member_id = re.findall(r"id=(\d+)", self.current_url)[0]
             soup = self.soupify(f"https://nijie.info/members_illust.php?id={member_id}")
         dir_name = soup.find("a", class_="name").text
@@ -2174,6 +2371,41 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def omegascans_parse(self) -> RipInfo:
+        """
+            Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
+        """
+        sleep(5)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="text-xl md:text-3xl text-primary font-bold text-center lg:text-left").text
+        chapter_count: str = soup.find("div", class_="space-y-2 rounded p-5 bg-foreground").find_all("div", class_="flex justify-between")[3]\
+                                    .find("span", class_="text-secondary line-clamp-1").text
+        chapter_count = int(chapter_count.strip().split(" ")[0])
+        chapters = []
+        while True:
+            links = soup.find("ul", class_="grid grid-cols-1 gap-y-8").find_all("a", recursive=False)
+            links = [f"https://omegascans.org{link.get("href")}" for link in links]
+            chapters.extend(links)
+            if len(chapters) == chapter_count:
+                break
+
+            self.driver.find_element(By.XPATH, f"//nav[@class='mx-auto flex w-full justify-center gap-x-2']/ul[last()]//a").click()
+            soup = self.soupify()
+
+        images = []
+        for i, chapter in enumerate(chapters):
+            print(f"Parsing chapter {i+1}/{chapter_count}")
+            soup = self.soupify(url=chapter, lazy_load_args={"scroll_by": True, "increment": 5000})
+            post = soup.find("p", class_="flex flex-col justify-center items-center")
+            if post is None:
+                print("Post not found")
+                continue
+            imgs = post.find_all("img", recursive=False)
+            images.extend([img.get("src") for img in imgs])
+        images.reverse()
+        # Files are numbered per chapter, so original will have the files overwrite each other
+        return RipInfo(images, dir_name, FilenameScheme.CHRONOLOGICAL if self.filename_scheme == FilenameScheme.ORIGINAL else self.filename_scheme) 
+
     def pbabes_parse(self) -> RipInfo:
         """Parses the html for pbabes.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2183,32 +2415,48 @@ class HtmlParser:
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
 
-    # Seems like all galleries have been deleted
-    def _pics_parse(self) -> RipInfo:
-        """Parses the html for pics.vc and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("div", class_="gall_header").find("h2").text.split("-")[1].strip()
-        images = []
-        while True:
-            image_list = soup.find("div", class_="grid").find_all("div", class_="photo_el grid-item transition_bs")
-            image_list = [img.find("img").get("src").replace("/s/", "/o/") for img in image_list]
-            images.extend(image_list)
-            if soup.find("div", id="center_control").find("div", class_="next_page clip") is None:
-                break
-            else:
-                next_page = "".join(["https://pics.vc", soup.find("div", id="center_control").find("a").get("href")])
-                soup = self.soupify(next_page)
-        return RipInfo(images, dir_name, self.filename_scheme)
-
     def pinkfineart_parse(self) -> RipInfo:
         """Parses the html for pinkfineart.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
         soup = self.soupify()
         dir_name = soup.find("h5", class_="d-none d-sm-block text-center my-2")
-        dir_name = "".join([t for t in dir_name.contents if type(t) == bs4.element.NavigableString])
+        dir_name = "".join([str(t) for t in dir_name.contents if isinstance(t, bs4.element.NavigableString)])
         images = soup.find_all("div", class_="card ithumbnail-nobody ishadow ml-2 mb-3")
         images = ["".join(["https://pinkfineart.com", img.find("a").get("href")]) for img in images]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+    def pixeldrain_parse(self, url: str = "") -> RipInfo:
+        """
+            Queries the endpoints for pixeldrain.com and extracts the relevant information necessary for downloading
+            files
+        """
+        if url == "":
+            url = self.current_url
+        api_key = Config.config.keys["pixeldrain"]
+        counter = 0
+        images = []
+        if "/l/" in url:
+            #https://pixeldrain.com/l/3EoURSpZ#item=1
+            id_ = url.split("/")[4].split("#")[0]
+            response = requests.get(f"https://pixeldrain.com/api/list/{id_}")
+            response_json = response.json()
+            dir_name = response_json["title"]
+            files = response_json["files"]
+            for file in files:
+                link = ImageLink(file["id"], self.filename_scheme, counter, filename=file["name"],
+                                 link_info=LinkInfo.PIXELDRAIN)
+                counter += 1
+                images.append(link)
+        elif "/u/" in url:
+            id_ = url.split("/")[4]
+            response = requests.get(f"https://pixeldrain.com/api/file/{id_}/info")
+            response_json = response.json()
+            dir_name = response_json["id"]
+            link = ImageLink(response_json["id"], self.filename_scheme, counter, filename=response_json["name"],
+                             link_info=LinkInfo.PIXELDRAIN)
+            images.append(link)
+        else:
+            raise Exception(f"Unknown url: {url}")
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def pleasuregirl_parse(self) -> RipInfo:
@@ -2225,11 +2473,10 @@ class HtmlParser:
         # Parses the html of the site
         return self.__generic_html_parser_1()
 
-    # TODO: Fix to not need to download in the HtmlParser
     def porn3dx_parse(self) -> RipInfo:
         """
-        Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
-        the site
+            Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from
+            the site
         """
         # Parses the html of the site
         self.site_login()
@@ -2296,6 +2543,33 @@ class HtmlParser:
                                 images.append(url)
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def pornhub_parse(self) -> RipInfo:
+        """
+            Parses the html for pornhub.com and extracts the relevant information necessary for downloading videos from
+            the site
+        """
+        self.site_login()
+        self.lazy_load(scroll_by=True, increment=1250, scroll_pause_time=1)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="title").find("span").text
+        player = soup.find("div", id="player").find("script")
+        js = player.text
+        js = js.split("var ")[1]
+        start = js.find("{")
+        raw_json = self._extract_json_object(js[start:])
+        json_data = json.loads(raw_json)
+        media_definitions = json_data["mediaDefinitions"]
+        highest_quality = 0
+        highest_quality_url = ""
+        for definition in media_definitions:
+            if not isinstance(definition["quality"], list):
+                quality = int(definition["quality"])
+                if quality > highest_quality:
+                    highest_quality = quality
+                    highest_quality_url = definition["videoUrl"]
+        images = [highest_quality_url]
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     # TODO: Site may be down permanently
     def putmega_parse(self) -> RipInfo:
         """Parses the html for putmega.com and extracts the relevant information necessary for downloading images from the site"""
@@ -2347,9 +2621,8 @@ class HtmlParser:
             ids.append(vid_id)
         id_chunks = self.list_splitter(ids, 100)
         session = requests.Session()
-        response = session.get("https://api.redgifs.com/v2/auth/temporary")
-        response_json = response.json()
-        self.requests_header["Authorization"] = f"Bearer {response_json['token']}"
+        token = TokenManager.get_instance().get_token("redgifs").value
+        self.requests_header["Authorization"] = f"Bearer {token}"
         for chunk in id_chunks:
             id_param = "%2C".join(chunk)
             response = session.get(f"{base_request}{id_param}", headers=self.requests_header)
@@ -2391,8 +2664,7 @@ class HtmlParser:
         while len(data) != 0:
             urls = [post["file_url"] for post in data]
             images.extend(urls)
-            response = requests.get(
-                f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
+            response = requests.get(f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&pid={pid}&{tags}")
             pid += 1
             data = response.json()
         return RipInfo(images, dir_name, self.filename_scheme)
@@ -2575,6 +2847,61 @@ class HtmlParser:
         images = soup.find_all("div", class_="thumb_box")
         images = ["".join([PROTOCOL, img.find("img").get("src").replace("tn_", "")]) for img in images]
         return RipInfo(images, dir_name, self.filename_scheme)
+
+    def simpcity_parse(self) -> RipInfo:
+        """
+            Parses the html for simpcity.su and extracts the relevant information necessary for
+            downloading images from the site
+        """
+        self.site_login()
+        self.lazy_load(scroll_by=True, increment=1250)
+        soup = self.soupify()
+        dir_name = soup.find("h1", class_="p-title-value").text
+        images = []
+        page_count = 1
+        while True:
+            print(f"Parsing page {page_count}")
+            page_count += 1
+            posts = soup.find("div", class_="block-body js-replyNewMessageContainer").find_all("article", recursive=False)
+            for post in posts:
+                imgs = post.find_all("img")
+                for img in imgs:
+                    url = img.get("src").replace(".md.", ".")
+                    images.append(url)
+                iframes = post.find_all("iframe", class_="saint-iframe")
+                # TODO: Fix iframe switching
+                for i, _ in enumerate(iframes):
+                    with open("iframe.html", "w") as f:
+                        f.write(str(iframes[i]))
+                    iframe = self.driver.find_elements(By.XPATH, f'//iframe[@class="saint-iframe"]')[i]
+                    print(str(iframe))
+                    self.driver.switch_to.frame(iframe)
+                    soup = self.soupify()
+                    video = soup.find("video", id="main-video")
+                    url = video.find("source").get("src")
+                    images.append(url)
+                    self.driver.switch_to.default_content()
+                    soup = self.soupify()
+                anchor_divs = post.find("div", class_="bbWrapper").find_all("div", recursive=False)
+                for div in anchor_divs:
+                    anchor = div.find("a")
+                    url = anchor.get("href")
+                    if "bunkrr." in url:
+                        links = self.bunkrr_parse(url)
+                        images.extend(links)
+                    elif "camwhores.tv" in url:
+                        links = self.camwhores_parse(url)
+                        images.extend(links)
+                    else:
+                        with open("external_links.txt", "a") as f:
+                            f.write(url + "\n")
+            next_btn = soup.find("a", class_="pageNav-jump pageNav-jump--next")
+            if next_btn is None:
+                break
+            else:
+                next_page = next_btn.get("href")
+                soup = self.soupify(f"https://simpcity.su{next_page}")
+        return RipInfo(images, dir_name, self.filename_scheme, discard_blob=True)
 
     def simplycosplay_parse(self) -> RipInfo:
         """Parses the html for simply-cosplay.com and extracts the relevant information necessary for downloading images from the site"""
@@ -2767,6 +3094,28 @@ class HtmlParser:
                 break
         return RipInfo(images, dir_name, self.filename_scheme)
 
+    def toonily_parse(self) -> RipInfo:
+        """
+            Parses the html for toonily.me and extracts the relevant information necessary for downloading images from the site
+        """
+        #self.__wait_for_element('//div[@id="show-more-chapters"]', timeout=-1)
+        btn = self.try_find_element(By.XPATH, '//div[@id="show-more-chapters"]')
+        if btn is not None:
+            self.scroll_element_into_view(btn)
+            btn.click()
+            sleep(1)
+        soup = self.soupify()
+        dir_name = soup.find("div", class_="name box").find("h1").text
+        chapter_list = soup.find("ul", id="chapter-list").find_all("li", recursive=False)
+        chapters = [f"https://toonily.me{chapter.find('a').get('href')}" for chapter in chapter_list]
+        images = []
+        for chapter in reversed(chapters):
+            soup = self.soupify(chapter, lazy_load_args={"scroll_by": True, "increment": 5000})
+            image_list = soup.find("div", id="chapter-images").find_all("img")
+            images.extend([img.get("src") for img in image_list])
+
+        return RipInfo(images, dir_name, self.filename_scheme)
+
     def tsumino_parse(self) -> RipInfo:
         """Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site"""
         # Parses the html of the site
@@ -2781,31 +3130,148 @@ class HtmlParser:
             images.append(src)
         return RipInfo(images, dir_name, self.filename_scheme)
 
-    # TODO: Cert Date Invalid; Build Test Later
-    def tuyangyan_parse(self) -> RipInfo:
-        """Parses the html for tuyangyan.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("h1", class_="post-title entry-title").find("a").text
-        dir_name = dir_name.split("[")
-        num_files = dir_name[1].replace("P]", "")
-        dir_name = dir_name[0]
-        dir_name = "".join(dir_name)
-        if int(num_files) > 20:
-            pages = ceil(int(num_files) / 20)
-            images = []
-            page_url = self.driver.current_url
-            for i in range(pages):
-                if i > 0:
-                    url = "".join([page_url, str(i + 1), "/"])
-                    soup = self.soupify(url)
-                image_list = soup.find(
-                    "div", class_="entry-content clearfix").find_all("img")
-                images.extend(image_list)
-        else:
-            images = soup.find(
-                "div", class_="entry-content clearfix").find_all("img")
-        images = ["".join([PROTOCOL, img.get("src")]) for img in images]
+    def twitter_parse(self) -> RipInfo:
+        """
+            Parses the html for twitter.com/x.com and extracts the relevant information necessary for downloading images from the site
+        """
+        
+        # region Method-Global Variables
+
+        true_base_wait_time = 2.5
+        base_wait_time = true_base_wait_time
+        max_wait_time = 60
+        wait_time = base_wait_time
+        max_retries = 4
+
+        # endregion
+
+        def twitter_parse_helper(post_link: str, log_failure: bool) -> tuple[list[str], list[tuple[int, str]]]:
+            #print(post_link)
+            nonlocal base_wait_time, wait_time
+            post_images: list[str] = []
+            failed_urls: list[tuple[int, str]] = []
+            streak = 0
+            found = 0
+            for i in range(max_retries):
+                media_found = False
+                try:
+                    soup = self.soupify(post_link, delay=base_wait_time, xpath="//article")
+                    content: bs4.element.Tag  = soup.find("article")
+                    content = content.find("div").find("div")
+                    contents = content.find_all("div", recursive=False)
+                    if len(contents) < 3:
+                        vid = content.find("video")
+                        link = vid.get("src")
+                        post_images.append(link)
+                        found += 1
+                        media_found = True
+                        break
+                    content = contents[2]
+                    content = content.find_all("div", recursive=False)[1]
+                    anchors = content.find_all("a")
+                    anchor: bs4.element.Tag
+                    for anchor in anchors:
+                        img = anchor.find("img")
+                        if img is not None:
+                            link = img.get("src")
+                            link = link.split("&name=")[0]
+                            link = f"{link}&name=4096x4096" # Get the highest resolution image
+                            post_images.append(link)
+                            found += 1
+                            media_found = True
+                            break
+                        vid = anchor.find("video")
+                        if vid is not None:
+                            post_images.append(vid.get("src"))
+                            found += 1
+                            media_found = True
+                            break
+                        else:
+                            raise Exception(f"No image or video found: {post_link} > {anchor}")
+                    break
+                except:
+                    streak = 0
+                    wait_boost = 0
+                    if i == max_retries - 1:
+                        print(f"Failed to get media: {post_link}")
+                        if log_failure:
+                            self.log_failed_url(post_link)
+                        failed_urls.append((found, post_link))
+                        continue
+
+                    if i == max_retries - 2:
+                        #base_wait_time = wait_time
+                        wait_boost = 300 # Wait 5 minutes before retrying
+                        # Arbitrary, but should be enough time to get around rate limiting
+                    wait_time = min(base_wait_time * (2 ** i), max_wait_time)
+                    jitter = random.uniform(0, wait_time)
+                    wait_time += jitter + wait_boost
+                    print(f"Attempt {i+1} failed. Retrying in {wait_time:.2f} seconds...")
+                    sleep(wait_time)
+
+                if media_found:
+                    if i == 0:
+                        streak += 1
+                        if streak == 3:
+                            pass
+                            #base_wait_time *= 0.9 # Reduce wait time if successful on first try
+                            #base_wait_time = max(base_wait_time, true_base_wait_time)
+                    break
+
+            return post_images, failed_urls
+
+        cookie_value = Config.config.cookies["Twitter"]
+        self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
+        dir_name = self.current_url.split("/")[3]
+        if "/media" not in self.current_url:
+            self.current_url = f"https://twitter.com/{dir_name}/media"
+        
+        sleep(wait_time)
+        post_links = {} # Acts as an ordered set # Python 3.7+
+        new_posts = True
+        while new_posts:
+            new_posts = False
+            soup = self.soupify()
+            rows = soup.find("section").find("div").find("div").find_all("div", recursive=False)
+            row: bs4.element.Tag
+            for row in rows:
+                posts = row.find_all("li")
+                post: bs4.element.Tag
+                for post in posts:
+                    post_link = post.find("a")
+                    if post_link is None:
+                        continue
+                    post_link = post_link.get("href")
+                    if post_link not in post_links:
+                        post_links[post_link] = None
+                        new_posts = True
+            if new_posts:
+                self.scroll_page()
+                sleep(wait_time)
+        
+        images = []
+        failed_urls = []
+        num_posts = len(post_links)
+        for i, link in enumerate(post_links):
+            post_link = f"https://twitter.com{link}"
+            print(f"Post {i+1}/{num_posts}: {post_link}")
+            links, retry_urls = twitter_parse_helper(post_link, False)
+            total_found = len(images)
+            images.extend(links)
+            failed_urls.extend([(total_found + i, link) for i, link in retry_urls])
+
+        if failed_urls:
+            self.driver.delete_all_cookies()
+            self.driver.add_cookie({"name": "auth_token", "value": cookie_value})
+            sleep(600) # Wait 10 minutes before retrying failed links
+            failed = [x for x in failed_urls] # Copy list
+            num_failed = len(failed)
+            failed_urls = []
+            for i, (index, link) in enumerate(failed):
+                print(f"Retrying failed post {i+1}/{num_failed}: {link}")
+                links, _ = twitter_parse_helper(link, True) # Not retrying failed links
+                images[index:index] = links # Insert at index i
+
         return RipInfo(images, dir_name, self.filename_scheme)
 
     def wantedbabes_parse(self) -> RipInfo:
@@ -2816,6 +3282,69 @@ class HtmlParser:
         images = soup.find_all("div", class_="gallery")
         images = ["".join([PROTOCOL, img.get("src").replace("tn_", "")]) for im in images for img in im.find_all("img")]
         return RipInfo(images, dir_name, self.filename_scheme)
+
+    def wnacg_parse(self) -> RipInfo:
+        """
+            Parses the html for wnacg.com and extracts the relevant information necessary for downloading images from the site
+        """
+        if "-slist-" in self.current_url:
+            self.current_url = self.current_url.replace("-slist-", "-index-")
+        soup = self.soupify()
+        dir_name = soup.find("h2").text
+        num_images = soup.find("span", class_="name tb").text # Count number placements e.g. 100 -> 3, 1000 -> 4
+        magnitude = len(num_images)
+        image_links: list[str] = []
+        while True:
+            image_list = soup.find_all("li", class_="li tb gallary_item")
+            image_list = [img.find("a").get("href") for img in image_list]
+            image_links.extend(image_list)
+            next_page_button = soup.find("span", class_="next")
+            if next_page_button is None:
+                break
+            next_page_url = next_page_button.find("a").get("href")
+            if next_page_url == "":
+                raise RipperError("Next page url not found")
+            soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
+
+        images = []
+        for i, image_link in enumerate(image_links):
+            soup = self.soupify(f"https://www.wnacg.com{image_link}")
+            img = soup.find("img", id="picarea")
+            img_src = img.get("src")
+            images.append(img_src if "https:" in img_src else f"https:{img_src}")
+
+        return RipInfo(images, dir_name, self.filename_scheme)
+
+        # while True:
+        #     image_list = soup.find_all("li", class_="li tb gallary_item")
+        #     image_list = [img.find("img").get("src") for img in image_list]
+        #     image_links.extend(image_list)
+        #     next_page_button = soup.find("span", class_="next")
+        #     if next_page_button is None:
+        #         break
+        #     next_page_url = next_page_button.find("a").get("href")
+        #     if next_page_url == "":
+        #         raise RipperError("Next page url not found")
+        #     soup = self.soupify(f"https://www.wnacg.com{next_page_url}")
+
+        # images = []
+        # for i, image in enumerate(image_links):
+        #     ext = image.split(".")[-1]
+        #     url = f"https:{image}"
+        #     url = url.replace("t4.", "img5.").replace("/t/", "/")
+        #     if num_images.isnumeric():
+        #         url = "/".join(url.split("/")[:-1])
+        #         match magnitude:
+        #             case 1:
+        #                 url += f"/{i + 1:01d}.{ext}"
+        #             case 2:
+        #                 url += f"/{i + 1:02d}.{ext}"
+        #             case 3:
+        #                 url += f"/{i + 1:03d}.{ext}"
+        #             case _:
+        #                 raise RipperError("Invalid number of digits in number of images")
+        #     images.append(url)
+        # return RipInfo(images, dir_name, self.filename_scheme)
 
     # TODO: Work on saving self.driver across sites to avoid relogging in
     def v2ph_parse(self) -> RipInfo:
@@ -2908,18 +3437,19 @@ class HtmlParser:
         """Test the parser to see if it properly returns image URL(s), number of images, and folder name."""
         self.driver = None
         try:
-            options = Options()
-            if not debug:
-                options.add_argument("-headless")
-            options.add_argument(DRIVER_HEADER)
+            options = self.__initialize_options("debug" if debug else "")
             self.driver = webdriver.Firefox(options=options)
             self.current_url = given_url.replace("members.", "www.")
             site_name = self._test_site_check(given_url)
             if site_name == "999hentai":
                 site_name = "nine99hentai"
+            self.site_name = site_name
             print(f"Testing: {site_name}_parse")
+            start_time = time.time_ns()
             data: RipInfo = eval(f"self.{site_name}_parse()")
+            end_time = time.time_ns()
             print(data.urls[0].referer)
+            print(f"Time Elapsed: {end_time - start_time} ns")
             out = [d.url for d in data]
             with open("test.json", "w") as f:
                 json.dump(out, f, indent=4)
@@ -2927,12 +3457,14 @@ class HtmlParser:
         except Exception:
             with open("test.html", "w", encoding="utf-16") as f:
                 f.write(self.driver.page_source)
+            self.driver.get_screenshot_as_file("test.png")
             raise
         finally:
             if print_site:
                 with open("test.html", "w") as f:
                     f.write(self.driver.page_source)
-            self.driver.quit()
+            if self.driver:
+                self.driver.quit()
 
     def _test_site_check(self, url: str) -> str:
         domain = urlparse(url).netloc
@@ -2987,7 +3519,15 @@ class HtmlParser:
     def __extract_external_urls(self, urls: list[str]) -> dict[str, list[str]]:
         external_links: dict[str, list[str]] = self.__create_external_link_dict()
         for site in external_links.keys():
-            ext_links = [self._extract_url(url) + "\n" for url in urls if url and site in url]
+            # links = [link + "\n" for url in urls if url and site in url and (link := extract_url(url))]
+            # external_links[site].extend(links)
+            ext_links = []
+            for url in urls:
+                if not url or site not in url:
+                    continue
+                link = extract_url(url)
+                if link:
+                    ext_links.append(link + "\n")
             external_links[site].extend(ext_links)
         return external_links
 
@@ -2999,8 +3539,11 @@ class HtmlParser:
                     continue
                 parts = text.split()
                 for part in parts:
-                    if site in part:
-                        external_links[site].append(part + "\n")
+                    if site not in part:
+                        continue
+                    link = extract_url(part)
+                    if link:
+                        external_links[site].append(link + "\n")
         return external_links
 
     @staticmethod
@@ -3041,6 +3584,11 @@ class HtmlParser:
 
     @staticmethod
     def __remove_duplicates(list_: list) -> list:
+        """
+            Remove duplicate elements from list while preserving order
+        :param list_: List of elements to remove duplicates from
+        :return: List of unique elements
+        """
         seen = set()
         clean_list = []
         for item in list_:
@@ -3051,7 +3599,7 @@ class HtmlParser:
 
     def __wait_for_element(self, xpath: str, delay: float = 0.1, timeout: float = 10) -> bool:
         if timeout != -1:
-            timeout *= 1_000_000_000
+            timeout *= 1_000_000_000  # Convert seconds to nanoseconds
         start_time = time.time_ns()
         while not self.driver.find_elements(By.XPATH, xpath):
             sleep(delay)
@@ -3066,15 +3614,6 @@ class HtmlParser:
                 f.write(str(soup))
             else:
                 f.write(self.driver.page_source)
-
-    @staticmethod
-    def _extract_url(text: str) -> str:
-        protocol_index = text.find("https:")
-        if protocol_index == -1:
-            return ""
-        url = text[protocol_index:]
-        url.replace("</a>", "")
-        return url
 
     @staticmethod
     def _print_debug_info(title: str, *data, fd="output.txt", clear=False):
@@ -3137,7 +3676,7 @@ class HtmlParser:
         if rescroll:
             self.driver.execute_script("window.scrollTo(0, 0);")
         if scroll_by:
-            scroll_script = "".join(["window.scrollBy({top: ", str(increment), ", left: 0, behavior: 'smooth'});"])
+            scroll_script = f"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});"
             height_check_script = "return window.pageYOffset"
         else:
             scroll_script = "window.scrollTo(0, document.body.scrollHeight);"
@@ -3149,14 +3688,12 @@ class HtmlParser:
             if new_height == last_height:
                 if scroll_back > 0:
                     for _ in range(scroll_back):
-                        self.driver.execute_script(
-                            "".join(
-                                ["window.scrollBy({top: ", str(-increment), ", left: 0, behavior: 'smooth'});"]))
+                        self.driver.execute_script(f"window.scrollBy({{top: {-increment}, left: 0, behavior: 'smooth'}});")
                         sleep(scroll_pause_time)
                     sleep(scroll_pause_time)
                 break
             last_height = new_height
-        self.driver.implicitly_wait(10)
+        #self.driver.implicitly_wait(10)
 
     @staticmethod
     def try_click(element: WebElement, func: Callable[[], None]):
@@ -3168,7 +3705,7 @@ class HtmlParser:
     @staticmethod
     def log_failed_url(url: str):
         with open("failed.txt", "a") as f:
-            f.write("".join([url, "\n"]))
+            f.write(f"{url}\n")
 
     def try_find_element(self, by: str, value: str) -> WebElement | None:
         try:
@@ -3176,16 +3713,19 @@ class HtmlParser:
         except selenium.common.exceptions.NoSuchElementException:
             return None
 
-    def soupify(self, url: str | None = None, delay: float = 0, lazy_load: bool = False,
+    def scroll_element_into_view(self, element: WebElement):
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
+    def soupify(self, url: str | None = None, delay: float = 0, lazy_load_args: dict[str, bool | float | int] = None,
                 response: requests.Response = None, xpath: str = "") -> BeautifulSoup:
         """
             Return BeautifulSoup object of html from WebDriver or given Response if provided
         :param url: Url to switch to before getting the BeautifulSoup object of the html (not needed if WebDriver is
             currently at this url)
         :param delay: Seconds to wait (for JS and other events) before creating BeautifulSoup object
-        :param lazy_load: Whether there are elements on the webpage that are lazily loaded
+        :param lazy_load_args: Arguments to use when lazy loading the page (occurs after delay and xpath if either are set)
         :param response: Response object to create BeautifulSoup object from (if set, ignores other arguments)
-        :param xpath: XPath to an element the WebDriver should wait until it exists before creating the BeautifulSoup object
+        :param xpath: XPath to an element the WebDriver should wait until it exists before creating the BeautifulSoup object (if delay is set, waits for xpath after delay)
         """
         if response:
             return BeautifulSoup(response.content, PARSER)
@@ -3195,8 +3735,8 @@ class HtmlParser:
             sleep(delay)
         if xpath:
             self.__wait_for_element(xpath)
-        if lazy_load:
-            self.lazy_load(True)
+        if lazy_load_args:
+            self.lazy_load(**lazy_load_args)
         html = self.driver.page_source
         return BeautifulSoup(html, PARSER)
 

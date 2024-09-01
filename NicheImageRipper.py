@@ -13,11 +13,13 @@ from threading import Timer
 from typing import Callable
 
 import requests
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QFont, QTextCursor, QColor
-from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
-    QDesktopWidget, QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtGui import QFont, QTextCursor, QColor, QScreen
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QLineEdit, QWidget, QFormLayout, QPushButton, QHBoxLayout, QTabWidget, \
+    QTextEdit, QTableWidget, QTableWidgetItem, QLabel, QCheckBox, QFileDialog, QComboBox, QMessageBox, \
     QTextBrowser
+from qt_material import apply_stylesheet
 
 from Config import Config
 from Enums import FilenameScheme, UnzipProtocol, QueueResult
@@ -58,7 +60,7 @@ class OutputRedirect(QtCore.QObject):
 
 # region pyqt helper functions
 
-def create_button(text: str, width: int = 75) -> QPushButton:
+def create_button(text: str, width: int = 100) -> QPushButton:
     button = QPushButton()
     button.setText(text)
     button.setFixedWidth(width)
@@ -85,7 +87,7 @@ class NicheImageRipper(ABC):
         self.unzip_protocol: UnzipProtocol = UnzipProtocol.NONE
         self.status_sync: StatusSync = StatusSync()
         self.ripper_thread: threading.Thread = threading.Thread()
-        self.version: str = "v2.1.0"
+        self.version: str = "v2.3.0"
         self.save_folder: str = "."
 
     @abc.abstractmethod
@@ -147,6 +149,7 @@ class NicheImageRipper(ABC):
 
     def _queue_urls(self, urls: str) -> QueueResult:
         url_list = self.separate_string(urls, "https://")
+        result = QueueResult.SUCCESS
         for url in url_list:
             if url.count("http://") > 1:
                 urls = self.separate_string(url, "http://")
@@ -157,10 +160,12 @@ class NicheImageRipper(ABC):
                     if url not in self.url_queue.queue:
                         self.add_to_url_queue(url)
                     else:
-                        return QueueResult.ALREADY_QUEUED
+                        if result < QueueResult.ALREADY_QUEUED:
+                            result = QueueResult.ALREADY_QUEUED
                 else:
-                    return QueueResult.NOT_SUPPORTED
-        return QueueResult.SUCCESS
+                    if result < QueueResult.NOT_SUPPORTED:
+                        result = QueueResult.NOT_SUPPORTED
+        return result
 
     def rip_urls_starter(self):
         """
@@ -290,14 +295,12 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         stdout = OutputRedirect(self, True)
         stderr = OutputRedirect(self, False)
 
-        stdout.outputWritten.connect(self.redirect_output)
-        stderr.outputWritten.connect(self.redirect_output)
-        self.update_display.connect(self.update_display_sequence)
+        self.dark_mode: bool = False
 
         self.setGeometry(0, 0, 768, 432)
 
         qt_rectangle = self.frameGeometry()
-        center_point = QDesktopWidget().availableGeometry().center()
+        center_point = self.screen().availableGeometry().center()
         qt_rectangle.moveCenter(center_point)
         self.move(qt_rectangle.topLeft())
 
@@ -385,7 +388,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         self.unzip_protocol_combobox.currentTextChanged.connect(self.unzip_protocol_changed)
 
         checkbox_row = QHBoxLayout()
-        checkbox_row.setAlignment(QtCore.Qt.AlignLeft)
+        checkbox_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.rerip_checkbox = QCheckBox()
         self.rerip_checkbox.setText("Ask to re-rip url")
         self.rerip_checkbox.setChecked(self.rerip_ask)
@@ -422,6 +425,14 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
 
         # endregion
 
+        # region Connect Signals
+
+        stdout.outputWritten.connect(self.redirect_output)
+        stderr.outputWritten.connect(self.redirect_output)
+        self.update_display.connect(self.update_display_sequence)
+
+        # endregion
+
         # region Connect Buttons
 
         self.url_field.returnPressed.connect(self.queue_url)
@@ -451,13 +462,12 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         self.save_data()
 
     def redirect_output(self, raw_text: str, stderr: bool):
-        self.log_field.moveCursor(QTextCursor.End)
+        self.log_field.moveCursor(QTextCursor.MoveOperation.End)
         text, color = self.extract_color(raw_text)
         self.log_field.setTextColor(color)
         self.log_field.insertPlainText(text)
 
-    @staticmethod
-    def extract_color(raw_text: str) -> tuple[str, QColor]:
+    def extract_color(self, raw_text: str) -> tuple[str, QColor]:
         if raw_text.startswith("{#"):
             parts = raw_text.split("}")
             text = "}".join(parts[1:])
@@ -466,7 +476,10 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
             color = QColor.fromRgb(color_value)
             return text, color
         else:
-            color = QColor.fromRgb(0)
+            if self.dark_mode:
+                color = QColor.fromRgb(255, 255, 255)
+            else:
+                color = QColor.fromRgb(0)
             return raw_text, color
 
     def add_history_entry(self, name: str, url: str, date: str, count: int):
@@ -562,7 +575,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         """
         # If user wants to be prompted and if url is in the history
         if self.rerip_ask and item in self.get_column_data(1):
-            if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.Yes:  # Ask user to re-rip
+            if self.popup_yes_no('Do you want to re-rip URL?') == QMessageBox.StandardButton.Yes.value:  # Ask user to re-rip
                 self.url_queue.put(item)
         else:  # If user always wants to re-rip
             self.url_queue.put(item)
@@ -574,7 +587,7 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         :return: user selection of QMessageBox.Yes or QMessageBox.No based on option selected
         """
         message_box = QMessageBox()
-        return message_box.question(self, '', message, QMessageBox.Yes | QMessageBox.No)
+        return message_box.question(self, '', message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
     def update_url_queue(self):
         """
@@ -688,6 +701,53 @@ class NicheImageRipperGUI(QWidget, NicheImageRipper, metaclass=NicheImageRipperM
         """
         label.setText("")
 
+class NicheImageRipperCLI(NicheImageRipper):
+    def __init__(self):
+        super().__init__()
+        self.rip_history: list[list[str]] = []
+
+    def get_history_data(self) -> list[list[str]]:
+        return self.rip_history
+
+    def load_history(self):
+        self.rip_history = self._load_history()
+
+    def update_history(self, ripper: ImageRipper, url: str):
+        duplicate_entry = False
+        folder_info = ripper.folder_info
+        for i, entry in enumerate(self.rip_history):
+            if entry[0] == folder_info.dir_name:
+                duplicate_entry = True
+                self.rip_history.append(entry)
+                self.rip_history.pop(i)
+                break
+        if not duplicate_entry:
+            self.rip_history.append([folder_info.dir_name, url, str(datetime.today().strftime('%Y-%m-%d')),
+                                     folder_info.num_urls])
+        ripper.folder_info = []
+
+    def add_to_url_queue(self, item: str):
+        if self.rerip_ask and any(item == entry[0] for entry in self.rip_history):
+            if self.query_yes_no('Do you want to re-rip URL?'):
+                self.url_queue.put(item)
+        else:
+            self.url_queue.put(item)
+
+    def rip_urls(self):
+        pass
+
+    def run(self):
+        pass
+
+    def query_yes_no(self, prompt: str) -> bool:
+        prompt = f"{prompt} [y/n]: "
+        while True:
+            response = input(prompt).lower()
+            if response in ("y", "yes"):
+                return True
+            elif response in ("n", "no"):
+                return False
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -705,5 +765,9 @@ if __name__ == "__main__":
     else:
         app = QApplication(sys.argv)
         win = NicheImageRipperGUI()
+
+        apply_stylesheet(app, theme='dark_red.xml')
+        win.dark_mode = True
+
         win.show()
-        sys.exit(app.exec_())
+        sys.exit(app.exec())

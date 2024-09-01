@@ -11,7 +11,6 @@ import requests
 import yt_dlp
 
 
-# Credits: https://github.com/MaZED-UP/bunny-cdn-drm-video-dl
 class BunnyVideoDRM:
     # user agent and platform related headers
     user_agent = {
@@ -90,6 +89,8 @@ class BunnyVideoDRM:
                                             embed_page).group(1)
             file_name_escaped = unescape(file_name_unescaped)
             self.file_name = re.sub(r'\.[^.]*$.*', '.mp4', file_name_escaped)
+            if not self.file_name.endswith('.mp4'):
+                self.file_name += '.mp4'
         self.path = path if path else '~/Videos/Bunny CDN/'
 
     def prepare_dl(self) -> str:
@@ -120,9 +121,9 @@ class BunnyVideoDRM:
                 f'https://iframe.mediadelivery.net/{self.guid}/playlist.drm',
                 params=params,
                 headers=self.headers['playlist'])
-            resolutions = re.findall(r'RESOLUTION=(.*)', response.text)[::-1]
+            resolutions = re.findall(r'\s*(.*?)\s*/video\.drm', response.text)[::-1]
             if not resolutions:
-                raise FileNotFoundError
+                sys.exit(2)
             else:
                 return resolutions[0]  # highest resolution, -1 for lowest
 
@@ -137,7 +138,7 @@ class BunnyVideoDRM:
         activate()
         resolution = main_playlist()
         video_playlist()
-        for i in range(0, 29, 4):  # first 28 seconds, arbitrary
+        for i in range(0, 29, 4):  # first 28 seconds, arbitrary (check issue#11)
             ping(time=i + round(random(), 6),
                  paused='false',
                  res=resolution.split('x')[-1])
@@ -178,12 +179,12 @@ class BunnyVideoDRM:
 if __name__ == '__main__':
     video = BunnyVideoDRM(
         # insert the referer between the quotes below (address of your webpage)
-        referer='https://iframe.mediadelivery.net/5056fb0a-a739-416e-92af-acfa505e7b3a/playlist.drm?contextId=99959a4c-f523-4e30-ade5-710de730cad4&secret=1b0ccff3-d931-42e1-b7ce-656f347ec164',
+        referer='https://iframe.mediadelivery.net/ec1be2d8-6275-497e-83f4-51490153da02/playlist.drm?contextId=708953b4-599c-4eef-83f9-c31511b5d937&secret=25eb9ee2-f69a-4163-a8f6-a3f114b3f5d6',
         # paste your embed link
-        embed_url='https://iframe.mediadelivery.net/embed/21030/5056fb0a-a739-416e-92af-acfa505e7b3a?autoplay=false&loop=true',
+        embed_url='https://iframe.mediadelivery.net/embed/21030/ec1be2d8-6275-497e-83f4-51490153da02?autoplay=false&loop=true&preload=false',
         # you can override file name, no extension
         name="test2",
         # you can override download path
-        path=r"./Temp")
+        path=r"./Temp/IframeMediaDelivery/")
     # video.session.close()
     video.download()

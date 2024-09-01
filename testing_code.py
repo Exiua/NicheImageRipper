@@ -9,13 +9,18 @@ import string
 import struct
 import subprocess
 import sys
+import time
+import timeit
 import urllib.request
 from urllib.parse import urlparse
 from time import sleep
+from timeit import timeit
+from cProfile import Profile
+from pstats import SortKey, Stats
 
 import cloudscraper
-import dropbox
 import requests
+import ffmpeg
 from getfilelistpy import getfilelist
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -35,8 +40,9 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from Config import Config
 from Enums import FilenameScheme
-from HtmlParser import DRIVER_HEADER
+from HtmlParser import USER_AGENT
 from ImageLink import ImageLink
+from UrlUtility import gdrive_link_parse, mega_link_parse
 
 
 def string_join_test():
@@ -161,7 +167,8 @@ def user_inject_test() -> str:
 
 
 requests_header: dict[str, str] = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'
+}
 
 
 # {
@@ -355,15 +362,6 @@ def artstation_requests():
     print(json_data)
 
 
-def m3u8_to_mp4_test():
-    import m3u8_To_MP4
-
-    m3u8_To_MP4.multithread_download(
-        'https://iframe.mediadelivery.net/8baab001-3937-4f0a-8c8d-b247a31bf3b9/playlist.drm?contextId=d27e16cf-7877'
-        '-48a2-93d6-da4d28ec3493&secret=13c5398c-052d-486a-ae27-f769392df5a3',
-        mp4_file_name="test.mp4")
-
-
 def reassign_files():
     from os import listdir
     from os.path import isfile, join
@@ -419,10 +417,11 @@ def deviantart_requests():
 #     image.composite(force=True).save("test.png")
 
 
-def get_webdriver() -> webdriver.Firefox:
+def get_webdriver(headless: bool = True) -> webdriver.Firefox:
     options = Options()
-    options.headless = True
-    options.add_argument(DRIVER_HEADER)
+    if headless:
+        options.add_argument("-headless")
+    options.set_preference("general.useragent.override", USER_AGENT)
     driver = webdriver.Firefox(options=options)
     return driver
 
@@ -1137,14 +1136,6 @@ def repair_files():
         return
 
 
-def dropbox_test():
-    token = Config.config["Keys"]["Dropbox"]
-    dbx = dropbox.Dropbox(token)
-    response = dbx.files_list_folder("id:AADZnZhQk7TgSPpTiIEGkcy4a", recursive=True)
-    print(response)
-    # dbx.files_download_to_file("./Temp/test.png", "id:3w6mr2oin7queji/AACQJrEFhbjiZ4wAtpjf0B9-a/atomic%20heart%20sisters.png?dl=0")
-
-
 def exception_modification():
     try:
         ex_level1()
@@ -1386,12 +1377,205 @@ def exit_test():
             pass
 
 
+def rule34_parsing_test():
+    driver = get_webdriver(False)
+    driver.get("https://rule34.xxx/index.php?page=post&s=list&tags=hongbaise_raw")
+
+
+def link_extractor():
+    with open("drive.google.com_links.txt", "r", encoding="utf-16") as f:
+        links = f.readlines()
+    links = [link.strip() for link in links]
+    cleaned_links = []
+    seen = set()
+    for link in links:
+        url = gdrive_link_parse(link)
+        if url not in seen:
+            cleaned_links.append(url + "\n")
+            seen.add(url)
+
+    with open("drive.google.com_links.txt", "w", encoding="utf-16") as f:
+        f.writelines(cleaned_links)
+
+
+def file_merge():
+    cwd = Path(".")
+    links = []
+    seen = set()
+    for file in cwd.glob("*mega*.txt"):
+        if file.stem == "mega_out":
+            continue
+        with file.open("r") as f:
+            data = f.readlines()
+        for item in data:
+            item = mega_link_parse(item)
+            if not item:
+                continue
+            if item not in seen:
+                seen.add(item)
+                links.append(item + "\n")
+
+    with open("mega_out.txt", "w", encoding="utf-8") as f:
+        f.writelines(links)
+
+
+def covert_utf16_to_ut8(filepath: str):
+    with open(filepath, "r", encoding="utf-16") as f:
+        data = f.read()
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(data)
+
+
+def video_download_test():
+    # headers = {
+    #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+    #     #"host": "simp2.saint.to",
+    #     #"origin": "https://saint.to",
+    #     "referer": "https://saint.to/"
+    # }
+    # response = requests.get("https://simp2.saint.to/videos/c4b8b5c11e5ce0f640f79152194a9b5a.mp4", headers=headers)
+    response = requests.get("https://fries.bunkr.ru/victoriahillova-2020-05-15-39863513-dkYu5Oqn.mp4")
+    print(response.content)
+
+
+def pixeldrain_api_test():
+    api_key = Config.config.keys["Pixeldrain"]
+    auth_string = f":{api_key}"
+    base64_auth = base64.b64encode(auth_string.encode()).decode()
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/107.0.0.0 Safari/537.36"),
+        "Authorization": f"Basic {base64_auth}",
+    }
+    response = requests.get("https://pixeldrain.com/api/file/nAEhH6wF", headers=headers, stream=True)
+    with open("Performer victoriahillova show on 2023-02-26 0805 Chaturbate Archive – Recurbate.mp4", "wb") as f:
+        for block in response.iter_content(chunk_size=10240):
+            if block:
+                f.write(block)
+
+def terminal_test():
+    size = shutil.get_terminal_size()
+    for _ in range(size.lines):
+        print("\u2588" * size.columns)
+
+def m3u8_ffmpeg():
+    id_ = "impishturbulentptarmigan"
+    video_url = f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
+    video_url = "https://api.redgifs.com/v2/gifs/CleanColorfulSkunk/hd.m3u8"
+    video_url = "https://api.redgifs.com/v2/gifs/SubstantialHomelyGraywolf/hd.m3u8".lower()
+    video_path = "test.mp4"
+    input_stream = ffmpeg.input(video_url, protocol_whitelist="file,http,https,tcp,tls,crypto")
+    output_stream = ffmpeg.output(input_stream, video_path, c="copy")
+    ffmpeg.run(output_stream)
+
+def dropbox_zip_test():
+    url = "https://www.dropbox.com/scl/fi/3rx0ysjoc6nl2q2sumtcj/23-03-16.zip?rlkey=v2hringuopk7fngc9dv98e22e&dl=1"
+    response = requests.get(url, headers=requests_header, stream=True, allow_redirects=True)
+    with open("test.zip", "wb") as f:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
+
+def generate_file_sigs():
+    folder = Path(r".")
+    sigs = []
+    i = 0
+    for file in folder.glob("*"):
+        if not file.is_file():
+            continue
+        if i >= 1000:
+            break
+        with file.open("rb") as f:
+            sig = f.read(8)
+        sigs.append([list(sig), file.suffix])
+        i += 1
+    with open("sigs.json", "w") as f:
+        json.dump(sigs, f, indent=4)
+
+def get_correct_ext(file_sig: bytes) -> str:
+    """
+        Get correct extension for a file based on file signature
+    :param filepath: Path to the file to analyze
+    :return: True extension of the file or the original extension if the file signature is unknown (will default to
+    .bin if the file does not have a file extension)
+    """
+    if file_sig[:6] == b"\x52\x61\x72\x21\x1A\x07":  # is rar
+        return ".rar"
+    elif file_sig == b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A":  # is png
+        return ".png"
+    elif file_sig[:3] == b"\xff\xd8\xff":  # is jpg
+        return ".jpg"
+    elif file_sig[:4] in b"\x47\x49\x46\x38":  # is gif
+        return ".gif"
+    elif file_sig[:4] == b"\x50\x4B\x03\x04":  # is zip
+        return ".zip"
+    elif file_sig[:4] == b"\x38\x42\x50\x53":  # is psd
+        return ".psd"
+    elif file_sig[:4] == b"\x25\x50\x44\x46":  # is pdf
+        return ".pdf"
+    elif file_sig[:6] == b"\x37\x7A\xBC\xAF\x27\x1C":  # is 7z
+        return ".7z"
+    elif file_sig[:4] == b"\x1A\x45\xDF\xA3":
+        return ".webm"
+    elif file_sig[:4] == b"\x52\x49\x46\x46":
+        return ".webp"
+    elif file_sig[4:] == b"\x66\x74\x79\x70":
+        return ".mp4"
+    elif file_sig == b"\x43\x53\x46\x43\x48\x55\x4E\x4B":
+        return ".clip"
+    elif file_sig == b"\x3C\x21\x44\x4F\x43\x54\x59\x50":
+        return ".html"
+    else:
+        print(f"Unable to identify signature {file_sig}")
+        return ".bin"
+
+def test_sig_lookup():
+    with open("sigs.json", "r") as f:
+        sigs = json.load(f)
+    sigs: list[list[bytes | str]] = [(bytes(sig[0]), sig[1]) for sig in sigs]
+    start = time.time_ns()
+    for sig in sigs:
+        get_correct_ext(sig[0])
+    end = time.time_ns()
+    print(f"Elapsed time: {(end - start) / 1_000_000} ms")
+    correct = 0
+    start = time.time_ns()
+    for sig in sigs:
+        ext = get_correct_ext(sig[0])
+        if ext == sig[1]:
+            correct += 1
+    end = time.time_ns()
+    print(f"Elapsed time: {(end - start) / 1_000_000} ms | Accuracy: {correct / len(sigs) * 100}%")
+
+def fib(n: int) -> int:
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+def profile_test():
+    with Profile() as profile:
+        print(f"{fib(35)}")
+        Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
+
+def nhentai_parse_test():
+    response = requests.get("https://nhentai.net/g/510544/")
+    soup = BeautifulSoup(response.content, "lxml")
+    with open("test.html", "w", encoding="utf-8") as f:
+        f.write(str(soup))
+
+def webdriver_test():
+    driver = get_webdriver()
+    driver.get("https://www.google.com")
+
+def mega_query_test():
+    link = ""
+    driver = get_webdriver(False)
+    driver.get(link)
+    input("Press Enter to continue")
+
 if __name__ == "__main__":
-    # color_print_test()
-    # sankaku_test()
-    # parse_pixiv_links()
-    # link_cleaner()
-    # url_parsing("")
-    # query_gdrive_links(sys.argv[1])
-    # clean_links()
-    exit_test()
+    #profile_test()
+    # iterations = 1000
+    # total_time = timeit("test_sig_lookup()", number=iterations, globals=globals())
+    # print(f"Average time is {total_time / iterations:.2f} seconds")
+    mega_query_test()

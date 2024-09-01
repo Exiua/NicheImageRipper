@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import sys
+import json
 import string
 from typing import Iterator
 
@@ -11,7 +13,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from Enums import FilenameScheme
+from Enums import FilenameScheme, LinkInfo
 from ImageLink import ImageLink
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
@@ -25,15 +27,17 @@ class RipInfo:
 
     def __init__(self, urls: list[str | ImageLink] | str, dir_name: str = "",
                  filename_scheme: FilenameScheme = FilenameScheme.ORIGINAL,
-                 generate: bool = False, num_urls: int = 0, filenames: list[str] = None):
+                 generate: bool = False, num_urls: int = 0, filenames: list[str] = None,
+                 discard_blob: bool = False):
         if isinstance(urls, str) or isinstance(urls, ImageLink):
             urls = [urls]
+        self.__save_raw_urls(urls)
         self.filename_scheme: FilenameScheme = filename_scheme
         self.__dir_name: str = dir_name
         self.__filenames: list[str] = filenames
         if self.__dir_name:
             self.__dir_name = self.clean_dir_name(self.__dir_name)
-        self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls)
+        self.urls: list[ImageLink] = self.__convert_urls_to_image_link(urls, discard_blob)
         self.must_generate_manually: bool = generate
         self.url_count = num_urls if generate else len(self.urls)
 
@@ -44,25 +48,38 @@ class RipInfo:
         return iter(self.urls)
 
     @property
-    def num_urls(self):
+    def num_urls(self) -> int:
         return self.url_count
 
     @property
-    def dir_name(self):
+    def dir_name(self) -> str:
         return self.__dir_name
 
     @dir_name.setter
-    def dir_name(self, value):
-        self.__dir_name = value
-        self.__dir_name = self.clean_dir_name(self.__dir_name)
+    def dir_name(self, value: str):
+        self.__dir_name = self.clean_dir_name(value)
 
-    def __convert_urls_to_image_link(self, urls: list[str | ImageLink]) -> list[ImageLink]:
-        image_links = []
-        link_counter = 0
-        filename_counter = 0
+    def __save_raw_urls(self, urls: list):
+        serialized_urls = []
+        for url in urls:
+            if isinstance(url, ImageLink):
+                serialized_urls.append(url.serialize())
+            else:
+                serialized_urls.append(url)
+        
+        with open("raw_urls.json", "w") as f:
+            json.dump(serialized_urls, f, indent=4)
+
+    def __convert_urls_to_image_link(self, urls: list[str | ImageLink], discard_blob: bool = False) -> list[ImageLink]:
+        image_links: list[ImageLink] = []
+        link_counter = 0        # Current index of image_links (used for naming image_links when generating numeric names)
+        filename_counter = 0    # Current index of filenames
         urls = self.__remove_duplicates(urls)
         for url in urls:
             if isinstance(url, ImageLink):
+                if self.filename_scheme == FilenameScheme.CHRONOLOGICAL:
+                    url.rename(link_counter)
+                link_counter += 1
                 image_links.append(url)
                 continue
             if "drive.google.com" in url:
@@ -77,6 +94,8 @@ class RipInfo:
                 image_link = ImageLink(url, self.filename_scheme, link_counter, filename=filename)
                 image_links.append(image_link)
                 link_counter += 1
+        if discard_blob:
+            image_links = [image_link for image_link in image_links if not image_link.is_blob]
         return image_links
 
     @staticmethod
@@ -104,7 +123,11 @@ class RipInfo:
             "oauth2": self.gdrive_creds,
             "fields": "files(name,id)",
         }
-        res = getfilelist.GetFileList(resource)
+        try:
+            res = getfilelist.GetFileList(resource) # Library calls sys.exit on error
+        except SystemExit:
+            print(f"Failed to get file list for {gdrive_url}", file=sys.stderr)
+            return [], index
         if not self.__dir_name:
             dir_name = res["searchedFolder"]["name"] if not single_file else res["searchedFolder"]["id"]
             self.__dir_name = self.clean_dir_name(dir_name)
@@ -113,7 +136,7 @@ class RipInfo:
         if single_file:
             filename = res["searchedFolder"]["name"]
             file_id = id_
-            img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, gdrive=True)
+            img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, link_info=LinkInfo.GDRIVE)
             links.append(img_link)
             counter += 1
         else:
@@ -127,7 +150,8 @@ class RipInfo:
                 for file in files:
                     file_id = file["id"]
                     filename = os.path.join(parent_folder, file["name"])
-                    img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename, gdrive=True)
+                    img_link = ImageLink(file_id, self.filename_scheme, counter, filename=filename,
+                                         link_info=LinkInfo.GDRIVE)
                     links.append(img_link)
                     counter += 1
         return links, counter
@@ -198,9 +222,9 @@ class RipInfo:
         """
         dir_name = dir_name.translate(RipInfo.translation_table).strip().replace("\n", "")
         if dir_name[-1] not in (")", "]", "}"):
-            dir_name.rstrip(string.punctuation)
+            dir_name = dir_name.rstrip(string.punctuation)
         if dir_name[0] not in ("(", "[", "{"):
-            dir_name.lstrip(string.punctuation)
+            dir_name = dir_name.lstrip(string.punctuation)
         return dir_name
 
     @classmethod

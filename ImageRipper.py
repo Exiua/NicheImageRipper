@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import functools
 import io
 import logging.handlers
@@ -16,7 +17,9 @@ from typing import BinaryIO
 from urllib.parse import urlparse
 
 import PIL
+import ffmpeg
 import requests
+import yt_dlp
 from PIL import Image
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -29,10 +32,12 @@ from Config import Config
 from Enums import FilenameScheme, UnzipProtocol, LinkInfo
 from HtmlParser import HtmlParser
 from ImageLink import ImageLink
+from MegaApi import mega_login, mega_whoami, mega_download
 from RipInfo import RipInfo
 from RipperExceptions import BadSubdomain, WrongExtension, RipperError, FileNotFoundAtUrl, ImproperlyFormattedSubdomain
 from StatusSync import StatusSync
-from Util import url_check, SCHEME
+from TemporaryTokenManager import TokenManager
+from Util import url_check, SCHEME, get_login_creds
 from b_cdn_drm_vod_dl import BunnyVideoDRM
 
 SESSION_HEADERS: dict[str, str] = {
@@ -75,6 +80,7 @@ class ImageRipper:
         self.auto_extract: bool = False
         self.logins: dict[str, dict[str, str]] = Config.config.logins
         self.logged_in: bool = os.path.isfile("cookies.pkl")
+        self.persistent_logins: dict[str, bool] = {}
         self.save_path: str = Config.config['SavePath']
         self.session: requests.Session = requests.Session()
         self.site_name: str = ""
@@ -172,7 +178,7 @@ class ImageRipper:
         if self.folder_info.must_generate_manually:
             # Gets the general url of all images in this album
             trimmed_url = self.__trim_url(self.folder_info.urls[0].url)
-            extensions = (".jpg", ".gif", ".png", "mp4", "t.jpg")
+            extensions = (".jpg", ".gif", ".png", ".mp4", "t.jpg")
 
             # Downloads all images from the general url by incrementing the file number
             #   (eg. https://domain/gallery/##.jpg)
@@ -333,15 +339,19 @@ class ImageRipper:
             self.__download_gdrive_file(image_path, image_link)
         elif image_link.link_info == LinkInfo.IFRAME_MEDIA:
             self.__download_iframe_media(image_path, image_link)
+        elif image_link.link_info == LinkInfo.MEGA:
+            self.__download_mega_files(image_path, image_link)
+        elif image_link.link_info == LinkInfo.PIXELDRAIN:
+            self.__download_pixeldrain_files(image_path, image_link)
         else:
-            self.__download_file(image_path, rip_url)
+            self.__download_file(image_path, rip_url, image_link.link_info)
         sleep(0.05)
 
     @staticmethod
     def __download_m3u8_to_mp4(video_path: str, video_url: str):
-        cmd = ["ffmpeg", "-protocol_whitelist", "file,http,https,tcp,tls,crypto", "-i", video_url, "-c", "copy",
-               video_path]
-        subprocess.run(cmd)
+        input_stream = ffmpeg.input(video_url, protocol_whitelist="file,http,https,tcp,tls,crypto")
+        output_stream = ffmpeg.output(input_stream, video_path, c="copy")
+        ffmpeg.run(output_stream)
 
     @staticmethod
     def __download_gdrive_file(folder_path: str, image_link: ImageLink):
@@ -358,31 +368,72 @@ class ImageRipper:
             print(f"Downloaded {int(status.progress() * 100):d}%", end="\r")
         print()
 
-    @staticmethod
-    def __download_iframe_media(folder_path: str, image_link: ImageLink):
-        destination_file = Path(folder_path)
-        destination_file.parent.mkdir(parents=True, exist_ok=True)
-        video = BunnyVideoDRM(
-            # insert the referer between the quotes below (address of your webpage)
-            referer=image_link.url,
-            # paste your embed link
-            embed_url=image_link.referer,
-            # you can override file name, no extension
-            name=destination_file.name,
-            # you can override download path
-            path=str(destination_file.parent))
-        video.download()
-        for f in destination_file.parent.glob(".*"):
-            shutil.rmtree(f)
+    def __download_mega_files(self, folder_path: str, image_link: ImageLink):
+        email, password = get_login_creds("Mega")
+        if "Mega" not in self.persistent_logins:
+            if mega_whoami() == email:
+                self.persistent_logins["Mega"] = True
+            else:
+                self.persistent_logins["Mega"] = mega_login(email, password)
+        else:
+            if not self.persistent_logins["Mega"]:
+                if mega_whoami() == email:
+                    self.persistent_logins["Mega"] = True
+                else:
+                    self.persistent_logins["Mega"] = mega_login(email, password)
 
-    def __download_file(self, image_path: str, rip_url: str):
+        if not self.persistent_logins["Mega"]:
+            raise Exception("Unable to login to MegaCmd")
+
+        print(f"Downloading {image_link.url} to {folder_path}")
+        Path(folder_path).mkdir(parents=True, exist_ok=True)
+        mega_download(image_link.url, folder_path)
+
+    def __download_pixeldrain_files(self, image_path: str, image_link: ImageLink):
+        api_key = Config.config.keys["Pixeldrain"]
+        auth_string = f":{api_key}"
+        base64_auth = base64.b64encode(auth_string.encode()).decode()
+        headers = {
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                           "Chrome/107.0.0.0 Safari/537.36"),
+            "Authorization": f"Basic {base64_auth}",
+        }
+        response = requests.get(f"https://pixeldrain.com/api/file/{image_link.url}", headers=headers, stream=True)
+        with open(image_path, "wb") as f:
+            for block in response.iter_content(chunk_size=10240):
+                if block:
+                    f.write(block)
+
+    def __download_iframe_media(self, folder_path: str, image_link: ImageLink):
+        for i in range(4):
+            try:
+                destination_file = Path(folder_path)
+                destination_file.parent.mkdir(parents=True, exist_ok=True)
+                video = BunnyVideoDRM(
+                    # insert the referer between the quotes below (address of your webpage)
+                    referer=image_link.url,
+                    # paste your embed link
+                    embed_url=image_link.referer,
+                    # you can override file name, no extension
+                    name=destination_file.name,
+                    # you can override download path
+                    path=str(destination_file.parent))
+                video.download()
+                for f in destination_file.parent.glob(".*"):
+                    shutil.rmtree(f)
+                break
+            except (yt_dlp.utils.DownloadError, PermissionError):
+                if i == 3:
+                    self.__log_failed_url(image_link.url)
+
+    def __download_file(self, image_path: str, rip_url: str, link_info: LinkInfo):
         """Download the given file"""
         if image_path[-1] == "/":
-            image_path = image_path[:-2]
+            image_path = image_path[:-2]    # [:-1] would make sense, but idr why [:-2] works
 
         try:
             for _ in range(4):  # Try 4 times before giving up
-                if self.__download_file_helper(rip_url, image_path):
+                if self.__download_file_helper(rip_url, image_path, link_info):
                     break
             return  # Failed to download file
         # If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
@@ -398,9 +449,13 @@ class ImageRipper:
             ext = self.__get_correct_ext(image_path)
             os.replace(image_path, image_path + ext)
 
-    def __download_file_helper(self, url: str, image_path: str) -> bool:
+    def __download_file_helper(self, url: str, image_path: str, link_info: LinkInfo) -> bool:
         bad_cert = False
         sleep(self.sleep_time)
+        token_needed = "redgifs" in url
+        if token_needed:
+            token = TokenManager.get_instance().get_token("redgifs").value
+            self.requests_header["Authorization"] = f"Bearer {token}"
 
         try:
             response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
@@ -415,10 +470,17 @@ class ImageRipper:
             return False
 
         if not response.ok and not bad_cert:
-            if response.status_code == 403 and self.site_name == "kemono" and ".psd" not in url:
-                raise BadSubdomain
+            supress_response = False
+            if response.status_code == 403:
+                if self.site_name == "kemono" and ".psd" not in url:
+                    raise BadSubdomain
+                elif link_info == LinkInfo.ARTSTATION:
+                    url = url.replace("/4k/", "/large/")
+                    response = self.session.get(url, headers=self.requests_header, stream=True, allow_redirects=True)
+                    supress_response = True
 
-            print(response)
+            if not supress_response:
+                print(response)
 
             if response.status_code == 404:
                 self.__log_failed_url(url)
@@ -431,6 +493,9 @@ class ImageRipper:
         if not self.__write_to_file(response, image_path):
             self.__log_failed_url(url)
             return False
+        
+        if token_needed:
+            del self.requests_header["Authorization"]
 
         return True
 
@@ -538,6 +603,8 @@ class ImageRipper:
                 return ".mp4"
             elif file_sig == b"\x43\x53\x46\x43\x48\x55\x4E\x4B":
                 return ".clip"
+            elif file_sig == b"\x3C\x21\x44\x4F\x43\x54\x59\x50":
+                return ".html"
             else:
                 print(f"Unable to identify file {filepath} with signature {file_sig}")
                 if orig_filepath.suffix == "":

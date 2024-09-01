@@ -1,13 +1,38 @@
-# NicheImageRipper [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE)
-[![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases) ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
+# NicheImageRipper 
+[![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE) [![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases) ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
 
-# About
+## Table of Contents
+<!-- TOC -->
+* [NicheImageRipper](#nicheimageripper-)
+  * [Table of Contents](#table-of-contents)
+  * [About](#about)
+  * [How To Use](#how-to-use)
+  * [Dependencies](#dependencies)
+    * [Python Dependencies](#python-dependencies)
+    * [External Dependencies](#external-dependencies)
+  * [Sites Currently Supported:](#sites-currently-supported)
+<!-- TOC -->
+
+## About
 
 NicheImageRipper is an image ripper written in python 3 to download albums from various sites.
 
 ## How To Use
 
-Download `NicheImageRipper.rar` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases), extract all files and run `NicheImageRipper.py`.
+Download `NicheImageRipper.rar` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases), extract all files, install the required dependencies, 
+and run `NicheImageRipper.py`.
+
+## Dependencies
+
+### Python Dependencies
+
+The Python dependencies can be found in the `requirements.txt` file. The easiest way to install the dependencies would 
+be to use a virtual enviroment. Run `python -m venv venv` to create the virtual environment. Run `./venv/Scripts/activate`
+to start the virtual environment. Then run `pip install -r requirements.txt` to install the Python dependencies.
+
+### External Dependencies
+
+The program also requires `ffmpeg` and `geckodriver` to be installed.
 
 ## Sites Currently Supported:
 

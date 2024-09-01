@@ -10,9 +10,10 @@ from RipperExceptions import RipperError
 
 
 class ImageLink:
-    def __init__(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "", gdrive: bool = False):
+    def __init__(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "",
+                 link_info: LinkInfo = LinkInfo.NONE):
         self.referer: str = ""  # Needs to be declared before url
-        self.link_info: LinkInfo = LinkInfo.GDRIVE if gdrive else LinkInfo.NONE
+        self.link_info: LinkInfo = link_info
         self.url: str = self.__generate_url(url)
         self.filename: str = self.__generate_filename(url, filename_scheme, index, filename)
 
@@ -27,6 +28,10 @@ class ImageLink:
         if not isinstance(other, ImageLink):
             return False
         return self.url == other.url
+
+    @property
+    def is_blob(self) -> bool:
+        return self.url.startswith("data:")
 
     @classmethod
     def deserialize(cls, object_data: dict) -> ImageLink:
@@ -45,44 +50,37 @@ class ImageLink:
             "link_info": self.link_info
         }
         return object_data
+    
+    def rename(self, new_stem: str | int):
+        if isinstance(new_stem, int):
+            new_stem = str(new_stem)
+        ext = os.path.splitext(self.filename)[1]
+        self.filename = new_stem + ext
 
     def __generate_url(self, url: str) -> str:
+        url = url.replace("\n", "")
         if "iframe.mediadelivery.net" in url:
             split = url.split("}")
             playlist_url = split[0]
             self.referer = split[1]
-            # match = re.search(r"[^{]+{(\d+)", playlist_url)
-            # resolution = self.resolution_lookup(match.group(1))
             self.link_info = LinkInfo.IFRAME_MEDIA
-            # link_url = playlist_url.split("{")[0].replace("/playlist.drm", f"/{resolution}/video.drm")
             link_url = playlist_url.split("{")[0]
-            return link_url  # f"https://iframe.mediadelivery.net/{guid}/{resolution}/video.drm?contextId={context_id}"
+            return link_url
+        elif "drive.google.com" in url:
+            self.link_info = LinkInfo.GDRIVE
+            return url
+        elif "mega.nz" in url:
+            self.link_info = LinkInfo.MEGA
+            return url
+        elif "saint.to" in url:
+            self.referer = "https://saint.to/"
+            return url
+        # elif "redgifs.com" in url:
+        #     self.link_info = LinkInfo.M3U8
+        #     id_ = url.split("/")[3].split(".")[0].lower() # Redgifs IDs are case-sensitive
+        #     return f"https://api.redgifs.com/v2/gifs/{id_}/hd.m3u8"
         else:
             return url
-
-    @staticmethod
-    def resolution_lookup(resolution: str) -> str:
-        if resolution == "360":
-            return "640x360"
-        if resolution == "480":
-            return "640x480"
-        if resolution == "720":
-            return "1280x720"
-        if resolution == "1080":
-            return "1920x1080"
-        if resolution == "1280":
-            return "720x1280"
-        if resolution == "1440":
-            return "2560x1440"
-        if resolution == "1920":
-            return "1080x1920"
-        if resolution == "2160":
-            return "3840x2160"
-        if resolution == "2560":
-            return "1440x2560"
-        if resolution == "3840":
-            return "2160x3840"
-        raise Exception(f"Invalid Resolution: {resolution}")
 
     def __generate_filename(self, url: str, filename_scheme: FilenameScheme, index: int, filename: str = "") -> str:
         if not filename:
@@ -119,10 +117,22 @@ class ImageLink:
             file_name = f"{parts[-2]}.{ext}"
         elif "thothub.lol/" in url and "/?rnd=" in url:
             file_name = url.split("/")[-2]
-        elif ("kemono.party/" in url or "coomer.party/" in url) and "?f=" in url:
+        elif ("kemono.su/" in url or "coomer.su/" in url) and "?f=" in url:
             file_name = url.split("?f=")[-1]
             if "http" in file_name:
                 file_name = url.split("?f=")[0].split("/")[-1]
+        elif "phncdn.com" in url:
+            file_name = url.split("/")[8]
+            self.link_info = LinkInfo.M3U8
+        elif "artstation.com" in url:
+            file_name = url.split("/")[-1].split("?")
+            file_name = f"{file_name[1]}{file_name[0]}"
+            self.link_info = LinkInfo.ARTSTATION
+        elif "pbs.twimg.com" in url:
+            file_name = url.split("/")[-1].split("?")[0]
+            ext = re.search(r"format=(\w+)", url)
+            if ext:
+                file_name = f"{file_name}.{ext.group(1)}"
         else:
             file_name = os.path.basename(urlparse(url).path)
         return file_name
