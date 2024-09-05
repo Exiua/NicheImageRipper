@@ -9,4 +9,5 @@ public enum LinkInfo
     Mega,
     PixelDrain,
     Youtube,
+    Text,
 }

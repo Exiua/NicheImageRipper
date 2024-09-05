@@ -1,11 +1,12 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Collections.Frozen;
+using System.Text.RegularExpressions;
 
 namespace Core.Utility;
 
 public static partial class UrlUtility
 {
-    private static readonly HashSet<string> SupportedSites =
-    [
+    private static readonly FrozenSet<string> SupportedSites = new[]
+    {
         "https://imhentai.xxx/", "https://hotgirl.asia/", "https://www.redpornblog.com/",
         "https://girlsreleased.com/", "https://www.bustybloom.com/",
         "https://www.morazzia.com/",
@@ -68,8 +69,9 @@ public static partial class UrlUtility
         "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
         "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
-        "https://x.com/", "https://yande.re/", "https://cup2d.com/"
-    ];
+        "https://x.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
+        "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/",
+    }.ToFrozenSet();
 
     /// <summary>
     ///     Check the url to make sure it is from valid site

@@ -7,6 +7,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
 using Core.FileDownloading;
+using Core.History;
 using Core.Utility;
 using File = System.IO.File;
 
@@ -33,6 +34,7 @@ public abstract partial class NicheImageRipper
     public int RetryDelay { get; set; } = 1000; // In milliseconds
     
     public List<HistoryEntry> History { get; set; } = [];
+    public static HistoryManager HistoryDb => HistoryManager.Instance;
     
     protected bool Debugging { get; set; } = false;
 
@@ -53,6 +55,7 @@ public abstract partial class NicheImageRipper
             LoadConfig();
         }
 
+        // TODO: Change to use a database
         if (File.Exists("RipHistory.json"))
         {
             LoadHistory();
@@ -80,7 +83,8 @@ public abstract partial class NicheImageRipper
 
     private static List<HistoryEntry> LoadHistoryData()
     {
-        return JsonUtility.Deserialize<List<HistoryEntry>>("RipHistory.json") ?? [];
+        //return JsonUtility.Deserialize<List<HistoryEntry>>("RipHistory.json") ?? [];
+        return HistoryDb.GetHistory();
     }
 
     // FIXME: Error handling is not implemented
@@ -334,13 +338,18 @@ public abstract partial class NicheImageRipper
         var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripper.FolderInfo.DirectoryName);
         if (duplicate is not null)
         {
+            var now = DateTime.Now;
             History.Remove(duplicate);
+            duplicate.Date = now;   // Update date
             History.Add(duplicate); // Move to the end
+            HistoryDb.UpdateDateByUrl(url, now);
         }
         else
         {
             var folderInfo = ripper.FolderInfo;
-            History.Add(new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls));
+            var entry = new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls);
+            History.Add(entry);
+            HistoryDb.InsertHistoryRecord(entry);
         }
     }
 

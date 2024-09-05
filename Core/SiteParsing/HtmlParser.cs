@@ -233,7 +233,11 @@ public partial class HtmlParser
             "yande" => YandeParse,
             "18kami" => EighteenKamiParse,
             "cup2d" => Cup2DParse,
-            "5ge" => FiveGeParse, 
+            "5ge" => FiveGeParse,
+            "japaneseasmr" => JapaneseAsmrParse,
+            "spacemiss" => SpaceMissParse,
+            "xiuren" => XiurenParse,
+            "xchina" => XChinaParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -2330,6 +2334,12 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> HentaiCosplaysParse()
     {
+        if (CurrentUrl.Contains("/video/"))
+        {
+            CurrentUrl = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
+            return await PornVideoXXXParse();
+        }
+        
         var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
         {
             ScrollBy = true
@@ -2663,6 +2673,37 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for japaneseasmr.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> JapaneseAsmrParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='page-title']").InnerText;
+        var images = soup.SelectSingleNode("//div[@class='fotorama__nav__shaft']")
+                         .SelectNodes(".//img")
+                         .Select(img => img.GetSrc())
+                         .ToStringImageLinkWrapperList();
+        var megaLinks = soup.SelectSingleNode("//div[@class='download_links']")
+                            .SelectNodes(".//a")
+                            .Select(a => a.GetHref());
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var link in megaLinks)
+        {
+            // Unable to bypass Cloudflare atm
+            // CurrentUrl = link;
+            // while (CurrentUrl == link)
+            // {
+            //     await Task.Delay(1000);
+            // }
+            
+            images.Add($"text:{link}");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for jkforum.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -3806,6 +3847,21 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for porn-video-xxx.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> PornVideoXXXParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='blog-info--title']").InnerText;
+        var images = soup.SelectNodes("//video/source")
+                            .Select(source => source.GetSrc())
+                            .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for putmega.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -4151,6 +4207,24 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for spacemiss.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> SpaceMissParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='tdb-title-text']").InnerText;
+        var images = soup
+                    .SelectSingleNode(
+                         "//figure[@class='wp-block-gallery has-nested-images columns-2 is-cropped td-modal-on-gallery wp-block-gallery-1 is-layout-flex wp-block-gallery-is-layout-flex']")
+                    .SelectNodes(".//a")
+                    .Select(img => img.GetHref())
+                    .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for sxchinesegirlz01.xyz and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -4778,6 +4852,126 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for en.xchina.co and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> XChinaParse()
+    {
+        string GetVideoUrl(HtmlNode soup)
+        {
+            var video = soup.SelectSingleNode("//video");
+            var videoSrc = video.GetSrc();
+            if (!videoSrc.StartsWith("blob:"))
+            {
+                return videoSrc;
+            }
+
+            var script = video.ParentNode.SelectNodes(".//script")[1].InnerText;
+            var url = script.Split("hls.loadSource(\"")[1];
+            url = url.Split("\");")[0];
+            return url;
+
+        }
+        
+        var soup = await Soupify();
+        var tabContents = soup.SelectSingleNode("//div[@class='tab-content video-info']");
+        var publisherNode = tabContents.SelectSingleNode(".//i[@class='fa fa-video-camera']") 
+                            ?? tabContents.SelectSingleNode(".//i[@class='fa fa-user-circle']");
+
+        var publisher = publisherNode.ParentNode.SelectSingleNode(".//a").InnerText;
+        
+        var series = tabContents.SelectSingleNode(".//i[@class='fa fa-file-o']");
+        var id = series is not null ? series.ParentNode.InnerText : CurrentUrl.Split("id-")[^1].Split(".")[0];
+        var title = tabContents.SelectNodes(".//div")[0].InnerText;
+        var dirName = $"[{publisher}] {id} - {title}";
+        var images = new List<StringImageLinkWrapper>();
+        if (CurrentUrl.Contains("/video/"))
+        {
+            var url = GetVideoUrl(soup);
+            images.Add(url);
+        }
+        else
+        {
+            int numVids;
+            var controls = soup.SelectSingleNode("//div[@class='controls']");
+            if (controls is not null)
+            {
+                var index = controls.SelectSingleNode(".//div[@class='index']")
+                                    .InnerText
+                                    .Split(" ")[^1];
+                numVids = int.Parse(index);
+            }
+            else
+            {
+                var vid = soup.SelectSingleNode("//div[@class='container']//video");
+                numVids = vid is not null ? 1 : 0;
+            }
+
+            var prevUrl = "";
+            for (var i = 0; i < numVids; i++)
+            {
+                var vidSrc = GetVideoUrl(soup);
+                while (vidSrc == prevUrl)
+                {
+                    await Task.Delay(250);
+                    // var vidNode = Driver.FindElement(By.XPath("//video"));
+                    // vidSrc = vidNode.GetSrc()!;
+                    soup = await Soupify();
+                    vidSrc = GetVideoUrl(soup);
+                }
+                
+                images.Add(vidSrc);
+                prevUrl = vidSrc;
+                var nextButton = Driver.TryFindElement(By.XPath("//div[@go='1']"));
+                nextButton?.Click();
+            }
+
+            while (true)
+            {
+                var photos = soup.SelectSingleNode("//div[@class='photos']")
+                                 .SelectNodes("./a")
+                                 .SelectMany(a => a.SelectNodes(".//img"))
+                                 .Select(img => img.GetSrc().Split("_")[0] + ".jpg");
+                images.AddRange(photos.Select(photo => (StringImageLinkWrapper)photo));
+
+                var nextButton = soup.SelectSingleNode("//a[@class='next']");
+                if (nextButton is null)
+                {
+                    break;
+                }
+                
+                var nextPage = nextButton.GetNullableHref();
+                if (nextPage is not null)
+                {
+                    soup = await Soupify("https://en.xchina.co" + nextPage);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for xiuren.biz and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> XiurenParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='jeg_post_title']").InnerText;
+        var images = soup.SelectSingleNode("//div[@class='content-inner ']")
+                         .SelectNodes(".//a")
+                         .Select(img => img.GetHref())
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for xmissy.nl and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -4930,7 +5124,7 @@ public partial class HtmlParser
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
-    private async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
+    private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
     {
         var parsedUrls = new List<string>();
         var imgurKey = Config.Instance.Keys["Imgur"];

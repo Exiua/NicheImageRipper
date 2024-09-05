@@ -14,6 +14,8 @@
       <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
       <PackageReference Include="Selenium.WebDriver" Version="4.20.0" />
       <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.34.0" />
+      <PackageReference Include="SharpCompress" Version="0.37.2" />
+      <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
     </ItemGroup>
 
 </Project>

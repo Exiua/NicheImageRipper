@@ -56,4 +56,14 @@ public static class SeleniumExtensionMethods
         
         cookieJar.AddCookie(newCookie);
     }
+    
+    public static string? GetSrc(this IWebElement element)
+    {
+        return element.GetAttribute("src");
+    }
+    
+    public static string? GetHref(this IWebElement element)
+    {
+        return element.GetAttribute("href");
+    }
 }

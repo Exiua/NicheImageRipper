@@ -146,4 +146,9 @@ public static class ExtensionMethods
             list.Add(item);
         }
     }
+    
+    public static string ToSqliteString(this DateTime dateTime)
+    {
+        return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
+    }
 }

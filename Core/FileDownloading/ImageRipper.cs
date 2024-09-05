@@ -12,6 +12,10 @@ using Core.ExtensionMethods;
 using Core.SiteParsing;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using SharpCompress.Archives;
+using SharpCompress.Archives.Rar;
+using SharpCompress.Archives.SevenZip;
+using SharpCompress.Common;
 
 namespace Core.FileDownloading;
 
@@ -324,6 +328,9 @@ public partial class ImageRipper
                 break;
             case LinkInfo.Youtube:
                 await DownloadYoutubeFile(imagePath, imageLink);
+                break;
+            case LinkInfo.Text:
+                await File.AppendAllTextAsync(imagePath, ripUrl + "\n");
                 break;
             case LinkInfo.None:
             default:
@@ -802,14 +809,86 @@ public partial class ImageRipper
     /// <param name="downloadStats">DownloadStats object to update with results</param>
     private void UnzipFiles(string directoryPath, DownloadStats downloadStats)
     {
+        var count = 0;
+        var error = 0;
         var files = Directory.GetFiles(directoryPath, "*.zip", SearchOption.AllDirectories);
+        var (intermediateCount, intermediateError) = UncompressAndGetResults(files, UnzipFile);
+        count += intermediateCount;
+        error += intermediateError;
+        // foreach (var file in files)
+        // {
+        //     try
+        //     {
+        //         UnzipFile(file);
+        //         count++;
+        //     }
+        //     catch (Exception)
+        //     {
+        //         Console.WriteLine($"Failed to extract: {file}");
+        //         error++;
+        //     }
+        // }
+        
+        files = Directory.GetFiles(directoryPath, "*.7z", SearchOption.AllDirectories);
+        (intermediateCount, intermediateError) = UncompressAndGetResults(files, file =>
+        {
+            using var archive = SevenZipArchive.Open(file);
+            UncompressFile(file, archive);
+        });
+        count += intermediateCount;
+        error += intermediateError;
+        // foreach (var file in files)
+        // {
+        //     try
+        //     {
+        //         using var archive = SevenZipArchive.Open(file);
+        //         UncompressFile(file, archive);
+        //         count++;
+        //     }
+        //     catch (Exception)
+        //     {
+        //         Console.WriteLine($"Failed to extract: {file}");
+        //         error++;
+        //     }
+        // }
+        
+        files = Directory.GetFiles(directoryPath, "*.rar", SearchOption.AllDirectories);
+        (intermediateCount, intermediateError) = UncompressAndGetResults(files, file =>
+        {
+            using var archive = RarArchive.Open(file);
+            UncompressFile(file, archive);
+        });
+        count += intermediateCount;
+        error += intermediateError;
+        // foreach (var file in files)
+        // {
+        //     try
+        //     {
+        //         using var archive = RarArchive.Open(file);
+        //         UncompressFile(file, archive);
+        //         count++;
+        //     }
+        //     catch (Exception)
+        //     {
+        //         Console.WriteLine($"Failed to extract: {file}");
+        //         error++;
+        //     }
+        // }
+        
+        downloadStats.ArchivesExtracted += count;
+        downloadStats.FailedDownloads += error;
+        //Console.WriteLine($"Archive Results:\n\tExtracted: {count}\n\tFailed: {error}");
+    }
+
+    private static (int, int) UncompressAndGetResults(string[] files, Action<string> uncompressAction)
+    {
         var count = 0;
         var error = 0;
         foreach (var file in files)
         {
             try
             {
-                UnzipFile(file);
+                uncompressAction(file);
                 count++;
             }
             catch (Exception)
@@ -819,9 +898,22 @@ public partial class ImageRipper
             }
         }
         
-        downloadStats.ArchivesExtracted += count;
-        downloadStats.FailedDownloads += error;
-        //Console.WriteLine($"Archive Results:\n\tExtracted: {count}\n\tFailed: {error}");
+        return (count, error);
+    }
+
+    private static void UncompressFile(string archivePath, IArchive archive)
+    {
+        var extractPath = Path.ChangeExtension(archivePath, null);
+        Directory.CreateDirectory(extractPath);
+        // using var archive = SevenZipArchive.Open(archivePath);
+        foreach (var entry in archive.Entries.Where(entry => !entry.IsDirectory))
+        {
+            entry.WriteToDirectory(extractPath, new ExtractionOptions
+            {
+                ExtractFullPath = true,
+                Overwrite = true
+            });
+        }
     }
 
     /// <summary>

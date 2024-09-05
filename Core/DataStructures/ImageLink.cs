@@ -22,7 +22,8 @@ public partial class ImageLink
         
     }
     
-    public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", LinkInfo linkInfo = LinkInfo.None)
+    public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", 
+                     LinkInfo linkInfo = LinkInfo.None)
     {
         Referer = "";
         LinkInfo = linkInfo;
@@ -49,6 +50,12 @@ public partial class ImageLink
     
     private string GenerateUrl(string url)
     {
+        if (url.StartsWith("text:"))
+        {
+            LinkInfo = LinkInfo.Text;
+            return url[5..];
+        }
+        
         url = url.Replace("\n", "");
         if (url.Contains("iframe.mediadelivery.net"))
         {
@@ -94,6 +101,11 @@ public partial class ImageLink
     {
         if(filename == "")
         {
+            if (LinkInfo == LinkInfo.Text)
+            {
+                return "urls.txt";
+            }
+            
             filename = ExtractFilename(url);
         }
         
@@ -167,6 +179,11 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^1];
             fileName = fileName.Remove("yande.re").Replace("%20", "-");
+        }
+        else if(url.Contains("playhls.com/"))
+        {
+            fileName = url.Split("&id=")[^1];
+            fileName = fileName.Split("&")[0] + ".mp4";
         }
         else
         {
