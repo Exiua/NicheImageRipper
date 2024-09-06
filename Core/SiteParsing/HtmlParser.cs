@@ -1393,17 +1393,6 @@ public partial class HtmlParser
         // TODO: Implement the rest of the method
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
-    /*
-     * def deviantart_parse(self) -> RipInfo:
-        """Parses the html for deviantart.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        curr = self.driver.current_url
-        dir_name = curr.split("/")[3]
-        images = [curr]
-        self.driver.quit()
-        return RipInfo(images, dir_name, self.filename_scheme)
-     */
 
     /// <summary>
     ///     Parses the html for dirtyyoungbitches.com and extracts the relevant information necessary for downloading images from the site
@@ -2469,19 +2458,6 @@ public partial class HtmlParser
         
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
-    // TODO: hotpornpics parse cause images weren't loading (cdn issue)
-    /*
-     * def hotpornpics_parse(self) -> RipInfo:
-        """Parses the html for hotpornpics.com and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        soup = self.soupify()
-        dir_name = soup.find("h1", class_="hotpornpics_h1player").text
-        images = soup.find("div", class_="hotpornpics_gallerybox").find_all("img")
-        images = [img.get("src").replace("-square", "") for img in images]
-        self.driver.quit()
-        return RipInfo(images, dir_name, self.filename_scheme)
-     */
 
     /// <summary>
     ///     Parses the html for hotstunners.com and extracts the relevant information necessary for downloading images from the site
@@ -3193,6 +3169,7 @@ public partial class HtmlParser
 
         return new RipInfo(images, dirName, FilenameScheme);
 
+        // ReSharper disable once VariableHidesOuterVariable
         List<string> GetPosts(HtmlNode soup, bool movies)
         {
             var posts = new List<string>();
