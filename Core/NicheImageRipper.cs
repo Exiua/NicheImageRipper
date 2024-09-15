@@ -280,7 +280,6 @@ public abstract partial class NicheImageRipper
         return stringList.Select(s => delimiter + s.Trim());
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsLatestVersion()
     {
         return Version >= LatestVersion;

@@ -62,7 +62,7 @@ public class Config
         }
         
         config.Cookies = new Dictionary<string, string>();
-        string[] siteCookies = ["Twitter", "Newgrounds", "Porn3dx", "Pornhub", "Thothub"];
+        string[] siteCookies = ["Twitter", "Newgrounds", "Porn3dx", "Pornhub", "Thothub", "Kemono"];
         foreach (var site in siteCookies)
         {
             config.Cookies[site] = "";

@@ -360,15 +360,11 @@ public partial class HtmlParser
     /// <returns></returns>
     private async Task<RipInfo> DotPartyParse(string domainUrl)
     {
-        var cookies = Driver.Manage().Cookies.AllCookies;
-        var cookieStr = cookies.Aggregate("", (current, c) => current + $"{c.Name}={c.Value};");
-        RequestHeaders["cookie"] = cookieStr;
         var baseUrl = CurrentUrl;
         var urlSplit = baseUrl.Split("/");
         var sourceSite = urlSplit[3];
-        baseUrl = string.Join("/", urlSplit[..6]).Split("?")[0];
-        var pageUrl = CurrentUrl.Split("?")[0];
-        await Task.Delay(5000);
+        baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
+        baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
                           .SelectSingleNode("//span[@itemprop='name']").InnerText;
@@ -376,49 +372,60 @@ public partial class HtmlParser
 
         #region Get All Posts
 
+        var client = new HttpClient();
+        var posts = new List<JsonObject>();
         var page = 0;
-        var imageLinks = new List<string>();
-        var origUrl = CurrentUrl;
         while (true)
         {
-            page += 1;
-            Print($"Parsing page {page}");
-            var imageList = soup.SelectSingleNode("//div[@class='card-list__items']").SelectNodes("//article");
-            foreach (var image in imageList)
+            var response = await client.GetAsync($"{baseUrl}?o={page*50}");
+            page++;
+            if (!response.IsSuccessStatusCode)
             {
-                var id = image.GetAttributeValue("data-id", "");
-                imageLinks.Add($"{baseUrl}/post/{id}");
+                throw new RipperException($"Failed to get page {page}");
             }
-
-            var nextUrl = $"{pageUrl}?o={page * 50}";
-            Print(nextUrl);
-            soup = await Soupify(nextUrl);
-            if (soup.SelectSingleNode("//h2[@class='site-section__subheading']") is not null || CurrentUrl == origUrl)
+            
+            var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var jsonPosts = json!.AsArray();
+            posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
+            if (jsonPosts.Count < 50)
             {
                 break;
             }
+
+            await Task.Delay(250);
         }
 
         #endregion
 
         #region Parse All Posts
 
-        var images = new List<string>();
+        var images = new List<StringImageLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
-        var numPosts = imageLinks.Count;
+        var numPosts = posts.Count;
         string[] attachmentExtensions =
             [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
 
-        foreach (var (i, link) in imageLinks.Enumerate())
+        foreach (var (i, post) in posts.Enumerate())
         {
             Print($"Parsing post {i + 1} of {numPosts}");
-            Print(link);
-            soup = await Soupify(link);
-            var links = soup.SelectNodes("//a").GetHrefs();
+            var id = post["id"]!.Deserialize<string>()!;
+            Console.WriteLine($"Post ID: {id}");
+            var content = post["content"]!.Deserialize<string>()!;
+            soup = await Soupify(stringHtml: content);
+            var links = soup.SelectNodesSafe("//a").GetHrefs();
+            var possibleLinks = new List<string>();
             var possibleLinksP = soup.SelectNodes("//p");
-            var possibleLinks = possibleLinksP.Select(p => p.InnerText).ToList();
+            if (possibleLinksP is not null)
+            {
+                possibleLinks.AddRange(possibleLinksP.Select(p => p.InnerText));
+            }
+            
             var possibleLinksDiv = soup.SelectNodes("//div");
-            possibleLinks.AddRange(possibleLinksDiv.Select(d => d.InnerText));
+            if(possibleLinksDiv is not null)
+            {
+                possibleLinks.AddRange(possibleLinksDiv.Select(d => d.InnerText));
+            }
+            
             var extLinks = ExtractExternalUrls(links);
             foreach (var site in extLinks.Keys)
             {
@@ -431,33 +438,56 @@ public partial class HtmlParser
                 externalLinks[site].AddRange(extLinks[site]);
             }
 
-            var attachments = new List<string>();
-            foreach (var l in links)
+            
+            var file = post["file"]!.AsObject();
+            var name = file["name"]!.Deserialize<string>()!;
+            var path = file["path"]?.Deserialize<string>();
+            if(path is not null)
             {
-                if (!attachmentExtensions.AnyIn(l))
+                if (path[0] == '/')
                 {
-                    continue;
+                    path = domainUrl + path;
                 }
-
-                var attachment = l.Contains(domainUrl) || l.Contains("http") /* Includes https */ ? l : domainUrl + l;
-                attachments.Add(attachment);
+    
+                var imageLink = new ImageLink(path, FilenameScheme, 0, filename: name);
+                images.Add(imageLink);
             }
+            
+            var attachments = post["attachments"]!.AsArray();
+            foreach (var attachment in attachments)
+            {
+                var attachmentName = attachment!["name"]!.Deserialize<string>()!;
+                var attachmentPath = attachment["path"]!.Deserialize<string>()!;
+                if (attachmentPath[0] == '/')
+                {
+                    attachmentPath = domainUrl + attachmentPath;
+                }
+                
+                var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName);
+                images.Add(attachmentLink);
+            }
+            
+            var extractedAttachments = links
+                                      .Where(l => attachmentExtensions.Any(l.Contains))
+                                      .Select(l => (l.Contains(domainUrl) || l.Contains("http")) ? l : domainUrl + l)
+                                      .ToList();
 
-            images.AddRange(attachments);
+
+            images.AddRange(extractedAttachments.ToStringImageLinks());
             foreach (var site in ParsableSites)
             {
-                images.AddRange(externalLinks[site]);
+                images.AddRange(externalLinks[site].ToStringImageLinkWrapperList());
             }
 
-            var imageListContainer = soup.SelectSingleNode("//div[@class='post__files']");
-            if (imageListContainer is null)
-            {
-                continue;
-            }
-
-            var imageList = imageListContainer.SelectNodes("//a[@class='fileThumb image-link']");
-            var imageListLinks = imageList.GetHrefs();
-            images.AddRange(imageListLinks);
+            // var imageListContainer = soup.SelectSingleNode("//div[@class='post__files']");
+            // if (imageListContainer is null)
+            // {
+            //     continue;
+            // }
+            //
+            // var imageList = imageListContainer.SelectNodes("//a[@class='fileThumb image-link']");
+            // var imageListLinks = imageList.GetHrefs();
+            // images.AddRange(imageListLinks);
         }
 
         #endregion
@@ -468,10 +498,9 @@ public partial class HtmlParser
         }
 
         SaveExternalLinks(externalLinks);
-        images = images.RemoveDuplicates();
-        var oldLinks = images;
+        //images = images.RemoveDuplicates(); // Handled in RipInfo.ConvertUrlsToImageLink
         var stringLinks = new List<StringImageLinkWrapper>();
-        foreach (var link in oldLinks)
+        foreach (var link in images)
         {
             if (!link.Contains("dropbox.com/"))
             {
@@ -480,7 +509,7 @@ public partial class HtmlParser
             else
             {
                 var ripInfo = await DropboxParse(link);
-                stringLinks.AddRange(ripInfo.Urls.Select(x => new StringImageLinkWrapper(x)));
+                stringLinks.AddRange(ripInfo.Urls.ToStringImageLinks());
             }
         }
 
@@ -1479,7 +1508,7 @@ public partial class HtmlParser
             GetDropboxFile(soup, CurrentUrl, filenames, images, posts);
         }
 
-        return new RipInfo(images.ToWrapperList(), dirName, FilenameScheme, filenames: filenames);
+        return new RipInfo(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme, filenames: filenames);
     }
     
     private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images,
@@ -2570,7 +2599,7 @@ public partial class HtmlParser
         var dirName = jsonData["title"]!.Deserialize<string>()!;
         var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();
 
-        return new RipInfo(images.ToWrapperList(), dirName, FilenameScheme);
+        return new RipInfo(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme);
     }
 
     /// <summary>
@@ -5026,8 +5055,17 @@ public partial class HtmlParser
     }
 
     private static async Task<HtmlNode> Soupify(string? url = null, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
-                                         HttpResponseMessage? response = null, string xpath = "")
+                                         HttpResponseMessage? response = null, string xpath = "",
+                                         string? stringHtml = null)
     {
+        HtmlDocument doc;
+        if(stringHtml is not null)
+        {
+            doc = new HtmlDocument();
+            doc.LoadHtml(stringHtml);
+            return doc.DocumentNode;
+        }
+        
         if (response is not null)
         {
             var content = await response.Content.ReadAsStringAsync();
@@ -5056,7 +5094,7 @@ public partial class HtmlParser
             await LazyLoad(lazyLoadArgs);
         }
 
-        var doc = new HtmlDocument();
+        doc = new HtmlDocument();
         doc.LoadHtml(Driver.PageSource);
         return doc.DocumentNode;
     }
@@ -5179,7 +5217,7 @@ public partial class HtmlParser
                         continue;
                     }
 
-                    var link = Utility.UrlUtility.ExtractUrl(part);
+                    var link = UrlUtility.ExtractUrl(part);
                     if (link != "")
                     {
                         externalLinks[site].Add(link + '\n');

@@ -6,7 +6,6 @@ namespace Core.ExtensionMethods;
 
 public static class HtmlAgilityPackExtensionMethods
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static List<string> GetHrefs(this HtmlNodeCollection nodes)
     {
         return nodes
@@ -15,7 +14,6 @@ public static class HtmlAgilityPackExtensionMethods
             .ToList();
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static List<string> GetSrcs(this HtmlNodeCollection nodes)
     {
         return nodes
@@ -23,7 +21,6 @@ public static class HtmlAgilityPackExtensionMethods
             .ToList();
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static List<string> GetSrcs(this IEnumerable<HtmlNode> nodes)
     {
         return nodes
@@ -31,19 +28,16 @@ public static class HtmlAgilityPackExtensionMethods
               .ToList();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetSrc(this HtmlNode node)
     {
         return node.GetAttributeValue("src");
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetHref(this HtmlNode node)
     {
         return node.GetAttributeValue("href");
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetAttributeValue(this HtmlNode node, string attributeName)
     {
         var attribute = node.GetAttributeValue(attributeName, string.Empty);
@@ -55,21 +49,23 @@ public static class HtmlAgilityPackExtensionMethods
         return attribute;
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? GetNullableSrc(this HtmlNode node)
     {
         return node.GetNullableAttributeValue("src");
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? GetNullableHref(this HtmlNode node)
     {
         return node.GetNullableAttributeValue("href");
     }
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? GetNullableAttributeValue(this HtmlNode node, string attributeName)
     {
         return node.GetAttributeValue(attributeName, null);
+    }
+
+    public static HtmlNodeCollection SelectNodesSafe(this HtmlNode node, string xpath)
+    {
+        return node.SelectNodes(xpath) ?? new HtmlNodeCollection(node);
     }
 }

@@ -53,19 +53,17 @@ public class RipInfo
         urls = RemoveDuplicates(urls);
         foreach (var url in urls)
         {
-            if (url.ImageLink is not null)
-            {
-                if (FilenameScheme == FilenameScheme.Chronological)
-                {
-                    url.ImageLink.Rename(linkCounter);
-                }
-                linkCounter++;
-                imageLinks.Add(url.ImageLink);
-                continue;
-            }
-
+            // IsImageLink is the same as url.ImageLink is not null
             if (url.IsImageLink)
             {
+                var imageLink = url.ImageLink!;
+                if (FilenameScheme == FilenameScheme.Chronological)
+                {
+                    imageLink.Rename(linkCounter);
+                }
+                
+                linkCounter++;
+                imageLinks.Add(imageLink);
                 continue;
             }
 

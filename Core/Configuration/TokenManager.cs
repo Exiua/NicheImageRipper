@@ -8,6 +8,9 @@ using Google.Apis.Util.Store;
 
 namespace Core.Configuration;
 
+/// <summary>
+///     Class for managing tokens that are dynamically generated (e.g., redgif tokens)
+/// </summary>
 public class TokenManager
 {
     private const string TokenPath = "temp_tokens.json";

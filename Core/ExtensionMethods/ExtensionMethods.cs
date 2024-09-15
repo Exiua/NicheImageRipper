@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Web;
+using Core.DataStructures;
 using Core.SiteParsing;
 
 namespace Core.ExtensionMethods;
@@ -14,12 +15,9 @@ public static class ExtensionMethods
         }
     }
     
-    public static IEnumerable<(int i, T)> Enumerate<T>(this List<T> list, int start = 0)
+    public static IEnumerable<(int i, T)> Enumerate<T>(this List<T> list)
     {
-        for (var i = start; i < list.Count; i++)
-        {
-            yield return (i, list[i]);
-        }
+        return list.Select((t, i) => (i, t));
     }
     
     public static IEnumerable<(int i, T)> Enumerate<T>(this IEnumerable<T> enumerable, int start = 0)
@@ -39,7 +37,6 @@ public static class ExtensionMethods
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToTitle(this string src)
     {
         return src[0].ToString().ToUpper() + src[1..];
@@ -88,11 +85,6 @@ public static class ExtensionMethods
     {
         return src.Distinct().ToList();
     }
-    
-    public static List<StringImageLinkWrapper> ToWrapperList(this List<string> src)
-    {
-        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
-    }
 
     public static IEnumerable<List<T>> Chunk<T>(this List<T> list, int size)
     {
@@ -115,6 +107,16 @@ public static class ExtensionMethods
     public static string Remove(this string src, string toRemove)
     {
         return src.Replace(toRemove, string.Empty);
+    }
+
+    public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
+    {
+        return src.Select(url => new StringImageLinkWrapper(url));
+    }
+    
+    public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<ImageLink> src)
+    {
+        return src.Select(url => new StringImageLinkWrapper(url));
     }
     
     public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
