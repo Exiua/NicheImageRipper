@@ -188,6 +188,11 @@ public partial class ImageLink
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
+            if (url.Contains(".m3u8"))
+            {
+                LinkInfo = LinkInfo.M3U8;
+                fileName = fileName.Replace(".m3u8", ".mp4");
+            }
         }
 
         return fileName;

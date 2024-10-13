@@ -66,4 +66,9 @@ public static class SeleniumExtensionMethods
     {
         return element.GetAttribute("href");
     }
+    
+    public static void ScrollElementIntoView(this IWebDriver driver, IWebElement element)
+    {
+        ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
+    }
 }

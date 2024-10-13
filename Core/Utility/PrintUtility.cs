@@ -1,6 +1,6 @@
 ﻿namespace Core.Utility;
 
-public class PrintUtility
+public static class PrintUtility
 {
     public static Action<string> PrintFunction { get; set; } = Console.WriteLine;
     

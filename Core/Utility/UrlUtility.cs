@@ -66,11 +66,11 @@ public static partial class UrlUtility
         "https://nijie.info/", "https://faponic.com/", "https://erothots.co/",
         "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
         "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
-        "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkrr.su/",
+        "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkr.si/",
         "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
         "https://x.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
-        "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/",
+        "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/"
     }.ToFrozenSet();
 
     /// <summary>
