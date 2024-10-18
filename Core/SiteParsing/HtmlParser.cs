@@ -16,7 +16,6 @@ using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
-using OpenQA.Selenium.Support.UI;
 using Cookie = OpenQA.Selenium.Cookie;
 
 namespace Core.SiteParsing;
@@ -24,7 +23,7 @@ namespace Core.SiteParsing;
 public partial class HtmlParser
 {
     private const string UserAgent =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
     private const string Protocol = "https:";
 
@@ -419,7 +418,7 @@ public partial class HtmlParser
             var id = post["id"]!.Deserialize<string>()!;
             Console.WriteLine($"Post ID: {id}");
             var content = post["content"]!.Deserialize<string>()!;
-            soup = await Soupify(stringHtml: content);
+            soup = await Soupify(content, urlString: false);
             var links = soup.SelectNodesSafe("//a").GetHrefs();
             var possibleLinks = new List<string>();
             var possibleLinksP = soup.SelectNodes("//p");
@@ -1395,6 +1394,7 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> CyberDropParse()
     {
+        Driver.WaitUntilElementExists(By.XPath("//h1[@id='title']"));
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h1[@id='title']").InnerText;
         var imageList = soup.SelectNodes("//div[@class='image-container column']")
@@ -4284,7 +4284,7 @@ public partial class HtmlParser
                 }
                 else if (link.Contains("gofile.io"))
                 {
-                    //info = await GoFileParse(link);
+                    info = await GoFileParse(link);
                 }
                 else if (link.Contains("pixeldrain.com"))
                 {
@@ -5218,31 +5218,8 @@ public partial class HtmlParser
         throw new RipperException($"Improperly formatted json: {json}");
     }
 
-    private static async Task<HtmlNode> Soupify(string? url = null, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
-                                         HttpResponseMessage? response = null, string xpath = "",
-                                         string? stringHtml = null)
+    private static async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "")
     {
-        HtmlDocument doc;
-        if(stringHtml is not null)
-        {
-            doc = new HtmlDocument();
-            doc.LoadHtml(stringHtml);
-            return doc.DocumentNode;
-        }
-        
-        if (response is not null)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(content);
-            return htmlDocument.DocumentNode;
-        }
-
-        if (url is not null)
-        {
-            CurrentUrl = url;
-        }
-
         if (delay > 0)
         {
             await Task.Delay(delay);
@@ -5258,11 +5235,34 @@ public partial class HtmlParser
             await LazyLoad(lazyLoadArgs);
         }
 
-        doc = new HtmlDocument();
+        var doc = new HtmlDocument();
         doc.LoadHtml(Driver.PageSource);
         return doc.DocumentNode;
     }
+    
+    private static async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
+                                                string xpath = "", bool urlString = true)
+    {
+        if (!urlString)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(url);
+            return doc.DocumentNode;
+        }
+        
+        CurrentUrl = url;
 
+        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath);
+    }
+
+    private static async Task<HtmlNode> Soupify(HttpResponseMessage response)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+        var htmlDocument = new HtmlDocument();
+        htmlDocument.LoadHtml(content);
+        return htmlDocument.DocumentNode;
+    }
+    
     /// <summary>
     ///     Wait for an element to exist on the page
     /// </summary>

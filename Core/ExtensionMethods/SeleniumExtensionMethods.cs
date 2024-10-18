@@ -1,4 +1,5 @@
 ﻿using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 
 namespace Core.ExtensionMethods;
 
@@ -70,5 +71,19 @@ public static class SeleniumExtensionMethods
     public static void ScrollElementIntoView(this IWebDriver driver, IWebElement element)
     {
         ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
+    }
+    
+    public static bool WaitUntilElementExists(this IWebDriver driver, By by, int timeout = 10)
+    {
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeout));
+        try
+        {
+            wait.Until(d => d.FindElement(by));
+            return true;
+        }
+        catch (WebDriverTimeoutException)
+        {
+            return false;
+        }
     }
 }
