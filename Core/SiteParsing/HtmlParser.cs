@@ -246,6 +246,7 @@ public partial class HtmlParser
             "xiuren" => XiurenParse,
             "xchina" => XChinaParse,
             "gofile" => GoFileParse,
+            "jpg5" => Jpg5Parse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1393,12 +1394,22 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    private async Task<RipInfo> CyberDropParse()
+    {
+        return await CyberDropParse("");
+    }
+    
     /// <summary>
     ///     Parses the html for cyberdrop.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> CyberDropParse()
+    private async Task<RipInfo> CyberDropParse(string url)
     {
+        if (url != "")
+        {
+            CurrentUrl = url;
+        }
+
         var solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
         var soup = await Soupify(solution);
         var dirName = soup.SelectSingleNode("//h1[@id='title']").InnerText;
@@ -1416,10 +1427,10 @@ public partial class HtmlParser
         foreach (var image in imageList)
         {
             soup = await Soupify(image, delay: 500, xpath: "//a[@id='downloadBtn']");
-            var url = soup
+            var link = soup
                             .SelectSingleNode("//a[@id='downloadBtn']")
                             .GetHref();
-            images.Add((StringImageLinkWrapper)url);
+            images.Add((StringImageLinkWrapper)link);
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
@@ -2825,6 +2836,60 @@ public partial class HtmlParser
     {
         return await GenericHtmlParser("joymiihub");
     }
+
+    private Task<RipInfo> Jpg5Parse()
+    {
+        return Jpg5Parse("");
+    }
+    
+    /// <summary>
+    ///     Parses the html for jpg5.su and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Jpg5Parse(string url)
+    {
+        if(url != "")
+        {
+            CurrentUrl = url;
+        }
+        
+        var soup = await Soupify();
+        var dirName = CurrentUrl.Contains("/a/") 
+            ? soup.SelectSingleNode("//a[@data-text='album-name']").InnerText 
+            : soup.SelectSingleNode("//div[@class='header']").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var page = 1;
+        while (true)
+        {
+            Console.WriteLine($"Parsing page {page}");
+            page++;
+            var error = soup.SelectSingleNode("//h1");
+            if (error is not null && error.InnerText.StartsWith("500 I"))
+            {
+                await Task.Delay(5000); // Most likely due to rate limiting
+                Driver.Reload();
+                soup = await Soupify();
+            }
+            
+            var posts = soup.SelectSingleNode("//div[@class='pad-content-listing']")
+                            .SelectNodes("./div")
+                            .Select(div => div.SelectSingleNode(".//img").GetSrc().Remove(".md"))
+                            .ToStringImageLinks();
+            images.AddRange(posts);
+            var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
+            var nextPageUrl = nextPage?.GetNullableHref();
+            if (nextPageUrl is null)
+            {
+                break;
+            }
+
+            nextPageUrl = nextPageUrl.DecodeUrl();
+            Console.WriteLine($"Next page: {nextPageUrl}");
+            soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
     
     /// <summary>
     ///     Parses the html for kemono.su and extracts the relevant information necessary for downloading images from the site
@@ -4219,11 +4284,12 @@ public partial class HtmlParser
         var resolvableSet = new HashSet<string>
         {
             "bunkrrr.org",
-            "bunkr.ru",
+            "bunkr.",
+            /*"bunkr.ru",
             "bunkr.ws",
             "bunkr.red",
             "bunkr.media",
-            "bunkr.si",
+            "bunkr.si",*/
             "gofile.io",
             "pixeldrain.com",
             "cyberdrop.me",
@@ -4284,8 +4350,8 @@ public partial class HtmlParser
             foreach (var link in resolveList)
             {
                 RipInfo info = null!;
-                if (link.Contains("bunkrrr.org") || link.Contains("bunkr.ru") || link.Contains("bunkr.ws")
-                    || link.Contains("bunkr.red") || link.Contains("bunkr.media") || link.Contains("bunkr.si"))
+                if (link.Contains("bunkrrr.org") || link.Contains("bunkr.")/*link.Contains("bunkr.ru") || link.Contains("bunkr.ws")
+                    || link.Contains("bunkr.red") || link.Contains("bunkr.media") || link.Contains("bunkr.si")*/)
                 {
                     info = await BunkrParse(link);
                 }
@@ -4299,11 +4365,11 @@ public partial class HtmlParser
                 }
                 else if (link.Contains("cyberdrop.me"))
                 {
-                    //info = await CyberDropParse(link);
+                    info = await CyberDropParse(link);
                 }
-                else if (link.Contains("jpg4.su"))
+                else if (link.Contains("jpg4.su") || link.Contains("jpg5.su"))
                 {
-                    //info = await Jpg4Parse(link);
+                    info = await Jpg5Parse(link);
                 }
                 else
                 {
@@ -4311,7 +4377,6 @@ public partial class HtmlParser
                     throw new RipperException("Link bypassed filter");
                 }
                 
-                throw new NotImplementedException();
                 images.InsertRange(index, info.Urls.ToStringImageLinks());
                 index += info.Urls.Count;
             }

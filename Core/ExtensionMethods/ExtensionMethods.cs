@@ -130,6 +130,11 @@ public static class ExtensionMethods
         return int.Parse(s);
     }
 
+    public static string DecodeUrl(this string s)
+    {
+        return s.Replace("&amp;", "&");
+    }
+
     public static T[] Pop<T>(this T[] src, int index)
     {
         if (src.Length <= 1)
