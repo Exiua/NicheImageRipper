@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace FlareSolverrClient.Responses;
+namespace FlareSolverrIntegration.Responses;
 
 public class BaseResponse
 {

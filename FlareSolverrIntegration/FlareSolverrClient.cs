@@ -1,15 +1,15 @@
 ﻿using System.Net.Http.Json;
-using FlareSolverrClient.Payloads;
-using FlareSolverrClient.Responses;
+using FlareSolverrIntegration.Payloads;
+using FlareSolverrIntegration.Responses;
 
-namespace FlareSolverrClient;
+namespace FlareSolverrIntegration;
 
-public class FlareSlolverrClient
+public class FlareSolverrClient
 {
     private readonly HttpClient _client;
     private readonly string _flareSolverrUri;
     
-    public FlareSlolverrClient(string flareSolverrUri)
+    public FlareSolverrClient(string flareSolverrUri)
     {
         _client = new HttpClient();
         _flareSolverrUri = flareSolverrUri;

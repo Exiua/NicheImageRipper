@@ -2,6 +2,7 @@
 using System.Web;
 using Core.DataStructures;
 using Core.SiteParsing;
+using OpenQA.Selenium;
 
 namespace Core.ExtensionMethods;
 
@@ -152,5 +153,13 @@ public static class ExtensionMethods
     public static string ToSqliteString(this DateTime dateTime)
     {
         return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    public static Cookie ToSeleniumCookie(this FlareSolverrIntegration.Responses.Cookie cookie)
+    {
+        var expiration = DateTimeOffset.FromUnixTimeSeconds(cookie.Expiry).UtcDateTime;
+        var seleniumCookie = new Cookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path, expiration, cookie.Secure, 
+            cookie.HttpOnly, cookie.SameSite);
+        return seleniumCookie;
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace FlareSolverrClient.Payloads;
+namespace FlareSolverrIntegration.Payloads;
 
 public abstract class CommandPayload
 {

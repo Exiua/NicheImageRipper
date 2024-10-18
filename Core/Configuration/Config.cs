@@ -22,6 +22,7 @@ public class Config
     public bool AskToReRip { get; set; }
     public bool LiveHistory { get; set; }
     public int NumThreads { get; set; }
+    public string FlareSolverrUri { get; set; }
     public Dictionary<string, Credentials> Logins { get; set; } = null!;
     public Dictionary<string, string> Keys { get; set; } = null!;
     public Dictionary<string, string> Cookies { get; set; } = null!;
@@ -45,6 +46,7 @@ public class Config
             AskToReRip = true,
             LiveHistory = false,
             NumThreads = 1,
+            FlareSolverrUri = "http://localhost:8191/v1",
             Logins = new Dictionary<string, Credentials>()
         };
         

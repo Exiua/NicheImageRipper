@@ -46,7 +46,7 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "quit":
                         Console.WriteLine("Exiting...");
                         SaveData();
-                        HtmlParser.CloseDriver();
+                        HtmlParser.Dispose();
                         return;
                     case "r":
                     case "rip":

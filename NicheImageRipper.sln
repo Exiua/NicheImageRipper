@@ -8,13 +8,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gui", "Gui\Gui\Gui.csproj",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gui.Desktop", "Gui\Gui.Desktop\Gui.Desktop.csproj", "{E279AFA1-4040-43AE-8E4F-17174B29B49D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudflareBypass", "CloudflareBypass\CloudflareBypass.csproj", "{E7933FCC-C8C7-43F3-9645-C9796F241DE8}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gui2", "Gui2\Gui2.csproj", "{5C87FB60-FE8F-405B-815F-03274478B23F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{0AE97745-7E02-4E68-B0DB-1B5193AA25E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlareSolverrClient", "FlareSolverrClient\FlareSolverrClient.csproj", "{7E110443-2DDE-4099-A4AB-D218E7A5A79D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlareSolverrIntegration", "FlareSolverrIntegration\FlareSolverrIntegration.csproj", "{7E110443-2DDE-4099-A4AB-D218E7A5A79D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,10 +36,6 @@ Global
 		{E279AFA1-4040-43AE-8E4F-17174B29B49D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E279AFA1-4040-43AE-8E4F-17174B29B49D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E279AFA1-4040-43AE-8E4F-17174B29B49D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E7933FCC-C8C7-43F3-9645-C9796F241DE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E7933FCC-C8C7-43F3-9645-C9796F241DE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E7933FCC-C8C7-43F3-9645-C9796F241DE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E7933FCC-C8C7-43F3-9645-C9796F241DE8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5C87FB60-FE8F-405B-815F-03274478B23F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5C87FB60-FE8F-405B-815F-03274478B23F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5C87FB60-FE8F-405B-815F-03274478B23F}.Release|Any CPU.ActiveCfg = Release|Any CPU

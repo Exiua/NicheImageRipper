@@ -11,7 +11,9 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
+using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
@@ -32,8 +34,11 @@ public partial class HtmlParser
 
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
     
+    private static Config Config => Config.Instance;
+    
     private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(""));
     private static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
+    private static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
 
     public bool Interrupted { get; set; }
     private string SiteName { get; set; }
@@ -309,7 +314,7 @@ public partial class HtmlParser
     private static async Task<bool> NijieLogin()
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Instance.Logins["Nijie"];
+        var (username, password) = Config.Logins["Nijie"];
         CurrentUrl = "https://nijie.info/login.php";
         if (CurrentUrl.Contains("age_ver.php"))
         {
@@ -335,7 +340,7 @@ public partial class HtmlParser
     private static async Task<bool> TitsInTopsLogin()
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Instance.Logins["TitsInTops"];
+        var (username, password) = Config.Logins["TitsInTops"];
         CurrentUrl = "https://titsintops.com/phpBB2/index.php?login/login";
         var loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         while (loginInput is null)
@@ -1394,24 +1399,26 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> CyberDropParse()
     {
-        Driver.WaitUntilElementExists(By.XPath("//h1[@id='title']"));
-        var soup = await Soupify();
+        var solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+        var soup = await Soupify(solution);
         var dirName = soup.SelectSingleNode("//h1[@id='title']").InnerText;
         var imageList = soup.SelectNodes("//div[@class='image-container column']")
                             .Select(image => image
                                             .SelectSingleNode(".//a[@class='image']")
                                             .GetHref())
                             .Select(url => $"https://cyberdrop.me{url}");
+        var cookieJar = Driver.GetCookieJar();
+        foreach (var seleniumCookie in solution.Cookies.Select(cookie => cookie.ToSeleniumCookie()))
+        {
+            cookieJar.AddCookie(seleniumCookie);
+        }
         var images = new List<StringImageLinkWrapper>();
         foreach (var image in imageList)
         {
-            CurrentUrl = image;
-            await WaitForElement("//div[@id='imageContainer']//img", timeout: -1);
-            soup = await Soupify();
+            soup = await Soupify(image, delay: 500, xpath: "//a[@id='downloadBtn']");
             var url = soup
-                            .SelectSingleNode("//div[@id='imageContainer']")
-                            .SelectSingleNode(".//img")
-                            .GetSrc();
+                            .SelectSingleNode("//a[@id='downloadBtn']")
+                            .GetHref();
             images.Add((StringImageLinkWrapper)url);
         }
 
@@ -2248,7 +2255,7 @@ public partial class HtmlParser
             CurrentUrl = url;
         }
 
-        var cookieValue = Config.Instance.Cookies["GoFile"];
+        var cookieValue = Config.Cookies["GoFile"];
         RequestHeaders["Cookie"] = $"accountToken={cookieValue}";
         await Task.Delay(5000);
         var soup = await Soupify();
@@ -2647,7 +2654,7 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> ImgurParse()
     {
-        var clientId = Config.Instance.Keys["Imgur"];
+        var clientId = Config.Keys["Imgur"];
         if (clientId == "")
         {
             Print("Client Id not properly set");
@@ -3120,7 +3127,7 @@ public partial class HtmlParser
         {
             ScrollBy = true
         };
-        var cookieValue = Config.Instance.Cookies["Newgrounds"];
+        var cookieValue = Config.Cookies["Newgrounds"];
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.DeleteAllCookies();
         cookieJar.AddCookie(new Cookie("vmk1du5I8m", cookieValue));
@@ -3591,7 +3598,7 @@ public partial class HtmlParser
         {
             url = CurrentUrl;
         }
-        var apiKey = Config.Instance.Keys["Pixeldrain"];
+        var apiKey = Config.Keys["Pixeldrain"];
         var counter = 0;
         var images = new List<StringImageLinkWrapper>();
         string dirName;
@@ -3655,7 +3662,7 @@ public partial class HtmlParser
     private async Task<RipInfo> Porn3dxParse()
     {
         const int maxRetries = 4;
-        var cookie = Config.Instance.Cookies["Porn3dx"];
+        var cookie = Config.Cookies["Porn3dx"];
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.DeleteCookieNamed("porn3dx_session");
         cookieJar.AddCookie(new Cookie("porn3dx_session", cookie));
@@ -3772,7 +3779,7 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> PornhubParse()
     {
-        var cookie = Config.Instance.Cookies["Pornhub"];
+        var cookie = Config.Cookies["Pornhub"];
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.AddCookie(new Cookie("il", cookie));
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));
@@ -4204,7 +4211,7 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> SimpCityParse()
     {
-        var cookieValue = Config.Instance.Cookies["SimpCity"];
+        var cookieValue = Config.Cookies["SimpCity"];
         Driver.AddCookie("kZJdisc_user", cookieValue);
         Driver.Reload();
         var soup = await Soupify();
@@ -4446,7 +4453,7 @@ public partial class HtmlParser
         {
             cookieJar.DeleteCookie(cookie);
         }
-        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Instance.Cookies["Thothub"]));
+        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies["Thothub"]));
         Driver.Reload();
         var lazyLoadArgs = new LazyLoadArgs
         {
@@ -4686,7 +4693,7 @@ public partial class HtmlParser
 
         # endregion
 
-        var cookieValue = Config.Instance.Cookies["Twitter"];
+        var cookieValue = Config.Cookies["Twitter"];
         var cookieJar = Driver.GetCookieJar();
         cookieJar.AddCookie("auth_token", cookieValue);
         var dirName = CurrentUrl.Split("/")[3];
@@ -4938,7 +4945,7 @@ public partial class HtmlParser
     {
         // TODO: Work on bypassing cloudflare
         // The parser works, but when changing pages, the cf_clearance cookie gets refreshed in a way that causes issues
-        var cookies = Config.Instance.Custom["V2PH"];
+        var cookies = Config.Custom["V2PH"];
         var frontendCookie = cookies["frontend"];
         var frontendRmtCookie = cookies["frontend-rmt"];
         var cfClearanceCookie = cookies["cf_clearance"];
@@ -5263,6 +5270,13 @@ public partial class HtmlParser
         return htmlDocument.DocumentNode;
     }
     
+    private static async Task<HtmlNode> Soupify(Solution solution)
+    {
+        var htmlDocument = new HtmlDocument();
+        htmlDocument.LoadHtml(solution.Response);
+        return htmlDocument.DocumentNode;
+    }
+    
     /// <summary>
     ///     Wait for an element to exist on the page
     /// </summary>
@@ -5306,7 +5320,7 @@ public partial class HtmlParser
     private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
     {
         var parsedUrls = new List<string>();
-        var imgurKey = Config.Instance.Keys["Imgur"];
+        var imgurKey = Config.Keys["Imgur"];
         var headers = new Dictionary<string, string>
         {
             ["Authorization"] = $"Client-Id {imgurKey}"
@@ -5598,6 +5612,7 @@ public partial class HtmlParser
                 await File.WriteAllTextAsync("test.html", Driver.PageSource);
             }
 
+            await FlareSolverrManager.DeleteSession();
             Driver.Quit();
         }
     }
@@ -5709,8 +5724,9 @@ public partial class HtmlParser
         return specialDomains.Any(url.Contains) ? urlSplit[^3] : urlSplit[^2];
     }
     
-    public static void CloseDriver()
+    public static void Dispose()
     {
+        FlareSolverrManager.DeleteSession().Wait();
         Driver.Quit();
     }
 

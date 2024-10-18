@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace FlareSolverrClient.Responses;
+namespace FlareSolverrIntegration.Responses;
 
 public class Solution
 {
@@ -13,7 +13,7 @@ public class Solution
     [JsonPropertyName("response")]
     public string Response { get; set; } = null!;
     [JsonPropertyName("cookies")]
-    public List<Dictionary<string, string>> Cookies { get; set; } = null!;
+    public List<Cookie> Cookies { get; set; } = null!;
     [JsonPropertyName("userAgent")]
     public string UserAgent { get; set; } = null!;
 }
