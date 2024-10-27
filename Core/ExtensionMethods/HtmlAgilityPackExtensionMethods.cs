@@ -68,4 +68,21 @@ public static class HtmlAgilityPackExtensionMethods
     {
         return node.SelectNodes(xpath) ?? new HtmlNodeCollection(node);
     }
+    
+    public static string GetVideoSrc(this HtmlNode node)
+    {
+        var src = node.GetNullableSrc();
+        if (src is not null)
+        {
+            return src;
+        }
+        
+        var source = node.SelectSingleNode("source");
+        if (source is null)
+        {
+            throw new AttributeNotFoundException("No video source found");
+        }
+        
+        return source.GetSrc();
+    }
 }

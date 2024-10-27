@@ -3,6 +3,19 @@
 using Core;
 using Core.ArgParse;
 using Core.SiteParsing;
+using Serilog;
+using Serilog.Events;
+
+Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(levelSwitch: NicheImageRipper.ConsoleLoggingLevelSwitch)
+            .WriteTo.File("Logs/app.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Debug)
+            .CreateLogger();
+
+#if DEBUG
+NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
+#endif
 
 var arguments = ArgumentParser.Parse(args);
 switch (arguments.RunMode)
@@ -18,11 +31,11 @@ switch (arguments.RunMode)
         var parser = new HtmlParser(requestHeaders);
         // Null check performed in ArgumentParser.Parse
         var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
-        Console.WriteLine(output);
+        Log.Information("{ripInfo}", output);
         break;
     case RunMode.Gui:
         //await Gui();
-        Console.WriteLine("Run the GUI through the GUI project");
+        Log.Error("Run the GUI through the GUI project");
         break;
     case RunMode.Cli:
         var ripper = new NicheImageRipperCli();

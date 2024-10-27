@@ -1,5 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.Text.RegularExpressions;
+using Core.Exceptions;
 
 namespace Core.Utility;
 
@@ -43,7 +44,7 @@ public static partial class UrlUtility
         "http://www.gyrls.com/",
         "https://www.sensualgirls.org/",
         "https://www.novoglam.com/", "https://www.cherrynudes.com/", "https://www.join2babes.com/",
-        "https://gofile.io/", "https://www.babecentrum.com/", "http://www.cutegirlporn.com/",
+        "https://gofile.io/", "https://www.babecentrum.com/", "https://www.cutegirlporn.com/",
         "https://everia.club/",
         "https://imgbox.com/", "https://myhentaigallery.com/",
         "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
@@ -70,7 +71,8 @@ public static partial class UrlUtility
         "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
         "https://x.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
-        "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/"
+        "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/", "https://jpg5.su/",
+        "https://simpcity.su/"
     }.ToFrozenSet();
 
     /// <summary>
@@ -85,11 +87,18 @@ public static partial class UrlUtility
         return SupportedSites.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
     }
 
+    /// <summary>
+    ///     Check the site and return the domain and delay between requests. Also sets the referer header
+    /// </summary>
+    /// <param name="givenUrl">Url to check</param>
+    /// <param name="requestHeaders">Request headers to modify</param>
+    /// <returns>Domain and delay between requests</returns>
+    /// <exception cref="RipperException">If the site is not supported</exception>
     public static (string, float) SiteCheck(string givenUrl, Dictionary<string, string> requestHeaders)
     {
         if (!UrlCheck(givenUrl))
         {
-            throw new Exception("Not a support site"); // TODO: RipperError
+            throw new RipperException("Not a support site");
         }
 
         string[] specialDomains = ["inven.co.kr", "danbooru.donmai.us"];

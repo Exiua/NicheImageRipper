@@ -18,6 +18,8 @@ using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
+using Serilog;
+using Serilog.Events;
 using Cookie = OpenQA.Selenium.Cookie;
 
 namespace Core.SiteParsing;
@@ -104,7 +106,7 @@ public partial class HtmlParser
         }
         catch
         {
-            Print(CurrentUrl);
+            Log.Error("Failed to parse {CurrentUrl}", CurrentUrl);
             throw;
         }
     }
@@ -247,6 +249,7 @@ public partial class HtmlParser
             "xchina" => XChinaParse,
             "gofile" => GoFileParse,
             "jpg5" => Jpg5Parse,
+            "simpcity" => SimpCityParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -420,9 +423,9 @@ public partial class HtmlParser
 
         foreach (var (i, post) in posts.Enumerate())
         {
-            Print($"Parsing post {i + 1} of {numPosts}");
+            Log.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
             var id = post["id"]!.Deserialize<string>()!;
-            Console.WriteLine($"Post ID: {id}");
+            Log.Debug("Post ID: {PostId}", id);
             var content = post["content"]!.Deserialize<string>()!;
             soup = await Soupify(content, urlString: false);
             var links = soup.SelectNodesSafe("//a").GetHrefs();
@@ -846,9 +849,9 @@ public partial class HtmlParser
 
         while (total > 0)
         {
-            Console.WriteLine(pageCount);
+            Log.Information("Page {PageCount} of {Total}", pageCount, total);
             var url = $"https://www.artstation.com/users/{username}/projects.json?page={pageCount}";
-            Console.WriteLine(url);
+            Log.Debug("Requesting {Url}", url);
             var response = await client.GetAsync(url);
             var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
             var data = responseData!["data"]!.AsArray();
@@ -1131,6 +1134,7 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> BunkrParse(string url)
     {
+        const int parseDelay = 500;
         if (url != "")
         {
             CurrentUrl = url;
@@ -1140,8 +1144,13 @@ public partial class HtmlParser
         string dirName;
         if (url == "")
         {
-            dirName = soup.SelectSingleNode("//h1[@class='text-[24px] font-bold text-dark dark:text-white']")
-                          .InnerText;
+            var dirNameNode = soup.SelectSingleNode("//h1[@class='text-[24px] font-bold text-dark dark:text-white']");
+            if (dirNameNode is null)
+            {
+                dirNameNode = soup.SelectSingleNode("//h1[@class='truncate']");
+            }
+            
+            dirName = dirNameNode.InnerText;
         }
         else
         {
@@ -1151,57 +1160,100 @@ public partial class HtmlParser
         List<StringImageLinkWrapper> images = [];
         if (CurrentUrl.Contains("/a/"))
         {
-            var imagePosts = soup.SelectSingleNode("//div[@class='grid-images']")
-                                 .SelectNodes(".//a");
-            foreach (var post in imagePosts)
+            var grid = soup.SelectSingleNode("//div[@class='grid-images']");
+            if (grid is not null)
+            {
+                goto GridInitializationEnd;
+            }
+            
+            grid = soup.SelectSingleNode("//div[@class='grid gap-4 grid-cols-repeat [--size:11rem] lg:[--size:14rem] grid-images']");
+
+            GridInitializationEnd:
+            var imagePosts = grid.SelectNodes(".//a");
+            foreach (var (i, post) in imagePosts.Enumerate())
             {
                 var href = post.GetHref();
-                Console.WriteLine("Post: " + href);
-                soup = await Soupify(href, delay: 250);
+                Log.Debug("Post {index} of {total}: {href}", i + 1, imagePosts.Count, href);
+                soup = await Soupify(href, delay: parseDelay);
                 if (Driver.Title == "502 Bad Gateway")
                 {
-                    soup = await Soupify(href, delay: 1000);
+                    Driver.Refresh();
+                    soup = await Soupify(href, delay: parseDelay * 2);
                 }
                 
                 if (CurrentUrl.Contains("/i/"))
                 {
-                    var img = soup.SelectSingleNode("//main//img");
-                    images.Add(img.GetSrc());
+                    GetImageLink();
                 }
                 else if(CurrentUrl.Contains("/v/"))
                 {
-                    var videoDownload = soup.SelectSingleNode("//a[@id='czmDownloadz']").GetHref();
-                    var video = soup.SelectSingleNode("//main//video");
-                    var filename = video.GetSrc().Split("/")[^1];
-                    soup = await Soupify(videoDownload, delay: 250);
-                    var downloadButton = soup.SelectSingleNode(
-                        "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']");
-                    var downloadUrl = downloadButton.GetHref();
-                    var videoLink = new ImageLink(downloadUrl, FilenameScheme, 0, filename: filename);
-                    images.Add(videoLink);
+                    await GetVideoLink(soup);
+                }
+                else if (CurrentUrl.Contains("/d/"))
+                {
+                    var downloadLinkNode = soup.SelectSingleNode("//a[@class='text-white inline-flex items-center justify-center rounded-[5px] py-2 px-4 text-center text-base font-bold hover:text-white mb-2']");
+                    if (downloadLinkNode is null)
+                    {
+                        downloadLinkNode = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg flex-1']");
+                    }
+                    
+                    var downloadLink = downloadLinkNode.GetHref();
+                    soup = await Soupify(downloadLink, delay: parseDelay);
+                    var link = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']")
+                                   .GetHref();
+                    images.Add(link);
                 }
                 else
                 {
-                    Console.WriteLine("Unknown type: " + CurrentUrl);
+                    Log.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
                 }
             }
         }
         else if (CurrentUrl.Contains("/i/"))
         {
-            var img = soup.SelectSingleNode("//main//img");
-            images.Add(img.GetSrc());
+            GetImageLink();
         }
         else if(CurrentUrl.Contains("/v/"))
         {
-            var video = soup.SelectSingleNode("//main//video");
-            images.Add(video.GetSrc());
+            await GetVideoLink(soup);
         }
         else
         {
-            Console.WriteLine("Unknown type: " + CurrentUrl);
+            Log.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
+
+        // ReSharper disable once VariableHidesOuterVariable
+        async Task GetVideoLink(HtmlNode soup)
+        {
+            var videoDownloadNode = soup.SelectSingleNode("//a[@id='czmDownloadz']");
+            string videoDownload;
+            if (videoDownloadNode is not null)
+            {
+                videoDownload = videoDownloadNode.GetHref();
+            }
+            else
+            {
+                videoDownload = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold flex-1 ic-download-01 ic-before before:text-lg']")
+                                    .GetHref();
+            }
+            soup = await Soupify(videoDownload, xpath: "//main//video", delay: parseDelay);
+            var video = soup.SelectSingleNode("//main//video");
+                    
+            var downloadButton = soup.SelectSingleNode(
+                "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']");
+            var downloadUrl = downloadButton.GetHref();
+            var filename = video is not null ? video.GetSrc().Split("/")[^1] : downloadUrl.Split("/")[^1];
+            var videoLink = new ImageLink(downloadUrl, FilenameScheme, 0, filename: filename);
+            images.Add(videoLink);
+        }
+
+        void GetImageLink()
+        {
+            var img = soup.SelectSingleNode("//main//img");
+            images.Add(img.GetSrc());
+        }
     }
 
     /// <summary>
@@ -1410,27 +1462,51 @@ public partial class HtmlParser
             CurrentUrl = url;
         }
 
-        var solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
-        var soup = await Soupify(solution);
-        var dirName = soup.SelectSingleNode("//h1[@id='title']").InnerText;
-        var imageList = soup.SelectNodes("//div[@class='image-container column']")
-                            .Select(image => image
-                                            .SelectSingleNode(".//a[@class='image']")
-                                            .GetHref())
-                            .Select(url => $"https://cyberdrop.me{url}");
-        var cookieJar = Driver.GetCookieJar();
-        foreach (var seleniumCookie in solution.Cookies.Select(cookie => cookie.ToSeleniumCookie()))
-        {
-            cookieJar.AddCookie(seleniumCookie);
-        }
+        var soup = await SolveParseAddCookies();
+        var titleNode = soup.SelectSingleNode("//h1[@id='title']");
+        var dirName = titleNode is not null ? titleNode.InnerText : $"[CyberDrop] {CurrentUrl.Split("/")[^1]}";
+        
         var images = new List<StringImageLinkWrapper>();
-        foreach (var image in imageList)
+        if (CurrentUrl.Contains("/a/"))
         {
-            soup = await Soupify(image, delay: 500, xpath: "//a[@id='downloadBtn']");
+            var imageList = soup.SelectNodes("//div[@class='image-container column']")
+                                .Select(image => image
+                                                .SelectSingleNode(".//a[@class='image']")
+                                                .GetHref())
+                                .Select(href => $"https://cyberdrop.me{href}");
+            foreach (var image in imageList)
+            {
+                soup = await Soupify(image, delay: 500, xpath: "//a[@id='downloadBtn']");
+                var link = soup
+                          .SelectSingleNode("//a[@id='downloadBtn']")
+                          .GetHref();
+                images.Add(link);
+            }
+        }
+        else if (CurrentUrl.Contains("/f/"))
+        {
             var link = soup
-                            .SelectSingleNode("//a[@id='downloadBtn']")
-                            .GetHref();
-            images.Add((StringImageLinkWrapper)link);
+                      .SelectSingleNode("//a[@id='downloadBtn']")
+                      .GetHref();
+            images.Add(link);
+        }
+        else if (CurrentUrl.Contains("/e/"))
+        {
+            var video = soup.SelectSingleNode("//video[@id='player']");
+            if (video is null)
+            {
+                await Task.Delay(500);
+                soup = await Soupify(delay: 500, xpath: "//video[@id='player']");
+                video = soup.SelectSingleNode("//video[@id='player']");
+            }
+            
+            var link = video.GetVideoSrc();
+            images.Add(link);
+        }
+        else
+        {
+            Log.Error("Unknown CyberDrop url type: {CurrentUrl}", CurrentUrl);
+            throw new RipperException("Unknown CyberDrop url type");
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
@@ -1524,7 +1600,7 @@ public partial class HtmlParser
                     return new RipInfo([], "Deleted", FilenameScheme);
                 }
 
-                Print(CurrentUrl);
+                Log.Error("Could not find directory name. Unable to continue.");
                 throw;
             }
         }
@@ -1633,7 +1709,7 @@ public partial class HtmlParser
         var pageCount = 1;
         while (true)
         {
-            await PrintAsync($"Parsing page {pageCount}");
+            Log.Information("Parsing page {pageCount}", pageCount);
             var imageTags = soup.SelectNodes("//div[@class='gdt']//a").GetHrefs();
             imageLinks.AddRange(imageTags);
             var nextPage = soup.SelectSingleNode("//table[@class='ptb']").SelectNodes("//a").GetHrefs().Last();
@@ -1650,7 +1726,7 @@ public partial class HtmlParser
             }
             catch (WebDriverTimeoutException)
             {
-                await PrintAsync("Timed out. Sleeping for 10 seconds before retrying...", true);
+                Log.Warning("Timed out. Sleeping for 10 seconds before retrying...");
                 await Task.Delay(10000);
                 CurrentUrl = nextPage;
             }
@@ -1660,7 +1736,7 @@ public partial class HtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
-            await PrintAsync($"Parsing image {i + 1}/{imageLinks.Count}");
+            Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
             await Task.Delay(2500);
             soup = await Soupify(link);
             var img = soup.SelectSingleNode("//img[@id='img']").GetAttributeValue("src", "");
@@ -1789,7 +1865,7 @@ public partial class HtmlParser
         var page = 0;
         while (true)
         {
-            await PrintAsync($"Parsing page {page}");
+            Log.Information("Parsing page {page}", page);
             if (page != 0)
             {
                 CurrentUrl = $"{baseUrl}?p={page}";
@@ -1812,7 +1888,7 @@ public partial class HtmlParser
         var total = posts.Count;
         foreach (var (i, post) in posts.Enumerate())
         {
-            await PrintAsync($"Parsing post {i + 1}/{total}");
+            Log.Information("Parsing post {i} of {total}", i + 1, total);
             CurrentUrl = post;
             await WaitForPostLoad();
             soup = await Soupify();
@@ -2075,7 +2151,7 @@ public partial class HtmlParser
         var pageCount = 1;
         while (true)
         {
-            await PrintAsync($"Parsing page {pageCount}");
+            Log.Information("Parsing page {pageCount}", pageCount);
             pageCount += 1;
             var posts = soup
                         .SelectSingleNode("//div[contains(@class, 'view') and contains(@class, 'photo-list-view') and contains(@class, 'photostream')]")
@@ -2101,7 +2177,7 @@ public partial class HtmlParser
         
         foreach (var (i, post) in imagePosts.Enumerate())
         {
-            await PrintAsync($"Parsing post {i + 1}: {post}");
+            Log.Information("Parsing post {i}: {post}", i + 1, post);
             var delay = 100;
             soup = await Soupify(post, delay: delay);
             var script = soup.SelectSingleNode("//script[@class='modelExport']").InnerText;
@@ -2270,6 +2346,23 @@ public partial class HtmlParser
         RequestHeaders["Cookie"] = $"accountToken={cookieValue}";
         await Task.Delay(5000);
         var soup = await Soupify();
+        var password = soup.SelectSingleNode("//input[@type='password']");
+        if (password is not null)
+        {
+            Log.Warning("URL is password protected. Writing url to file...");
+            await File.WriteAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n");
+            // TODO: Find a better way to handle password protected files
+            return new RipInfo([], "Password Protected", FilenameScheme);
+        }
+        
+        var folderNotFound = soup.SelectSingleNode("//div[@class='alert alert-secondary border border-danger text-white']");
+        if (folderNotFound is not null)
+        {
+            Log.Warning("Folder not found. Writing url to file...");
+            // TODO: Find a better way to indicate that data does not exist
+            return new RipInfo([], "Folder Not Found", FilenameScheme);
+        }
+        
         var dirName = soup.SelectSingleNode("//span[@id='filesContentFolderName']").InnerText;
         var images = await GoFileParserHelper("", true);
 
@@ -2280,7 +2373,7 @@ public partial class HtmlParser
         {
             if (url != "")
             {
-                Console.WriteLine($"Found nested url: {url}");
+                Log.Debug("Found nested url: {url}", url);
                 CurrentUrl = url;
                 await Task.Delay(5000);
             }
@@ -2305,9 +2398,9 @@ public partial class HtmlParser
                 }
             }
 
+            //Driver.WaitUntilElementExists(By.XPath("//div[@id='filesContentTableContent']/div"));
             // ReSharper disable once VariableHidesOuterVariable
-            var soup = await Soupify();
-
+            var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]");
             var links = new List<StringImageLinkWrapper>();
             var entries = soup.SelectNodes("//div[@id='filesContentTableContent']/div");
             foreach (var entry in entries)
@@ -2315,8 +2408,9 @@ public partial class HtmlParser
                 var id = entry.GetNullableAttributeValue("id");
                 if (id is null)
                 {
-                    Console.WriteLine("Entry has no id: " + entry.InnerHtml);
-                    continue;
+                    Log.Error("Entry has no id: {entry}", entry.InnerHtml);
+                    Log.Error("Current URL: {url}", CurrentUrl);
+                    throw new RipperException("Entry has no id");
                 }
                 
                 var anchor = entry.SelectSingleNode(".//a");
@@ -2354,7 +2448,8 @@ public partial class HtmlParser
                             }
                             default:
                             {
-                                Console.WriteLine("Unknown tag: " + elm.Name);
+                                // TODO: Handle better
+                                Log.Warning("Unknown tag: {tag}", elm.Name);
                                 break;
                             }
                         }
@@ -2668,9 +2763,9 @@ public partial class HtmlParser
         var clientId = Config.Keys["Imgur"];
         if (clientId == "")
         {
-            Print("Client Id not properly set");
-            Print("Follow to generate Client Id: https://apidocs.imgur.com/#intro");
-            Print("Then add Client Id to Imgur in config.json under Keys");
+            Log.Error("Client Id not set");
+            Log.Error("Follow to generate Client Id: https://apidocs.imgur.com/#intro");
+            Log.Error("Then add Client Id to Imgur in config.json under Keys");
             throw new RipperCredentialException("Client Id Not Set");
         }
 
@@ -2681,7 +2776,7 @@ public partial class HtmlParser
         var response = await session.SendAsync(request);
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
-            Print("Client Id is incorrect");
+            Log.Error("Client Id is incorrect");
             throw new RipperCredentialException("Client Id Incorrect");
         }
 
@@ -2852,40 +2947,61 @@ public partial class HtmlParser
         {
             CurrentUrl = url;
         }
-        
-        var soup = await Soupify();
-        var dirName = CurrentUrl.Contains("/a/") 
-            ? soup.SelectSingleNode("//a[@data-text='album-name']").InnerText 
-            : soup.SelectSingleNode("//div[@class='header']").InnerText;
-        var images = new List<StringImageLinkWrapper>();
-        var page = 1;
-        while (true)
-        {
-            Console.WriteLine($"Parsing page {page}");
-            page++;
-            var error = soup.SelectSingleNode("//h1");
-            if (error is not null && error.InnerText.StartsWith("500 I"))
-            {
-                await Task.Delay(5000); // Most likely due to rate limiting
-                Driver.Reload();
-                soup = await Soupify();
-            }
-            
-            var posts = soup.SelectSingleNode("//div[@class='pad-content-listing']")
-                            .SelectNodes("./div")
-                            .Select(div => div.SelectSingleNode(".//img").GetSrc().Remove(".md"))
-                            .ToStringImageLinks();
-            images.AddRange(posts);
-            var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
-            var nextPageUrl = nextPage?.GetNullableHref();
-            if (nextPageUrl is null)
-            {
-                break;
-            }
 
-            nextPageUrl = nextPageUrl.DecodeUrl();
-            Console.WriteLine($"Next page: {nextPageUrl}");
-            soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div");
+        var single = false;
+        var soup = await Soupify();
+        string? dirName;
+        if (CurrentUrl.Contains("/a/"))
+        {
+            dirName = soup.SelectSingleNode("//a[@data-text='album-name']").InnerText;
+        }
+        else if (CurrentUrl.Contains("/img/"))
+        {
+            dirName = soup.SelectSingleNode("//a[@data-text='image-title']").InnerText;
+            single = true;
+        }
+        else
+        {
+            dirName = soup.SelectSingleNode("//div[@class='header']").InnerText;
+        }
+
+        var images = new List<StringImageLinkWrapper>();
+        if (!single)
+        {
+            var page = 1;
+            while (true)
+            {
+                Log.Information($"Parsing page {page}");
+                page++;
+                var error = soup.SelectSingleNode("//h1");
+                if (error is not null && error.InnerText.StartsWith("500 I"))
+                {
+                    await Task.Delay(5000); // Most likely due to rate limiting
+                    Driver.Refresh();
+                    soup = await Soupify();
+                }
+
+                var posts = soup.SelectSingleNode("//div[@class='pad-content-listing']")
+                                .SelectNodes("./div")
+                                .Select(div => div.SelectSingleNode(".//img").GetSrc().Remove(".md"))
+                                .ToStringImageLinks();
+                images.AddRange(posts);
+                var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
+                var nextPageUrl = nextPage?.GetNullableHref();
+                if (nextPageUrl is null)
+                {
+                    break;
+                }
+
+                nextPageUrl = nextPageUrl.DecodeUrl();
+                //Log.Debug("Next page: {nextPageUrl}", nextPageUrl);
+                soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div");
+            }
+        }
+        else
+        {
+            var img = soup.SelectSingleNode("//div[@id='image-viewer-container']/img");
+            images.Add(img.GetSrc());
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
@@ -3088,7 +3204,7 @@ public partial class HtmlParser
         var counter = 1;
         while (nextChapter is not null)
         {
-            Print($"Parsing Chapter {counter}");
+            Log.Information($"Parsing Chapter {counter}");
             counter += 1;
             soup = await Soupify(nextChapter.GetHref());
             var chapterImages = soup.SelectSingleNode("//div[@class='container-chapter-reader']")
@@ -3226,7 +3342,7 @@ public partial class HtmlParser
             var numPosts = posts.Count;
             foreach (var (i, post) in posts.Enumerate())
             {
-                Print($"Parsing Art Post {i + 1}/{numPosts}");
+                Log.Information("Parsing Art Post {i}/{numPosts}", i + 1, numPosts);
                 soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs, delay: 100);
                 var artImages = soup.SelectSingleNode("//div[contains(@class, 'art-images')]");
                 if (artImages is not null)
@@ -3288,7 +3404,7 @@ public partial class HtmlParser
             foreach (var (i, post) in posts.Enumerate())
             {
                 await Task.Delay(100);
-                Print($"Parsing Movie Post {i + 1}/{numPosts}");
+                Log.Information("Parsing Movie Post {i}/{numPosts}", i + 1, numPosts);
                 CurrentUrl = post;
                 await LazyLoad(lazyLoadArgs);
                 var videoStart = Driver.TryFindElement(By.XPath("//div[@class='video-barrier']/child::*[2]"));
@@ -3423,7 +3539,7 @@ public partial class HtmlParser
         var count = 1;
         while (true)
         {
-            Print($"Parsing illustration posts page {count}");
+            Log.Information("Parsing illustration posts page {count}", count);
             count++;
             var postTags = soup.SelectSingleNode("//div[@class='mem-index clearboth']")
                                 .SelectNodes(".//p[@class='nijiedao']");
@@ -3447,11 +3563,11 @@ public partial class HtmlParser
             }
         }
         
-        Print("Collected all illustration posts...");
+        Log.Information("Parsing illustration posts...");
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, post) in posts.Enumerate())
         {
-            Print($"Parsing illustration post {i + 1}/{posts.Count}");
+            Log.Information("Parsing illustration post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
             IEnumerable<StringImageLinkWrapper> imgs = null!;
@@ -3492,7 +3608,7 @@ public partial class HtmlParser
         posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNode(".//a").GetHref()));
         foreach (var (i, post) in posts.Enumerate())
         {
-            Print($"Parsing doujin post {i + 1}/{posts.Count}");
+            Log.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
             IEnumerable<StringImageLinkWrapper> imgs = null!;
@@ -3619,14 +3735,14 @@ public partial class HtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, chapter) in chapters.Enumerate())
         {
-            Print($"Parsing chapter {i + 1} of {chapterCount}");
+            Log.Information("Parsing chapter {i} of {chapterCount}", i + 1, chapterCount);
             CurrentUrl = chapter;
             await LazyLoad(scrollBy: true, increment: 5000);
             soup = await Soupify();
             var post = soup.SelectSingleNode("//p[@class='flex flex-col justify-center items-center']");
             if (post is null)
             {
-                await PrintAsync("Post not found", true);
+                Log.Warning("Post not found");
                 continue;
             }
 
@@ -3764,7 +3880,7 @@ public partial class HtmlParser
         foreach (var (i, post) in posts.Enumerate())
         {
             var contentFound = false;
-            Print($"Parsing post {i + 1} of {posts.Count}");
+            Log.Information("Parsing post {i} of {totalPosts}", i + 1, posts.Count);
             while (!contentFound)
             {
                 CurrentUrl = post;
@@ -3849,7 +3965,7 @@ public partial class HtmlParser
         cookieJar.AddCookie(new Cookie("il", cookie));
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));
         cookieJar.AddCookie(new Cookie("adBlockAlertHidden", "1"));
-        Driver.Reload();
+        Driver.Refresh();
         var soup = await Soupify();
         string dirName;
         List<StringImageLinkWrapper> images;
@@ -3904,7 +4020,7 @@ public partial class HtmlParser
                                       && !post.Contains("/model/")).ToList();
             foreach (var (i, post) in posts.Enumerate())
             {
-                Console.WriteLine($"Parsing post {i + 1}/{posts.Count}");
+                Log.Information("Parsing post {i}/{totalPosts}", i + 1, posts.Count);
                 soup = await Soupify(post);
                 var (postImages, _) = await PornhubLinkExtractor(soup);
                 images.AddRange(postImages);
@@ -4117,6 +4233,37 @@ public partial class HtmlParser
         return BooruParse("Rule34", "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
             "pid", 0, 1000);
     }
+
+    // TODO: See if this site has albums
+    /// <summary>
+    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Saint2Parse(string url)
+    {
+        if (url != "")
+        {
+            CurrentUrl = url;
+        }
+        
+        var soup = await Soupify();
+        string dirName;
+        var images = new List<StringImageLinkWrapper>();
+        if (CurrentUrl.Contains("/embed/"))
+        {
+            dirName = "Saint2 Video";
+            var downloadLink = soup.SelectSingleNode("//a[@class='plyr__controls__item plyr__control']").GetHref();
+            soup = await Soupify(downloadLink);
+            var link = soup.SelectSingleNode("//a").GetHref();
+            images.Add(link);
+        }
+        else
+        {
+            throw new RipperException($"Unhandled url: {CurrentUrl}");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
     
     /// <summary>
     ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
@@ -4278,8 +4425,9 @@ public partial class HtmlParser
     {
         var cookieValue = Config.Cookies["SimpCity"];
         Driver.AddCookie("kZJdisc_user", cookieValue);
-        Driver.Reload();
-        var soup = await Soupify();
+        var soup = await SolveParseAddCookies();
+        var cookieJar = Driver.GetCookieJar();
+        var cookies = cookieJar.AllCookies;
         var dirName = soup.SelectSingleNode("//h1[@class='p-title-value']").InnerText;
         var resolvableSet = new HashSet<string>
         {
@@ -4302,26 +4450,34 @@ public partial class HtmlParser
         var resolveLists = new List<(List<string>, int)>();
         while (true)
         {
+            if (Driver.Title == "SimpCity - Rate Limit")
+            {
+                Log.Warning("Rate limited, waiting 30 seconds");
+                await Task.Delay(30000);
+                Driver.Refresh();
+                continue;
+            }
+            
             var posts = soup.SelectSingleNode("//div[@class='block-body js-replyNewMessageContainer']")
                             .SelectNodes("./article");
             foreach (var post in posts)
             {
                 var content = post.SelectSingleNode(".//div[@class='bbWrapper']");
-                var imgs = content.SelectNodes(".//img")
+                var imgs = content.SelectNodesSafe(".//img")
                                   .Select(img => img.GetSrc().Remove(".md"))
                                   .ToStringImageLinks();
                 images.AddRange(imgs);
-                var vids = content.SelectNodes(".//video")
+                var vids = content.SelectNodesSafe(".//video")
                                   .Select(VideoResolver)
                                   .ToStringImageLinks();
                 images.AddRange(vids);
                 var index = images.Count;
-                var links = content.SelectNodes(".//a");
+                var links = content.SelectNodesSafe(".//a");
                 var resolve = links.Select(link => link.GetNullableHref())
                                    .OfType<string>()
                                    .Where(url => resolvableSet.Any(url.Contains))
                                    .ToList();
-                var iframes = content.SelectNodes(".//iframe[@class='saint-iframe']")
+                var iframes = content.SelectNodesSafe(".//iframe[@class='saint-iframe']")
                                      .Select(iframe => iframe.GetSrc()); //cyberdrop and saint2
                 resolve.AddRange(iframes);
                 if (resolve.Count != 0)
@@ -4336,49 +4492,92 @@ public partial class HtmlParser
                 break;
             }
             
-            var nextPageUrl = nextPage.GetHref();
-            soup = await Soupify($"https://simpcity.su{nextPageUrl}");
+            var nextPageUrl = $"https://simpcity.su{nextPage.GetHref()}";
+            Log.Information("Parsing page: {NextPageUrl}", nextPageUrl);
+            soup = await Soupify(nextPageUrl);
         }
 
         #endregion
         
         #region Resolve Links
 
+        var offset = 0;
+        var resolved = 1;
+        var total = resolveLists.Sum(list => list.Item1.Count);
         foreach (var (resolveList, i) in resolveLists)
         {
-            var index = i;
+            var index = i + offset;
             foreach (var link in resolveList)
             {
-                RipInfo info = null!;
+                Log.Information("Resolving link {Resolved} of {Total}: {Link}", resolved, total, link);
+                resolved++;
+                Func<string, Task<RipInfo>> parser;
                 if (link.Contains("bunkrrr.org") || link.Contains("bunkr.")/*link.Contains("bunkr.ru") || link.Contains("bunkr.ws")
                     || link.Contains("bunkr.red") || link.Contains("bunkr.media") || link.Contains("bunkr.si")*/)
                 {
-                    info = await BunkrParse(link);
+                    parser = BunkrParse;
                 }
                 else if (link.Contains("gofile.io"))
                 {
-                    info = await GoFileParse(link);
+                    parser = GoFileParse;
                 }
                 else if (link.Contains("pixeldrain.com"))
                 {
-                    info = await PixelDrainParse(link);
+                    parser = PixelDrainParse;
                 }
                 else if (link.Contains("cyberdrop.me"))
                 {
-                    info = await CyberDropParse(link);
+                    parser = CyberDropParse;
                 }
                 else if (link.Contains("jpg4.su") || link.Contains("jpg5.su"))
                 {
-                    info = await Jpg5Parse(link);
+                    parser = Jpg5Parse;
+                }
+                else if(link.Contains("saint2."))
+                {
+                    parser = Saint2Parse;
                 }
                 else
                 {
-                    // Should never happen as we filtered based on the set
-                    throw new RipperException("Link bypassed filter");
+                    throw new RipperException($"Link bypassed filter: {link}");
+                }
+
+                RipInfo info;
+                try
+                {
+                    info = await parser(link);
+                }
+                catch (WebDriverTimeoutException)
+                {
+                    Log.Warning("WebDriver unresponsive, retrying");
+                    // Assume driver is dead and unreachable
+                    // TODO: Find a better way to handle this
+                    Driver = new FirefoxDriver(InitializeOptions(""));
+                    cookieJar = Driver.GetCookieJar();
+                    foreach(var cookie in cookies)
+                    {
+                        cookieJar.AddCookie(cookie);
+                    }
+                    info = await parser(link);
+                }
+                catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver server for URL"))
+                {
+                    Log.Warning("WebDriver unresponsive, retrying");
+                    // Assume driver is dead and unreachable
+                    // TODO: Find a better way to handle this
+                    Driver = new FirefoxDriver(InitializeOptions(""));
+                    cookieJar = Driver.GetCookieJar();
+                    foreach(var cookie in cookies)
+                    {
+                        cookieJar.AddCookie(cookie);
+                    }
+                    info = await parser(link);
                 }
                 
                 images.InsertRange(index, info.Urls.ToStringImageLinks());
                 index += info.Urls.Count;
+                offset += info.Urls.Count;
+                await Task.Delay(125);
             }
         }
 
@@ -4519,7 +4718,7 @@ public partial class HtmlParser
             cookieJar.DeleteCookie(cookie);
         }
         cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies["Thothub"]));
-        Driver.Reload();
+        Driver.Refresh();
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true,
@@ -4614,7 +4813,7 @@ public partial class HtmlParser
         var pageCount = 1;
         while (true)
         {
-            Console.WriteLine($"Parsing page {pageCount}");
+            Log.Information("Parsing page {PageCount}", pageCount);
             pageCount++;
             var posts = soup.SelectSingleNode("//div[@class='block-body js-replyNewMessageContainer']")
                             .SelectNodes(".//div[@class='message-content js-messageContent']");
@@ -4811,7 +5010,7 @@ public partial class HtmlParser
         foreach (var (i, link) in postLinks.Enumerate())
         {
             var postLink = $"https://twitter.com{link}";
-            Console.WriteLine($"Post {i + 1}/{postLinks.Count}: {postLink}");
+            Log.Information("Post {index}/{totalLinks}: {postLink}", i + 1, postLinks.Count, postLink);
             var (links, retryUrls) = await TwitterParserHelper(postLink, false);
             var videoLinks = capturer.GetNewVideoLinks();
             images.AddRange(videoLinks.ToStringImageLinks());
@@ -4836,9 +5035,10 @@ public partial class HtmlParser
             var offset = 0;
             foreach(var (i, (index, link)) in failed.Enumerate())
             {
-                Console.WriteLine($"Retrying failed post {i + 1}/{failed.Count}: {link}");
+                Log.Information("Retrying failed post {index}/{totalLinks}: {postLink}", i + 1, failed.Count, link);
                 var (links, retryUrls) = await TwitterParserHelper(link, true);
                 var linkTemp = links.Select(x => (StringImageLinkWrapper)x);
+                failedUrls.AddRange(retryUrls);
                 images.InsertRange(index + offset, linkTemp);
                 offset += links.Count;
             }
@@ -4908,7 +5108,7 @@ public partial class HtmlParser
                     var waitBoost = 0;
                     if (i == maxRetries - 1)
                     {
-                        Console.WriteLine($"Failed to get media: {postLink}");
+                        Log.Warning("Failed to get media: {PostLink}", postLink);
                         if (logFailure)
                         {
                             LogFailedUrl(postLink);
@@ -4927,7 +5127,7 @@ public partial class HtmlParser
                     waitTime = Math.Min(baseWaitTime * (int)Math.Pow(2, i), maxWaitTime);
                     var jitter = (int)(Random.Shared.NextDouble() * waitTime);
                     waitTime += jitter + waitBoost;
-                    Console.WriteLine($"Attempt {i + 1} failed. Retrying in {waitTime/1000.0:F2} seconds...");
+                    Log.Warning("Attempt {Attempt} failed. Retrying in {WaitTime:F2} seconds...", i + 1, waitTime / 1000.0);
                     await Task.Delay(waitTime);
                 }
 
@@ -5016,10 +5216,10 @@ public partial class HtmlParser
         var cfClearanceCookie = cookies["cf_clearance"];
         var cookieJar = Driver.GetCookieJar();
         cookieJar.SetCookie("cf_clearance", cfClearanceCookie);
-        Driver.Reload();
+        Driver.Refresh();
         cookieJar.SetCookie("frontend", frontendCookie);
         cookieJar.SetCookie("frontend-rmt", frontendRmtCookie);
-        Driver.Reload();
+        Driver.Refresh();
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true,
@@ -5045,7 +5245,7 @@ public partial class HtmlParser
                 if (footer is not null && footer.Text.Contains("Cloudflare"))
                 {
                     cookieJar.SetCookie("cf_clearance", cfClearanceCookie);
-                    Driver.Reload();
+                    Driver.Refresh();
                 }
                 soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
                 Console.ReadLine();
@@ -5382,6 +5582,18 @@ public partial class HtmlParser
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
+    private static async Task<HtmlNode> SolveParseAddCookies()
+    {
+        var solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+        var cookieJar = Driver.GetCookieJar();
+        foreach (var seleniumCookie in solution.Cookies.Select(cookie => cookie.ToSeleniumCookie()))
+        {
+            cookieJar.AddCookie(seleniumCookie);
+        }
+        
+        return await Soupify(solution);
+    }
+    
     private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
     {
         var parsedUrls = new List<string>();
@@ -5617,11 +5829,6 @@ public partial class HtmlParser
         File.AppendAllText("failed.txt", $"{url}\n");
     }
     
-    private static void Print(object? value)
-    {
-        Console.WriteLine(value);
-    }
-
     private static async Task PrintAsync(string? value, bool error = false)
     {
         if (error)
@@ -5645,25 +5852,26 @@ public partial class HtmlParser
             CurrentUrl = givenUrl.Replace("members.", "www.");
             SiteName = TestSiteCheck(givenUrl);
 
-            Print($"Testing: {SiteName}Parse");
-            Print($"URL: {CurrentUrl}");
+            Log.Debug("Testing: {SiteName}Parse", SiteName);
+            Log.Debug("URL: {CurrentUrl}", CurrentUrl);
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName);
             var end = DateTime.Now;
-            Print(data.Urls[0].Referer);
-            Print($"Time Elapsed: {end - start}");
+            Log.Debug("Referer: {Referer}", data.Urls[0].Referer);
+            Log.Debug("Time Elapsed: {TimeElapsed}", end - start);
             var outData = data.Urls.Select(d => d.Url).ToList();
             JsonUtility.Serialize("test.json", outData);
             if (debug)
             {
-                Print("Press any key to exit...");
+                NicheImageRipper.LogMessageToFile("Press any key to exit...", LogEventLevel.Debug);
                 Console.ReadKey();
             }
 
             return data;
         }
-        catch
+        catch(Exception e)
         {
+            Log.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
             await File.WriteAllTextAsync("test.html", Driver.PageSource);
             //var screenshot = Driver.GetFullPageScreenshot();
             var screenshot = Driver.GetScreenshot();
@@ -5677,7 +5885,7 @@ public partial class HtmlParser
                 await File.WriteAllTextAsync("test.html", Driver.PageSource);
             }
 
-            await FlareSolverrManager.DeleteSession();
+            //await FlareSolverrManager.DeleteSession();
             Driver.Quit();
         }
     }
@@ -5713,7 +5921,7 @@ public partial class HtmlParser
         }
 
         // Handle the case where the method does not exist
-        Print($"Method {methodName} not found.");
+        Log.Error("Method {MethodName} not found.", methodName);
         throw new InvalidOperationException();
     }
 
@@ -5724,17 +5932,19 @@ public partial class HtmlParser
             return "twitter";
         }
         
-        if (siteName.Contains("100bucksbabes"))
+        if (siteName.Contains("bunkrrr"))
+        {
+            siteName = siteName.Replace("bunkrrr", "Bunkr");
+        }
+        else if (siteName.Contains("100bucksbabes"))
         {
             siteName = siteName.Replace("100bucksbabes", "HundredBucksBabes");
         }
-
-        if (siteName.Contains("chapmanganato"))
+        else if (siteName.Contains("chapmanganato"))
         {
             siteName = siteName.Replace("chapmanganato", "Manganato");
         }
-        
-        if(siteName.Contains("18kami"))
+        else if(siteName.Contains("18kami"))
         {
             siteName = siteName.Replace("18kami", "EighteenKami");
         }

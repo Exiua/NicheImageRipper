@@ -1,5 +1,7 @@
 ﻿using Core.Enums;
 using Core.SiteParsing;
+using Serilog;
+using Serilog.Events;
 
 namespace Core;
 
@@ -32,7 +34,7 @@ public class NicheImageRipperCli : NicheImageRipper
         {
             try
             {
-                Console.Write("NicheImageRipper> ");
+                LogMessageToFile("NicheImageRipper> ");
                 var userInput = Console.ReadLine();
                 if (string.IsNullOrEmpty(userInput))
                 {
@@ -44,7 +46,7 @@ public class NicheImageRipperCli : NicheImageRipper
                 {
                     case "q":
                     case "quit":
-                        Console.WriteLine("Exiting...");
+                        LogMessageToFile("Exiting...");
                         SaveData();
                         HtmlParser.Dispose();
                         return;
@@ -53,13 +55,13 @@ public class NicheImageRipperCli : NicheImageRipper
                         await Rip();
                         break;
                     case "queue":
-                        Console.WriteLine(string.Join("\n", UrlQueue));
+                        LogMessageToFile(string.Join("\n", UrlQueue));
                         break;
                     case "c":
                     case "clear":
                         if (cmdParts.Length != 2)
                         {
-                            Console.WriteLine("Missing argument: cache or queue");
+                            LogMessageToFile("Missing argument: cache or queue", LogEventLevel.Warning);
                             break;
                         }
                         
@@ -67,14 +69,14 @@ public class NicheImageRipperCli : NicheImageRipper
                         {
                             case "cache":
                                 ClearCache();
-                                Console.WriteLine("Cache cleared");
+                                LogMessageToFile("Cache cleared");
                                 break;
                             case "queue":
                                 UrlQueue.Clear();
-                                Console.WriteLine("Queue cleared");
+                                LogMessageToFile("Queue cleared");
                                 break;
                             default:
-                                Console.WriteLine("Missing argument: cache or queue");
+                                LogMessageToFile("Missing argument: cache or queue", LogEventLevel.Warning);
                                 break;
                         }
 
@@ -82,18 +84,18 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "retries":
                         if (cmdParts.Length != 2)
                         {
-                            Console.WriteLine($"Max retries: {MaxRetries - 1}");
+                            LogMessageToFile($"Max retries: {MaxRetries - 1}");
                         }
                         else
                         {
                             if(int.TryParse(cmdParts[1], out var retries))
                             {
                                 MaxRetries = retries + 1;
-                                Console.WriteLine($"Max retries set to {MaxRetries}");
+                                LogMessageToFile($"Max retries set to {MaxRetries}");
                             }
                             else
                             {
-                                Console.WriteLine("Invalid argument");
+                                LogMessageToFile("Invalid argument", LogEventLevel.Warning);
                             }
                         }
 
@@ -101,18 +103,18 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "delay":
                         if(cmdParts.Length != 2)
                         {
-                            Console.WriteLine($"Retry delay: {RetryDelay} ms");
+                            LogMessageToFile($"Retry delay: {RetryDelay} ms");
                         }
                         else
                         {
                             if(int.TryParse(cmdParts[1], out var delay))
                             {
                                 RetryDelay = delay;
-                                Console.WriteLine($"Retry delay set to {delay} ms");
+                                LogMessageToFile($"Retry delay set to {delay} ms");
                             }
                             else
                             {
-                                Console.WriteLine("Invalid argument");
+                                LogMessageToFile("Invalid argument", LogEventLevel.Warning);
                             }
                         }
 
@@ -120,7 +122,7 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "skip":
                         if (UrlQueue.Count == 0)
                         {
-                            Console.WriteLine("Queue is empty");
+                            LogMessageToFile("Queue is empty");
                             break;
                         }
                         
@@ -133,7 +135,7 @@ public class NicheImageRipperCli : NicheImageRipper
                             }
                             else
                             {
-                                Console.WriteLine("Invalid argument");
+                                LogMessageToFile("Invalid argument");
                                 break;
                             }
                         }
@@ -141,7 +143,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         var normalizedIndex = Math.Abs(index);
                         if(normalizedIndex >= UrlQueue.Count)
                         {
-                            Console.WriteLine("Index out of range");
+                            LogMessageToFile("Index out of range");
                             break;
                         }
                         
@@ -157,7 +159,7 @@ public class NicheImageRipperCli : NicheImageRipper
                             UrlQueue.RemoveAt(index);
                         }
 
-                        Console.WriteLine($"Skipping {url}");
+                        LogMessageToFile($"Skipping {url}");
                         break;
                     case "debug":
                         HtmlParser.SetDebugMode(true);
@@ -165,7 +167,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "save":
                         SaveData();
-                        Console.WriteLine("Data saved");
+                        LogMessageToFile("Data saved");
                         break;
                     case "history":
                         PrintHistory();
@@ -173,10 +175,10 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "l":
                     case "load":
                         LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
-                        Console.WriteLine("URLs loaded");
+                        LogMessageToFile("URLs loaded");
                         break;
                     case "peek":
-                        Console.WriteLine(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[0]);
+                        LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[0]);
                         break;
                     default:
                         var startIndex = UrlQueue.Count;
@@ -189,13 +191,13 @@ public class NicheImageRipperCli : NicheImageRipper
                                 case QueueFailureReason.None:
                                     break;
                                 case QueueFailureReason.AlreadyQueued:
-                                    Console.WriteLine($"URL already queued: {failedUrl.Url}");
+                                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
                                     break;
                                 case QueueFailureReason.NotSupported:
-                                    Console.WriteLine($"URL not supported: {failedUrl.Url}");
+                                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
                                     break;
                                 case QueueFailureReason.PreviouslyProcessed:
-                                    Console.WriteLine($"Re-rip url (y/n)? {failedUrl.Url}");
+                                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}");
                                     var response = Console.ReadLine();
                                     if (response == "y")
                                     {
@@ -217,7 +219,7 @@ public class NicheImageRipperCli : NicheImageRipper
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Log.Error(e, "An unhanded exception occurred");
             }
         }
     }

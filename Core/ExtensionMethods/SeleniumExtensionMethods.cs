@@ -17,7 +17,7 @@ public static class SeleniumExtensionMethods
         }
     }
     
-    public static void Reload(this IWebDriver driver)
+    public static void Refresh(this IWebDriver driver)
     {
         driver.Navigate().Refresh();
     }

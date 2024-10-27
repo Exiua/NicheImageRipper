@@ -5,16 +5,11 @@ using FlareSolverrIntegration.Responses;
 
 namespace Core.Managers;
 
-public class FlareSolverrManager
+public class FlareSolverrManager(string flareSolverrUri)
 {
-    private readonly FlareSolverrClient _flareSolverrClient;
+    private readonly FlareSolverrClient _flareSolverrClient = new(flareSolverrUri);
     private string? _sessionId;
-    
-    public FlareSolverrManager(string flareSolverrUri)
-    {
-        _flareSolverrClient = new FlareSolverrClient(flareSolverrUri);
-    }
-    
+
     private async Task CreateSession()
     {
         var response = await _flareSolverrClient.CreateSession();
@@ -24,6 +19,24 @@ public class FlareSolverrManager
         }
         
         _sessionId = sessionCreationResponse.Session;
+    }
+
+    private async Task GetSession()
+    {
+        var response = await _flareSolverrClient.ListSessions();
+        if (response is not SessionListResponse sessionListResponse)
+        {
+            throw new RipperException("Failed to list sessions");
+        }
+        
+        if (sessionListResponse.Sessions.Count == 0)
+        {
+            await CreateSession();
+        }
+        else
+        {
+            _sessionId = sessionListResponse.Sessions[0];
+        }
     }
     
     public async Task DeleteSession()
@@ -46,7 +59,7 @@ public class FlareSolverrManager
     {
         if (_sessionId is null)
         {
-            await CreateSession();
+            await GetSession();
         }
         
         var payload = GetRequestPayload.SetUrl(url).SetSession(_sessionId!);

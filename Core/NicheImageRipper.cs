@@ -9,6 +9,9 @@ using Core.ExtensionMethods;
 using Core.FileDownloading;
 using Core.History;
 using Core.Utility;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using File = System.IO.File;
 
 namespace Core;
@@ -16,6 +19,7 @@ namespace Core;
 public abstract partial class NicheImageRipper
 {
     public static Config Config { get; set; } = Config.Instance;
+    public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
     
     public string Title { get; set; } = "NicheImageRipper";
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
@@ -350,6 +354,28 @@ public abstract partial class NicheImageRipper
             History.Add(entry);
             HistoryDb.InsertHistoryRecord(entry);
         }
+    }
+
+    public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information)
+    {
+        DisableConsoleLogging();
+        Console.WriteLine(message);
+        Log.Write(level, message);
+        EnableConsoleLogging();
+    }
+
+    private static void EnableConsoleLogging()
+    {
+        #if DEBUG
+        ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
+        #else
+        consoleLevelSwitch.MinimumLevel = LogEventLevel.Information;
+        #endif
+    }
+
+    private static void DisableConsoleLogging()
+    {
+        ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Fatal + 1;
     }
 
     [GeneratedRegex("viewkey=([0-9a-z]+)")]
