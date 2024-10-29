@@ -15,7 +15,9 @@ public partial class ImageLink
     public string Filename { get; set; } = null!;
     
     public bool IsBlob => Url.StartsWith("blob:");
+    public bool HasReferer => !string.IsNullOrEmpty(Referer);
 
+    // Only used for (de)serialization
     [UsedImplicitly]
     public ImageLink()
     {
@@ -66,21 +68,37 @@ public partial class ImageLink
             var linkUrl = playlistUrl.Split("{")[0];
             return linkUrl;
         }
+
         if (url.Contains("drive.google.com"))
         {
             LinkInfo = LinkInfo.GDrive;
             return url;
         }
+        
         if (url.Contains("mega.nz"))
         {
             LinkInfo = LinkInfo.Mega;
             return url;
         }
+        
         if (url.Contains("saint.to"))
         {
             Referer = "https://saint.to/";
             return url;
         }
+
+        if (url.Contains("bunkr."))
+        {
+            Referer = "https://get.bunkrr.su/";
+            return url;
+        }
+
+        if (url.Contains("gofile.io"))
+        {
+            Referer = "https://gofile.io/";
+            return url;
+        }
+        
         if (url.Contains("youtube.com"))
         {
             LinkInfo = LinkInfo.Youtube;
@@ -91,7 +109,6 @@ public partial class ImageLink
 
             var match = YoutubeEmbedRegex().Match(url);
             return match.Success ? $"https://www.youtube.com/watch?v={match.Groups[1].Value}" : url;
-
         }
         
         return url.StartsWith("//") ? $"https:{url}" : url;
@@ -184,6 +201,11 @@ public partial class ImageLink
         {
             fileName = url.Split("&id=")[^1];
             fileName = fileName.Split("&")[0] + ".mp4";
+        }
+        else if (url.Contains("rule34video.com"))
+        {
+            fileName = url.Split("download_filename=")[1];
+            fileName = fileName.Split("&")[0];
         }
         else
         {

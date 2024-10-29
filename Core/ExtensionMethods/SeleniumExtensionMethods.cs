@@ -31,12 +31,23 @@ public static class SeleniumExtensionMethods
     ///     Adds a cookie to the current session. Intended for adding a single cookie. If you need to add multiple
     /// cookies, use the cookie jar directly.
     /// </summary>
-    /// <param name="driver"></param>
-    /// <param name="cookieName"></param>
-    /// <param name="cookieValue"></param>
+    /// <param name="driver">WebDriver instance</param>
+    /// <param name="cookieName">Name of the cookie</param>
+    /// <param name="cookieValue">Value of the cookie</param>
     public static void AddCookie(this IWebDriver driver, string cookieName, string cookieValue)
     {
         driver.GetCookieJar().AddCookie(new Cookie(cookieName, cookieValue));   
+    }
+
+    /// <summary>
+    ///     Adds a cookie to the current session. Intended for adding a single cookie. If you need to add multiple
+    /// cookies, use the cookie jar directly.
+    /// </summary>
+    /// <param name="driver">WebDriver instance</param>
+    /// <param name="cookie">Cookie to add</param>
+    public static void AddCookie(this IWebDriver driver, Cookie cookie)
+    {
+        driver.GetCookieJar().AddCookie(cookie);
     }
     
     public static void AddCookie(this ICookieJar cookieJar, string cookieName, string cookieValue)
@@ -73,17 +84,8 @@ public static class SeleniumExtensionMethods
         ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
     }
     
-    public static bool WaitUntilElementExists(this IWebDriver driver, By by, int timeout = 10)
+    public static void RemoveElement(this IWebDriver driver, IWebElement element)
     {
-        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeout));
-        try
-        {
-            wait.Until(d => d.FindElement(by));
-            return true;
-        }
-        catch (WebDriverTimeoutException)
-        {
-            return false;
-        }
+        ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].remove();", element);
     }
 }

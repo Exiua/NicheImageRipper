@@ -11,13 +11,13 @@ namespace Core.DataStructures;
 public class RipInfo
 {
     private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
-        
+
     private string _directoryName = null!; // Initialized through the property setter
-    
+
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
     public List<ImageLink> Urls { get; set; } = null!;
     public bool MustGenerateManually { get; set; }
-    
+
     public int NumUrls { get; set; }
 
     public string DirectoryName
@@ -33,7 +33,8 @@ public class RipInfo
     {
     }
 
-    public RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "", FilenameScheme filenameScheme = FilenameScheme.Original,
+    public RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
+                   FilenameScheme filenameScheme = FilenameScheme.Original,
                    bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
     {
         // SaveRawUrls(urls);
@@ -48,8 +49,8 @@ public class RipInfo
     private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob)
     {
         var imageLinks = new List<ImageLink>();
-        var linkCounter = 0;        // Current index of image_links (used for naming image_links when generating numeric names)
-        var filenameCounter = 0;    // Current index of filenames
+        var linkCounter = 0; // Current index of image_links (used for naming image_links when generating numeric names)
+        var filenameCounter = 0; // Current index of filenames
         urls = RemoveDuplicates(urls);
         foreach (var url in urls)
         {
@@ -61,7 +62,7 @@ public class RipInfo
                 {
                     imageLink.Rename(linkCounter);
                 }
-                
+
                 linkCounter++;
                 imageLinks.Add(imageLink);
                 continue;
@@ -89,12 +90,12 @@ public class RipInfo
                 linkCounter++;
             }
         }
-        
+
         if (discardBlob)
         {
             imageLinks = imageLinks.Where(imageLink => !imageLink.IsBlob).ToList();
         }
-        
+
         return imageLinks;
     }
 
@@ -107,10 +108,12 @@ public class RipInfo
         var counter = index;
         foreach (var file in files)
         {
-            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.Name, linkInfo: LinkInfo.GDrive);
+            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.Name,
+                linkInfo: LinkInfo.GDrive);
             imageLinks.Add(imgLink);
             counter++;
         }
+
         return (imageLinks, counter);
     }
 
@@ -127,9 +130,10 @@ public class RipInfo
         {
             id = parts[^1].Split("?id=")[^1];
         }
+
         return (id, false);
     }
-    
+
     private static List<StringImageLinkWrapper> RemoveDuplicates(List<StringImageLinkWrapper> urls)
     {
         var urlSet = new HashSet<string>();
@@ -145,9 +149,10 @@ public class RipInfo
                 newUrls.Add(url);
             }
         }
+
         return newUrls;
     }
-    
+
     private static string CleanDirectoryName(string directoryName)
     {
         directoryName = WebUtility.HtmlDecode(directoryName).Trim(' ', '\t', '\n', '\r');
@@ -156,17 +161,20 @@ public class RipInfo
         {
             dirName.Append(c);
         }
+
         if (dirName[^1] != ')' && dirName[^1] != ']' && dirName[^1] != '}')
         {
             RStripPunctuation(dirName);
         }
+
         if (dirName[0] != '(' && dirName[0] != '[' && dirName[0] != '{')
         {
             LStripPunctuation(dirName);
         }
+
         return dirName.ToString();
     }
-    
+
     private static void LStripPunctuation(StringBuilder input)
     {
         if (input.Length == 0)
@@ -185,7 +193,7 @@ public class RipInfo
             input.Remove(0, i); // Remove leading punctuation
         }
     }
-    
+
     private static void RStripPunctuation(StringBuilder input)
     {
         if (input.Length == 0)
@@ -204,7 +212,7 @@ public class RipInfo
             input.Length = i + 1; // Adjust the length to trim the punctuation
         }
     }
-    
+
     private static void SaveRawUrls(List<StringImageLinkWrapper> urls)
     {
         JsonUtility.Serialize("raw_urls.json", urls);

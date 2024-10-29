@@ -72,7 +72,7 @@ public static partial class UrlUtility
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
         "https://x.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
         "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/", "https://jpg5.su/",
-        "https://simpcity.su/"
+        "https://simpcity.su/", "https://rule34video.com/"
     }.ToFrozenSet();
 
     /// <summary>

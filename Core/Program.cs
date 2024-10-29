@@ -3,6 +3,7 @@
 using Core;
 using Core.ArgParse;
 using Core.SiteParsing;
+using Core.Utility;
 using Serilog;
 using Serilog.Events;
 
@@ -16,6 +17,8 @@ Log.Logger = new LoggerConfiguration()
 #if DEBUG
 NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
 #endif
+
+PrintUtility.PrintFunction = Log.Information;
 
 var arguments = ArgumentParser.Parse(args);
 switch (arguments.RunMode)

@@ -2,6 +2,7 @@
 using FlareSolverrIntegration;
 using FlareSolverrIntegration.Payloads;
 using FlareSolverrIntegration.Responses;
+using Serilog;
 
 namespace Core.Managers;
 
@@ -57,6 +58,7 @@ public class FlareSolverrManager(string flareSolverrUri)
     
     public async Task<Solution> GetSiteSolution(string url)
     {
+        Log.Debug("Getting site solution for {Url}", url);
         if (_sessionId is null)
         {
             await GetSession();
@@ -69,6 +71,7 @@ public class FlareSolverrManager(string flareSolverrUri)
             throw new RipperException("Failed to get site solution");
         }
 
+        Log.Debug("Got site solution {@solution}", requestResponse.Solution.Cookies);
         return requestResponse.Solution;
     }
 }

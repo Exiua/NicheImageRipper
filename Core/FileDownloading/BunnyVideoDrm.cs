@@ -224,13 +224,12 @@ public partial class BunnyVideoDrm
 
         using var process = new Process();
         process.StartInfo = startInfo;
-        process.Start();
-
         // Asynchronously read the standard output of the spawned process. 
-        // This raises OutputDataReceived events for each line of output.
-        var output = await process.StandardOutput.ReadToEndAsync();
-        Console.WriteLine(output);
-
+        process.OutputDataReceived += (_, args) => Console.WriteLine(args.Data);
+        
+        process.Start();
+        process.BeginOutputReadLine();
+        
         await process.WaitForExitAsync();
     }
 

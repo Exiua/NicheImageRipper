@@ -34,7 +34,7 @@ public class NicheImageRipperCli : NicheImageRipper
         {
             try
             {
-                LogMessageToFile("NicheImageRipper> ");
+                LogMessageToFile("NicheImageRipper> ", newLine: false);
                 var userInput = Console.ReadLine();
                 if (string.IsNullOrEmpty(userInput))
                 {
@@ -197,7 +197,7 @@ public class NicheImageRipperCli : NicheImageRipper
                                     LogMessageToFile($"URL not supported: {failedUrl.Url}");
                                     break;
                                 case QueueFailureReason.PreviouslyProcessed:
-                                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}");
+                                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
                                     var response = Console.ReadLine();
                                     if (response == "y")
                                     {

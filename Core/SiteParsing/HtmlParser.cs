@@ -104,9 +104,9 @@ public partial class HtmlParser
             //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             return siteInfo;
         }
-        catch
+        catch(Exception e)
         {
-            Log.Error("Failed to parse {CurrentUrl}", CurrentUrl);
+            Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
             throw;
         }
     }
@@ -250,6 +250,7 @@ public partial class HtmlParser
             "gofile" => GoFileParse,
             "jpg5" => Jpg5Parse,
             "simpcity" => SimpCityParse,
+            "rule34video" => Rule34VideoParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1191,17 +1192,7 @@ public partial class HtmlParser
                 }
                 else if (CurrentUrl.Contains("/d/"))
                 {
-                    var downloadLinkNode = soup.SelectSingleNode("//a[@class='text-white inline-flex items-center justify-center rounded-[5px] py-2 px-4 text-center text-base font-bold hover:text-white mb-2']");
-                    if (downloadLinkNode is null)
-                    {
-                        downloadLinkNode = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg flex-1']");
-                    }
-                    
-                    var downloadLink = downloadLinkNode.GetHref();
-                    soup = await Soupify(downloadLink, delay: parseDelay);
-                    var link = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']")
-                                   .GetHref();
-                    images.Add(link);
+                    await GetDownloadLink(soup);
                 }
                 else
                 {
@@ -1216,6 +1207,10 @@ public partial class HtmlParser
         else if(CurrentUrl.Contains("/v/"))
         {
             await GetVideoLink(soup);
+        }
+        else if (CurrentUrl.Contains("/d/"))
+        {
+            await GetDownloadLink(soup);
         }
         else
         {
@@ -1253,6 +1248,22 @@ public partial class HtmlParser
         {
             var img = soup.SelectSingleNode("//main//img");
             images.Add(img.GetSrc());
+        }
+
+        // ReSharper disable once VariableHidesOuterVariable
+        async Task GetDownloadLink(HtmlNode soup)
+        {
+            var downloadLinkNode = soup.SelectSingleNode("//a[@class='text-white inline-flex items-center justify-center rounded-[5px] py-2 px-4 text-center text-base font-bold hover:text-white mb-2']");
+            if (downloadLinkNode is null)
+            {
+                downloadLinkNode = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg flex-1']");
+            }
+                    
+            var downloadLink = downloadLinkNode.GetHref();
+            soup = await Soupify(downloadLink, delay: parseDelay);
+            var link = soup.SelectSingleNode("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']")
+                           .GetHref();
+            images.Add(link);
         }
     }
 
@@ -1457,6 +1468,8 @@ public partial class HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> CyberDropParse(string url)
     {
+        const int parseDelay = 500;
+        
         if (url != "")
         {
             CurrentUrl = url;
@@ -1476,7 +1489,7 @@ public partial class HtmlParser
                                 .Select(href => $"https://cyberdrop.me{href}");
             foreach (var image in imageList)
             {
-                soup = await Soupify(image, delay: 500, xpath: "//a[@id='downloadBtn']");
+                soup = await Soupify(image, delay: parseDelay, xpath: "//a[@id='downloadBtn']");
                 var link = soup
                           .SelectSingleNode("//a[@id='downloadBtn']")
                           .GetHref();
@@ -1495,8 +1508,8 @@ public partial class HtmlParser
             var video = soup.SelectSingleNode("//video[@id='player']");
             if (video is null)
             {
-                await Task.Delay(500);
-                soup = await Soupify(delay: 500, xpath: "//video[@id='player']");
+                await Task.Delay(parseDelay);
+                soup = await Soupify(delay: parseDelay, xpath: "//video[@id='player']");
                 video = soup.SelectSingleNode("//video[@id='player']");
             }
             
@@ -2343,7 +2356,8 @@ public partial class HtmlParser
         }
 
         var cookieValue = Config.Cookies["GoFile"];
-        RequestHeaders["Cookie"] = $"accountToken={cookieValue}";
+        var cookie = new Cookie("accountToken", cookieValue, ".gofile.io", "/", null);
+        Driver.AddCookie(cookie);
         await Task.Delay(5000);
         var soup = await Soupify();
         var password = soup.SelectSingleNode("//input[@type='password']");
@@ -4234,6 +4248,57 @@ public partial class HtmlParser
             "pid", 0, 1000);
     }
 
+    /// <summary>
+    ///     Parses the html for rule34video.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Rule34VideoParse()
+    {
+        await Task.Delay(500);
+        var continueButton = Driver.TryFindElement(By.XPath("//input[@name='continue']"));
+        continueButton?.Click();
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='title']/span").InnerText;
+        var videoPosts = new List<string>();
+        while (true)
+        {
+            var videos = soup.SelectSingleNode("//div[@id='custom_list_videos_common_videos_items']")
+                             .SelectNodes("./div")
+                             .Select(div => div.SelectSingleNode("./a[@class='th js-open-popup']")?
+                                                       .GetHref()
+                                                       .DecodeUrl())
+                             .Where(s => s is not null);
+            videoPosts.AddRange(videos!);
+            
+            var uiBlock = Driver.TryFindElement(By.XPath("//div[@class='blockUI blockOverlay']"));
+            while (uiBlock is not null)
+            {
+                await Task.Delay(500);
+                uiBlock = Driver.TryFindElement(By.XPath("//div[@class='blockUI blockOverlay']"));
+            }
+            
+            var nextButton = Driver.TryFindElement(By.XPath("//div[@class='item pager next']/a"));
+            if (nextButton is null)
+            {
+                break;
+            }
+            nextButton.Click();
+            soup = await Soupify(delay: 500);
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var post in videoPosts)
+        {
+            soup = await Soupify(post);
+            var videoInfo = soup.SelectSingleNode("//div[@id='tab_video_info']");
+            var downloads = videoInfo.SelectNodes("./div")[^1];
+            var downloadLink = downloads.SelectSingleNode(".//a").GetHref(); // First link is the highest quality
+            images.Add(downloadLink);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     // TODO: See if this site has albums
     /// <summary>
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
@@ -4447,6 +4512,12 @@ public partial class HtmlParser
 
         #region Parse Posts
         
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+            ScrollPauseTime = 1000
+        };
         var resolveLists = new List<(List<string>, int)>();
         while (true)
         {
@@ -4465,6 +4536,7 @@ public partial class HtmlParser
                 var content = post.SelectSingleNode(".//div[@class='bbWrapper']");
                 var imgs = content.SelectNodesSafe(".//img")
                                   .Select(img => img.GetSrc().Remove(".md"))
+                                  .Where(url => !url.StartsWith("data:image/gif")) // Ignore emojis
                                   .ToStringImageLinks();
                 images.AddRange(imgs);
                 var vids = content.SelectNodesSafe(".//video")
@@ -4485,6 +4557,13 @@ public partial class HtmlParser
                     resolveLists.Add((resolve, index));
                 }
             }
+                
+            // #if DEBUG
+            // if (images.Any(l => l.StartsWith("data:")))
+            // {
+            //     Console.WriteLine("Data URL found");
+            // }
+            // #endif
 
             var nextPage = soup.SelectSingleNode("//a[@class='pageNav-jump pageNav-jump--next']");
             if (nextPage is null)
@@ -4494,7 +4573,7 @@ public partial class HtmlParser
             
             var nextPageUrl = $"https://simpcity.su{nextPage.GetHref()}";
             Log.Information("Parsing page: {NextPageUrl}", nextPageUrl);
-            soup = await Soupify(nextPageUrl);
+            soup = await Soupify(nextPageUrl, lazyLoadArgs: lazyLoadArgs);
         }
 
         #endregion
@@ -5827,18 +5906,6 @@ public partial class HtmlParser
     private static void LogFailedUrl(string url)
     {
         File.AppendAllText("failed.txt", $"{url}\n");
-    }
-    
-    private static async Task PrintAsync(string? value, bool error = false)
-    {
-        if (error)
-        {
-            await Console.Error.WriteLineAsync(value);
-        }
-        else
-        {
-            await Console.Out.WriteLineAsync(value);
-        }
     }
 
     #region Parser Testing

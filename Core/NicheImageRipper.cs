@@ -210,8 +210,8 @@ public abstract partial class NicheImageRipper
                     await Task.Delay(RetryDelay);
                     if (Debugging)
                     {
-                        Console.WriteLine(e);
-                        Console.WriteLine("Press any key to continue...");
+                        Log.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
+                        LogMessageToFile("Press any key to continue...");
                         Console.ReadKey();
                     }
                     continue;
@@ -356,10 +356,17 @@ public abstract partial class NicheImageRipper
         }
     }
 
-    public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information)
+    public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information, bool newLine = true)
     {
         DisableConsoleLogging();
-        Console.WriteLine(message);
+        if (newLine)
+        {
+            Console.WriteLine(message);
+        }
+        else
+        {
+            Console.Write(message);
+        }
         Log.Write(level, message);
         EnableConsoleLogging();
     }

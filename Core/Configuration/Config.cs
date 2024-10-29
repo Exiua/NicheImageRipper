@@ -11,7 +11,7 @@ public class Config
     private static Config? _config;
 
     public static string UserAgent =>
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
     public static Config Instance => _config ??= LoadConfig();
 
