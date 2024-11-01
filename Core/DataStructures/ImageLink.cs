@@ -87,7 +87,7 @@ public partial class ImageLink
             return url;
         }
 
-        if (url.Contains("bunkr."))
+        if (url.Contains("bunkr.") || url.Contains("bunkr-cache."))
         {
             Referer = "https://get.bunkrr.su/";
             return url;

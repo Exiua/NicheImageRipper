@@ -292,21 +292,26 @@ public partial class HtmlParser
 
     private Task<bool> SiteLogin()
     {
+        Log.Debug("Checking if already logged in to {SiteName}", SiteName);
         if (IsLoggedInToSite(SiteName))
         {
+            Log.Debug("Already logged in to {SiteName}", SiteName);
             return Task.FromResult(true);
         }
 
+        Log.Debug("Logging in to {SiteName}", SiteName);
         var loginTask = SiteName switch
         {
             "nijie" => NijieLogin(),
             "titsintops" => TitsInTopsLogin(),
+            "gofile" => GoFileLogin(),
             _ => throw new Exception("Site authentication not implemented")
         };
         
         return loginTask.ContinueWith(task =>
         {
             SiteLoginStatus[SiteName] = task.Result;
+            Log.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
             return task.Result;
         });
     }
@@ -366,6 +371,32 @@ public partial class HtmlParser
         return true;
     }
 
+    private static async Task<bool> GoFileLogin()
+    {
+        var origUrl = CurrentUrl;
+        var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
+        CurrentUrl = loginLink;
+        await Task.Delay(10000);
+        for (var i = 0; i < 4; i++)
+        {
+            await Task.Delay(2500);
+            if (CurrentUrl == "https://gofile.io/myProfile")
+            {
+                Log.Debug("Logged in to GoFile");
+                break;
+            }
+            
+            if (i == 3)
+            {
+                Log.Warning("Failed to login to GoFile: {CurrentUrl}", CurrentUrl);
+                Driver.GetScreenshot().SaveAsFile("test2.png");
+            }
+        }
+        
+        CurrentUrl = origUrl;
+        return true;
+    }
+    
     #region Site Parsers
 
     #region Generic Site Parsers
@@ -2355,9 +2386,10 @@ public partial class HtmlParser
             CurrentUrl = url;
         }
 
-        var cookieValue = Config.Cookies["GoFile"];
-        var cookie = new Cookie("accountToken", cookieValue, ".gofile.io", "/", null);
-        Driver.AddCookie(cookie);
+        await SiteLogin();
+        // var cookie = new Cookie("accountToken", cookieValue, ".gofile.io", "/", null, 
+        //     true, false, "Lax");
+        // Driver.AddCookie(cookie);
         await Task.Delay(5000);
         var soup = await Soupify();
         var password = soup.SelectSingleNode("//input[@type='password']");
@@ -6065,13 +6097,46 @@ public partial class HtmlParser
         var urlSplit = url.Split(".");
         return specialDomains.Any(url.Contains) ? urlSplit[^3] : urlSplit[^2];
     }
+
+    #endregion
     
     public static void Dispose()
     {
-        FlareSolverrManager.DeleteSession().Wait();
+        if (Config.CloseFlareSolverrSession)
+        {
+            FlareSolverrManager.DeleteSession().Wait();
+        }
         Driver.Quit();
     }
-
+    
+    public static async Task AssociateGoFileCookies(string url)
+    {
+        Log.Debug("Associating GoFile cookies");
+        try
+        {
+            if(!SiteLoginStatus.GetValueOrDefault("gofile", false))
+            {
+                Log.Debug("Logging into GoFile");
+                SiteLoginStatus["gofile"] = await GoFileLogin();
+                Driver.GetScreenshot().SaveAsFile("test.png");
+            }
+            
+            CurrentUrl = url;
+            Log.Debug("Loading {CurrentUrl}", CurrentUrl);
+            Driver.Refresh();
+            await Task.Delay(5000);
+            Driver.GetScreenshot().SaveAsFile("test.png");
+            // TODO: Also need to get account token for requests
+        }
+        catch (WebDriverException)
+        {
+            // Ignore
+            Log.Warning("WebDriver unreachable, resetting...");
+            Driver = new FirefoxDriver(InitializeOptions(""));
+            SiteLoginStatus.Clear();
+        }
+    }
+    
     [GeneratedRegex("(tags=[^&]+)")]
     private static partial Regex Rule34Regex();
     [GeneratedRegex(@"(/p=\d+)")]
@@ -6084,6 +6149,4 @@ public partial class HtmlParser
     private static partial Regex NijieRegex();
     [GeneratedRegex(@"-\d+x\d+")]
     private static partial Regex SxChineseGirlzRegex();
-
-    #endregion
 }

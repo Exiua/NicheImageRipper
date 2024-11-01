@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Core.Configuration;
@@ -28,19 +30,20 @@ public partial class ImageRipper
 
     private static readonly Dictionary<ulong, string> FileSignatures = new()
     {
-        [0x89_50_4E_47_0D_0A_1A_0A] = ".png", // /8
-        [0x43_53_46_43_48_55_4E_4B] = ".clip", // /8
-        [0x3C_21_44_4F_43_54_59_50] = ".html", // /8
-        [0x52_61_72_21_1A_07_00_00] = ".rar", // /6
-        [0x37_7A_BC_AF_27_1C_00_00] = ".7z", // /6
-        [0x47_49_46_38_00_00_00_00] = ".gif", // /4
-        [0x50_4B_03_04_00_00_00_00] = ".zip", // /4
-        [0x38_42_50_53_00_00_00_00] = ".psd", // /4
-        [0x25_50_44_46_00_00_00_00] = ".pdf", // /4
-        [0x1A_45_DF_A3_00_00_00_00] = ".webm", // /4
-        [0x52_49_46_46_00_00_00_00] = ".webp", // /4
-        [0x00_00_00_00_66_74_79_70] = ".mp4", // /4 reverse
-        [0xFF_D8_FF_00_00_00_00_00] = ".jpg", // /3
+        [0x89_50_4E_47_0D_0A_1A_0A] = ".png",   // /8
+        [0x43_53_46_43_48_55_4E_4B] = ".clip",  // /8
+        [0x3C_21_44_4F_43_54_59_50] = ".html",  // /8 // <!DOCTYP
+        [0x3C_21_64_6F_63_74_79_70] = ".html",  // /8 // <!doctyp
+        [0x52_61_72_21_1A_07_00_00] = ".rar",   // /6
+        [0x37_7A_BC_AF_27_1C_00_00] = ".7z",    // /6
+        [0x47_49_46_38_00_00_00_00] = ".gif",   // /4
+        [0x50_4B_03_04_00_00_00_00] = ".zip",   // /4
+        [0x38_42_50_53_00_00_00_00] = ".psd",   // /4
+        [0x25_50_44_46_00_00_00_00] = ".pdf",   // /4
+        [0x1A_45_DF_A3_00_00_00_00] = ".webm",  // /4
+        [0x52_49_46_46_00_00_00_00] = ".webp",  // /4
+        [0x00_00_00_00_66_74_79_70] = ".mp4",   // /4 reverse
+        [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
     };
     
     public Dictionary<string, string> RequestHeaders { get; set; } = new()
@@ -129,7 +132,9 @@ public partial class ImageRipper
         if (FolderInfo.MustGenerateManually)
         {
             // Gets the general url for all images in this album
-            var trimmedUrl = TrimUrl(FolderInfo.Urls[0].Url);
+            var imageLink = FolderInfo.Urls[0];
+            var trimmedUrl = TrimUrl(imageLink.Url);
+            imageLink.Url = trimmedUrl;
             string[] extensions = [".jpg", ".gif", ".png", ".webp", ".webm", ".mp4", "t.jpg"];
             
             // Downloads all images from the general url by incrementing the file number
@@ -144,7 +149,7 @@ public partial class ImageRipper
                 {
                     try
                     {
-                        await DownloadFromUrl(trimmedUrl, index.ToString(), fullPath, ext, downloadStats);
+                        await DownloadFromUrl(imageLink, index.ToString(), fullPath, ext, downloadStats);
                         break;
                     }
                     catch // TODO: Narrow down exceptions
@@ -268,20 +273,22 @@ public partial class ImageRipper
     /// <summary>
     ///     Download image from image url
     /// </summary>
-    /// <param name="url">Base url to use to download the file from</param>
+    /// <param name="imageLink">ImageLink containing data on the file to download</param>
     /// <param name="filename">Name of the file to download</param>
     /// <param name="fullPath">Full path of the directory to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromUrl(string url, string filename, string fullPath, string ext, DownloadStats downloadStats)
+    private async Task DownloadFromUrl(ImageLink imageLink, string filename, string fullPath, string ext, DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
-        var ripUrl = $"{url}{filename}{ext}";
+        var url = imageLink.Url;
+        var fullFilename = $"{filename}{ext}";
+        var ripUrl = $"{url}{fullFilename}";
         var numProgress = $"({filename}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
-        var imagePath = Path.Combine(fullPath, $"{filename}{ext}");
-        await DownloadFile(imagePath, ripUrl, downloadStats, true);
+        var imagePath = Path.Combine(fullPath, fullFilename);
+        await DownloadFile(imagePath, imageLink, downloadStats, true);
         await Task.Delay(50);
     }
 
@@ -330,8 +337,9 @@ public partial class ImageRipper
             case LinkInfo.Text:
                 await File.AppendAllTextAsync(imagePath, ripUrl + "\n");
                 break;
+            case LinkInfo.GoFile:
             case LinkInfo.None:
-                await DownloadFile(imagePath, ripUrl, downloadStats, false);
+                await DownloadFile(imagePath, imageLink, downloadStats, false);
                 break;
             default:
                 var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
@@ -478,7 +486,7 @@ public partial class ImageRipper
         return Task.CompletedTask;
     }
     
-    private async Task DownloadFile(string imagePath, string url, DownloadStats downloadStats, bool generatingManually)
+    private async Task DownloadFile(string imagePath, ImageLink imageLink, DownloadStats downloadStats, bool generatingManually)
     {
         if(imagePath[^1] == '/')
         {
@@ -490,7 +498,7 @@ public partial class ImageRipper
             var successful = false;
             for (var _ = 0; _ < RetryCount; _++)
             {
-                if (await DownloadFileHelper(url, imagePath, generatingManually))
+                if (await DownloadFileHelper(imageLink, imagePath, generatingManually))
                 {
                     successful = true;
                     break;
@@ -510,19 +518,20 @@ public partial class ImageRipper
         //   given that there are correct cookies in place
         catch (BadSubdomainException)
         {
-            await DotPartySubdomainHandler(url, imagePath);
+            await DotPartySubdomainHandler(imageLink.Url, imagePath);
         }
         
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
         if (Path.GetExtension(imagePath) == "")
         {
             var extension = GetCorrectExtension(imagePath);
-            File.Move(imagePath, imagePath + extension);
+            RenameFile(imagePath, imagePath + extension);
         }
     }
 
-    private async Task<bool> DownloadFileHelper(string url, string imagePath, bool generatingManually)
+    private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually)
     {
+        var url = imageLink.Url;
         var badCert = false;
         await Task.Delay((int)(SleepTime * 1000));
         var modifiedHeader = ModifiedHeader.None;
@@ -533,16 +542,16 @@ public partial class ImageRipper
             var token = await TokenManager.GetToken("redgifs");
             RequestHeaders[RequestHeaderKeys.Authorization] = $"Bearer {token.Value}";
         }
-        else if (url.Contains("gofile.io"))
+        else if (imageLink.LinkInfo == LinkInfo.GoFile)
         {
             modifiedHeader = ModifiedHeader.Cookie;
-            var cookieValue = Config.Cookies["GoFile"];
+            var cookieValue = Config.Custom[ConfigKeys.CustomKeys.GoFile]["accountToken"];
             var cookie = $"accountToken={cookieValue}";
             oldCookies = RequestHeaders[RequestHeaderKeys.Cookie];
             RequestHeaders[RequestHeaderKeys.Cookie] = cookie;
         }
 
-        //Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
+        Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
         HttpResponseMessage response;
         try
         {
@@ -573,11 +582,17 @@ public partial class ImageRipper
             Log.Error($"Unable to establish a connection to {url}");
             return false;
         }
+        catch (HttpRequestException e) when (e.InnerException is SocketException)
+        {
+            Log.Error($"Unable to establish a connection to {url}");
+            return false;
+        }
 
         if (!response.IsSuccessStatusCode && !badCert)
         {
             if(response.StatusCode == HttpStatusCode.Forbidden && SiteName == "kemono" && !url.Contains(".psd"))
             {
+                Log.Information("Wrong subdomain, trying again...");
                 throw new BadSubdomainException();
             }
 
@@ -600,7 +615,10 @@ public partial class ImageRipper
                     return false;
                 case HttpStatusCode.Forbidden:
                     return false;
-
+                case HttpStatusCode.BadGateway:
+                    await Task.Delay(500);
+                    return false;
+                
                 #region Unused Status Codes
                 
                 case HttpStatusCode.Continue:
@@ -652,7 +670,6 @@ public partial class ImageRipper
                 case HttpStatusCode.UnavailableForLegalReasons:
                 case HttpStatusCode.InternalServerError:
                 case HttpStatusCode.NotImplemented:
-                case HttpStatusCode.BadGateway:
                 case HttpStatusCode.ServiceUnavailable:
                 case HttpStatusCode.GatewayTimeout:
                 case HttpStatusCode.HttpVersionNotSupported:
@@ -696,9 +713,56 @@ public partial class ImageRipper
             RequestHeaders[RequestHeaderKeys.Cookie] = oldCookies;
         }
 
+        if (imageLink.LinkInfo == LinkInfo.GoFile)
+        {
+            var ext = GetCorrectExtension(imagePath);
+            if (ext != ".html")
+            {
+                return true;
+            }
+
+            Log.Warning("GoFile download failed, trying again...");
+            await HtmlParser.AssociateGoFileCookies(imageLink.Url);
+            return false;
+        }
+
         return true;
     }
 
+    private static void RenameFile(string src, string dst)
+    {
+        if (!File.Exists(dst))
+        {
+            File.Move(src, dst);
+            return;
+        }
+        
+        var srcHash = HashFile(src);
+        var dstHash = HashFile(dst);
+        if (srcHash.SequenceEqual(dstHash))
+        {
+            Log.Information("File already exists and is same, deleting src...");
+            File.Delete(src);
+        }
+        else
+        {
+            var ext = Path.GetExtension(dst);
+            var filename = Path.GetFileNameWithoutExtension(dst);
+            var directory = Path.GetDirectoryName(dst)!;
+            var newFilename = $"{filename} ({DateTime.Now:yyyy-MM-dd HH-mm-ss}){ext}";
+            File.Move(src, Path.Combine(directory, newFilename));
+            Log.Information("File already exists but is different, renaming src...");
+        }
+    }
+    
+    private static byte[] HashFile(string path)
+    {
+        using var sha256 = SHA256.Create();
+        using var stream = File.OpenRead(path);
+        var hash = sha256.ComputeHash(stream);
+        return hash;
+    }
+    
     private async Task DotPartySubdomainHandler(string url, string imagePath)
     {
         var subdomainSearch = DotPartySubdomainRegex().Match(url);

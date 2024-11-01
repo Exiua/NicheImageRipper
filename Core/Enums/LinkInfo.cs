@@ -10,4 +10,5 @@ public enum LinkInfo
     PixelDrain,
     Youtube,
     Text,
+    GoFile,
 }

@@ -7,7 +7,7 @@ namespace Core.Configuration;
 public class Config
 {
     private const string ConfigPath = "config.json";
-    
+
     private static Config? _config;
 
     public static string UserAgent =>
@@ -23,6 +23,7 @@ public class Config
     public bool LiveHistory { get; set; }
     public int NumThreads { get; set; }
     public string FlareSolverrUri { get; set; }
+    public bool CloseFlareSolverrSession { get; set; }
     public Dictionary<string, Credentials> Logins { get; set; } = null!;
     public Dictionary<string, string> Keys { get; set; } = null!;
     public Dictionary<string, string> Cookies { get; set; } = null!;
@@ -32,9 +33,8 @@ public class Config
     [UsedImplicitly]
     public Config()
     {
-        
     }
-    
+
     private static Config CreateTemplateConfig()
     {
         var config = new Config
@@ -49,22 +49,42 @@ public class Config
             FlareSolverrUri = "http://localhost:8191/v1",
             Logins = new Dictionary<string, Credentials>()
         };
-        
-        string[] siteLogins = ["Sexy-Egirls", "DeviantArt", "Mega", "TitsInTops", "Newgrounds", "Nijie"];
+
+        string[] siteLogins = [
+            ConfigKeys.LoginKeys.SexyEGirls,
+            ConfigKeys.LoginKeys.DeviantArt,
+            ConfigKeys.LoginKeys.Mega,
+            ConfigKeys.LoginKeys.TitsInTops,
+            ConfigKeys.LoginKeys.Newgrounds,
+            ConfigKeys.LoginKeys.Nijie
+        ];
         foreach (var site in siteLogins)
         {
             config.Logins[site] = new Credentials();
         }
 
         config.Keys = new Dictionary<string, string>();
-        string[] siteKeys = ["Imgur", "Google", "Dropbox", "Pixeldrain"];
+        string[] siteKeys = [
+            ConfigKeys.KeyKeys.Imgur,
+            ConfigKeys.KeyKeys.Google,
+            ConfigKeys.KeyKeys.Dropbox,
+            ConfigKeys.KeyKeys.Pixeldrain
+        ];
         foreach (var site in siteKeys)
         {
             config.Keys[site] = "";
         }
-        
+
         config.Cookies = new Dictionary<string, string>();
-        string[] siteCookies = ["Twitter", "Newgrounds", "Porn3dx", "Pornhub", "Thothub", "Kemono", "SimpCity", "GoFile"];
+        string[] siteCookies = [
+            ConfigKeys.CookieKeys.Twitter,
+            ConfigKeys.CookieKeys.Newgrounds,
+            ConfigKeys.CookieKeys.Porn3dx,
+            ConfigKeys.CookieKeys.Pornhub,
+            ConfigKeys.CookieKeys.Thothub,
+            ConfigKeys.CookieKeys.Kemono,
+            ConfigKeys.CookieKeys.SimpCity
+        ];
         foreach (var site in siteCookies)
         {
             config.Cookies[site] = "";
@@ -72,11 +92,16 @@ public class Config
 
         config.Custom = new Dictionary<string, Dictionary<string, string>>
         {
-            ["V2PH"] = new()
+            [ConfigKeys.CustomKeys.V2PH] = new()
             {
                 ["frontend"] = "",
                 ["frontend-rmt"] = "",
                 ["cf_clearance"] = ""
+            },
+            [ConfigKeys.CustomKeys.GoFile] = new()
+            {
+                ["accountToken"] = "",
+                ["loginLink"] = ""
             }
         };
 
@@ -87,7 +112,7 @@ public class Config
     {
         JsonUtility.Serialize(ConfigPath, this);
     }
-    
+
     private static Config LoadConfig()
     {
         return File.Exists(ConfigPath)
