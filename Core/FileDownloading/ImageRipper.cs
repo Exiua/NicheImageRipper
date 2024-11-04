@@ -45,31 +45,31 @@ public partial class ImageRipper
         [0x00_00_00_00_66_74_79_70] = ".mp4",   // /4 reverse
         [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
     };
-    
-    public Dictionary<string, string> RequestHeaders { get; set; } = new()
+
+    private Dictionary<string, string> RequestHeaders { get; set; } = new()
     {
         [RequestHeaderKeys.UserAgent] = Config.UserAgent,
         [RequestHeaderKeys.Referer] = "",
         [RequestHeaderKeys.Cookie] = "",
     };
-    
-    public FilenameScheme FilenameScheme { get; set; }
-    public UnzipProtocol UnzipProtocol { get; set; }
-    public RipInfo FolderInfo { get; set; } = null!;
-    public string GivenUrl { get; set; }
-    public bool Interrupted { get; set; }
+
+    private FilenameScheme FilenameScheme { get; set; }
+    private UnzipProtocol UnzipProtocol { get; set; }
+    public RipInfo FolderInfo { get; private set; } = null!;
+    private string GivenUrl { get; set; }
+    private bool Interrupted { get; set; }
     public bool AutoExtract { get; set; }
-    public Dictionary<string, Credentials> Logins { get; set; }
+    private Dictionary<string, Credentials> Logins { get; set; }
     public bool LoggedIn { get; set; }
-    public Dictionary<string, bool> PersistentLogins { get; set; }
-    public string SavePath { get; set; }
-    public HttpClient Session { get; set; }
-    public string SiteName { get; set; }
-    public float SleepTime { get; set; }
-    public int CurrentIndex { get; set; }
-    
-    public static Config Config => Config.Instance;
-    public static TokenManager TokenManager => TokenManager.Instance;
+    private Dictionary<string, bool> PersistentLogins { get; set; }
+    private string SavePath { get; set; }
+    private HttpClient Session { get; set; }
+    private string SiteName { get; set; }
+    private float SleepTime { get; set; }
+    public int CurrentIndex { get; private set; }
+
+    private static Config Config => Config.Instance;
+    private static TokenManager TokenManager => TokenManager.Instance;
 
     public ImageRipper(FilenameScheme filenameScheme = FilenameScheme.Original, UnzipProtocol unzipProtocol = UnzipProtocol.None)
     {
@@ -93,7 +93,7 @@ public partial class ImageRipper
     {
         SleepTime = 0.2f;   // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
-        (SiteName, SleepTime) = Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         if (CookiesNeeded())
         {
             AddCookies();
@@ -138,7 +138,7 @@ public partial class ImageRipper
             string[] extensions = [".jpg", ".gif", ".png", ".webp", ".webm", ".mp4", "t.jpg"];
             
             // Downloads all images from the general url by incrementing the file number
-            //  (eg. https://domain/gallery/##.jpg)
+            //  (e.g., https://domain/gallery/##.jpg)
             for (var index = start; index < FolderInfo.NumUrls + 1; index++)
             {
                 CurrentIndex = index;
@@ -992,7 +992,7 @@ public partial class ImageRipper
     /// <param name="filepath">Path to the file to analyze</param>
     /// <returns>True extension of the file or the original extension if the file signature is unknown (will default to
     ///     .bin if the file does not have a file extension)</returns>
-    public static string GetCorrectExtension(string filepath)
+    private static string GetCorrectExtension(string filepath)
     {
         var signature = ReadSignature(filepath, 8);
         if (signature is null)
@@ -1083,6 +1083,4 @@ public partial class ImageRipper
     private static partial Regex DotPartySubdomainRegex();
     [GeneratedRegex("//c\\d+")]
     private static partial Regex DotPartyReplacementRegex();
-    [GeneratedRegex(";? ?accountToken=[^;]+")]
-    private static partial Regex GoFileAccountTokenCookieRegex();
 }
