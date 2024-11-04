@@ -11,7 +11,7 @@ public class TwitterVideoCapturer
     {
         var url = e.Response.Url;
         //Console.WriteLine("New Work Response received: " + url);
-        if (!url?.Contains(".m3u8") ?? true)
+        if (!url.Contains(".m3u8"))
         {
             return;
         }
