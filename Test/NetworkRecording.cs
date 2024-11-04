@@ -32,7 +32,7 @@ public class NetworkRecording
             Console.WriteLine("New Work Response received");
             Console.WriteLine($"Response Status: {e.Response.Status}");
             Console.WriteLine($"Status Text: {e.Response.StatusText}");
-            Console.WriteLine($"Response MimeType: {e.Response.MymeType}");
+            Console.WriteLine($"Response MimeType: {e.Response.MimeType}");
             Console.WriteLine($"Response Url: {e.Response.Url}");
         });
 
