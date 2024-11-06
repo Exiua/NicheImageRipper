@@ -226,12 +226,13 @@ public partial class ImageRipper
     private static async Task<bool> RunFfmpeg(string[] cmd, string startMessage, string endMessage)
     {
         cmd = [ "-loglevel", "quiet", "-y", ..cmd ];
-        //Console.WriteLine($"ffmpeg {string.Join(" ", cmd)}");
-        var exitCode = await RunSubprocess("ffmpeg", cmd, true, true, 
+        //cmd = [ "-y", ..cmd ];
+        Log.Debug("ffmpeg {cmd}", string.Join(" ", cmd));
+        var exitCode = await RunSubprocess("ffmpeg", cmd, /*true, true,*/ 
             startMessage: startMessage, endMessage: endMessage);
         if (exitCode != 0)
         {
-            Log.Error("Failed to run ffmpeg");
+            Log.Error("Failed to run ffmpeg: {ExitCode}", exitCode);
         }
         
         return exitCode == 0;

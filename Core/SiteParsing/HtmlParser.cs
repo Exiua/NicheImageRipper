@@ -252,6 +252,7 @@ public partial class HtmlParser
             "simpcity" => SimpCityParse,
             "rule34video" => Rule34VideoParse,
             "av19a" => Av19aParse,
+            "eporner" => EpornerParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -850,6 +851,7 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
+    // TODO: Fix this
     /// <summary>
     ///     Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -1884,6 +1886,181 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for eporner.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> EpornerParse()
+    {
+        const string domainUrl = "https://www.eporner.com";
+        
+        var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@id='pprofiletopinfo']//h1").InnerText;
+        var headers = soup.SelectSingleNode("//div[@id='pnavtop']").SelectNodes("./a");
+        var hasVideos = false;
+        var hasImages = false;
+        foreach (var header in headers)
+        {
+            switch (header.InnerText)
+            {
+                case "Videos":
+                    hasVideos = true;
+                    break;
+                case "Pics / GIFs":
+                    hasImages = true;
+                    break;
+            }
+        }
+
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+            ScrollPauseTime = 250
+        };
+        var images = new List<StringImageLinkWrapper>();
+        var posts = new List<string>();
+        
+        #region Extract Videos
+        
+        if (hasVideos)
+        {
+            soup = await Soupify($"{baseUrl}/uploaded-videos/", lazyLoadArgs: lazyLoadArgs);
+            while(true)
+            {
+                var links = soup.SelectSingleNode("//div[@class='streameventsday showAll']")
+                                .SelectNodes("./div[contains(@class, 'mb')]")
+                                .Select(div => domainUrl + div.SelectSingleNode(".//a").GetHref());
+                posts.AddRange(links);
+                Console.WriteLine(posts.Count);
+                var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
+                if (nextPage is null)
+                {
+                    break;
+                }
+                
+                var nextPageUrl = nextPage.GetHref();
+                soup = await Soupify($"{domainUrl}{nextPageUrl}");
+            }
+
+            var (capturer, bidi) = await ConfigureNetworkCapture<EpornerVideoCapturer>();
+            foreach (var post in posts)
+            {
+                Log.Information("Parsing video: {post}", post);
+                CurrentUrl = post;
+                await Task.Delay(250);
+                var playButton = Driver.TryFindElement(By.XPath("//div[@class='vjs-inplayer-close-button']"));
+                if (playButton is null)
+                {
+                    playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
+                }
+                
+                playButton?.Click();
+                var cycle = 0;
+                while(true)
+                {
+                    if(cycle % 30 == 0)
+                    {
+                        Log.Debug("Reloading..");
+                        Driver.Refresh();
+                    }
+                    
+                    cycle++;
+                    var videoLinks = capturer.GetNewVideoLinks();
+                    if (videoLinks.Count != 0)
+                    {
+                        images.AddRange(videoLinks.ToStringImageLinks());
+                        break;
+                    }
+
+                    await Task.Delay(250);
+                    var container = Driver.TryFindElement(By.XPath("//div[@class='vjs-inplayer-container']"));
+                    if (container is not null)
+                    {
+                        var style = container.GetAttribute("style");
+                        if (!style.Contains("visibility: visible;") && style.Contains("visibility: hidden;"))
+                        {
+                            continue;
+                        }
+
+                        Log.Debug("Ad container visible. Closing...");
+                        playButton = Driver.TryFindElement(By.XPath("//div[@class='vjs-inplayer-close-button']"));
+                    }
+                    else
+                    {
+                        var video = Driver.TryFindElement(By.XPath("//video"));
+                        var parent = video?.FindElement(By.XPath(".."));
+                        if (parent is null)
+                        {
+                            continue;
+                        }
+
+                        var parentClass = parent.GetAttribute("class");
+                        if (!parentClass.Contains("vjs-paused"))
+                        {
+                            continue;
+                        }
+
+                        Log.Debug("Video paused. Clicking play button...");
+                        playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
+                    }
+
+                    playButton?.Click();
+                }
+            }
+        }
+        
+        #endregion
+
+        #region Extract Images
+
+        posts.Clear();
+        if (hasImages)
+        {
+            soup = await Soupify($"{baseUrl}/uploaded-pics/");
+            while(true)
+            {
+                var links = soup.SelectSingleNode("//div[@class='streameventsday photosgrid showAll']")
+                                .SelectNodes("./div[@class='mb hdy']")
+                                .Select(div => domainUrl + div.SelectSingleNode(".//a").GetHref());
+                posts.AddRange(links);
+                var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
+                if (nextPage is null)
+                {
+                    break;
+                }
+                
+                var nextPageUrl = nextPage.GetHref();
+                soup = await Soupify($"{domainUrl}{nextPageUrl}");
+            }
+
+            foreach (var post in posts)
+            {
+                soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
+                var postImages = soup.SelectSingleNode("//div[@class='photosgrid gallerygrid']")
+                                     .SelectNodes("./div")
+                                     .Select(div => div.SelectSingleNode(".//img").GetSrc())
+                                     .Select(ExtractFullImageLink)
+                                     .ToStringImageLinks();
+                images.AddRange(postImages);
+            }
+        }
+        
+        #endregion
+
+        return new RipInfo(images, dirName, FilenameScheme);
+
+        string ExtractFullImageLink(string imageLink)
+        {
+            var parts = imageLink.Split("/");
+            var baseLink = parts[0];
+            var extension = parts[^1].Split(".")[^1];
+            var link = $"{baseLink}.{extension}";
+            return link;
+        }
+    }
+    
+    /// <summary>
     ///     Parses the html for erosberry.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -2577,20 +2754,6 @@ public partial class HtmlParser
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
-
-    // TODO: Hanime support is not yet implemented
-    /*
-     * def hanime_parse(self) -> RipInfo:
-        """Parses the html for hanime.tv and extracts the relevant information necessary for downloading images from the site"""
-        # Parses the html of the site
-        sleep(1)  # Wait so images can load
-        soup = self.soupify()
-        dir_name = "Hanime Images"
-        image_list = soup.find("div", class_="cuc_container images__content flex row wrap justify-center relative") \
-            .find_all("a", recursive=False)
-        images = [image.get("href") for image in image_list]
-        return RipInfo(images, dir_name, self.filename_scheme)
-    */
 
     /// <summary>
     ///     Parses the html for hegrehunter.com and extracts the relevant information necessary for downloading images from the site
@@ -5136,9 +5299,10 @@ public partial class HtmlParser
             }
         }
 
-        var capturer = new TwitterVideoCapturer();
-        var bidi = await Driver.AsBiDiAsync();
-        await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
+        var (capturer, bidi) = await ConfigureNetworkCapture<TwitterVideoCapturer>();
+        // var capturer = new TwitterVideoCapturer();
+        // var bidi = await Driver.AsBiDiAsync();
+        // await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
         var images = new List<StringImageLinkWrapper>();
         var failedUrls = new List<(int, string)>();
         foreach (var (i, link) in postLinks.Enumerate())
@@ -5726,6 +5890,14 @@ public partial class HtmlParser
         }
         
         return await Soupify(solution);
+    }
+
+    private static async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
+    {
+        var capturer = new T();
+        var bidi = await Driver.AsBiDiAsync();
+        await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
+        return (capturer, bidi);
     }
     
     private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
