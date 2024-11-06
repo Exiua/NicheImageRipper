@@ -14,18 +14,20 @@ public static class MegaApi
         return string.IsNullOrEmpty(stderr);
     }
     
-    public static void Logout()
+    public static bool Logout()
     {
         string[] cmd = ["mega-logout"];
         
         using var process = RunSubprocess(cmd);
+        return process.ExitCode == 0;
     }
     
-    public static void Download(string url, string dest)
+    public static bool Download(string url, string dest)
     {
         string[] cmd = ["mega-get", url, $"\"{dest}\""];
         
         using var process = RunSubprocess(cmd);
+        return process.ExitCode == 0;
     }
     
     public static string WhoAmI()

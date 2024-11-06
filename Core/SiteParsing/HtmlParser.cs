@@ -251,6 +251,7 @@ public partial class HtmlParser
             "jpg5" => Jpg5Parse,
             "simpcity" => SimpCityParse,
             "rule34video" => Rule34VideoParse,
+            "av19a" => Av19aParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -937,6 +938,28 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for av19a.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Av19aParse()
+    {
+        var soup = await SolveParseAddCookies();
+        var dirName = soup.SelectSingleNode("//header[@class='entry-header']").InnerText;
+        var player = soup.SelectSingleNode("//div[@id='player']").SelectSingleNode("./iframe");
+        var src = player.GetSrc();
+        var match = Av19APlaylistIdRegex().Match(src);
+        var urlPath = match.Groups[1].Value;
+        var filename = match.Groups[2].Value;
+        var playlist = $"https://z124fdsf6dsf.onymyway.top/{urlPath}";
+        var linkInfo = new ImageLink(playlist, FilenameScheme, 0, filename: $"{filename}.mp4", linkInfo: LinkInfo.M3U8)
+        {
+            Referer = "https://david.cdnbuzz.buzz/"
+        };
+
+        return new RipInfo([linkInfo], dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for babecentrum.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -6149,4 +6172,6 @@ public partial class HtmlParser
     private static partial Regex NijieRegex();
     [GeneratedRegex(@"-\d+x\d+")]
     private static partial Regex SxChineseGirlzRegex();
+    [GeneratedRegex(@"vvv=([^&]+).+t=([^&]+)")]
+    private static partial Regex Av19APlaylistIdRegex();
 }

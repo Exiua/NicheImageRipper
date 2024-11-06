@@ -46,24 +46,22 @@ public partial class ImageRipper
         [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
     };
 
-    private Dictionary<string, string> RequestHeaders { get; set; } = new()
+    private Dictionary<string, string> RequestHeaders { get; } = new()
     {
         [RequestHeaderKeys.UserAgent] = Config.UserAgent,
         [RequestHeaderKeys.Referer] = "",
         [RequestHeaderKeys.Cookie] = "",
     };
 
-    private FilenameScheme FilenameScheme { get; set; }
-    private UnzipProtocol UnzipProtocol { get; set; }
+    private FilenameScheme FilenameScheme { get; }
+    private UnzipProtocol UnzipProtocol { get; }
     public RipInfo FolderInfo { get; private set; } = null!;
     private string GivenUrl { get; set; }
     private bool Interrupted { get; set; }
-    public bool AutoExtract { get; set; }
-    private Dictionary<string, Credentials> Logins { get; set; }
     public bool LoggedIn { get; set; }
     private Dictionary<string, bool> PersistentLogins { get; set; }
     private string SavePath { get; set; }
-    private HttpClient Session { get; set; }
+    private HttpClient Session { get; }
     private string SiteName { get; set; }
     private float SleepTime { get; set; }
     public int CurrentIndex { get; private set; }
@@ -78,11 +76,9 @@ public partial class ImageRipper
         //FolderInfo = null;
         GivenUrl = "";
         Interrupted = false;
-        AutoExtract = false;
-        Logins = Config.Instance.Logins;
         LoggedIn = File.Exists("cookies.pkl");
         PersistentLogins = new Dictionary<string, bool>();
-        SavePath = Config.Instance.SavePath;
+        SavePath = Config.SavePath;
         Session = new HttpClient();
         SiteName = "";
         SleepTime = 0.2f;
@@ -213,31 +209,37 @@ public partial class ImageRipper
         Log.Information("Download Complete"); //{#00FF00}
     }
     
-    private void DeviantArtDownload(string fullPath, string url)
+    private static async Task<bool> DeviantArtDownload(string fullPath, string url)
     {
-        var cmd = new []{"-D", $"\"{fullPath}\"", "-u", Logins["DeviantArt"].Username, "-p", 
-            Logins["DeviantArt"].Password, "--write-log", "log.txt", url};
-        var (exitCode, _, _) = RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
+        var cmd = new []{"-D", $"\"{fullPath}\"", "-u", Config.Logins["DeviantArt"].Username, "-p", 
+            Config.Logins["DeviantArt"].Password, "--write-log", "log.txt", url};
+        var exitCode = await RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
             endMessage: "Deviantart download finished");
         if (exitCode != 0)
         {
             Log.Error("Failed to download from DeviantArt");
         }
+        
+        return exitCode == 0;
     }
     
-    private static void RunFfmpeg(string[] cmd, string startMessage, string endMessage)
+    private static async Task<bool> RunFfmpeg(string[] cmd, string startMessage, string endMessage)
     {
         cmd = [ "-loglevel", "quiet", "-y", ..cmd ];
-        var (exitCode, _, _) = RunSubprocess("ffmpeg", cmd, true, true, startMessage: startMessage, endMessage: endMessage);
+        //Console.WriteLine($"ffmpeg {string.Join(" ", cmd)}");
+        var exitCode = await RunSubprocess("ffmpeg", cmd, true, true, 
+            startMessage: startMessage, endMessage: endMessage);
         if (exitCode != 0)
         {
             Log.Error("Failed to run ffmpeg");
         }
+        
+        return exitCode == 0;
     }
 
-    private static (int, string, string) RunSubprocess(string executable, string[]? arguments = null,
-                                                       bool captureOutput = false, bool captureError = false,
-                                                       string? startMessage = null, string? endMessage = null)
+    private static async Task<int> RunSubprocess(string executable, string[]? arguments = null,
+                                     bool captureOutput = false, bool captureError = false,
+                                     string? startMessage = null, string? endMessage = null)
     {
         if (startMessage is not null)
         {
@@ -257,17 +259,36 @@ public partial class ImageRipper
             }
         };
         
+        if (captureOutput)
+        {
+            process.OutputDataReceived += (_, args) => Log.Information(args.Data ?? "null");
+        }
+        
+        if (captureError)
+        {
+            process.ErrorDataReceived += (_, args) => Log.Error(args.Data ?? "null");
+        }
+        
         process.Start();
-        process.WaitForExit();
+        
+        if (captureOutput)
+        {
+            process.BeginOutputReadLine();
+        }
+        
+        if (captureError)
+        {
+            process.BeginErrorReadLine();
+        }
+        
+        await process.WaitForExitAsync();
         var exitCode = process.ExitCode;
-        var output = captureOutput ? process.StandardOutput.ReadToEnd() : "";
-        var error = captureError ? process.StandardError.ReadToEnd() : "";
         if (endMessage is not null)
         {
             Log.Information(endMessage);
         }
         
-        return (exitCode, output, error);
+        return exitCode;
     }
 
     /// <summary>
@@ -312,34 +333,37 @@ public partial class ImageRipper
         {
             RequestHeaders[RequestHeaderKeys.Referer] = imageLink.Referer;
         }
-        
+
+        bool success;
         switch (imageLink.LinkInfo)
         {
             case LinkInfo.M3U8:
-                await DownloadM3U8ToMp4(imagePath, ripUrl);
+                success = await DownloadM3U8ToMp4(imagePath, imageLink);
                 break;
             case LinkInfo.GDrive:
-                await DownloadGDriveFile(imagePath, imageLink);
+                success = await DownloadGDriveFile(imagePath, imageLink);
                 break;
             case LinkInfo.IframeMedia:
-                await DownloadIframeMedia(imagePath, imageLink);
+                success = await DownloadIframeMedia(imagePath, imageLink);
                 // TODO: Figure out how to delete temp directories
                 break;
             case LinkInfo.Mega:
-                await DownloadMegaFiles(imagePath, imageLink);
+                success = await DownloadMegaFiles(imagePath, imageLink);
                 break;
             case LinkInfo.PixelDrain:
-                await DownloadPixelDrainFiles(imagePath, imageLink);
+                success = await DownloadPixelDrainFiles(imagePath, imageLink);
                 break;
             case LinkInfo.Youtube:
-                await DownloadYoutubeFile(imagePath, imageLink);
+                success = await DownloadYoutubeFile(imagePath, imageLink);
                 break;
             case LinkInfo.Text:
                 await File.AppendAllTextAsync(imagePath, ripUrl + "\n");
+                success = true;
                 break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
                 await DownloadFile(imagePath, imageLink, downloadStats, false);
+                success = false; // FIXME: This is a hack as DownloadFile already increments failed downloads
                 break;
             default:
                 var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
@@ -347,12 +371,19 @@ public partial class ImageRipper
                 throw e;
         }
         
+        if (!success)
+        {
+            downloadStats.FailedDownloads++;
+        }
+        
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         await Task.Delay(50);
     }
     
-    private static Task DownloadM3U8ToMp4(string path, string url)
+    private static Task<bool> DownloadM3U8ToMp4(string path, ImageLink imageLink)
     {
+        var url = imageLink.Url;
+        var referer = imageLink.Referer;
         if (!path.Contains('.'))
         {
             if (url.Contains(".mp4"))
@@ -368,15 +399,35 @@ public partial class ImageRipper
                 path += ".ts";
             }
         }
+
+        string[] cmd;
+        if (referer != "")
+        {
+            cmd =
+            [
+                "-headers",
+                $"\"Referer: {referer}\"",
+                "-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
+                "-i", url,
+                "-c", "copy",
+                $"\"{path}\""
+            ];
+        }
+        else
+        {
+            cmd =
+            [
+                "-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
+                "-i", url,
+                "-c", "copy",
+                $"\"{path}\""
+            ];
+        }
         
-        var cmd = new []{"-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
-            "-i", url, "-c", "copy", $"\"{path}\""
-        };
-        RunFfmpeg(cmd, "Starting ffmpeg download", "ffmpeg download finished");
-        return Task.CompletedTask;
+        return RunFfmpeg(cmd, "Starting ffmpeg download", "ffmpeg download finished");
     }
 
-    private static async Task DownloadGDriveFile(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadGDriveFile(string path, ImageLink imageLink)
     {
         var destinationPath = Path.Combine(path, imageLink.Filename);
         Directory.CreateDirectory(path);
@@ -389,9 +440,10 @@ public partial class ImageRipper
         var request = service.Files.Get(imageLink.Url);
         await using var stream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
         await request.DownloadAsync(stream);
+        return true;
     }
     
-    private static async Task DownloadIframeMedia(string folderPath, ImageLink imageLink)
+    private static async Task<bool> DownloadIframeMedia(string folderPath, ImageLink imageLink)
     {
         var parentPathInfo = Directory.GetParent(folderPath)!;
         var parentPath = parentPathInfo.FullName; 
@@ -419,12 +471,15 @@ public partial class ImageRipper
                 if (i == 3)
                 {
                     LogFailedUrl(imageLink.Url);
+                    return false;
                 }
             }
         }
+        
+        return true;
     }
     
-    private Task DownloadMegaFiles(string path, ImageLink imageLink)
+    private Task<bool> DownloadMegaFiles(string path, ImageLink imageLink)
     {
         var (email, password) = Config.Instance.Logins["Mega"];
         if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
@@ -452,11 +507,11 @@ public partial class ImageRipper
         {
             Directory.CreateDirectory(path);
         }
-        MegaApi.Download(imageLink.Url, path);
-        return Task.CompletedTask;
+        
+        return Task.FromResult(MegaApi.Download(imageLink.Url, path));
     }
     
-    private static async Task DownloadPixelDrainFiles(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadPixelDrainFiles(string path, ImageLink imageLink)
     {
         var apiKey = Config.Instance.Keys["Pixeldrain"];
         var authString = $":{apiKey}";
@@ -472,21 +527,28 @@ public partial class ImageRipper
         {
             client.DefaultRequestHeaders.Add(key, value);
         }
+        
         var response = await client.GetAsync($"https://pixeldrain.com/api/file/{imageLink.Url}", HttpCompletionOption.ResponseHeadersRead);
+        if (!response.IsSuccessStatusCode)
+        {
+            return false;
+        }
+        
         await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
         await response.Content.CopyToAsync(fileStream);
+        return true;
     }
 
-    private static Task DownloadYoutubeFile(string path, ImageLink url)
+    private static async Task<bool> DownloadYoutubeFile(string path, ImageLink url)
     {
         Directory.CreateDirectory(path);
         var cmd = new[] { "-P", $"\"{path}\"", url.Url };
-        RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
+        var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
-        return Task.CompletedTask;
+        return exitCode == 0;
     }
     
-    private async Task DownloadFile(string imagePath, ImageLink imageLink, DownloadStats downloadStats, bool generatingManually)
+    private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, DownloadStats downloadStats, bool generatingManually)
     {
         if(imagePath[^1] == '/')
         {
@@ -508,7 +570,7 @@ public partial class ImageRipper
             if (!successful)
             {
                 downloadStats.FailedDownloads++;
-                return; // Failed to download file
+                return false; // Failed to download file
             }
         }
         // If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
@@ -527,6 +589,8 @@ public partial class ImageRipper
             var extension = GetCorrectExtension(imagePath);
             RenameFile(imagePath, imagePath + extension);
         }
+        
+        return true;
     }
 
     private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually)

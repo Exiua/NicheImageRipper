@@ -222,7 +222,8 @@ public partial class ImageLink
     
     public override string ToString()
     {
-        return Referer != "" ? $"({Url}, {Filename}, {Referer}, {LinkInfo})" : $"({Url}, {Filename}, {LinkInfo})";
+        var linkInfo = Enum.GetName(typeof(LinkInfo), LinkInfo);
+        return Referer != "" ? $"({Url}, {Filename}, {Referer}, {linkInfo})" : $"({Url}, {Filename}, {linkInfo})";
     }
 
     [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]
