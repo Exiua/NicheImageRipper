@@ -5,6 +5,7 @@ using Core.SiteParsing;
 using Core.Utility;
 using Google;
 using JetBrains.Annotations;
+using Serilog;
 
 namespace Core.DataStructures;
 
@@ -12,41 +13,54 @@ public class RipInfo
 {
     private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
 
-    private string _directoryName = null!; // Initialized through the property setter
+    private readonly string _directoryName = null!; // Initialized through the property setter
 
+    [UsedImplicitly]
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
+    
+    [UsedImplicitly]
     public List<ImageLink> Urls { get; set; } = null!;
+    
+    [UsedImplicitly]
     public bool MustGenerateManually { get; set; }
 
+    [UsedImplicitly]
     public int NumUrls { get; set; }
 
     public string DirectoryName
     {
         get => _directoryName;
-        set => _directoryName = CleanDirectoryName(value);
+        private init => _directoryName = CleanDirectoryName(value);
     }
-
-    private List<string>? Filenames { get; set; }
 
     [UsedImplicitly]
     public RipInfo()
     {
     }
 
-    public RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
+    public RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "", 
                    FilenameScheme filenameScheme = FilenameScheme.Original,
                    bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
     {
         // SaveRawUrls(urls);
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
-        Filenames = filenames;
-        Urls = ConvertUrlsToImageLink(urls, discardBlobs).Result;
+        try
+        {
+            Urls = ConvertUrlsToImageLink(urls, discardBlobs, filenames).Result;
+        }
+        catch (Exception)
+        {
+            Log.Debug("Failed to convert urls to image links: {@urls}", urls);
+            throw;
+        }
+        
         MustGenerateManually = generate;
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
-    private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob)
+    private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob,
+                                                               List<string>? filenames = null)
     {
         var imageLinks = new List<ImageLink>();
         var linkCounter = 0; // Current index of image_links (used for naming image_links when generating numeric names)
@@ -83,7 +97,7 @@ public class RipInfo
             }
             else
             {
-                var filename = Filenames?[filenameCounter] ?? "";
+                var filename = filenames?[filenameCounter] ?? "";
                 filenameCounter++;
                 var imageLink = new ImageLink(url.Url, FilenameScheme, linkCounter, filename: filename);
                 imageLinks.Add(imageLink);

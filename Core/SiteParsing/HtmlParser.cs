@@ -12,6 +12,7 @@ using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
+using Core.SiteParsing.HtmlParserEnums;
 using Core.Utility;
 using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
@@ -1893,170 +1894,159 @@ public partial class HtmlParser
     {
         const string domainUrl = "https://www.eporner.com";
         
-        var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@id='pprofiletopinfo']//h1").InnerText;
-        var headers = soup.SelectSingleNode("//div[@id='pnavtop']").SelectNodes("./a");
-        var hasVideos = false;
-        var hasImages = false;
-        foreach (var header in headers)
-        {
-            switch (header.InnerText)
-            {
-                case "Videos":
-                    hasVideos = true;
-                    break;
-                case "Pics / GIFs":
-                    hasImages = true;
-                    break;
-            }
-        }
-
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true,
             Increment = 1250,
             ScrollPauseTime = 250
         };
+        
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+
+        string dirName;
         var images = new List<StringImageLinkWrapper>();
-        var posts = new List<string>();
         
-        #region Extract Videos
-        
-        if (hasVideos)
+        if (CurrentUrl.Contains("/profile/"))
         {
-            soup = await Soupify($"{baseUrl}/uploaded-videos/", lazyLoadArgs: lazyLoadArgs);
-            while(true)
+            var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
+            dirName = soup.SelectSingleNode("//div[@id='pprofiletopinfo']//h1").InnerText;
+            var headers = soup.SelectSingleNode("//div[@id='pnavtop']").SelectNodes("./a");
+            var profileSections = EpornerProfileSections.None;
+            foreach (var header in headers)
             {
-                var links = soup.SelectSingleNode("//div[@class='streameventsday showAll']")
-                                .SelectNodes("./div[contains(@class, 'mb')]")
-                                .Select(div => domainUrl + div.SelectSingleNode(".//a").GetHref());
-                posts.AddRange(links);
-                Console.WriteLine(posts.Count);
-                var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
-                if (nextPage is null)
+                switch (header.InnerText)
                 {
-                    break;
-                }
-                
-                var nextPageUrl = nextPage.GetHref();
-                soup = await Soupify($"{domainUrl}{nextPageUrl}");
-            }
-
-            var (capturer, bidi) = await ConfigureNetworkCapture<EpornerVideoCapturer>();
-            foreach (var post in posts)
-            {
-                Log.Information("Parsing video: {post}", post);
-                CurrentUrl = post;
-                await Task.Delay(250);
-                var playButton = Driver.TryFindElement(By.XPath("//div[@class='vjs-inplayer-close-button']"));
-                if (playButton is null)
-                {
-                    playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
-                }
-                
-                playButton?.Click();
-                var cycle = 0;
-                while(true)
-                {
-                    if(cycle % 30 == 0)
-                    {
-                        Log.Debug("Reloading..");
-                        Driver.Refresh();
-                    }
-                    
-                    cycle++;
-                    var videoLinks = capturer.GetNewVideoLinks();
-                    if (videoLinks.Count != 0)
-                    {
-                        images.AddRange(videoLinks.ToStringImageLinks());
+                    case "Videos":
+                        profileSections |= EpornerProfileSections.Videos;
                         break;
-                    }
-
-                    await Task.Delay(250);
-                    var container = Driver.TryFindElement(By.XPath("//div[@class='vjs-inplayer-container']"));
-                    if (container is not null)
-                    {
-                        var style = container.GetAttribute("style");
-                        if (!style.Contains("visibility: visible;") && style.Contains("visibility: hidden;"))
-                        {
-                            continue;
-                        }
-
-                        Log.Debug("Ad container visible. Closing...");
-                        playButton = Driver.TryFindElement(By.XPath("//div[@class='vjs-inplayer-close-button']"));
-                    }
-                    else
-                    {
-                        var video = Driver.TryFindElement(By.XPath("//video"));
-                        var parent = video?.FindElement(By.XPath(".."));
-                        if (parent is null)
-                        {
-                            continue;
-                        }
-
-                        var parentClass = parent.GetAttribute("class");
-                        if (!parentClass.Contains("vjs-paused"))
-                        {
-                            continue;
-                        }
-
-                        Log.Debug("Video paused. Clicking play button...");
-                        playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
-                    }
-
-                    playButton?.Click();
+                    case "Pics / GIFs":
+                        profileSections |= EpornerProfileSections.Images;
+                        break;
+                    case "Playlists":
+                        profileSections |= EpornerProfileSections.Playlists;
+                        break;
                 }
             }
-        }
-        
-        #endregion
 
-        #region Extract Images
-
-        posts.Clear();
-        if (hasImages)
-        {
-            soup = await Soupify($"{baseUrl}/uploaded-pics/");
-            while(true)
+            
+            var posts = new List<string>();
+            
+            #region Extract Videos
+            
+            if (profileSections.HasFlag(EpornerProfileSections.Videos))
             {
-                var links = soup.SelectSingleNode("//div[@class='streameventsday photosgrid showAll']")
-                                .SelectNodes("./div[@class='mb hdy']")
-                                .Select(div => domainUrl + div.SelectSingleNode(".//a").GetHref());
-                posts.AddRange(links);
-                var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
-                if (nextPage is null)
-                {
-                    break;
-                }
+                await ExtractFromListView(baseUrl, "uploaded-videos", "streameventsday showAll", posts);
+                // if (profileSections.HasFlag(EpornerProfileSections.Playlists))
+                // {
+                //     await ExtractFromListView(baseUrl, "playlists", "streameventsday showAll", posts);
+                // }
                 
-                var nextPageUrl = nextPage.GetHref();
-                soup = await Soupify($"{domainUrl}{nextPageUrl}");
+                foreach (var post in posts)
+                {
+                    Log.Information("Parsing video: {post}", post);
+                    soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
+                    var downloadLink = ExtractVideoDownloadLink(soup);
+                    images.Add(downloadLink);
+                }
             }
+            
+            #endregion
 
-            foreach (var post in posts)
+            #region Extract Images
+
+            posts.Clear();
+            if (profileSections.HasFlag(EpornerProfileSections.Images))
             {
-                soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
-                var postImages = soup.SelectSingleNode("//div[@class='photosgrid gallerygrid']")
-                                     .SelectNodes("./div")
-                                     .Select(div => div.SelectSingleNode(".//img").GetSrc())
-                                     .Select(ExtractFullImageLink)
-                                     .ToStringImageLinks();
-                images.AddRange(postImages);
+                await ExtractFromListView(baseUrl, "uploaded-pics", "streameventsday photosgrid showAll", posts);
+                foreach (var post in posts)
+                {
+                    Log.Information("Parsing gallery: {post}", post);
+                    soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
+                    var postImages = soup.SelectSingleNode("//div[@class='photosgrid gallerygrid']")
+                                         .SelectNodes("./div")
+                                         .Select(div => div.SelectSingleNode(".//img").GetSrc())
+                                         .Select(ExtractFullImageLink)
+                                         .ToStringImageLinks();
+                    images.AddRange(postImages);
+                }
             }
+            
+            #endregion
+        
+        }
+        else if (CurrentUrl.Contains("/video-") || CurrentUrl.Contains("/hd-porn/"))
+        {
+            dirName = soup.SelectSingleNode("//div[@id='video-info']/h1").InnerText;
+            var downloadLink = ExtractVideoDownloadLink(soup);
+            images.Add(downloadLink);
+        }
+        else
+        {
+            var e = new RipperException("Unknown Eporner URL type");
+            Log.Error(e, "Unknown Eporner URL type: {CurrentUrl}", CurrentUrl);
+            throw e;
         }
         
-        #endregion
-
         return new RipInfo(images, dirName, FilenameScheme);
 
+        // ReSharper disable once VariableHidesOuterVariable
+        string ExtractVideoDownloadLink(HtmlNode soup)
+        {
+            var downloads = soup.SelectSingleNode("//div[@id='hd-porn-dload']")
+                                .SelectNodes(".//span");
+            string downloadLink;
+            if (downloads.Count > 1)
+            {
+                var secondLast = downloads[^2];
+                if (secondLast.GetAttributeValue("class") == "download-av1")
+                {
+                    downloadLink = secondLast.SelectSingleNode("./a").GetHref();
+                }
+                else
+                {
+                    var last = downloads[^1];
+                    downloadLink = last.SelectSingleNode("./a").GetHref();
+                }
+            }
+            else
+            {
+                var last = downloads[^1];
+                downloadLink = last.SelectSingleNode("./a").GetHref();
+            }
+            
+            return $"https://www.eporner.com{downloadLink}";
+        }
+        
         string ExtractFullImageLink(string imageLink)
         {
             var parts = imageLink.Split("/");
-            var baseLink = parts[0];
-            var extension = parts[^1].Split(".")[^1];
-            var link = $"{baseLink}.{extension}";
+            var baseLink = parts[..^1].Join("/");
+            var filename = parts[^1];
+            var extension = filename.Split(".")[^1];
+            filename = filename.Split("_")[0];
+            var link = $"{baseLink}/{filename}.{extension}";
             return link;
+        }
+
+        async Task ExtractFromListView(string baseUrl, string section, string divClass, List<string> posts)
+        {
+            // ReSharper disable once VariableHidesOuterVariable
+            var soup = await Soupify($"{baseUrl}/{section}/", lazyLoadArgs: lazyLoadArgs);
+            while(true)
+            {
+                var links = soup.SelectSingleNode($"//div[@class='{divClass}']")
+                                .SelectNodes("./div[contains(@class, 'mb')]")
+                                .Select(div => domainUrl + div.SelectSingleNode(".//a").GetHref());
+                posts.AddRange(links);
+                var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
+                if (nextPage is null)
+                {
+                    break;
+                }
+                    
+                var nextPageUrl = nextPage.GetHref();
+                soup = await Soupify($"{domainUrl}{nextPageUrl}");
+            }
         }
     }
     

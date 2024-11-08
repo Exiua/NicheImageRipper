@@ -9,4 +9,11 @@ public static class DebugUtility
     {
         Console.WriteLine(value);   
     }
+    
+    [Conditional("DEBUG")]
+    public static void Pause()
+    {
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey();
+    }
 }
