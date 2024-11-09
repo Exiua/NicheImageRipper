@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
+using Core.DataStructures.VideoCapturers;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
@@ -254,6 +255,7 @@ public partial class HtmlParser
             "rule34video" => Rule34VideoParse,
             "av19a" => Av19aParse,
             "eporner" => EpornerParse,
+            "cgcosplay" => CgCosplayParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1411,6 +1413,100 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for cgcosplay.org and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CgCosplayParse()
+    {
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250
+        });
+        var dirName = soup.SelectSingleNode("//h2[@class='elementor-heading-title elementor-size-xxl']").InnerText;
+        var images = soup.SelectSingleNode("//div[@id='gallery-1']")
+                         .SelectNodes("./figure")
+                         .Select(fig => fig.SelectSingleNode(".//img").GetSrc())
+                         .ToStringImageLinkWrapperList();
+        var videos = soup.SelectSingleNode(
+            "//section[@class='elementor-section elementor-inner-section elementor-element elementor-element-21f65a59 elementor-section-full_width elementor-section-height-default elementor-section-height-default']/div[@class='elementor-container elementor-column-gap-default']");
+        if (videos is not null)
+        {
+            var videoRawLinks = videos.SelectNodes("./div")
+                                      .Select(div =>
+                                           div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
+                                      .Select(elm => elm.GetSrc());
+            var captures = new Dictionary<string, PlaylistCapturer>();
+            foreach (var (i, link) in videoRawLinks.Enumerate())
+            {
+                var cleanLink = link.DecodeUrl();
+                Log.Debug("Video {index}: {link}", i + 1, cleanLink);
+                if (cleanLink.Contains("cgcosplay.org"))
+                {
+                    images.Add(cleanLink);
+                }
+                else if (cleanLink.Contains("vk.com"))
+                {
+                    if (!captures.TryGetValue("vk.com", out var capturer))
+                    {
+                        (capturer, _) = await ConfigureNetworkCapture<VkVideoCapturer>();
+                        captures.Add("vk.com", capturer);
+                    }
+                    
+                    var resolvedLink = await ResolveVkLink(cleanLink, capturer);
+                    images.Add(resolvedLink);
+                }
+                else if (cleanLink.Contains("youtube.com"))
+                {
+                    images.Add(cleanLink);
+                }
+                else
+                {
+                    Log.Warning("Link not handled: {link}", cleanLink);
+                }
+            }
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+
+        async Task<string> ResolveVkLink(string url, PlaylistCapturer capturer)
+        {
+            CurrentUrl = url;
+            await Task.Delay(250);
+            while (true)
+            {
+                var playButton = Driver.TryFindElement(By.XPath("//div[@class='videoplayer_thumb']"));
+                if (playButton is null)
+                {
+                    Log.Debug("Play button not found, retrying...");
+                    Driver.TakeDebugScreenshot();
+                    await Task.Delay(1000);
+                    continue;
+                }
+
+                playButton.Click();
+                break;
+            }
+
+            List<string> links;
+            while (true)
+            {
+                links = capturer.GetNewVideoLinks();
+                if (links.Count == 0)
+                {
+                    Log.Debug("No links found, retrying...");
+                    await Task.Delay(1000);
+                    continue;
+                }
+                
+                break;
+            }
+
+            return links[0];
+        }
+    }
+    
     /// <summary>
     ///     Parses the html for cherrynudes.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>

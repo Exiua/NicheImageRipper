@@ -11,4 +11,5 @@ public enum LinkInfo
     Youtube,
     Text,
     GoFile,
+    MpegDash,
 }

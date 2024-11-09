@@ -1,23 +1,13 @@
-﻿using OpenQA.Selenium;
+﻿using System.Diagnostics;
+using OpenQA.Selenium;
 
 namespace Core.Utility;
 
 public static class SeleniumUtility
 {
-    public static bool ElementIsVisible(IWebDriver driver, By by)
+    [Conditional("DEBUG")]
+    public static void TakeDebugScreenshot(this IWebDriver driver)
     {
-        try
-        {
-            var elementToBeDisplayed = driver.FindElement(by);
-            return elementToBeDisplayed.Displayed;
-        }
-        catch (StaleElementReferenceException)
-        {
-            return false;
-        }
-        catch (NoSuchElementException)
-        {
-            return false;
-        }
+        ((ITakesScreenshot)driver).GetScreenshot().SaveAsFile("test.png");
     }
 }

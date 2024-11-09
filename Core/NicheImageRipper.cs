@@ -21,7 +21,7 @@ public abstract partial class NicheImageRipper
     public static Config Config { get; set; } = Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
     
-    public string Title { get; set; } = "NicheImageRipper";
+    public string Title { get; } = "NicheImageRipper";
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
     public List<string> UrlQueue { get; set; } = [];
     public bool LiveUpdate { get; set; } = false;
@@ -238,7 +238,6 @@ public abstract partial class NicheImageRipper
             File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
         }
         
-        JsonUtility.Serialize("RipHistory.json", History);
         Config.Instance.SaveConfig();
     }
     

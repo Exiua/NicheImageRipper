@@ -207,6 +207,11 @@ public partial class ImageLink
             fileName = url.Split("download_filename=")[1];
             fileName = fileName.Split("&")[0];
         }
+        else if (url.Contains("//vkvd") && url.Contains("okcdn.ru"))
+        {
+            fileName = url.Split("id=")[1].Split("&")[0] + ".mp4";
+            LinkInfo = LinkInfo.MpegDash;
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);

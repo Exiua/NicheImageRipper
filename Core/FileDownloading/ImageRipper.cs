@@ -165,7 +165,7 @@ public partial class ImageRipper
             switch (SiteName)
             {
                 case "deviantart":
-                    DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
+                    await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
                     break;
                 default:
                 {
@@ -321,7 +321,8 @@ public partial class ImageRipper
     /// <param name="fullPath">Full path of the directory to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromList(ImageLink imageLink, string fullPath, int currentFileNum, DownloadStats downloadStats)
+    private async Task DownloadFromList(ImageLink imageLink, string fullPath, int currentFileNum,
+                                        DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
@@ -361,26 +362,39 @@ public partial class ImageRipper
                 await File.AppendAllTextAsync(imagePath, ripUrl + "\n");
                 success = true;
                 break;
+            case LinkInfo.MpegDash:
+                success = await DownloadMpegDashFile(imagePath, imageLink);
+                break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
                 await DownloadFile(imagePath, imageLink, downloadStats, false);
-                success = false; // FIXME: This is a hack as DownloadFile already increments failed downloads
+                success = true; // FIXME: This is a hack as DownloadFile already increments failed downloads
                 break;
             default:
                 var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
                 Log.Error(e, "Unknown LinkInfo: {LinkInfo}", imageLink.LinkInfo);
                 throw e;
         }
-        
+
         if (!success)
         {
             downloadStats.FailedDownloads++;
         }
-        
+
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         await Task.Delay(50);
     }
-    
+
+    private static async Task<bool> DownloadMpegDashFile(string path, ImageLink imageLink)
+    {
+        var parent = Directory.GetParent(path)!.FullName;
+        var filename = Path.GetFileName(path);
+        var cmd = new[] { "-P", $"\"{parent}\"", imageLink.Url, "-o", filename };
+        var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
+            endMessage: "youtube-dl download finished");
+        return exitCode == 0;
+    }
+
     private static Task<bool> DownloadM3U8ToMp4(string path, ImageLink imageLink)
     {
         var url = imageLink.Url;

@@ -1,24 +1,22 @@
 using OpenQA.Selenium.BiDi.Modules.Network;
 using Serilog;
 
-namespace Core.DataStructures;
+namespace Core.DataStructures.VideoCapturers;
 
 public abstract class PlaylistCapturer
 {
     private readonly Dictionary<string, List<string>> _videoUrls = new();
     private readonly HashSet<string> _seenIds = [];
-
-    protected abstract string SearchPattern { get; }
     
     public void CaptureHook(ResponseCompletedEventArgs e)
     {
-        var url = e.Response.Url;
         //Log.Debug("New network response received: {url}", url);
-        if (!url.Contains(SearchPattern))
+        if (!ResponseIsInteresting(e))
         {
             return;
         }
         
+        var url = e.Response.Url;
         var id = GetId(url);
         Log.Debug("[{id}]: {url}", id, url);
         if (!_videoUrls.TryGetValue(id, out var value))
@@ -29,6 +27,8 @@ public abstract class PlaylistCapturer
 
         value.Add(url);
     }
+    
+    protected abstract bool ResponseIsInteresting(ResponseCompletedEventArgs e);
 
     protected abstract string GetId(string url);
     
