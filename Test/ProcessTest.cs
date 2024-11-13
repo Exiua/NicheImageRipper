@@ -30,4 +30,26 @@ public class ProcessTest
         var output = process.StandardOutput.ReadToEnd();
         var error = process.StandardError.ReadToEnd();
     }
+
+    public static void CheckForFfmpeg()
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = "-version",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        
+        process.StartInfo.Environment.Clear(); // Simulating user not having ffmpeg
+        process.Start();
+        process.WaitForExit();
+
+        Console.WriteLine(process.ExitCode);
+    }
 }

@@ -209,7 +209,15 @@ public partial class ImageLink
         }
         else if (url.Contains("//vkvd") && url.Contains("okcdn.ru"))
         {
-            fileName = url.Split("id=")[1].Split("&")[0] + ".mp4";
+            if (url.Contains("id="))
+            {
+                fileName = url.Split("id=")[1].Split("&")[0] + ".mp4";
+            }
+            else
+            {
+                fileName = url.Split(".")[^2] + ".mp4";
+            }
+            
             LinkInfo = LinkInfo.MpegDash;
         }
         else
@@ -233,6 +241,6 @@ public partial class ImageLink
 
     [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]
     private static partial Regex ExtensionRegex();
-    [GeneratedRegex("/embed/([a-zA-Z0-9-]+)")]
+    [GeneratedRegex("/embed/([a-zA-Z0-9-_]+)")]
     private static partial Regex YoutubeEmbedRegex();
 }

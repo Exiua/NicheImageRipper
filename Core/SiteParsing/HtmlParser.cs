@@ -256,6 +256,7 @@ public partial class HtmlParser
             "av19a" => Av19aParse,
             "eporner" => EpornerParse,
             "cgcosplay" => CgCosplayParse,
+            "4khd" => FourKHdParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1429,13 +1430,12 @@ public partial class HtmlParser
                          .SelectNodes("./figure")
                          .Select(fig => fig.SelectSingleNode(".//img").GetSrc())
                          .ToStringImageLinkWrapperList();
-        var videos = soup.SelectSingleNode(
-            "//section[@class='elementor-section elementor-inner-section elementor-element elementor-element-21f65a59 elementor-section-full_width elementor-section-height-default elementor-section-height-default']/div[@class='elementor-container elementor-column-gap-default']");
+        var videos = soup.SelectSingleNode("//main[@id='main']");
         if (videos is not null)
         {
-            var videoRawLinks = videos.SelectNodes("./div")
-                                      .Select(div =>
-                                           div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
+            var videoRawLinks = videos.SelectNodes(".//*[self::iframe or self::video]")
+                                      // .Select(div =>
+                                      //      div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
                                       .Select(elm => elm.GetSrc());
             var captures = new Dictionary<string, PlaylistCapturer>();
             foreach (var (i, link) in videoRawLinks.Enumerate())
@@ -1461,6 +1461,11 @@ public partial class HtmlParser
                 {
                     images.Add(cleanLink);
                 }
+                else if (cleanLink.Contains("late-anxiety.com"))
+                {
+                    Log.Debug("Suppressed spam link");
+                    // suppress, it's just spam
+                }
                 else
                 {
                     Log.Warning("Link not handled: {link}", cleanLink);
@@ -1476,6 +1481,11 @@ public partial class HtmlParser
             await Task.Delay(250);
             while (true)
             {
+                if (CurrentUrl.Contains("autoplay=1"))
+                {
+                    break;
+                }
+                
                 var playButton = Driver.TryFindElement(By.XPath("//div[@class='videoplayer_thumb']"));
                 if (playButton is null)
                 {
@@ -2541,6 +2551,48 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for 4khd.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> FourKHdParse()
+    {
+        await LazyLoad(new LazyLoadArgs
+        {
+            StopElement = By.XPath("//ul[@class='page-links']")
+        });
+        
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h3").InnerText;
+        var numPages = soup.SelectSingleNode("//ul[@class='page-links']")?
+                          .SelectNodes("./li")
+                          .Count ?? 1;
+
+        var baseUrl = CurrentUrl;
+        var images = new List<StringImageLinkWrapper>();
+        for (var page = 1; page <= numPages; page++)
+        {
+            Log.Information("Parsing page {page} of {numPages}", page, numPages);
+            var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ?? soup.SelectSingleNode("//div[@id='basicE']");
+            var imgs = baseElement.SelectNodes("./a")
+                                  .Select(a => a.GetHref().Split("?")[0])
+                                  .ToStringImageLinks();
+            images.AddRange(imgs);
+            // // The first page is already loaded
+            soup = await Soupify($"{baseUrl}/{page + 1}", lazyLoadArgs: new LazyLoadArgs
+            {
+                StopElement = By.XPath("//ul[@class='page-links']")
+            });
+        }
+
+        var baseName = images[0].Split("/")[^1];
+        var match = Regex.Match(baseName, @"([a-zA-Z0-9-]+)");
+        baseName = match.Groups[1].Value;
+        images = images.Where(img => img.Contains(baseName)).ToList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for foxhq.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -6141,7 +6193,9 @@ public partial class HtmlParser
     /// <param name="args">Arguments for lazy loading</param>
     private static Task LazyLoad(LazyLoadArgs args)
     {
-        return LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll);
+        return args.StopElement is not null && Driver.TryFindElement(args.StopElement) is not null
+            ? LazyLoad(args.StopElement) 
+            : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll);
     }
     
     /// <summary>
@@ -6199,6 +6253,21 @@ public partial class HtmlParser
         }
     }
 
+    private static async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500)
+    {
+        var scrollScript = $"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});";
+        while (true)
+        {
+            Driver.ExecuteScript(scrollScript);
+            await Task.Delay(scrollPauseTime);
+            var element = Driver.FindElement(elementToFind);
+            if (element.Displayed)
+            {
+                break;
+            }
+        }
+    }
+    
     private static void ScrollPage(int distance = 1250)
     {
         var currHeight = (long)Driver.ExecuteScript("return window.pageYOffset");

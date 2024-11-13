@@ -1,4 +1,6 @@
-﻿namespace Core.DataStructures;
+﻿using OpenQA.Selenium;
+
+namespace Core.DataStructures;
 
 public class LazyLoadArgs
 {
@@ -7,4 +9,5 @@ public class LazyLoadArgs
     public int ScrollPauseTime { get; set; } = 500;
     public int ScrollBack { get; set; } = 0;
     public bool ReScroll { get; set; } = false;
+    public By? StopElement { get; set; } = null;
 }

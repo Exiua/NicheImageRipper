@@ -238,6 +238,20 @@ public partial class ImageRipper
         return exitCode == 0;
     }
 
+    private static async Task<bool> RunYtDlp(string[] cmd, string startMessage, string endMessage)
+    {
+        //cmd = [ "--no-warnings", ..cmd ];
+        Log.Debug("yt-dlp {cmd}", string.Join(" ", cmd));
+        var exitCode = await RunSubprocess("yt-dlp", cmd, /*true, true,*/ 
+            startMessage: startMessage, endMessage: endMessage);
+        if (exitCode != 0)
+        {
+            Log.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
+        }
+        
+        return exitCode == 0;
+    }
+    
     private static async Task<int> RunSubprocess(string executable, string[]? arguments = null,
                                      bool captureOutput = false, bool captureError = false,
                                      string? startMessage = null, string? endMessage = null)
@@ -554,10 +568,11 @@ public partial class ImageRipper
         return true;
     }
 
-    private static async Task<bool> DownloadYoutubeFile(string path, ImageLink url)
+    private static async Task<bool> DownloadYoutubeFile(string path, ImageLink imageLink)
     {
-        Directory.CreateDirectory(path);
-        var cmd = new[] { "-P", $"\"{path}\"", url.Url };
+        var parent = Directory.GetParent(path)!.FullName;
+        var filename = Path.GetFileName(path);
+        var cmd = new[] { "-P", $"\"{parent}\"", imageLink.Url, "-o", filename };
         var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
         return exitCode == 0;
