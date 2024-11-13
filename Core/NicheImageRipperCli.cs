@@ -30,6 +30,22 @@ public class NicheImageRipperCli : NicheImageRipper
     
     public async Task Run()
     {
+        var supportedFeatures = GetExternalFeatureSupport();
+        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
+        {
+            Log.Warning("ffmpeg not found. Some functionality may be limited.");
+        }
+        
+        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
+        {
+            Log.Warning("yt-dlp not found. Some functionality may be limited.");
+        }
+        
+        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
+        {
+            Log.Warning("MEGAcmd not found. Some functionality may be limited.");
+        }
+        
         while (true)
         {
             try

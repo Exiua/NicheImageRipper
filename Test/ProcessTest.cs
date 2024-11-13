@@ -2,7 +2,7 @@
 
 namespace Test;
 
-public class ProcessTest
+public static class ProcessTest
 {
     public static void RunFfmpeg(string[] cmd)
     {
@@ -31,25 +31,51 @@ public class ProcessTest
         var error = process.StandardError.ReadToEnd();
     }
 
-    public static void CheckForFfmpeg()
+    public static bool CheckForFfmpeg(bool simulateNoPath)
     {
+        return CheckForProcess("ffmpeg", "-version", simulateNoPath);
+    }
+    
+    public static bool CheckForYtDlp(bool simulateNoPath)
+    {
+        return CheckForProcess("yt-dlp", "--version", simulateNoPath);
+    }
+    
+    public static bool CheckForMegaCli(bool simulateNoPath)
+    {
+        return CheckForProcess("mega-version", "-v", simulateNoPath);
+    }
+
+    private static bool CheckForProcess(string filename, string arguments, bool simulateNoPath)
+    {
+        if (simulateNoPath)
+        {
+            Environment.SetEnvironmentVariable("PATH", "");
+        }
+        
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "ffmpeg",
-                Arguments = "-version",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                FileName = filename,
+                Arguments = arguments,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
         };
         
-        process.StartInfo.Environment.Clear(); // Simulating user not having ffmpeg
-        process.Start();
-        process.WaitForExit();
-
-        Console.WriteLine(process.ExitCode);
+        try
+        {
+            process.Start();
+            process.WaitForExit();
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+        
+        return true;
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -382,6 +383,58 @@ public abstract partial class NicheImageRipper
     private static void DisableConsoleLogging()
     {
         ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Fatal + 1;
+    }
+    
+    protected static ExternalFeatureSupport GetExternalFeatureSupport()
+    {
+        var support = ExternalFeatureSupport.None;
+        support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : 0;
+        support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : 0;
+        support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : 0;
+        return support;
+    }
+    
+    private static bool CheckForFfmpeg()
+    {
+        return CheckForProcess("ffmpeg", "-version");
+    }
+    
+    private static bool CheckForYtDlp()
+    {
+        return CheckForProcess("yt-dlp", "--version");
+    }
+    
+    private static bool CheckForMegaCmd()
+    {
+        return CheckForProcess("mega-version", "-v");
+    }
+
+    private static bool CheckForProcess(string filename, string arguments)
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = filename,
+                Arguments = arguments,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        
+        try
+        {
+            process.Start();
+            process.WaitForExit();
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+        
+        return true;
     }
 
     [GeneratedRegex("viewkey=([0-9a-z]+)")]
