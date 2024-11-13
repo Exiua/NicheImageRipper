@@ -4053,6 +4053,53 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for nlegs.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> NLegsParse()
+    {
+        const string domain = "https://www.nlegs.com";
+        const int delay = 1000;
+        
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//strong").InnerText;
+        var numPages = soup.SelectSingleNode("//ul[@class='pagination pagination']")
+                            .SelectNodes("./li")
+                            .Count;
+        var baseUrl = CurrentUrl.Split(".")[..^1].Join(".");
+        var allPosts = new List<string>();
+        for (var i = 0; i < numPages; i++)
+        {
+            Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
+            var posts = soup.SelectSingleNode("//div[@class='col-md-12 col-xs-12 ']")
+                            .SelectNodes(".//a")
+                            .Select(a => domain + a.GetHref());
+            allPosts.AddRange(posts);
+            soup = await Soupify($"{baseUrl}/{i + 2}.html"); // Pages are 1-indexed
+            await Task.Delay(delay);
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var (i, post) in allPosts.Enumerate())
+        {
+            Log.Information("Parsing post {i} of {numPosts}", i + 1, allPosts.Count);
+            soup = await Soupify(post);
+            while(CurrentUrl == "https://www.nlegs.com/hcaptcha.aspx")
+            {
+                Log.Information("Verification is required for post {i}", i + 1);
+                soup = await SolveCaptcha(post, true);
+                Log.Information("Reparsing post {i}", i + 1);
+            }
+            
+            var img = soup.SelectSingleNode("//img");
+            images.Add(domain + img.GetSrc());
+            await Task.Delay(delay);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for novoglam.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -6075,6 +6122,18 @@ public partial class HtmlParser
         return await Soupify(solution);
     }
 
+    private static async Task<HtmlNode> SolveCaptcha(string url, bool humanSolving)
+    {
+        await SolveParseAddCookies(); // Replace with a proper captcha solver
+        if (humanSolving)
+        {
+            Log.Information("Please solve the captcha and press enter to continue...");
+            Console.ReadLine();
+        }
+        
+        return await Soupify(url);
+    }
+    
     private static async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();

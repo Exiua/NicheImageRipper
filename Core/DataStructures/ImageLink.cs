@@ -220,6 +220,10 @@ public partial class ImageLink
             
             LinkInfo = LinkInfo.MpegDash;
         }
+        else if (url.Contains("nlegs.com"))
+        {
+            fileName = url.Split("url=")[1].Split("&")[0] + ".jfif";
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
