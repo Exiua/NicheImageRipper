@@ -42,7 +42,6 @@ public partial class HtmlParser
     
     private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(""));
     private static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
-    private static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
 
     public bool Interrupted { get; set; }
     private string SiteName { get; set; }
@@ -58,6 +57,7 @@ public partial class HtmlParser
         set => Driver.Url = value;
     }
     private static bool Debugging { get; set; }
+    private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
     public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
                       FilenameScheme filenameScheme = FilenameScheme.Original)
@@ -258,6 +258,7 @@ public partial class HtmlParser
             "cgcosplay" => CgCosplayParse,
             "4khd" => FourKHdParse,
             "cosplay69" => Cosplay69Parse,
+            "nlegs" => NLegsParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -4078,24 +4079,14 @@ public partial class HtmlParser
             soup = await Soupify($"{baseUrl}/{i + 2}.html"); // Pages are 1-indexed
             await Task.Delay(delay);
         }
-        
-        var images = new List<StringImageLinkWrapper>();
-        foreach (var (i, post) in allPosts.Enumerate())
-        {
-            Log.Information("Parsing post {i} of {numPosts}", i + 1, allPosts.Count);
-            soup = await Soupify(post);
-            while(CurrentUrl == "https://www.nlegs.com/hcaptcha.aspx")
-            {
-                Log.Information("Verification is required for post {i}", i + 1);
-                soup = await SolveCaptcha(post, true);
-                Log.Information("Reparsing post {i}", i + 1);
-            }
-            
-            var img = soup.SelectSingleNode("//img");
-            images.Add(domain + img.GetSrc());
-            await Task.Delay(delay);
-        }
 
+        var cookieJar = Driver.GetCookieJar();
+        var cookies = cookieJar.AllCookies
+                               .Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value}; ")
+                               .Trim();
+        RequestHeaders[RequestHeaderKeys.Cookie] = cookies;
+
+        var images = allPosts.ToStringImageLinkWrapperList();
         return new RipInfo(images, dirName, FilenameScheme);
     }
     

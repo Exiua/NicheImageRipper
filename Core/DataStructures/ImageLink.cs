@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Core.Enums;
 using JetBrains.Annotations;
 using Core.ExtensionMethods;
+using Core.Utility;
 
 namespace Core.DataStructures;
 
@@ -223,6 +224,7 @@ public partial class ImageLink
         else if (url.Contains("nlegs.com"))
         {
             fileName = url.Split("url=")[1].Split("&")[0] + ".jfif";
+            LinkInfo = LinkInfo.ResolveImage;
         }
         else
         {
@@ -234,7 +236,7 @@ public partial class ImageLink
             }
         }
 
-        return fileName;
+        return FilesystemUtility.CleanPathStem(fileName);
     }
     
     public override string ToString()

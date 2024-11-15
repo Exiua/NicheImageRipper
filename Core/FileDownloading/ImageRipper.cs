@@ -11,6 +11,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.SiteParsing;
 using Core.Utility;
 using Google.Apis.Drive.v3;
@@ -68,6 +69,7 @@ public partial class ImageRipper
 
     private static Config Config => Config.Instance;
     private static TokenManager TokenManager => TokenManager.Instance;
+    private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
     public ImageRipper(FilenameScheme filenameScheme = FilenameScheme.Original, UnzipProtocol unzipProtocol = UnzipProtocol.None)
     {
@@ -102,6 +104,7 @@ public partial class ImageRipper
     {
         var htmlParser = new HtmlParser(RequestHeaders, SiteName, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
+        //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
         {
@@ -324,7 +327,7 @@ public partial class ImageRipper
         var numProgress = $"({filename}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
         var imagePath = Path.Combine(fullPath, fullFilename);
-        await DownloadFile(imagePath, imageLink, downloadStats, true);
+        await DownloadFile(imagePath, imageLink, true);
         await Task.Delay(50);
     }
 
@@ -379,10 +382,12 @@ public partial class ImageRipper
             case LinkInfo.MpegDash:
                 success = await DownloadMpegDashFile(imagePath, imageLink);
                 break;
+            case LinkInfo.ResolveImage:
+                success = await ResolveAndDownloadFile(imagePath, imageLink);
+                break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
-                await DownloadFile(imagePath, imageLink, downloadStats, false);
-                success = true; // FIXME: This is a hack as DownloadFile already increments failed downloads
+                success = await DownloadFile(imagePath, imageLink, false);
                 break;
             default:
                 var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
@@ -397,6 +402,72 @@ public partial class ImageRipper
 
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         await Task.Delay(50);
+    }
+
+    private async Task<bool> ResolveAndDownloadFile(string path, ImageLink imageLink)
+    {
+        var url = imageLink.Url;
+        for (var i = 0; i < RetryCount; i++)
+        {
+            var imageUrl = await GetDownloadUrl(url);
+            if (imageUrl == "")
+            {
+            
+                await Task.Delay(500);
+                continue;
+            }
+            
+            imageLink.Url = imageUrl;
+
+            var success = await DownloadFile(path, imageLink, false);
+            if (success)
+            {
+                return true;
+            }
+
+            await Task.Delay(500);
+        }
+        
+        return false;
+    }
+
+    private async Task<string> GetDownloadUrl(string url)
+    {
+        using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
+        var response = await Session.SendAsync(request, HttpCompletionOption.ResponseContentRead);
+        if (!response.IsSuccessStatusCode)
+        {
+            Log.Error("<Response {ErrorCode}> Failed to get download url: {Url}",  response.StatusCode, url);
+            return "";
+        }
+
+        if (response.RequestMessage!.RequestUri!.ToString() == "https://www.nlegs.com/hcaptcha.aspx")
+        {
+            Log.Information("Captcha detected, solving...");
+            await SolveCaptcha(url, true);
+            var reRequest = RequestHeaders.ToRequest(HttpMethod.Get, url);
+            response = await Session.SendAsync(reRequest, HttpCompletionOption.ResponseContentRead);
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Error("Failed to get download url: {Url}", url);
+                return "";
+            }
+        }
+        
+        Log.Information("Getting download url from {Url}", url);
+        var content = await response.Content.ReadAsStringAsync();
+        var match = NLegsImageUrlRegex().Match(content);
+        return "https://www.nlegs.com" + match.Groups[1].Value;
+    }
+    
+    private static async Task SolveCaptcha(string url, bool humanSolve)
+    {
+        await FlareSolverrManager.GetSiteSolution(url);
+        if (humanSolve)
+        {
+            Log.Information("Solve the captcha and press enter to continue");
+            Console.ReadLine();
+        }
     }
 
     private static async Task<bool> DownloadMpegDashFile(string path, ImageLink imageLink)
@@ -578,7 +649,7 @@ public partial class ImageRipper
         return exitCode == 0;
     }
     
-    private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, DownloadStats downloadStats, bool generatingManually)
+    private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, bool generatingManually)
     {
         if(imagePath[^1] == '/')
         {
@@ -590,7 +661,8 @@ public partial class ImageRipper
             var successful = false;
             for (var _ = 0; _ < RetryCount; _++)
             {
-                if (await DownloadFileHelper(imageLink, imagePath, generatingManually))
+                var success = await DownloadFileHelper(imageLink, imagePath, generatingManually);
+                if (success)
                 {
                     successful = true;
                     break;
@@ -599,7 +671,6 @@ public partial class ImageRipper
 
             if (!successful)
             {
-                downloadStats.FailedDownloads++;
                 return false; // Failed to download file
             }
         }
@@ -691,6 +762,7 @@ public partial class ImageRipper
             }
 
             Log.Warning($"<Response {response.StatusCode}>");
+            await Task.Delay(500);
             
             switch (response.StatusCode)
             {
@@ -705,12 +777,10 @@ public partial class ImageRipper
                     throw new WrongExtensionException();
                 }
                 case HttpStatusCode.Unauthorized:
-                    await Task.Delay(500);
                     return false;
                 case HttpStatusCode.Forbidden:
                     return false;
                 case HttpStatusCode.BadGateway:
-                    await Task.Delay(500);
                     return false;
                 
                 #region Unused Status Codes
@@ -1177,4 +1247,6 @@ public partial class ImageRipper
     private static partial Regex DotPartySubdomainRegex();
     [GeneratedRegex("//c\\d+")]
     private static partial Regex DotPartyReplacementRegex();
+    [GeneratedRegex(@"<img.+src=""([^""]+)""")]
+    private static partial Regex NLegsImageUrlRegex();
 }

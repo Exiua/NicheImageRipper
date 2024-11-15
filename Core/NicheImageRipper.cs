@@ -9,6 +9,7 @@ using Core.Enums;
 using Core.ExtensionMethods;
 using Core.FileDownloading;
 using Core.History;
+using Core.Managers;
 using Core.Utility;
 using Serilog;
 using Serilog.Core;
@@ -23,6 +24,9 @@ public abstract partial class NicheImageRipper
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
     
     public string Title { get; } = "NicheImageRipper";
+
+    public static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
+    
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
     public List<string> UrlQueue { get; set; } = [];
     public bool LiveUpdate { get; set; } = false;
@@ -82,7 +86,7 @@ public abstract partial class NicheImageRipper
         var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
         foreach (var url in loadedUrls)
         {
-            AddToUrlQueue(url);
+            AddToUrlQueue(url, noCheck: true);
         }
     }
 
@@ -325,11 +329,14 @@ public abstract partial class NicheImageRipper
         }
     }
 
-    protected virtual RejectedUrlInfo? AddToUrlQueue(string url, int index = -1)
+    protected virtual RejectedUrlInfo? AddToUrlQueue(string url, int index = -1, bool noCheck = false)
     {
-        if(History.Any(entry => CheckIfUrlsAreEqual(entry.Url, url)))
+        if (!noCheck)
         {
-            return new RejectedUrlInfo(url, QueueFailureReason.PreviouslyProcessed, index);
+            if (History.Any(entry => CheckIfUrlsAreEqual(entry.Url, url)))
+            {
+                return new RejectedUrlInfo(url, QueueFailureReason.PreviouslyProcessed, index);
+            }
         }
         
         UrlQueue.Add(url);
@@ -406,7 +413,7 @@ public abstract partial class NicheImageRipper
     
     private static bool CheckForMegaCmd()
     {
-        return CheckForProcess("mega-version", "-v");
+        return CheckForProcess("mega-version.bat", "-v");
     }
 
     private static bool CheckForProcess(string filename, string arguments)

@@ -11,9 +11,7 @@ namespace Core.DataStructures;
 
 public class RipInfo
 {
-    private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
-
-    private readonly string _directoryName = null!; // Initialized through the property setter
+    private string _directoryName = null!; // Initialized through the property setter
 
     [UsedImplicitly]
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
@@ -27,10 +25,11 @@ public class RipInfo
     [UsedImplicitly]
     public int NumUrls { get; set; }
 
+    [UsedImplicitly]
     public string DirectoryName
     {
         get => _directoryName;
-        private init => _directoryName = CleanDirectoryName(value);
+        set => _directoryName = CleanDirectoryName(value);
     }
 
     [UsedImplicitly]
@@ -169,62 +168,7 @@ public class RipInfo
 
     private static string CleanDirectoryName(string directoryName)
     {
-        directoryName = WebUtility.HtmlDecode(directoryName).Trim(' ', '\t', '\n', '\r');
-        var dirName = new StringBuilder();
-        foreach (var c in directoryName.Where(c => !ForbiddenChars.Contains(c)))
-        {
-            dirName.Append(c);
-        }
-
-        if (dirName[^1] != ')' && dirName[^1] != ']' && dirName[^1] != '}')
-        {
-            RStripPunctuation(dirName);
-        }
-
-        if (dirName[0] != '(' && dirName[0] != '[' && dirName[0] != '{')
-        {
-            LStripPunctuation(dirName);
-        }
-
-        return dirName.ToString();
-    }
-
-    private static void LStripPunctuation(StringBuilder input)
-    {
-        if (input.Length == 0)
-        {
-            return;
-        }
-
-        var i = 0;
-        while (i < input.Length && char.IsPunctuation(input[i]))
-        {
-            i++;
-        }
-
-        if (i > 0)
-        {
-            input.Remove(0, i); // Remove leading punctuation
-        }
-    }
-
-    private static void RStripPunctuation(StringBuilder input)
-    {
-        if (input.Length == 0)
-        {
-            return;
-        }
-
-        var i = input.Length - 1;
-        while (i >= 0 && char.IsPunctuation(input[i]))
-        {
-            i--;
-        }
-
-        if (i < input.Length - 1)
-        {
-            input.Length = i + 1; // Adjust the length to trim the punctuation
-        }
+        return FilesystemUtility.CleanPathStem(directoryName);
     }
 
     private static void SaveRawUrls(List<StringImageLinkWrapper> urls)

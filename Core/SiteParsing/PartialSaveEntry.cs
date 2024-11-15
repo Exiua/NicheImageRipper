@@ -1,10 +1,16 @@
 ﻿using Core.DataStructures;
+using JetBrains.Annotations;
 
-namespace Core;
+namespace Core.SiteParsing;
 
 public class PartialSaveEntry
 {
-    public string Cookies { get; set; }
-    public string Referer { get; set; }
-    public RipInfo RipInfo { get; set; }
+    [UsedImplicitly]
+    public string Cookies { get; set; } = null!;
+    
+    [UsedImplicitly]
+    public string Referer { get; set; } = null!;
+    
+    [UsedImplicitly]
+    public RipInfo RipInfo { get; set; } = null!;
 }
