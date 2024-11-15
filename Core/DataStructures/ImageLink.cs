@@ -221,7 +221,7 @@ public partial class ImageLink
             
             LinkInfo = LinkInfo.MpegDash;
         }
-        else if (url.Contains("nlegs.com"))
+        else if (url.Contains("nlegs.com") || url.Contains("ladylap.com"))
         {
             fileName = url.Split("url=")[1].Split("&")[0] + ".jfif";
             LinkInfo = LinkInfo.ResolveImage;

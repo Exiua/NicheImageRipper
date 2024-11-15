@@ -417,6 +417,7 @@ public partial class ImageRipper
                 continue;
             }
             
+            Log.Debug("Resolved URL: {Url}", imageUrl);
             imageLink.Url = imageUrl;
 
             var success = await DownloadFile(path, imageLink, false);
@@ -433,6 +434,7 @@ public partial class ImageRipper
 
     private async Task<string> GetDownloadUrl(string url)
     {
+        var siteName = url.Split('.')[1];
         using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
         var response = await Session.SendAsync(request, HttpCompletionOption.ResponseContentRead);
         if (!response.IsSuccessStatusCode)
@@ -441,7 +443,7 @@ public partial class ImageRipper
             return "";
         }
 
-        if (response.RequestMessage!.RequestUri!.ToString() == "https://www.nlegs.com/hcaptcha.aspx")
+        if (response.RequestMessage!.RequestUri!.ToString() == $"https://www.{siteName}.com/hcaptcha.aspx")
         {
             Log.Information("Captcha detected, solving...");
             await SolveCaptcha(url, true);
@@ -457,7 +459,7 @@ public partial class ImageRipper
         Log.Information("Getting download url from {Url}", url);
         var content = await response.Content.ReadAsStringAsync();
         var match = NLegsImageUrlRegex().Match(content);
-        return "https://www.nlegs.com" + match.Groups[1].Value;
+        return $"https://www.{siteName}.com" + match.Groups[1].Value;
     }
     
     private static async Task SolveCaptcha(string url, bool humanSolve)

@@ -259,6 +259,7 @@ public partial class HtmlParser
             "4khd" => FourKHdParse,
             "cosplay69" => Cosplay69Parse,
             "nlegs" => NLegsParse,
+            "ladylap" => LadyLapParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -696,16 +697,35 @@ public partial class HtmlParser
             }
         }
         var querySeparator = baseUrl[^1] == '&' ? "" : "&";
-        
-        var response =
-            await session.GetAsync($"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}");
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
-        if (jsonObjectNavigation is not null)
+
+        var requestUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}";
+        var response = await session.GetAsync(requestUrl);
+        JsonNode? json;
+        if (!response.IsSuccessStatusCode)
         {
-            json = jsonObjectNavigation.Aggregate(json, (current, obj) => current![obj]);
+            var solution = await FlareSolverrManager.GetSiteSolution(requestUrl);
+            var rawJson = solution.Response;
+            var start = rawJson.IndexOf('[');
+            var end = rawJson.LastIndexOf(']');
+            rawJson = rawJson[start..(end + 1)];
+            json = JsonSerializer.Deserialize<JsonNode>(rawJson);
+        }
+        else
+        {
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        }
+
+        if (json is null)
+        {
+            throw new RipperException("Failed to deserialize json");
         }
         
-        var data = json!.AsArray();
+        if (jsonObjectNavigation is not null)
+        {
+            json = jsonObjectNavigation.Aggregate(json, (current, obj) => current[obj]!);
+        }
+        
+        var data = json.AsArray();
         var images = new List<StringImageLinkWrapper>();
         var pid = startingPageIndex + 1;
         while (true)
@@ -3433,6 +3453,43 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for ladylap.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> LadyLapParse()
+    {
+        const string domain = "https://www.ladylap.com";
+        const int delay = 1000;
+
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//strong").InnerText;
+        var numPages = soup.SelectSingleNode("//ul[@class='pagination pagination']")
+                           .SelectNodes("./li")
+                           .Count;
+        var baseUrl = CurrentUrl;
+        var images = new List<StringImageLinkWrapper>();
+        for (var i = 0; i < numPages; i++)
+        {
+            Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
+            var posts = soup.SelectNodes("//div[@class='col-md-12 col-lg-12']")[2]
+                            .SelectNodes(".//a")
+                            .Select(a => domain + a.GetHref())
+                            .ToStringImageLinks();
+            images.AddRange(posts);
+            soup = await Soupify($"{baseUrl}/{i + 2}"); // Pages are 1-indexed
+            await Task.Delay(delay);
+        }
+
+        var cookieJar = Driver.GetCookieJar();
+        var cookies = cookieJar.AllCookies
+                               .Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value}; ")
+                               .Trim();
+        RequestHeaders[RequestHeaderKeys.Cookie] = cookies;
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for leakedbb.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -4068,14 +4125,15 @@ public partial class HtmlParser
                             .SelectNodes("./li")
                             .Count;
         var baseUrl = CurrentUrl.Split(".")[..^1].Join(".");
-        var allPosts = new List<string>();
+        var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < numPages; i++)
         {
             Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
             var posts = soup.SelectSingleNode("//div[@class='col-md-12 col-xs-12 ']")
                             .SelectNodes(".//a")
-                            .Select(a => domain + a.GetHref());
-            allPosts.AddRange(posts);
+                            .Select(a => domain + a.GetHref())
+                            .ToStringImageLinks();
+            images.AddRange(posts);
             soup = await Soupify($"{baseUrl}/{i + 2}.html"); // Pages are 1-indexed
             await Task.Delay(delay);
         }
@@ -4085,8 +4143,7 @@ public partial class HtmlParser
                                .Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value}; ")
                                .Trim();
         RequestHeaders[RequestHeaderKeys.Cookie] = cookies;
-
-        var images = allPosts.ToStringImageLinkWrapperList();
+        
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
