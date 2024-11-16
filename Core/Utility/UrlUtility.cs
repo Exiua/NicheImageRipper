@@ -74,7 +74,7 @@ public static partial class UrlUtility
         "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/", "https://jpg5.su/",
         "https://simpcity.su/", "https://rule34video.com/", "https://av19a.com/", "https://www.eporner.com/",
         "https://cgcosplay.org/", "https://www.4khd.com/", "https://cosplay69.net/", "https://www.nlegs.com/",
-        "https://www.ladylap.com/"
+        "https://www.ladylap.com/", "https://www.xasiat.com/"
     }.ToFrozenSet();
 
     /// <summary>

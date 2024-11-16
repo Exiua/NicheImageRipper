@@ -83,6 +83,11 @@ public static class SeleniumExtensionMethods
     {
         ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
     }
+
+    public static void Click(this IWebDriver driver, IWebElement element)
+    {
+        ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].click();", element);
+    }
     
     public static void RemoveElement(this IWebDriver driver, IWebElement element)
     {

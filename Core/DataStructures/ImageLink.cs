@@ -226,6 +226,10 @@ public partial class ImageLink
             fileName = url.Split("url=")[1].Split("&")[0] + ".jfif";
             LinkInfo = LinkInfo.ResolveImage;
         }
+        else if (url.Contains("xasiat.com"))
+        {
+            fileName = url.Split("/")[^2];
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
