@@ -261,6 +261,7 @@ public partial class HtmlParser
             "nlegs" => NLegsParse,
             "ladylap" => LadyLapParse,
             "xasiat" => XasiatParse,
+            "catbox" => CatBoxParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1437,6 +1438,23 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for catbox.moe and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CatBoxParse()
+    {
+        Log.Warning("Catbox.moe support is experimental and may not work as expected");
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='title']/h1").InnerText;
+        var images = soup.SelectSingleNode("//div[@class='imagecontainer']")
+                         .SelectNodes("./video")
+                         .Select(vid => vid.GetSrc())
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for cgcosplay.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
