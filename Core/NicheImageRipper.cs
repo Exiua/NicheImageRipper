@@ -398,6 +398,7 @@ public abstract partial class NicheImageRipper
         support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : 0;
         support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : 0;
         support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : 0;
+        support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : 0;
         return support;
     }
     
@@ -414,6 +415,11 @@ public abstract partial class NicheImageRipper
     private static bool CheckForMegaCmd()
     {
         return CheckForProcess("mega-version.bat", "-v");
+    }
+
+    private static bool CheckForFlareSolverr()
+    {
+        return Config.FlareSolverrUri != "";
     }
 
     private static bool CheckForProcess(string filename, string arguments)

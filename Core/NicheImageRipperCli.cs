@@ -46,6 +46,11 @@ public class NicheImageRipperCli : NicheImageRipper
             Log.Warning("MEGAcmd not found. Some functionality may be limited.");
         }
         
+        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
+        {
+            Log.Warning("FlareSolverr not found. Some functionality may be limited.");
+        }
+        
         while (true)
         {
             try
