@@ -163,7 +163,7 @@ public partial class ImageLink
         else if(url.Contains("sendvid.com") && url.Contains(".m3u8"))
         {
             fileName = url.Split("/")[6];
-            LinkInfo = LinkInfo.M3U8;
+            LinkInfo = LinkInfo.M3U8Ffmpeg;
         }
         else if(url.Contains("iframe.mediadelivery.net"))
         {
@@ -191,7 +191,7 @@ public partial class ImageLink
         {
             var parts = url.Split("/");
             fileName = parts.Length >= 9 ? parts[8] : parts[^1].Split(")")[0];
-            LinkInfo = url.Contains(".m3u8") ? LinkInfo.M3U8 : LinkInfo.None;
+            LinkInfo = url.Contains(".m3u8") ? LinkInfo.M3U8Ffmpeg : LinkInfo.None;
         }
         else if (url.Contains("yande.re/"))
         {
@@ -230,12 +230,22 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
+        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8"))
+        {
+            fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
+            LinkInfo = LinkInfo.M3U8YtDlp;
+        }
+        else if (url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
+        {
+            fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
+            LinkInfo = LinkInfo.M3U8YtDlp;
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
             if (url.Contains(".m3u8"))
             {
-                LinkInfo = LinkInfo.M3U8;
+                LinkInfo = LinkInfo.M3U8Ffmpeg;
                 fileName = fileName.Replace(".m3u8", ".mp4");
             }
         }

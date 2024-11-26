@@ -104,6 +104,7 @@ public partial class ImageRipper
     {
         var htmlParser = new HtmlParser(RequestHeaders, SiteName, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
+        Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
         //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
@@ -202,6 +203,17 @@ public partial class ImageRipper
             }
         }
         
+        if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > 0.5)
+        {
+            var e = new RipperException("More than 50% of the images failed to download");
+            Log.Error(e, "More than 50% of the images failed to download");
+            if (SiteName == "sexbjcam")
+            {
+                File.Delete("partial.json");
+            }
+            throw e;
+        }
+        
         if(UnzipProtocol != UnzipProtocol.None)
         {
             UnzipFiles(fullPath, downloadStats);
@@ -226,23 +238,39 @@ public partial class ImageRipper
         return exitCode == 0;
     }
     
-    private static async Task<bool> RunFfmpeg(string[] cmd, string startMessage, string endMessage)
+    private static async Task<FfmpegStatusCode> RunFfmpeg(string[] cmd, string startMessage, string endMessage,
+        bool displayOutput = false)
     {
-        cmd = [ "-loglevel", "quiet", "-y", ..cmd ];
-        //cmd = [ "-y", ..cmd ];
+        if (!displayOutput)
+        {
+            cmd = [ "-loglevel", "quiet", "-y", ..cmd ];
+        }
+        else
+        {
+            cmd = [ "-y", ..cmd ];
+        }
         Log.Debug("ffmpeg {cmd}", string.Join(" ", cmd));
-        var exitCode = await RunSubprocess("ffmpeg", cmd, /*true, true,*/ 
+        var exitCode = await RunSubprocess("ffmpeg", cmd, captureError: displayOutput,
             startMessage: startMessage, endMessage: endMessage);
         if (exitCode != 0)
         {
             Log.Error("Failed to run ffmpeg: {ExitCode}", exitCode);
         }
         
-        return exitCode == 0;
+        return (FfmpegStatusCode)exitCode;
     }
 
-    private static async Task<bool> RunYtDlp(string[] cmd, string startMessage, string endMessage)
+    private static async Task<bool> RunYtDlp(string url, string path, string startMessage, string endMessage)
     {
+        var parent = Directory.GetParent(path)!.FullName;
+        var filename = Path.GetFileName(path);
+        string[] cmd = 
+            [
+                "--force-overwrites",
+                "-P", $"\"{parent}\"", 
+                "-o", $"\"{filename}\"",
+                $"\"{url}\"",
+            ];
         //cmd = [ "--no-warnings", ..cmd ];
         Log.Debug("yt-dlp {cmd}", string.Join(" ", cmd));
         var exitCode = await RunSubprocess("yt-dlp", cmd, /*true, true,*/ 
@@ -356,8 +384,11 @@ public partial class ImageRipper
         bool success;
         switch (imageLink.LinkInfo)
         {
-            case LinkInfo.M3U8:
+            case LinkInfo.M3U8Ffmpeg:
                 success = await DownloadM3U8ToMp4(imagePath, imageLink);
+                break;
+            case LinkInfo.M3U8YtDlp:
+                success = await DownloadM3U8YtDlp(imagePath, imageLink);
                 break;
             case LinkInfo.GDrive:
                 success = await DownloadGDriveFile(imagePath, imageLink);
@@ -482,7 +513,7 @@ public partial class ImageRipper
         return exitCode == 0;
     }
 
-    private static Task<bool> DownloadM3U8ToMp4(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadM3U8ToMp4(string path, ImageLink imageLink)
     {
         var url = imageLink.Url;
         var referer = imageLink.Referer;
@@ -509,8 +540,10 @@ public partial class ImageRipper
             [
                 "-headers",
                 $"\"Referer: {referer}\"",
+                "-headers",
+                $"\"User-Agent: {Config.UserAgent}\"",
                 "-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
-                "-i", url,
+                "-i", $"\"{url}\"",
                 "-c", "copy",
                 $"\"{path}\""
             ];
@@ -520,15 +553,23 @@ public partial class ImageRipper
             cmd =
             [
                 "-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
-                "-i", url,
+                "-i", $"\"{url}\"",
                 "-c", "copy",
                 $"\"{path}\""
             ];
         }
         
-        return RunFfmpeg(cmd, "Starting ffmpeg download", "ffmpeg download finished");
+        var result = await RunFfmpeg(cmd, "Starting ffmpeg download", "ffmpeg download finished");
+        Log.Debug("Ffmpeg result: {Result}", result.GetShortErrorMessage());
+        return result.IsSuccess();
     }
 
+    private static Task<bool> DownloadM3U8YtDlp(string path, ImageLink imageLink)
+    {
+        return RunYtDlp(imageLink.Url, path, startMessage: "Starting yt-dlp download",
+            endMessage: "yt-dlp download finished");
+    }
+    
     private static async Task<bool> DownloadGDriveFile(string path, ImageLink imageLink)
     {
         var destinationPath = Path.Combine(path, imageLink.Filename);
@@ -641,14 +682,10 @@ public partial class ImageRipper
         return true;
     }
 
-    private static async Task<bool> DownloadYoutubeFile(string path, ImageLink imageLink)
+    private static Task<bool> DownloadYoutubeFile(string path, ImageLink imageLink)
     {
-        var parent = Directory.GetParent(path)!.FullName;
-        var filename = Path.GetFileName(path);
-        var cmd = new[] { "-P", $"\"{parent}\"", imageLink.Url, "-o", filename };
-        var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
+        return RunYtDlp(imageLink.Url, path, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
-        return exitCode == 0;
     }
     
     private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, bool generatingManually)

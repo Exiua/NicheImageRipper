@@ -28,9 +28,6 @@ namespace Core.SiteParsing;
 
 public partial class HtmlParser
 {
-    private const string UserAgent =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
-
     private const string Protocol = "https:";
 
     private static readonly string[] ExternalSites =
@@ -58,6 +55,7 @@ public partial class HtmlParser
     }
     private static bool Debugging { get; set; }
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
+    private static string UserAgent => Config.UserAgent;
 
     public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
                       FilenameScheme filenameScheme = FilenameScheme.Original)
@@ -263,6 +261,7 @@ public partial class HtmlParser
             "xasiat" => XasiatParse,
             "catbox" => CatBoxParse,
             "jrants" => JRantsParse,
+            "sexbjcam" => SexBjCamParser,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -983,7 +982,7 @@ public partial class HtmlParser
         var urlPath = match.Groups[1].Value;
         var filename = match.Groups[2].Value;
         var playlist = $"https://z124fdsf6dsf.onymyway.top/{urlPath}";
-        var linkInfo = new ImageLink(playlist, FilenameScheme, 0, filename: $"{filename}.mp4", linkInfo: LinkInfo.M3U8)
+        var linkInfo = new ImageLink(playlist, FilenameScheme, 0, filename: $"{filename}.mp4", linkInfo: LinkInfo.M3U8Ffmpeg)
         {
             Referer = "https://david.cdnbuzz.buzz/"
         };
@@ -4925,6 +4924,39 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for sexbjcam.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> SexBjCamParser()
+    {
+        var soup = await SolveParseAddCookies(regenerateSessionOnFailure: true);
+        //Driver.TakeDebugScreenshot();
+        var dirName = soup.SelectSingleNode("//h1[@class='entry-title']").InnerText;
+        var iframe = soup.SelectSingleNode("//iframe");
+        var iframeUrl = iframe.GetSrc();
+        var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
+        CurrentUrl = iframeUrl;
+        var referer = iframeUrl.Split("/")[..3].Join("/") + '/';
+        StringImageLinkWrapper playlist;
+        while (true)
+        {
+            var links = capturer.GetNewVideoLinks();
+            if (links.Count == 0)
+            {
+                continue;
+            }
+
+            playlist = new ImageLink(links[0], FilenameScheme, 0)
+            {
+                Referer = referer
+            };
+            break;
+        }
+        
+        return new RipInfo([ playlist ], dirName, FilenameScheme);
+    }
+
+    /// <summary>
     ///     Parses the html for sexhd.pics and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -6295,9 +6327,26 @@ public partial class HtmlParser
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
-    private static async Task<HtmlNode> SolveParseAddCookies()
+    private static async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false)
     {
-        var solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+        Solution solution;
+        try
+        {
+            solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+        }
+        catch (FailedToGetSolutionException)
+        {
+            if (regenerateSessionOnFailure)
+            {
+                await FlareSolverrManager.DeleteSession(suppressException: true);
+                solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+            }
+            else
+            {
+                throw;
+            }
+        }
+        
         var cookieJar = Driver.GetCookieJar();
         foreach (var seleniumCookie in solution.Cookies.Select(cookie => cookie.ToSeleniumCookie()))
         {

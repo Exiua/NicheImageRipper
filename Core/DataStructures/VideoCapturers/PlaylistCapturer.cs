@@ -18,7 +18,7 @@ public abstract class PlaylistCapturer
         
         var url = e.Response.Url;
         var id = GetId(url);
-        Log.Debug("[{id}]: {url}", id, url);
+        //Log.Debug("[{id}]: {url}", id, url);
         if (!_videoUrls.TryGetValue(id, out var value))
         {
             value = [];
@@ -52,5 +52,10 @@ public abstract class PlaylistCapturer
     {
         _videoUrls.Clear();
         _seenIds.Clear();
+    }
+    
+    protected static string GetUrlParameterValue(string url, string parameter)
+    {
+        return url.Split($"{parameter}=")[1].Split("&")[0];
     }
 }

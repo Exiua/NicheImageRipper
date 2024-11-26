@@ -16,7 +16,7 @@ public class FlareSolverrManager(string flareSolverrUri)
         var response = await _flareSolverrClient.CreateSession();
         if (response is not SessionCreationResponse sessionCreationResponse)
         {
-            throw new RipperException("Failed to create session");
+            throw new FailedToCreateSession();
         }
         
         _sessionId = sessionCreationResponse.Session;
@@ -27,7 +27,7 @@ public class FlareSolverrManager(string flareSolverrUri)
         var response = await _flareSolverrClient.ListSessions();
         if (response is not SessionListResponse sessionListResponse)
         {
-            throw new RipperException("Failed to list sessions");
+            throw new FailedToListSessionsException();
         }
         
         if (sessionListResponse.Sessions.Count == 0)
@@ -40,7 +40,7 @@ public class FlareSolverrManager(string flareSolverrUri)
         }
     }
     
-    public async Task DeleteSession()
+    public async Task DeleteSession(bool suppressException = false)
     {
         if (_sessionId is null)
         {
@@ -48,9 +48,9 @@ public class FlareSolverrManager(string flareSolverrUri)
         }
         
         var response = await _flareSolverrClient.DeleteSession(_sessionId);
-        if (response.Status != "ok")
+        if (response.Status != "ok" && !suppressException)
         {
-            throw new RipperException("Failed to delete session");
+            throw new FailedToDeleteSessionException();
         }
         
         _sessionId = null;
@@ -68,7 +68,7 @@ public class FlareSolverrManager(string flareSolverrUri)
         var response = await _flareSolverrClient.GetRequest(payload);
         if (response is not RequestResponse requestResponse)
         {
-            throw new RipperException("Failed to get site solution");
+            throw new FailedToGetSolutionException();
         }
 
         Log.Debug("Got site solution {@solution}", requestResponse.Solution.Cookies);
