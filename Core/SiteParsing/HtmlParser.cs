@@ -19,6 +19,7 @@ using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
+using OpenQA.Selenium.DevTools.V128.Emulation;
 using OpenQA.Selenium.Firefox;
 using Serilog;
 using Serilog.Events;
@@ -262,6 +263,7 @@ public partial class HtmlParser
             "catbox" => CatBoxParse,
             "jrants" => JRantsParse,
             "sexbjcam" => SexBjCamParser,
+            "pornavhd" => PornAvHdParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -4539,6 +4541,38 @@ public partial class HtmlParser
     }
 
     /// <summary>
+    ///     Parses the html for pornavhd.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> PornAvHdParse()
+    {
+        var soup = await SolveParseAddCookies();
+        var dirName = soup.SelectSingleNode("//h1[@itemprop='name']").InnerText;
+        var iframe = soup.SelectSingleNode("//div[@class='responsive-player']/iframe");
+        var iframeUrl = iframe.GetSrc();
+        var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
+        CurrentUrl = iframeUrl;
+        var referer = iframeUrl.Split("/")[..3].Join("/") + '/';
+        StringImageLinkWrapper playlist;
+        while (true)
+        {
+            var links = capturer.GetNewVideoLinks();
+            if (links.Count == 0)
+            {
+                continue;
+            }
+
+            playlist = new ImageLink(links[0], FilenameScheme, 0)
+            {
+                Referer = referer
+            };
+            break;
+        }
+        
+        return new RipInfo([ playlist ], dirName, FilenameScheme);
+    }
+    
+    /// <summary>
     ///     Parses the html for pornhub.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -6327,6 +6361,11 @@ public partial class HtmlParser
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
+    /// <summary>
+    ///     Get captcha solution to site, parse the html, and add the necessary cookies to the driver.
+    /// </summary>
+    /// <param name="regenerateSessionOnFailure">Whether to regenerate the session if getting the solution fails</param>
+    /// <returns>The parsed html</returns>
     private static async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false)
     {
         Solution solution;

@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using Core;
+﻿using Core;
 using Core.ArgParse;
 using Core.SiteParsing;
 using Core.Utility;
@@ -20,6 +18,7 @@ NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
 
 PrintUtility.PrintFunction = Log.Information;
 
+#if DEBUG
 var arguments = ArgumentParser.Parse(args);
 switch (arguments.RunMode)
 {
@@ -47,3 +46,7 @@ switch (arguments.RunMode)
     default:
         throw new ArgumentOutOfRangeException();
 }
+#else
+var ripper = new NicheImageRipperCli();
+await ripper.Run();
+#endif

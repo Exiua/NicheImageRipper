@@ -75,7 +75,7 @@ public static partial class UrlUtility
         "https://simpcity.su/", "https://rule34video.com/", "https://av19a.com/", "https://www.eporner.com/",
         "https://cgcosplay.org/", "https://www.4khd.com/", "https://cosplay69.net/", "https://www.nlegs.com/",
         "https://www.ladylap.com/", "https://www.xasiat.com/", "https://catbox.moe/", "https://en.jrants.com/",
-        "https://sexbjcam.com/"
+        "https://sexbjcam.com/", "https://pornavhd.com/"
     }.ToFrozenSet();
 
     /// <summary>
