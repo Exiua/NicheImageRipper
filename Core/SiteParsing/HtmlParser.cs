@@ -38,7 +38,7 @@ public partial class HtmlParser
     
     private static Config Config => Config.Instance;
     
-    private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(""));
+    private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(false));
     private static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
 
     public bool Interrupted { get; set; }
@@ -75,7 +75,7 @@ public partial class HtmlParser
     public static void SetDebugMode(bool debug)
     {
         Driver.Quit();
-        Driver = debug ? new FirefoxDriver(InitializeOptions("debug")) : new FirefoxDriver(InitializeOptions(""));
+        Driver = new FirefoxDriver(InitializeOptions(debug));
         Debugging = debug;
     }
     
@@ -285,14 +285,14 @@ public partial class HtmlParser
         JsonUtility.Serialize("partial.json", partialSave);
     }
 
-    private static FirefoxOptions InitializeOptions(string siteName)
+    private static FirefoxOptions InitializeOptions(bool debug)
     {
         var options = new FirefoxOptions
         {
             UseWebSocketUrl = true
         };
         
-        if (siteName != "debug")
+        if (!debug)
         {
             options.AddArgument("--headless");
         }
@@ -5268,7 +5268,7 @@ public partial class HtmlParser
                     Log.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
-                    Driver = new FirefoxDriver(InitializeOptions(""));
+                    Driver = new FirefoxDriver(InitializeOptions(false));
                     cookieJar = Driver.GetCookieJar();
                     foreach(var cookie in cookies)
                     {
@@ -5281,7 +5281,7 @@ public partial class HtmlParser
                     Log.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
-                    Driver = new FirefoxDriver(InitializeOptions(""));
+                    Driver = new FirefoxDriver(InitializeOptions(false));
                     cookieJar = Driver.GetCookieJar();
                     foreach(var cookie in cookies)
                     {
@@ -6673,7 +6673,7 @@ public partial class HtmlParser
     {
         try
         {
-            var options = InitializeOptions(debug ? "debug" : "");
+            var options = InitializeOptions(debug);
             Driver = new FirefoxDriver(options);
             CurrentUrl = givenUrl.Replace("members.", "www.");
             SiteName = TestSiteCheck(givenUrl);
@@ -6859,9 +6859,23 @@ public partial class HtmlParser
         {
             // Ignore
             Log.Warning("WebDriver unreachable, resetting...");
-            Driver = new FirefoxDriver(InitializeOptions(""));
+            Driver = new FirefoxDriver(InitializeOptions(false));
             SiteLoginStatus.Clear();
         }
+    }
+
+    public static void RegenerateDriver()
+    {
+        try
+        {
+            Driver.Quit();
+        }
+        catch (WebDriverException)
+        {
+            // Ignore
+        }
+        
+        Driver = new FirefoxDriver(InitializeOptions(false));
     }
     
     [GeneratedRegex("(tags=[^&]+)")]

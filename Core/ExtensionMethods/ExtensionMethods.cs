@@ -105,6 +105,11 @@ public static class ExtensionMethods
         return string.Join(separator, values);
     }
     
+    public static string Join(this IEnumerable<string> values, char separator)
+    {
+        return string.Join(separator, values);
+    }
+    
     public static string Remove(this string src, string toRemove)
     {
         return src.Replace(toRemove, string.Empty);
@@ -147,7 +152,7 @@ public static class ExtensionMethods
         return newArr;
     }
     
-    public static void AddNotNull<T>(this List<T> list, T? item)
+    public static void AddIfNotNull<T>(this List<T> list, T? item)
     {
         if (item is not null)
         {

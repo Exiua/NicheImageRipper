@@ -1,6 +1,6 @@
 ﻿using OpenQA.Selenium;
 
-namespace Core.DataStructures;
+namespace Core.SiteParsing;
 
 public class LazyLoadArgs
 {

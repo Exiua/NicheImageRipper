@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text;
 using Core.Enums;
+using Core.FileDownloading;
 using Core.SiteParsing;
 using Core.Utility;
 using Google;

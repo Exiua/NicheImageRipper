@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Core.SiteParsing;
+namespace Core.FileDownloading;
 
 public static class MegaApi
 {

@@ -116,7 +116,7 @@ public abstract partial class NicheImageRipper
                     if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, url)))
                     {
                         var result = AddToUrlQueue(url, i);
-                        failedUrls.AddNotNull(result);
+                        failedUrls.AddIfNotNull(result);
                     }
                     else
                     {
@@ -186,6 +186,72 @@ public abstract partial class NicheImageRipper
         var url1Parts = url1.Split("/");
         var url2Parts = url2.Split("/");
         return url1Parts[4] == url2Parts[4];
+    }
+    
+    private static bool UrlIsInHistory(string url)
+    {
+        url = NormalizeUrl(url);
+        return HistoryDb.UrlInHistory(url);
+    }
+    
+    private static string NormalizeUrl(string url)
+    {
+        var host = new Uri(url).Host;
+        
+        if (host.Contains("pornhub.com"))
+        {
+            return NormalizePornhubUrl(url);
+        }
+
+        if (host.Contains("yande"))
+        {
+            return NormalizeBooruUrl(url, Booru.Yandere);
+        }
+        if (host.Contains("danbooru"))
+        {
+            return NormalizeBooruUrl(url, Booru.Danbooru);
+        }
+        if (host.Contains("gelbooru"))
+        {
+            return NormalizeBooruUrl(url, Booru.Gelbooru);
+        }
+        if (host.Contains("rule34"))
+        {
+            return NormalizeBooruUrl(url, Booru.Rule34);
+        }
+        
+        return url.Split("?")[0];
+    }
+    
+    private static string NormalizePornhubUrl(string url)
+    {
+        if(url.Contains("view_video"))
+        {
+            var id = PornhubViewKeyRegex().Match(url).Groups[1].Value;
+            return $"https://www.pornhub.com/view_video.php?viewkey={id}";
+        }
+
+        var urlParts = url.Split('/');
+        return urlParts[..5].Join('/');
+    }
+    
+    private static string NormalizeBooruUrl(string url, Booru booru)
+    {
+        var baseUrl = url.Split("?")[0];
+        var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
+        if (tags.EndsWith('+'))
+        {
+            tags = tags[..^1];
+        }
+        
+        return booru switch
+        {
+            Booru.Danbooru => $"{baseUrl}?{tags}",
+            Booru.Gelbooru => $"{baseUrl}?page=post&s=list&{tags}",
+            Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
+            Booru.Yandere => $"{baseUrl}?{tags}",
+            _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
+        };
     }
 
     protected async Task<string> RipUrl()
@@ -343,9 +409,9 @@ public abstract partial class NicheImageRipper
         return null;
     }
 
-    public virtual void UpdateHistory(ImageRipper ripper, string url)
+    public virtual void UpdateHistory(RipInfo ripInfo, string url)
     {
-        var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripper.FolderInfo.DirectoryName);
+        var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripInfo.DirectoryName);
         if (duplicate is not null)
         {
             var now = DateTime.Now;
@@ -356,8 +422,7 @@ public abstract partial class NicheImageRipper
         }
         else
         {
-            var folderInfo = ripper.FolderInfo;
-            var entry = new HistoryEntry(folderInfo.DirectoryName, url, folderInfo.NumUrls);
+            var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
             History.Add(entry);
             HistoryDb.InsertHistoryRecord(entry);
         }

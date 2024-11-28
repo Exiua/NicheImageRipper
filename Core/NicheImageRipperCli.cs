@@ -12,7 +12,7 @@ public class NicheImageRipperCli : NicheImageRipper
         while (UrlQueue.Count != 0)
         {
             var url = await RipUrl();
-            UpdateHistory(Ripper, url);
+            UpdateHistory(Ripper.FolderInfo, url);
         }
     }
 
@@ -65,6 +65,27 @@ public class NicheImageRipperCli : NicheImageRipper
                 var cmdParts = userInput.Split(' ');
                 switch (cmdParts[0])
                 {
+                    case "help":
+                        LogMessageToFile("""
+                                         Commands:
+                                         - q(uit): Exit the REPL, saving all data and disposing of resources.
+                                         - r(ip): Start the ripping process.
+                                         - queue: Display all URLs currently in the queue.
+                                         - c(lear) cache: Clear the cache.
+                                         - c(lear) queue: Clear the URL queue.
+                                         - retries [n]: Get or set the maximum number of retries (default: current value).
+                                         - delay [ms]: Get or set the delay between retries in milliseconds (default: current value).
+                                         - skip [index]: Skip a URL at a specific index in the queue (default: first URL).
+                                         - debug: Enable debug mode for the HTML parser.
+                                         - save: Save the current state and data.
+                                         - history: Display the history of processed URLs or actions.
+                                         - l(oad) [filename]: Load URLs from a specified file (default: 'UnfinishedRips.json').
+                                         - peek | head: Display the first URL in the queue without removing it.
+                                         - tail: Display the last URL in the queue without removing it.
+                                         - regen: Regenerate the HTML parser driver.
+                                         - [URL(s)]: Queue a URL or list of URLs for processing. Handles failures with options for re-queuing.
+                                         """);
+                        break;
                     case "q":
                     case "quit":
                         LogMessageToFile("Exiting...");
@@ -198,8 +219,14 @@ public class NicheImageRipperCli : NicheImageRipper
                         LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
                         LogMessageToFile("URLs loaded");
                         break;
-                    case "peek":
+                    case "peek" or "head":
                         LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[0]);
+                        break;
+                    case "tail":
+                        LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[^1]);
+                        break;
+                    case "regen":
+                        HtmlParser.RegenerateDriver();
                         break;
                     default:
                         var startIndex = UrlQueue.Count;

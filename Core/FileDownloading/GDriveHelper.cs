@@ -4,7 +4,7 @@ using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using File = Google.Apis.Drive.v3.Data.File;
 
-namespace Core;
+namespace Core.FileDownloading;
 
 public static class GDriveHelper
 {
@@ -101,9 +101,8 @@ internal static class GDriveExtensionMethods
             files.Add(parent);
         }
         var children = await service.GetChildren(id);
-        foreach (var child in children)
+        foreach (var gDriveItem in children.Select(child => new GDriveItem(child, parent)))
         {
-            var gDriveItem = new GDriveItem(child, parent);
             files.Add(gDriveItem);
             if (gDriveItem.IsFolder)
             {
