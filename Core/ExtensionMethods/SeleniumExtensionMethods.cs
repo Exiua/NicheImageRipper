@@ -93,4 +93,15 @@ public static class SeleniumExtensionMethods
     {
         ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].remove();", element);
     }
+    
+    public static long GetScrollHeight(this IWebDriver driver)
+    {
+        var height = ((IJavaScriptExecutor) driver).ExecuteScript("return window.pageYOffset;");
+        return height switch
+        {
+            long l => l,
+            double d => (long)d,
+            _ => throw new InvalidCastException()
+        };
+    }
 }

@@ -11,8 +11,15 @@ public class NicheImageRipperCli : NicheImageRipper
     {
         while (UrlQueue.Count != 0)
         {
-            var url = await RipUrl();
-            UpdateHistory(Ripper.FolderInfo, url);
+            try
+            {
+                var url = await RipUrl();
+                UpdateHistory(Ripper.FolderInfo, url);
+            }
+            finally
+            {
+                Ripper.Dispose(); // TODO: Fix this
+            }
         }
     }
 
@@ -90,7 +97,7 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "quit":
                         LogMessageToFile("Exiting...");
                         SaveData();
-                        HtmlParser.Dispose();
+                        //HtmlParser.Dispose();
                         return;
                     case "r":
                     case "rip":
@@ -204,7 +211,8 @@ public class NicheImageRipperCli : NicheImageRipper
                         LogMessageToFile($"Skipping {url}");
                         break;
                     case "debug":
-                        HtmlParser.SetDebugMode(true);
+                        Log.Warning("Debug mode is not yet implemented.");
+                        //HtmlParser.SetDebugMode(true);
                         Debugging = true;
                         break;
                     case "save":
@@ -226,8 +234,14 @@ public class NicheImageRipperCli : NicheImageRipper
                         LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[^1]);
                         break;
                     case "regen":
-                        HtmlParser.RegenerateDriver();
+                        Log.Warning("Regenerating the HTML parser driver is not yet implemented.");
+                        //HtmlParser.RegenerateDriver();
                         break;
+                    #if DEBUG
+                    case "test":
+                        //HtmlParser.GetImageViaSelenium(cmdParts[1]);
+                        break;
+                    #endif
                     default:
                         var startIndex = UrlQueue.Count;
                         var offset = 0;

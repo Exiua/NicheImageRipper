@@ -14,4 +14,5 @@ public enum LinkInfo
     MpegDash,       // Requires yt-dlp to download
     ResolveImage,   // Requires the image link to be resolved to the download link in the ImageRipper
     M3U8YtDlp,      // Requires yt-dlp to download m3u8 files
+    SeleniumImage,  // Requires Selenium to download the image
 }

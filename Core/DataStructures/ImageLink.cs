@@ -240,6 +240,11 @@ public partial class ImageLink
             fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
             LinkInfo = LinkInfo.M3U8YtDlp;
         }
+        else if (url.Contains("xx-media.knit.bid"))
+        {
+            fileName = url.Split("/")[^1];
+            LinkInfo = LinkInfo.SeleniumImage;
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);

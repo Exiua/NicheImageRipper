@@ -19,15 +19,15 @@ using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
-using OpenQA.Selenium.DevTools.V128.Emulation;
 using OpenQA.Selenium.Firefox;
 using Serilog;
 using Serilog.Events;
 using Cookie = OpenQA.Selenium.Cookie;
+using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing;
 
-public partial class HtmlParser
+public partial class HtmlParser : IDisposable
 {
     private const string Protocol = "https:";
 
@@ -38,9 +38,9 @@ public partial class HtmlParser
     
     private static Config Config => Config.Instance;
     
-    private static FirefoxDriver Driver { get; set; } = new(InitializeOptions(false));
-    private static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
-
+    //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
+    
+    private WebDriver WebDriver { get; set; }
     public bool Interrupted { get; set; }
     private string SiteName { get; set; }
     public float SleepTime { get; set; }
@@ -49,7 +49,8 @@ public partial class HtmlParser
     private FilenameScheme FilenameScheme { get; set; }
     private Dictionary<string, string> RequestHeaders { get; set; }
 
-    private static string CurrentUrl
+    private FirefoxDriver Driver => WebDriver.Driver;
+    private string CurrentUrl
     {
         get => Driver.Url;
         set => Driver.Url = value;
@@ -58,11 +59,12 @@ public partial class HtmlParser
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
     private static string UserAgent => Config.UserAgent;
 
-    public HtmlParser(Dictionary<string, string> requestHeaders, string siteName = "",
+    public HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
                       FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         //var options = InitializeOptions(siteName);
         //Driver = new FirefoxDriver(options);
+        WebDriver = driver;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
         Interrupted = false;
@@ -72,10 +74,11 @@ public partial class HtmlParser
         GivenUrl = "";
     }
 
-    public static void SetDebugMode(bool debug)
+    public void SetDebugMode(bool debug)
     {
-        Driver.Quit();
-        Driver = new FirefoxDriver(InitializeOptions(debug));
+        /*Driver.Quit();
+        Driver = new FirefoxDriver(InitializeOptions(debug));*/
+        WebDriver.RegenerateDriver(debug);
         Debugging = debug;
     }
     
@@ -264,6 +267,7 @@ public partial class HtmlParser
             "jrants" => JRantsParse,
             "sexbjcam" => SexBjCamParser,
             "pornavhd" => PornAvHdParse,
+            "knit" => KnitParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -285,7 +289,7 @@ public partial class HtmlParser
         JsonUtility.Serialize("partial.json", partialSave);
     }
 
-    private static FirefoxOptions InitializeOptions(bool debug)
+    public static FirefoxOptions InitializeOptions(bool debug)
     {
         var options = new FirefoxOptions
         {
@@ -323,18 +327,19 @@ public partial class HtmlParser
         
         return loginTask.ContinueWith(task =>
         {
-            SiteLoginStatus[SiteName] = task.Result;
+            WebDriver.SiteLoginStatus[SiteName] = task.Result;
             Log.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
             return task.Result;
         });
     }
 
-    private static bool IsLoggedInToSite(string siteName)
+    private bool IsLoggedInToSite(string siteName)
     {
-        return !SiteLoginStatus.TryAdd(siteName, false) && SiteLoginStatus[siteName];
+        var siteLoginStatus = WebDriver.SiteLoginStatus;
+        return !siteLoginStatus.TryAdd(siteName, false) && siteLoginStatus[siteName];
     }
 
-    private static async Task<bool> NijieLogin()
+    private async Task<bool> NijieLogin()
     {
         var origUrl = CurrentUrl;
         var (username, password) = Config.Logins["Nijie"];
@@ -360,7 +365,7 @@ public partial class HtmlParser
         return true;
     }
 
-    private static async Task<bool> TitsInTopsLogin()
+    private async Task<bool> TitsInTopsLogin()
     {
         var origUrl = CurrentUrl;
         var (username, password) = Config.Logins["TitsInTops"];
@@ -384,7 +389,7 @@ public partial class HtmlParser
         return true;
     }
 
-    private static async Task<bool> GoFileLogin()
+    private async Task<bool> GoFileLogin()
     {
         var origUrl = CurrentUrl;
         var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
@@ -3522,12 +3527,73 @@ public partial class HtmlParser
     /// <summary>
     ///     Parses the html for kemono.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> KemonoParse()
     {
         return await DotPartyParse("https://kemono.su");
     }
 
+    /// <summary>
+    ///     Parses the html for xx.knit.bid and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> KnitParse()
+    {
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+            ScrollPauseTime = 1000
+        };
+        
+        var agreeButton = Driver.TryFindElement(By.XPath("//button[@id='agree-over18']"));
+        if (agreeButton is not null)
+        {
+            Driver.Click(agreeButton);
+        }
+        
+        var retry = 0;
+        while (true)
+        {
+            await LazyLoad(lazyLoadArgs);
+            var scrollHeight = Driver.GetScrollHeight();
+            if (scrollHeight <= 650)
+            {
+                Log.Debug("Page reset");
+                CleanTabs("xx.knit.bid");
+                retry++;
+                if (retry > 4)
+                {
+                    throw new RipperException("Page reset too many times");
+                }
+                continue;
+            }
+            
+            var loadMoreButton = Driver.TryFindElement(By.XPath("//div[@class='ias_trigger']"));
+            if (loadMoreButton is null)
+            {
+                Log.Debug("No more images to load");
+                break;
+            }
+            
+            loadMoreButton.Click();
+        }
+
+        var soup  = await Soupify();    
+        var dirName = soup.SelectSingleNode("//h1[@class='focusbox-title']").InnerText;
+        var images = soup.SelectSingleNode("//article[@id='img-box']")
+            .SelectNodes("./p")
+            .Select(p => "https://xx-media.knit.bid" + p.SelectSingleNode("./img").GetSrc())
+            .ToStringImageLinkWrapperList();
+        var videos = soup.SelectSingleNode("//article[@id='img-box']/div[@class='wrapper']")
+            .SelectNodesSafe(".//source")
+            .Select(source => source.GetSrc())
+            .ToStringImageLinks();
+        images.AddRange(videos);
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for ladylap.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -4655,7 +4721,7 @@ public partial class HtmlParser
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
-    private static async Task<(List<StringImageLinkWrapper> images, string dirName)> PornhubLinkExtractor(HtmlNode soup)
+    private async Task<(List<StringImageLinkWrapper> images, string dirName)> PornhubLinkExtractor(HtmlNode soup)
     {
         string dirName;
         List<StringImageLinkWrapper> images;
@@ -5268,7 +5334,7 @@ public partial class HtmlParser
                     Log.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
-                    Driver = new FirefoxDriver(InitializeOptions(false));
+                    WebDriver.RegenerateDriver(false);
                     cookieJar = Driver.GetCookieJar();
                     foreach(var cookie in cookies)
                     {
@@ -5281,7 +5347,8 @@ public partial class HtmlParser
                     Log.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
-                    Driver = new FirefoxDriver(InitializeOptions(false));
+                    //Driver = new FirefoxDriver(InitializeOptions(false));
+                    WebDriver.RegenerateDriver(false);
                     cookieJar = Driver.GetCookieJar();
                     foreach(var cookie in cookies)
                     {
@@ -6269,7 +6336,7 @@ public partial class HtmlParser
         throw new RipperException($"Improperly formatted json: {json}");
     }
 
-    private static async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "")
+    private async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "")
     {
         if (delay > 0)
         {
@@ -6291,7 +6358,7 @@ public partial class HtmlParser
         return doc.DocumentNode;
     }
     
-    private static async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
+    private async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
                                                 string xpath = "", bool urlString = true)
     {
         if (!urlString)
@@ -6328,7 +6395,7 @@ public partial class HtmlParser
     /// <param name="delay">Delay between each check</param>
     /// <param name="timeout">Timeout for the wait (-1 for no timeout)</param>
     /// <returns>True if the element exists, false if the timeout is reached</returns>
-    private static async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
+    private async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
         var startTime = DateTime.Now;
@@ -6346,7 +6413,7 @@ public partial class HtmlParser
         return true;
     }
     
-    private static void CleanTabs(string urlMatch)
+    private void CleanTabs(string urlMatch)
     {
         var windowHandles = Driver.WindowHandles;
         foreach (var handle in windowHandles)
@@ -6366,7 +6433,7 @@ public partial class HtmlParser
     /// </summary>
     /// <param name="regenerateSessionOnFailure">Whether to regenerate the session if getting the solution fails</param>
     /// <returns>The parsed html</returns>
-    private static async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false)
+    private async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false)
     {
         Solution solution;
         try
@@ -6395,7 +6462,7 @@ public partial class HtmlParser
         return await Soupify(solution);
     }
 
-    private static async Task<HtmlNode> SolveCaptcha(string url, bool humanSolving)
+    private async Task<HtmlNode> SolveCaptcha(string url, bool humanSolving)
     {
         await SolveParseAddCookies(); // Replace with a proper captcha solver
         if (humanSolving)
@@ -6407,7 +6474,7 @@ public partial class HtmlParser
         return await Soupify(url);
     }
     
-    private static async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
+    private async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();
         var bidi = await Driver.AsBiDiAsync();
@@ -6568,7 +6635,7 @@ public partial class HtmlParser
     ///     Scrolls through the page to lazy load images
     /// </summary>
     /// <param name="args">Arguments for lazy loading</param>
-    private static Task LazyLoad(LazyLoadArgs args)
+    private Task LazyLoad(LazyLoadArgs args)
     {
         return args.StopElement is not null && Driver.TryFindElement(args.StopElement) is not null
             ? LazyLoad(args.StopElement) 
@@ -6583,10 +6650,10 @@ public partial class HtmlParser
     /// <param name="scrollPauseTime">Seconds to wait between each scroll</param>
     /// <param name="scrollBack">Distance to scroll back by after reaching the bottom of the page</param>
     /// <param name="rescroll">Whether scrolling through the page again</param>
-    private static async Task LazyLoad(bool scrollBy = false, int increment = 2500, int scrollPauseTime = 500,
+    private async Task LazyLoad(bool scrollBy = false, int increment = 2500, int scrollPauseTime = 500,
                                        int scrollBack = 0, bool rescroll = false)
     {
-        var lastHeight = (long)Driver.ExecuteScript("return window.pageYOffset");
+        var lastHeight = Driver.GetScrollHeight();
         if (rescroll)
         {
             Driver.ExecuteScript("window.scrollTo(0, 0);");
@@ -6630,7 +6697,7 @@ public partial class HtmlParser
         }
     }
 
-    private static async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500)
+    private async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500)
     {
         var scrollScript = $"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});";
         while (true)
@@ -6645,19 +6712,19 @@ public partial class HtmlParser
         }
     }
     
-    private static void ScrollPage(int distance = 1250)
+    private void ScrollPage(int distance = 1250)
     {
         var currHeight = (long)Driver.ExecuteScript("return window.pageYOffset");
         var scrollScript = $"window.scrollBy({{top: {currHeight + distance}, left: 0, behavior: 'smooth'}});";
         Driver.ExecuteScript(scrollScript);
     }
     
-    private static void ScrollToTop()
+    private void ScrollToTop()
     {
         Driver.ExecuteScript("window.scrollTo(0, 0);");
     }
     
-    private static void ScrollElementIntoView(IWebElement element)
+    private void ScrollElementIntoView(IWebElement element)
     {
         Driver.ExecuteScript("arguments[0].scrollIntoView(true);", element);
     }
@@ -6673,8 +6740,8 @@ public partial class HtmlParser
     {
         try
         {
-            var options = InitializeOptions(debug);
-            Driver = new FirefoxDriver(options);
+            /*var options = InitializeOptions(debug);
+            Driver = new FirefoxDriver(options);*/
             CurrentUrl = givenUrl.Replace("members.", "www.");
             SiteName = TestSiteCheck(givenUrl);
 
@@ -6827,57 +6894,16 @@ public partial class HtmlParser
 
     #endregion
     
-    public static void Dispose()
+    public void Dispose()
     {
         if (Config.CloseFlareSolverrSession)
         {
             FlareSolverrManager.DeleteSession().Wait();
         }
-        Driver.Quit();
-    }
-    
-    public static async Task AssociateGoFileCookies(string url)
-    {
-        Log.Debug("Associating GoFile cookies");
-        try
-        {
-            if(!SiteLoginStatus.GetValueOrDefault("gofile", false))
-            {
-                Log.Debug("Logging into GoFile");
-                SiteLoginStatus["gofile"] = await GoFileLogin();
-                Driver.GetScreenshot().SaveAsFile("test.png");
-            }
-            
-            CurrentUrl = url;
-            Log.Debug("Loading {CurrentUrl}", CurrentUrl);
-            Driver.Refresh();
-            await Task.Delay(5000);
-            Driver.GetScreenshot().SaveAsFile("test.png");
-            // TODO: Also need to get account token for requests
-        }
-        catch (WebDriverException)
-        {
-            // Ignore
-            Log.Warning("WebDriver unreachable, resetting...");
-            Driver = new FirefoxDriver(InitializeOptions(false));
-            SiteLoginStatus.Clear();
-        }
+        
+        GC.SuppressFinalize(this);
     }
 
-    public static void RegenerateDriver()
-    {
-        try
-        {
-            Driver.Quit();
-        }
-        catch (WebDriverException)
-        {
-            // Ignore
-        }
-        
-        Driver = new FirefoxDriver(InitializeOptions(false));
-    }
-    
     [GeneratedRegex("(tags=[^&]+)")]
     private static partial Regex Rule34Regex();
     [GeneratedRegex(@"(/p=\d+)")]

@@ -18,7 +18,7 @@ using File = System.IO.File;
 
 namespace Core;
 
-public abstract partial class NicheImageRipper
+public abstract partial class NicheImageRipper : IDisposable
 {
     public static Config Config { get; set; } = Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
@@ -41,6 +41,8 @@ public abstract partial class NicheImageRipper
     public string SaveFolder { get; set; } = ".";
     public int MaxRetries { get; set; } = 4;
     public int RetryDelay { get; set; } = 1000; // In milliseconds
+    
+    protected WebDriverPool WebDriverPool { get; set; } = new(1);
     
     public List<HistoryEntry> History { get; set; } = [];
     public static HistoryManager HistoryDb => HistoryManager.Instance;
@@ -263,7 +265,7 @@ public abstract partial class NicheImageRipper
         }
         var url = UrlQueue[0];
         PrintUtility.Print(url);
-        Ripper = new ImageRipper(FilenameScheme, UnzipProtocol);
+        Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol);
         Interrupted = true;
         var retry = 0;
         do
@@ -513,6 +515,12 @@ public abstract partial class NicheImageRipper
         }
         
         return true;
+    }
+    
+    public void Dispose()
+    {
+        WebDriverPool.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     [GeneratedRegex("viewkey=([0-9a-z]+)")]

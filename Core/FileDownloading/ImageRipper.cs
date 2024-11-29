@@ -11,20 +11,24 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.History;
 using Core.Managers;
 using Core.SiteParsing;
 using Core.Utility;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Firefox;
 using Serilog;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
+using WebDriver = Core.History.WebDriver;
 
 namespace Core.FileDownloading;
 
-public partial class ImageRipper
+public partial class ImageRipper : IDisposable
 {
     private const string RipIndex = ".ripIndex";
     private const int RetryCount = 4;
@@ -66,12 +70,16 @@ public partial class ImageRipper
     private string SiteName { get; set; }
     private float SleepTime { get; set; }
     public int CurrentIndex { get; private set; }
+    private WebDriverPool DriverPool { get; }
+    private WebDriver WebDriver { get; set; }
+    
+    private FirefoxDriver Driver => WebDriver.Driver;
 
     private static Config Config => Config.Instance;
     private static TokenManager TokenManager => TokenManager.Instance;
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
-    public ImageRipper(FilenameScheme filenameScheme = FilenameScheme.Original, UnzipProtocol unzipProtocol = UnzipProtocol.None)
+    public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original, UnzipProtocol unzipProtocol = UnzipProtocol.None)
     {
         FilenameScheme = filenameScheme;
         UnzipProtocol = unzipProtocol;
@@ -85,6 +93,8 @@ public partial class ImageRipper
         SiteName = "";
         SleepTime = 0.2f;
         CurrentIndex = 0;
+        DriverPool = driverPool;
+        WebDriver = driverPool.AcquireDriver(false);
     }
 
     public async Task Rip(string url)
@@ -102,7 +112,7 @@ public partial class ImageRipper
 
     private async Task FileGetter()
     {
-        var htmlParser = new HtmlParser(RequestHeaders, SiteName, FilenameScheme);
+        var htmlParser = new HtmlParser(WebDriver, RequestHeaders, SiteName, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
         Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
         //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
@@ -416,6 +426,9 @@ public partial class ImageRipper
             case LinkInfo.ResolveImage:
                 success = await ResolveAndDownloadFile(imagePath, imageLink);
                 break;
+            case LinkInfo.SeleniumImage:
+                success = await DownloadSeleniumImage(imagePath, imageLink);
+                break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
                 success = await DownloadFile(imagePath, imageLink, false);
@@ -687,6 +700,21 @@ public partial class ImageRipper
         return RunYtDlp(imageLink.Url, path, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
     }
+
+    private async Task<bool> DownloadSeleniumImage(string path, ImageLink imageLink)
+    {
+        try
+        {
+            var imageData = GetImageViaSelenium(imageLink.Url);
+            await File.WriteAllBytesAsync(path, imageData);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to download image");
+            return false;
+        }
+    }
     
     private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, bool generatingManually)
     {
@@ -925,10 +953,66 @@ public partial class ImageRipper
             }
 
             Log.Warning("GoFile download failed, trying again...");
-            await HtmlParser.AssociateGoFileCookies(imageLink.Url);
+            await AssociateGoFileCookies(imageLink.Url);
             return false;
         }
 
+        return true;
+    }
+    
+    // TODO: Code is duplicated in HtmlParser.cs, find a way to refactor to remove dependency on HtmlParser and
+    //  avoid code duplication
+    private async Task AssociateGoFileCookies(string url)
+    {
+        Log.Debug("Associating GoFile cookies");
+        var siteLoginStatus = WebDriver.SiteLoginStatus;
+        try
+        {
+            if(!siteLoginStatus.GetValueOrDefault("gofile", false))
+            {
+                Log.Debug("Logging into GoFile");
+                siteLoginStatus["gofile"] = await GoFileLogin();
+            }
+            
+            Driver.Url = url;
+            Log.Debug("Loading {CurrentUrl}", Driver.Url);
+            Driver.Refresh();
+            await Task.Delay(5000);
+            // TODO: Also need to get account token for requests
+        }
+        catch (WebDriverException)
+        {
+            // Ignore
+            Log.Warning("WebDriver unreachable, resetting...");
+            //Driver = new FirefoxDriver(HtmlParser.InitializeOptions(false));
+            //HtmlParser.SiteLoginStatus.Clear();
+            WebDriver.RegenerateDriver(false);
+        }
+    }
+    
+    private async Task<bool> GoFileLogin()
+    {
+        var origUrl = Driver.Url;
+        var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
+        Driver.Url = loginLink;
+        await Task.Delay(10000);
+        for (var i = 0; i < 4; i++)
+        {
+            await Task.Delay(2500);
+            if (Driver.Url == "https://gofile.io/myProfile")
+            {
+                Log.Debug("Logged in to GoFile");
+                break;
+            }
+            
+            if (i == 3)
+            {
+                Log.Warning("Failed to login to GoFile: {CurrentUrl}", Driver.Url);
+                Driver.GetScreenshot().SaveAsFile("test2.png");
+            }
+        }
+        
+        Driver.Url = origUrl;
         return true;
     }
 
@@ -1265,6 +1349,23 @@ public partial class ImageRipper
     {
         return SiteName == "titsintops";
     }
+    
+    private byte[] GetImageViaSelenium(string url)
+    {
+        Driver.Url = url;
+        var b64Img = (string)Driver.ExecuteScript("""
+                                                  var img = document.getElementsByTagName("img")[0];
+                                                  var canvas = document.createElement("canvas");
+                                                  canvas.width = img.naturalWidth;
+                                                  canvas.height = img.naturalHeight;
+                                                  var ctx = canvas.getContext("2d");
+                                                  ctx.drawImage(img, 0, 0);
+                                                  var dataURL = canvas.toDataURL("image/png");
+                                                  return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+                                                  """);
+        var bytes = Convert.FromBase64String(b64Img);
+        return bytes;
+    }
 
     private static void LogFailedUrl(string url)
     {
@@ -1281,7 +1382,14 @@ public partial class ImageRipper
             writer.WriteLine($"\t{d.ToString()?.Trim()}");
         }
     }
-
+    
+    public void Dispose()
+    {
+        Session.Dispose();
+        DriverPool.ReleaseDriver(WebDriver);
+        GC.SuppressFinalize(this);
+    }
+    
     [GeneratedRegex(@"//c(\d)+")]
     private static partial Regex DotPartySubdomainRegex();
     [GeneratedRegex("//c\\d+")]
