@@ -268,6 +268,7 @@ public partial class HtmlParser : IDisposable
             "sexbjcam" => SexBjCamParser,
             "pornavhd" => PornAvHdParse,
             "knit" => KnitParse,
+            "69tang" => Six9TangParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -2943,7 +2944,7 @@ public partial class HtmlParser : IDisposable
     }
 
     /// <summary>
-    ///     Query the google drive API to get file information to download
+    ///     Query the Google Drive API to get file information to download
     /// </summary>
     /// <param name="gdriveUrl">The url to parse (default: CurrentUrl)</param>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -3107,7 +3108,7 @@ public partial class HtmlParser : IDisposable
             {
                 var iframe = soup.SelectSingleNode("//iframe");
                 var iframeUrl = iframe.GetSrc();
-                images = [ iframeUrl ]; // youtube video (probably)
+                images = [ iframeUrl ]; // YouTube video (probably)
             }
         }
 
@@ -5420,6 +5421,20 @@ public partial class HtmlParser : IDisposable
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for 69tang.org and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Six9TangParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='headline']/h1").InnerText;
+        var video = soup.SelectSingleNode("//div[@class='fp-player']/video")
+                         .GetSrc();
+
+        return new RipInfo([ video ], dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for spacemiss.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>

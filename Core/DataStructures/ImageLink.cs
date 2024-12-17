@@ -245,6 +245,10 @@ public partial class ImageLink
             fileName = url.Split("/")[^1];
             LinkInfo = LinkInfo.SeleniumImage;
         }
+        else if (url.Contains("69tang.org"))
+        {
+            fileName = url.Split("/")[^2];
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
