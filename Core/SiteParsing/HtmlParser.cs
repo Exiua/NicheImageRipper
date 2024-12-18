@@ -269,6 +269,7 @@ public partial class HtmlParser : IDisposable
             "pornavhd" => PornAvHdParse,
             "knit" => KnitParse,
             "69tang" => Six9TangParse,
+            "jieav" => JieAvParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -3353,6 +3354,34 @@ public partial class HtmlParser : IDisposable
             // }
             
             images.Add($"text:{link}");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for jieav.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> JieAvParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@id='works']/h1").InnerText;
+        var (capturer, _) = await ConfigureNetworkCapture<JieAvCapturer>();
+        Driver.Refresh();
+        var images = new List<StringImageLinkWrapper>();
+        while (true)
+        {
+            var videoLinks = capturer.GetNewVideoLinks();
+            if (videoLinks.Count == 0)
+            {
+                await Task.Delay(250);
+                continue;
+            }
+            
+            // Only one video of interest
+            images.Add(videoLinks[0]);
+            break;
         }
 
         return new RipInfo(images, dirName, FilenameScheme);

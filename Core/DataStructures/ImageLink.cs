@@ -249,6 +249,11 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
+        else if (url.Contains("ddyunbo.com"))
+        {
+            fileName = url.Split("/")[^2] + ".mp4";
+            LinkInfo = LinkInfo.M3U8Ffmpeg;
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
