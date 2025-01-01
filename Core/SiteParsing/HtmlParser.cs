@@ -98,8 +98,12 @@ public partial class HtmlParser : IDisposable
 
         url = url.Replace("members.", "www.");
         GivenUrl = url;
-        CurrentUrl = url;
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        if (SiteName != "booru")
+        {
+            CurrentUrl = url;
+        }
+        
         var siteParser = GetParser(SiteName);
         try
         {
@@ -272,6 +276,7 @@ public partial class HtmlParser : IDisposable
             "jieav" => JieAvParse,
             "hentaiclub" => HentaiClubParse,
             "avav19" => Avav19Parse,
+            "booru" => AllBooruParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -694,11 +699,17 @@ public partial class HtmlParser : IDisposable
     ///     Make requests to booru-like sites and extract image links
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> BooruParse(string siteName, string baseUrl, string pageParameterName, 
-                                           int startingPageIndex, int limit, string[]? jsonObjectNavigation = null, 
-                                           Dictionary<string, string>? headers = null)
+    private async Task<RipInfo> BooruParse(Booru site, string? tags = null)
     {
-        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
+        var metadata = site.GetMetadata();
+        var siteName = metadata.SiteName;
+        var baseUrl = metadata.BaseUrl;
+        var pageParameterName = metadata.PageParameterName;
+        var startingPageIndex = metadata.StartingPageIndex;
+        var limit = metadata.Limit;
+        var headers = metadata.Headers;
+        var jsonObjectNavigation = metadata.JsonObjectNavigation;
+        tags ??= BooruRegex().Match(CurrentUrl).Groups[1].Value;
         tags = Uri.UnescapeDataString(tags);
         var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
         var session = new HttpClient();
@@ -761,6 +772,27 @@ public partial class HtmlParser : IDisposable
             pid++;
         }
 
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    private async Task<RipInfo> AllBooruParse()
+    {
+        var tags = BooruRegex().Match(GivenUrl).Groups[1].Value;
+        var boorus = new[] { Booru.Danbooru, Booru.Gelbooru, Booru.Rule34, Booru.Yandere };
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var booru in boorus)
+        {
+            var metadata = booru.GetMetadata();
+            var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
+            var posts = await BooruParse(booru, tags);
+            var urls = posts.Urls.Select(u =>
+            {
+                u.Referer = referer;
+                return (StringImageLinkWrapper)u;
+            });
+            images.AddRange(urls);
+        }
+        var dirName = $"[Booru] {tags.Remove("+").Remove("tags=")}";
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
@@ -1799,11 +1831,7 @@ public partial class HtmlParser : IDisposable
     /// <returns></returns>
     private Task<RipInfo> DanbooruParse()
     {
-        return BooruParse("Danbooru", "https://danbooru.donmai.us/posts.json?", 
-            "page", 0, 200, headers: new Dictionary<string, string>
-            {
-                ["User-Agent"] = "NicheImageRipper"
-            });
+        return BooruParse(Booru.Danbooru);
     }
 
     /// <summary>
@@ -2736,8 +2764,7 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private Task<RipInfo> GelbooruParse()
     {
-        return BooruParse("Gelbooru", "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&", 
-            "pid", 0, 100, jsonObjectNavigation: ["post"]);
+        return BooruParse(Booru.Gelbooru);
     }
 
     /// <summary>
@@ -4977,8 +5004,7 @@ public partial class HtmlParser : IDisposable
     /// <returns></returns>
     private Task<RipInfo> Rule34Parse()
     {
-        return BooruParse("Rule34", "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
-            "pid", 0, 1000);
+        return BooruParse(Booru.Rule34);
     }
 
     /// <summary>
@@ -6362,8 +6388,7 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private Task<RipInfo> YandeParse()
     {
-        return BooruParse("Yande.re", "https://yande.re/post.json?", "page", 
-            1, 100);
+        return BooruParse(Booru.Yandere);
     }
     
     #endregion
@@ -6982,7 +7007,7 @@ public partial class HtmlParser : IDisposable
     }
 
     [GeneratedRegex("(tags=[^&]+)")]
-    private static partial Regex Rule34Regex();
+    private static partial Regex BooruRegex();
     [GeneratedRegex(@"(/p=\d+)")]
     private static partial Regex HentaiCosplayRegex();
     [GeneratedRegex(@"t\d\.")]

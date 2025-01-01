@@ -782,6 +782,11 @@ public partial class ImageRipper : IDisposable
             oldCookies = RequestHeaders[RequestHeaderKeys.Cookie];
             RequestHeaders[RequestHeaderKeys.Cookie] = cookie;
         }
+        else if (imageLink.Referer.Contains("donmai.us"))
+        {
+            modifiedHeader = ModifiedHeader.UserAgent;
+            RequestHeaders[RequestHeaderKeys.UserAgent] = "NicheImageRipper";
+        }
 
         Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
         HttpResponseMessage response;
@@ -942,6 +947,10 @@ public partial class ImageRipper : IDisposable
             // Add more logic here if other sites require cookies when downloading files
             //RequestHeaders[RequestHeaderKeys.Cookie] = GoFileAccountTokenCookieRegex().Replace(RequestHeaders[RequestHeaderKeys.Cookie], "");
             RequestHeaders[RequestHeaderKeys.Cookie] = oldCookies;
+        }
+        else if (modifiedHeader.HasFlag(ModifiedHeader.UserAgent))
+        {
+            RequestHeaders[RequestHeaderKeys.UserAgent] = Config.UserAgent;
         }
 
         if (imageLink.LinkInfo == LinkInfo.GoFile)

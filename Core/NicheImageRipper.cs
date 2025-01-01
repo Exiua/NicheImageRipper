@@ -221,6 +221,13 @@ public abstract partial class NicheImageRipper : IDisposable
         {
             return NormalizeBooruUrl(url, Booru.Rule34);
         }
+
+        if (host.Contains("booru.com"))
+        {
+            // Special case for booru.com as the site is used as a control command and not as a real site
+            var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
+            return $"https://booru.com/post?{tags}";
+        }
         
         return url.Split("?")[0];
     }
