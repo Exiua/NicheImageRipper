@@ -237,6 +237,16 @@ public class NicheImageRipperCli : NicheImageRipper
                         Log.Warning("Regenerating the HTML parser driver is not yet implemented.");
                         //HtmlParser.RegenerateDriver();
                         break;
+                    case "merge":
+                        if (cmdParts.Length != 2)
+                        {
+                            LogMessageToFile("Missing argument: filename", LogEventLevel.Warning);
+                            break;
+                        }
+                        
+                        HistoryDb.MergeHistory(cmdParts[1]);
+                        LogMessageToFile("History merged");
+                        break;
                     #if DEBUG
                     case "test":
                         //HtmlParser.GetImageViaSelenium(cmdParts[1]);

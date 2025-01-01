@@ -38,14 +38,17 @@ public class HistoryManager : IDisposable
         createIndexCmd.ExecuteNonQuery();
     }
     
-    public void InsertHistoryRecord(HistoryEntry entry)
+    public void InsertHistoryRecord(HistoryEntry entry, SQLiteTransaction? transaction = null)
     {
         const string insertQuery = """
                                    INSERT INTO history (DirectoryName, Url, Date, NumUrls)
                                    VALUES (@DirectoryName, @Url, @Date, @NumUrls);
                                    """;
 
-        using var insertCmd = new SQLiteCommand(insertQuery, _connection);
+        using var insertCmd = transaction is null
+            ? new SQLiteCommand(insertQuery, _connection)
+            : new SQLiteCommand(insertQuery, _connection, transaction);
+        
         insertCmd.Parameters.AddWithValue("@DirectoryName", entry.DirectoryName);
         insertCmd.Parameters.AddWithValue("@Url", entry.Url);
         insertCmd.Parameters.AddWithValue("@Date", entry.Date.ToSqliteString()); // Format date to SQLite DATETIME format
@@ -168,6 +171,43 @@ public class HistoryManager : IDisposable
         }
 
         return history;
+    }
+
+    public void MergeHistory(string filepath)
+    {
+        var externalHistory = $"Data Source={filepath}";
+        using var externalConnection = new SQLiteConnection(externalHistory);
+        externalConnection.Open();
+    
+        const string selectQuery = "SELECT * FROM history;";
+        using var selectCmd = new SQLiteCommand(selectQuery, externalConnection);
+        using var reader = selectCmd.ExecuteReader();
+
+        using var transaction = _connection.BeginTransaction();
+        try
+        {
+            while (reader.Read())
+            {
+                var entry = new HistoryEntry
+                {
+                    DirectoryName = reader.GetString(1),
+                    Url = reader.GetString(2),
+                    Date = DateTime.Parse(reader.GetString(3)),
+                    NumUrls = reader.GetInt32(4)
+                };
+                
+                InsertHistoryRecord(entry, transaction);
+            }
+
+            transaction.Commit();
+        }
+        catch (Exception)
+        {
+            transaction.Rollback();
+            throw;
+        }
+    
+        externalConnection.Close();
     }
 
     private void ReleaseUnmanagedResources()

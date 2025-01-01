@@ -270,6 +270,7 @@ public partial class HtmlParser : IDisposable
             "knit" => KnitParse,
             "69tang" => Six9TangParse,
             "jieav" => JieAvParse,
+            "hentaiclub" => HentaiClubParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -2996,6 +2997,28 @@ public partial class HtmlParser : IDisposable
         return await GenericHtmlParser("hegrehunter");
     }
 
+    /// <summary>
+    ///     Parses the html for hentaiclub.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> HentaiClubParse()
+    {
+        await LazyLoad(new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250
+        });
+        
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//span[@class='post-info-text']").InnerText;
+        var images = soup.SelectSingleNode("//div[@id='masonry']")
+                         .SelectNodes("./div")
+                         .Select(div => div.SelectSingleNode("./img").GetSrc())
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for hentai-cosplays.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>

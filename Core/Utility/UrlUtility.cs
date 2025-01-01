@@ -76,7 +76,7 @@ public static partial class UrlUtility
         "https://cgcosplay.org/", "https://www.4khd.com/", "https://cosplay69.net/", "https://www.nlegs.com/",
         "https://www.ladylap.com/", "https://www.xasiat.com/", "https://catbox.moe/", "https://en.jrants.com/",
         "https://sexbjcam.com/", "https://pornavhd.com/", "https://xx.knit.bid/", "https://www.69tang.org/",
-        "https://www.jieav.com/"
+        "https://www.jieav.com/", "https://www.hentaiclub.net/"
     }.ToFrozenSet();
 
     /// <summary>

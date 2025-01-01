@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Core.Enums;
+using Core.Exceptions;
 using JetBrains.Annotations;
 using Core.ExtensionMethods;
 using Core.Utility;
@@ -148,7 +149,7 @@ public partial class ImageLink
                 return index + ext;
             case FilenameScheme.Original: // Handled above
             default:
-                throw new Exception($"FilenameScheme out of bounds: {filenameScheme}"); // TODO: RipperError
+                throw new RipperException($"FilenameScheme out of bounds: {filenameScheme}");
         }
     }
 
