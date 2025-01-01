@@ -271,6 +271,7 @@ public partial class HtmlParser : IDisposable
             "69tang" => Six9TangParse,
             "jieav" => JieAvParse,
             "hentaiclub" => HentaiClubParse,
+            "avav19" => Avav19Parse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -998,6 +999,15 @@ public partial class HtmlParser : IDisposable
         };
 
         return new RipInfo([linkInfo], dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for avav19.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Avav19Parse()
+    {
+        return await Av19aParse();
     }
     
     /// <summary>

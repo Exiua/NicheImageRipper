@@ -173,6 +173,29 @@ public class HistoryManager : IDisposable
 
         return history;
     }
+
+    public List<HistoryEntry> GetHistory(int page, int offset)
+    {
+        const string selectQuery = """
+                                   SELECT * FROM history
+                                   ORDER BY Date
+                                   LIMIT @Offset OFFSET @Page;
+                                   """;
+        
+        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        selectCmd.Parameters.AddWithValue("@Offset", offset);
+        selectCmd.Parameters.AddWithValue("@Page", page * offset);
+        using var reader = selectCmd.ExecuteReader();
+        
+        var history = new List<HistoryEntry>();
+        while (reader.Read())
+        {
+            var entry = ExtractHistoryEntry(reader);
+            history.Add(entry);
+        }
+        
+        return history;
+    }
     
     public SQLiteTransaction BeginTransaction()
     {

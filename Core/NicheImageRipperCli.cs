@@ -1,4 +1,5 @@
 ﻿using Core.Enums;
+using Core.ExtensionMethods;
 using Core.SiteParsing;
 using Serilog;
 using Serilog.Events;
@@ -28,12 +29,12 @@ public class NicheImageRipperCli : NicheImageRipper
         Console.WriteLine("+----------------------------------------+");
         Console.WriteLine("| Directory Name | URL | Date | Num URLs |");
         Console.WriteLine("+----------------------------------------+");
-        Console.WriteLine("TODO: Implement this");
-        // foreach (var entry in History)
-        // {
-        //     Console.WriteLine($"| {entry.DirectoryName} | {entry.Url} | {entry.Date} | {entry.NumUrls} |");
-        //     Console.WriteLine("+----------------------------------------+");
-        // }
+        var history = HistoryDb.GetHistory(1, 100);
+        foreach (var entry in history)
+        {
+            Console.WriteLine($"| {entry.DirectoryName} | {entry.Url} | {entry.Date} | {entry.NumUrls} |");
+            Console.WriteLine("+----------------------------------------+");
+        }
     }
     
     public async Task Run()
@@ -106,6 +107,15 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "queue":
                         LogMessageToFile(string.Join("\n", UrlQueue));
+                        break;
+                    case "list":
+                        var message = "";
+                        foreach (var (i, queuedUrl) in UrlQueue.Enumerate())
+                        {
+                            message += $"{i}: {queuedUrl}\n";
+                        }
+                        
+                        LogMessageToFile(message);
                         break;
                     case "c":
                     case "clear":
