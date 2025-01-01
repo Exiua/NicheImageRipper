@@ -28,11 +28,12 @@ public class NicheImageRipperCli : NicheImageRipper
         Console.WriteLine("+----------------------------------------+");
         Console.WriteLine("| Directory Name | URL | Date | Num URLs |");
         Console.WriteLine("+----------------------------------------+");
-        foreach (var entry in History)
-        {
-            Console.WriteLine($"| {entry.DirectoryName} | {entry.Url} | {entry.Date} | {entry.NumUrls} |");
-            Console.WriteLine("+----------------------------------------+");
-        }
+        Console.WriteLine("TODO: Implement this");
+        // foreach (var entry in History)
+        // {
+        //     Console.WriteLine($"| {entry.DirectoryName} | {entry.Url} | {entry.Date} | {entry.NumUrls} |");
+        //     Console.WriteLine("+----------------------------------------+");
+        // }
     }
     
     public async Task Run()
@@ -249,7 +250,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     #if DEBUG
                     case "test":
-                        //HtmlParser.GetImageViaSelenium(cmdParts[1]);
+                        NormalizeUrlsInDb();
                         break;
                     #endif
                     default:

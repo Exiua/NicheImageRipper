@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.FileDownloading;
 using Core.History;
@@ -44,14 +45,14 @@ public abstract partial class NicheImageRipper : IDisposable
     
     protected WebDriverPool WebDriverPool { get; set; } = new(1);
     
-    public List<HistoryEntry> History { get; set; } = [];
+    //public List<HistoryEntry> History { get; set; } = [];
     public static HistoryManager HistoryDb => HistoryManager.Instance;
     
     protected bool Debugging { get; set; } = false;
 
     protected virtual void LoadHistory()
     {
-        History = LoadHistoryData();
+        //History = LoadHistoryData();
     }
 
     protected NicheImageRipper()
@@ -94,7 +95,6 @@ public abstract partial class NicheImageRipper : IDisposable
 
     private static List<HistoryEntry> LoadHistoryData()
     {
-        //return JsonUtility.Deserialize<List<HistoryEntry>>("RipHistory.json") ?? [];
         return HistoryDb.GetHistory();
     }
 
@@ -196,7 +196,7 @@ public abstract partial class NicheImageRipper : IDisposable
         return HistoryDb.UrlInHistory(url);
     }
     
-    private static string NormalizeUrl(string url)
+    public static string NormalizeUrl(string url)
     {
         var host = new Uri(url).Host;
         
@@ -234,7 +234,7 @@ public abstract partial class NicheImageRipper : IDisposable
         }
 
         var urlParts = url.Split('/');
-        return urlParts[..5].Join('/');
+        return urlParts[..5].Join('/').Split('?')[0];
     }
     
     private static string NormalizeBooruUrl(string url, Booru booru)
@@ -396,36 +396,90 @@ public abstract partial class NicheImageRipper : IDisposable
             return new Version(0, 0, 0);
         }
     }
+    
+    public static void NormalizeUrlsInDb()
+    {
+        const int batchSize = 1000;
+        
+        var numEntries = HistoryDb.GetHistoryEntryCount();
+        var transaction = HistoryDb.BeginTransaction();
+        try
+        {
+            for (var i = 1; i < numEntries; i++)
+            {
+                var url = HistoryDb.GetUrlById(i, transaction);
+                if (url is null)
+                {
+                    throw new RipperException("Failed to retrieve URL from database for ID: " + i);
+                }
+                
+                var normalizedUrl = NormalizeUrl(url);
+                if (url != normalizedUrl)
+                {
+                    HistoryDb.UpdateHistoryEntryUrlById(i, normalizedUrl, transaction);
+                }
+
+                if (i % batchSize == 0)
+                {
+                    transaction.Commit();
+                    transaction.Dispose();
+                    transaction = HistoryDb.BeginTransaction();
+                }
+            }
+
+            // Commit any remaining entries
+            if (numEntries % batchSize != 0)
+            {
+                transaction.Commit();
+            }
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+        finally
+        {
+            transaction.Dispose();
+        }
+    }
 
     protected virtual RejectedUrlInfo? AddToUrlQueue(string url, int index = -1, bool noCheck = false)
     {
+        var normalizedUrl = NormalizeUrl(url);
         if (!noCheck)
         {
-            if (History.Any(entry => CheckIfUrlsAreEqual(entry.Url, url)))
+            if (HistoryDb.GetHistoryByUrl(normalizedUrl) is not null)
             {
-                return new RejectedUrlInfo(url, QueueFailureReason.PreviouslyProcessed, index);
+                return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
             }
+            
+            // if (History.Any(entry => CheckIfUrlsAreEqual(entry.Url, normalizedUrl)))
+            // {
+            //     return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
+            // }
         }
         
-        UrlQueue.Add(url);
+        UrlQueue.Add(normalizedUrl);
         return null;
     }
 
     public virtual void UpdateHistory(RipInfo ripInfo, string url)
     {
-        var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripInfo.DirectoryName);
+        //var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripInfo.DirectoryName);
+        var duplicate = HistoryDb.GetHistoryEntryByDirectoryName(ripInfo.DirectoryName);
         if (duplicate is not null)
         {
             var now = DateTime.Now;
-            History.Remove(duplicate);
+            //History.Remove(duplicate);
             duplicate.Date = now;   // Update date
-            History.Add(duplicate); // Move to the end
+            //History.Add(duplicate); // Move to the end
             HistoryDb.UpdateDateByUrl(url, now);
         }
         else
         {
             var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
-            History.Add(entry);
+            //History.Add(entry);
             HistoryDb.InsertHistoryRecord(entry);
         }
     }

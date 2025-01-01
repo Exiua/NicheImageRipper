@@ -72,20 +72,22 @@ public class HistoryManager : IDisposable
         updateCmd.ExecuteNonQuery();
     }
     
-    public string? GetUrlById(int id)
+    public string? GetUrlById(int id, SQLiteTransaction? transaction = null)
     {
         const string selectQuery = """
                                    SELECT Url FROM history
                                    WHERE id = @Id;
                                    """;
 
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        using var selectCmd = transaction is null
+            ? new SQLiteCommand(selectQuery, _connection)
+            : new SQLiteCommand(selectQuery, _connection, transaction);
         selectCmd.Parameters.AddWithValue("@Id", id);
 
         return (string?) selectCmd.ExecuteScalar();
     }
     
-    public void UpdateHistoryEntryUrlById(int id, string url)
+    public void UpdateHistoryEntryUrlById(int id, string url, SQLiteTransaction? transaction = null)
     {
         const string updateQuery = """
                                    UPDATE history
@@ -93,7 +95,9 @@ public class HistoryManager : IDisposable
                                    WHERE id = @Id;
                                    """;
 
-        using var updateCmd = new SQLiteCommand(updateQuery, _connection);
+        using var updateCmd = transaction is null
+            ? new SQLiteCommand(updateQuery, _connection)
+            : new SQLiteCommand(updateQuery, _connection, transaction);
         updateCmd.Parameters.AddWithValue("@Url", url);
         updateCmd.Parameters.AddWithValue("@Id", id);
 
@@ -133,18 +137,21 @@ public class HistoryManager : IDisposable
         selectCmd.Parameters.AddWithValue("@Url", url);
         using var reader = selectCmd.ExecuteReader();
         
-        if (!reader.Read())
-        {
-            return null;
-        }
+        return !reader.Read() ? null : ExtractHistoryEntry(reader);
+    }
+    
+    public HistoryEntry? GetHistoryEntryByDirectoryName(string directoryName)
+    {
+        const string selectQuery = """
+                                   SELECT * FROM history
+                                   WHERE DirectoryName = @DirectoryName;
+                                   """;
         
-        return new HistoryEntry
-        {
-            DirectoryName = reader.GetString(1),
-            Url = reader.GetString(2),
-            Date = DateTime.Parse(reader.GetString(3)),
-            NumUrls = reader.GetInt32(4)
-        };
+        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        selectCmd.Parameters.AddWithValue("@DirectoryName", directoryName);
+        using var reader = selectCmd.ExecuteReader();
+        
+        return !reader.Read() ? null : ExtractHistoryEntry(reader);
     }
     
     public List<HistoryEntry> GetHistory()
@@ -160,17 +167,16 @@ public class HistoryManager : IDisposable
         var history = new List<HistoryEntry>();
         while (reader.Read())
         {
-            var entry = new HistoryEntry
-            {
-                DirectoryName = reader.GetString(1),
-                Url = reader.GetString(2),
-                Date = DateTime.Parse(reader.GetString(3)),
-                NumUrls = reader.GetInt32(4)
-            };
+            var entry = ExtractHistoryEntry(reader);
             history.Add(entry);
         }
 
         return history;
+    }
+    
+    public SQLiteTransaction BeginTransaction()
+    {
+       return _connection.BeginTransaction();
     }
 
     public void MergeHistory(string filepath)
@@ -188,14 +194,7 @@ public class HistoryManager : IDisposable
         {
             while (reader.Read())
             {
-                var entry = new HistoryEntry
-                {
-                    DirectoryName = reader.GetString(1),
-                    Url = reader.GetString(2),
-                    Date = DateTime.Parse(reader.GetString(3)),
-                    NumUrls = reader.GetInt32(4)
-                };
-                
+                var entry = ExtractHistoryEntry(reader);
                 InsertHistoryRecord(entry, transaction);
             }
 
@@ -208,6 +207,17 @@ public class HistoryManager : IDisposable
         }
     
         externalConnection.Close();
+    }
+    
+    private static HistoryEntry ExtractHistoryEntry(SQLiteDataReader reader)
+    {
+        return new HistoryEntry
+        {
+            DirectoryName = reader.GetString(1),
+            Url = reader.GetString(2),
+            Date = DateTime.Parse(reader.GetString(3)),
+            NumUrls = reader.GetInt32(4)
+        };
     }
 
     private void ReleaseUnmanagedResources()
