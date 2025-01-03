@@ -23,6 +23,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\FlareSolverrIntegration\FlareSolverrIntegration.csproj" />
+      <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
     </ItemGroup>
 
 </Project>
