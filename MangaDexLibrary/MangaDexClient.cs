@@ -6,10 +6,14 @@ public class MangaDexClient : IDisposable
     
     public AtHome AtHome { get; set; }
     public Chapter Chapter { get; set; }
+    public Manga Manga { get; set; }
     
     public MangaDexClient() : this(new HttpClient())
     {
-        
+        if (_client.DefaultRequestHeaders.UserAgent.Count == 0)
+        {
+            _client.DefaultRequestHeaders.UserAgent.ParseAdd("MangaDexLibrary");
+        }
     }
 
     public MangaDexClient(HttpClient client)
@@ -17,6 +21,7 @@ public class MangaDexClient : IDisposable
         _client = client;
         AtHome = new AtHome(_client);
         Chapter = new Chapter(_client);
+        Manga = new Manga(_client);
     }
 
     public void Dispose()

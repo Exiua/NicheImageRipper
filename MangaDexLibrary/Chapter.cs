@@ -23,6 +23,12 @@ public class Chapter
             return error;
         }
         
-        var chapter = JsonSerializer.Deserialize<AtHomeResponse>(content);
+        var chapter = JsonSerializer.Deserialize<ChapterResponse>(content);
+        if (chapter is null)
+        {
+            return new ErrorResponse();
+        }
+        
+        return chapter;
     }
 }
