@@ -754,7 +754,7 @@ public partial class ImageRipper : IDisposable
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
         if (Path.GetExtension(imagePath) == "")
         {
-            var extension = GetCorrectExtension(imagePath);
+            var extension = FileUtility.GetCorrectExtension(imagePath);
             RenameFile(imagePath, imagePath + extension);
         }
         
@@ -955,7 +955,7 @@ public partial class ImageRipper : IDisposable
 
         if (imageLink.LinkInfo == LinkInfo.GoFile)
         {
-            var ext = GetCorrectExtension(imagePath);
+            var ext = FileUtility.GetCorrectExtension(imagePath);
             if (ext != ".html")
             {
                 return true;
@@ -969,8 +969,6 @@ public partial class ImageRipper : IDisposable
         return true;
     }
     
-    // TODO: Code is duplicated in HtmlParser.cs, find a way to refactor to remove dependency on HtmlParser and
-    //  avoid code duplication
     private async Task AssociateGoFileCookies(string url)
     {
         Log.Debug("Associating GoFile cookies");
@@ -993,8 +991,6 @@ public partial class ImageRipper : IDisposable
         {
             // Ignore
             Log.Warning("WebDriver unreachable, resetting...");
-            //Driver = new FirefoxDriver(HtmlParser.InitializeOptions(false));
-            //HtmlParser.SiteLoginStatus.Clear();
             WebDriver.RegenerateDriver(false);
         }
     }
@@ -1270,7 +1266,7 @@ public partial class ImageRipper : IDisposable
         }
         catch (InvalidDataException)
         {
-            var ext = GetCorrectExtension(zipPath);
+            var ext = FileUtility.GetCorrectExtension(zipPath);
             var newPath = Path.ChangeExtension(zipPath, ext);
             File.Move(zipPath, newPath);
             return;
@@ -1280,63 +1276,6 @@ public partial class ImageRipper : IDisposable
         {
             File.Delete(zipPath);
         }
-    }
-
-    /// <summary>
-    ///     Get correct extension for a file based on file signature
-    /// </summary>
-    /// <param name="filepath">Path to the file to analyze</param>
-    /// <returns>True extension of the file or the original extension if the file signature is unknown (will default to
-    ///     .bin if the file does not have a file extension)</returns>
-    private static string GetCorrectExtension(string filepath)
-    {
-        var signature = ReadSignature(filepath, 8);
-        if (signature is null)
-        {
-            return ".bin"; // Default extension if reading failed or file is too small
-        }
-
-        var signatureInt = ToUInt64(signature, 0);
-        ulong[] masks =
-        [
-            0xFFFF_FFFF_FFFF_FFFF, // 8 bytes
-            0xFFFF_FFFF_FFFF_0000, // 6 bytes
-            0xFFFF_FFFF_0000_0000, // 4 bytes
-            0x0000_0000_FFFF_FFFF, // 4 bytes reverse
-            0xFFFF_FF00_0000_0000, // 3 bytes
-        ];
-
-        foreach (var mask in masks)
-        {
-            var maskedSignature = signatureInt & mask;
-            if (FileSignatures.TryGetValue(maskedSignature, out var ext))
-            {
-                return ext; // Return the extension if a matching signature is found
-            }
-        }
-
-        return ".bin"; // Default extension if no matching signature is found
-    }
-    
-    private static ulong ToUInt64(byte[] bytes, int startIndex)
-    {
-        var value = 0UL;
-        for (var i = 0; i < 8; i++)
-        {
-            value |= (ulong)bytes[startIndex + i] << (8 * (7 - i));
-        }
-        
-        return value;
-    }
-
-    private static byte[]? ReadSignature(string filepath, int length)
-    {
-        var signature = new byte[length];
-        using var stream = File.OpenRead(filepath);
-        var bytesRead = stream.Read(signature, 0, length);
-        // Return null if the file is shorter than the required signature length
-        return bytesRead < length ? null : signature;
-            
     }
     
     /// <summary>
