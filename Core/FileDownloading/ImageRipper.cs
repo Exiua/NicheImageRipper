@@ -61,6 +61,7 @@ public partial class ImageRipper : IDisposable
     private FilenameScheme FilenameScheme { get; }
     private UnzipProtocol UnzipProtocol { get; }
     public RipInfo FolderInfo { get; private set; } = null!;
+    public PostDownloadAction PostDownloadAction { get; set; }
     private string GivenUrl { get; set; }
     private bool Interrupted { get; set; }
     public bool LoggedIn { get; set; }
@@ -137,6 +138,7 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadStats = new DownloadStats();
+        var filesHashes = new HashSet<byte[]>();
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
         if (FolderInfo.MustGenerateManually)
@@ -159,7 +161,13 @@ public partial class ImageRipper : IDisposable
                 {
                     try
                     {
-                        await DownloadFromUrl(imageLink, index.ToString(), fullPath, ext, downloadStats);
+                        var fullFilename = $"{index}{ext}";
+                        var imagePath = Path.Combine(fullPath, fullFilename);
+                        await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
+                        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                        {
+                            await HandleDuplicateFile(imagePath, filesHashes);
+                        }
                         break;
                     }
                     catch // TODO: Narrow down exceptions
@@ -191,7 +199,13 @@ public partial class ImageRipper : IDisposable
                         await Task.Delay((int) SleepTime * 1000);
                         try
                         {
-                            await DownloadFromList(link, fullPath, index, downloadStats);
+                            var filename = link.Filename;
+                            var imagePath = Path.Combine(fullPath, filename);
+                            await DownloadFromList(link, imagePath, index, downloadStats);
+                            if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                            {
+                                await HandleDuplicateFile(imagePath, filesHashes);
+                            }
                         }
                         catch (FileNotFoundException)
                         {
@@ -347,15 +361,24 @@ public partial class ImageRipper : IDisposable
         return exitCode;
     }
 
+    private static async Task HandleDuplicateFile(string imagePath, HashSet<byte[]> filesHashes)
+    {
+        var fileHash = await FileUtility.GetFileHash(imagePath);
+        if (!filesHashes.Add(fileHash))
+        {
+            Log.Information("Duplicate file detected: {ImagePath}", imagePath);
+            File.Delete(imagePath);
+        }
+    }
+    
     /// <summary>
     ///     Download image from image url
     /// </summary>
     /// <param name="imageLink">ImageLink containing data on the file to download</param>
     /// <param name="filename">Name of the file to download</param>
-    /// <param name="fullPath">Full path of the directory to download the file to</param>
+    /// <param name="imagePath">Full path to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
-    /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromUrl(ImageLink imageLink, string filename, string fullPath, string ext, DownloadStats downloadStats)
+    private async Task DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
@@ -364,7 +387,7 @@ public partial class ImageRipper : IDisposable
         var ripUrl = $"{url}{fullFilename}";
         var numProgress = $"({filename}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
-        var imagePath = Path.Combine(fullPath, fullFilename);
+        imageLink.Url = ripUrl;
         await DownloadFile(imagePath, imageLink, true);
         await Task.Delay(50);
     }
@@ -373,18 +396,16 @@ public partial class ImageRipper : IDisposable
     ///     Download images from url supplied from a list of image urls
     /// </summary>
     /// <param name="imageLink">ImageLink containing data on the file to download</param>
-    /// <param name="fullPath">Full path of the directory to save the file to</param>
+    /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromList(ImageLink imageLink, string fullPath, int currentFileNum,
+    private async Task DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
                                         DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
         var numProgress = $"({currentFileNum + 1}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
-        var filename = imageLink.Filename;
-        var imagePath = Path.Combine(fullPath, filename);
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
         if (imageLink.HasReferer)
         {

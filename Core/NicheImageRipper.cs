@@ -38,7 +38,7 @@ public abstract partial class NicheImageRipper : IDisposable
     public UnzipProtocol UnzipProtocol { get; set; } = UnzipProtocol.None;
     // self.status_sync: StatusSync = StatusSync()
     // self.ripper_thread: threading.Thread = threading.Thread()
-    public Version Version { get; set; } = new(2, 2, 0);
+    public Version Version { get; set; } = new(3, 0, 0);
     public string SaveFolder { get; set; } = ".";
     public int MaxRetries { get; set; } = 4;
     public int RetryDelay { get; set; } = 1000; // In milliseconds
@@ -149,7 +149,7 @@ public abstract partial class NicheImageRipper : IDisposable
             return PornhubUrlEquality(url1, url2);
         }
 
-        if (host1.Contains("yande") || host1.Contains("danbooru") || host1.Contains("gelbooru") || host1.Contains("rule34"))
+        if (host1.Contains("yande") || host1.Contains("danbooru") || host1.Contains("gelbooru") || host1.Contains("rule34") || host1.Contains("booru.com"))
         {
             return BooruUrlEquality(url1, url2);
         }
@@ -460,11 +460,6 @@ public abstract partial class NicheImageRipper : IDisposable
             {
                 return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
             }
-            
-            // if (History.Any(entry => CheckIfUrlsAreEqual(entry.Url, normalizedUrl)))
-            // {
-            //     return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
-            // }
         }
         
         UrlQueue.Add(normalizedUrl);

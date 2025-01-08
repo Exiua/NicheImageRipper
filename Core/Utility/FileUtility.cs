@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace Core.Utility;
 
 public class FileUtility
@@ -96,5 +98,17 @@ public class FileUtility
         var bytesRead = stream.Read(signature, 0, length);
         // Return null if the file is shorter than the required signature length
         return bytesRead < length ? null : signature;
+    }
+
+    /// <summary>
+    ///     Get the SHA-256 hash of a file.
+    /// </summary>
+    /// <param name="filepath">The path to the file to hash.</param>
+    /// <returns>The SHA-256 hash of the file.</returns>
+    public static async Task<byte[]> GetFileHash(string filepath)
+    {
+        var sha256 = SHA256.Create();
+        await using var stream = File.Open(filepath, FileMode.Open);
+        return await sha256.ComputeHashAsync(stream);
     }
 }

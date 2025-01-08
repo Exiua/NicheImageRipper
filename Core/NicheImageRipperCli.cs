@@ -108,6 +108,19 @@ public class NicheImageRipperCli : NicheImageRipper
                     case "queue":
                         LogMessageToFile(string.Join("\n", UrlQueue));
                         break;
+                    case "booru":
+                    {
+                        if (cmdParts.Length != 2)
+                        {
+                            LogMessageToFile("Missing argument: <tags>", LogEventLevel.Warning);
+                            break;
+                        }
+
+                        var tags = cmdParts[1];
+                        var url = "https://booru.com/post?tags=" + tags;
+                        QueueUrlsHelper(url);
+                        break;
+                    }
                     case "list":
                         var message = "";
                         foreach (var (i, queuedUrl) in UrlQueue.Enumerate())
@@ -180,16 +193,17 @@ public class NicheImageRipperCli : NicheImageRipper
 
                         break;
                     case "skip":
+                    {
                         if (UrlQueue.Count == 0)
                         {
                             LogMessageToFile("Queue is empty");
                             break;
                         }
-                        
+
                         var index = 0;
-                        if(cmdParts.Length >= 2)
+                        if (cmdParts.Length >= 2)
                         {
-                            if(int.TryParse(cmdParts[1], out var i))
+                            if (int.TryParse(cmdParts[1], out var i))
                             {
                                 index = i;
                             }
@@ -199,14 +213,14 @@ public class NicheImageRipperCli : NicheImageRipper
                                 break;
                             }
                         }
-                        
+
                         var normalizedIndex = Math.Abs(index);
-                        if(normalizedIndex >= UrlQueue.Count)
+                        if (normalizedIndex >= UrlQueue.Count)
                         {
                             LogMessageToFile("Index out of range");
                             break;
                         }
-                        
+
                         string url;
                         if (index < 0)
                         {
@@ -221,6 +235,7 @@ public class NicheImageRipperCli : NicheImageRipper
 
                         LogMessageToFile($"Skipping {url}");
                         break;
+                    }
                     case "debug":
                         Log.Warning("Debug mode is not yet implemented.");
                         //HtmlParser.SetDebugMode(true);
@@ -264,45 +279,50 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     #endif
                     default:
-                        var startIndex = UrlQueue.Count;
-                        var offset = 0;
-                        var failedUrls = QueueUrls(userInput);
-                        foreach(var failedUrl in failedUrls)
-                        {
-                            switch (failedUrl.Reason)
-                            {
-                                case QueueFailureReason.None:
-                                    break;
-                                case QueueFailureReason.AlreadyQueued:
-                                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
-                                    break;
-                                case QueueFailureReason.NotSupported:
-                                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
-                                    break;
-                                case QueueFailureReason.PreviouslyProcessed:
-                                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
-                                    var response = Console.ReadLine();
-                                    if (response == "y")
-                                    {
-                                        var correctIndex = startIndex + failedUrl.Index + offset;
-                                        offset++;
-                                        UrlQueue.Insert(correctIndex, failedUrl.Url);
-                                    }
-                                    else
-                                    {
-                                        offset--;
-                                    }
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException();
-                            }
-                        }
+                        QueueUrlsHelper(userInput);
                         break;
                 }
             }
             catch (Exception e)
             {
                 Log.Error(e, "An unhanded exception occurred");
+            }
+        }
+    }
+    
+    private void QueueUrlsHelper(string userInput)
+    {
+        var startIndex = UrlQueue.Count;
+        var offset = 0;
+        var failedUrls = QueueUrls(userInput);
+        foreach(var failedUrl in failedUrls)
+        {
+            switch (failedUrl.Reason)
+            {
+                case QueueFailureReason.None:
+                    break;
+                case QueueFailureReason.AlreadyQueued:
+                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.NotSupported:
+                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.PreviouslyProcessed:
+                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
+                    var response = Console.ReadLine();
+                    if (response == "y")
+                    {
+                        var correctIndex = startIndex + failedUrl.Index + offset;
+                        offset++;
+                        UrlQueue.Insert(correctIndex, failedUrl.Url);
+                    }
+                    else
+                    {
+                        offset--;
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
             }
         }
     }
