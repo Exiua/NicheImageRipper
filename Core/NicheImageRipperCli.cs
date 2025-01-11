@@ -112,16 +112,40 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "config":
                     {
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length == 1)
                         {
                             LogMessageToFile("Missing argument: <key>", LogEventLevel.Warning);
                             break;
                         }
                         
-                        var key = cmdParts[1];
+                        var key = cmdParts[1].ToLower();
                         switch (key)
                         {
-                            
+                            case "savepath":
+                                if (cmdParts.Length == 2)
+                                {
+                                    LogMessageToFile($"Save path: {SavePath}");
+                                }
+                                else
+                                {
+                                    var path = cmdParts[2];
+                                    if (FileUtility.IsValidAndEnsureDirectory(path))
+                                    {
+                                        SavePath = path;
+                                        LogMessageToFile($"Save path set to {SavePath}");
+                                    }
+                                    else
+                                    {
+                                        LogMessageToFile("Invalid path", LogEventLevel.Warning);
+                                    }
+                                }
+
+                                break;
+                            default:
+                                LogMessageToFile($"Invalid key: {key}", LogEventLevel.Warning);
+                                // List all keys
+                                LogMessageToFile("Keys: savepath");
+                                break;
                         }
                         break;
                     }

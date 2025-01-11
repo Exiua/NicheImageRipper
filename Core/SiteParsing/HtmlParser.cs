@@ -853,7 +853,7 @@ public partial class HtmlParser : IDisposable
             var iframe = Driver.FindElement(By.XPath("//iframe[@id='episode-frame']"));
             Driver.SwitchTo().Frame(iframe);
             await WaitForElement("//video/source", timeout: -1);
-            var videoSource = Driver.FindElement(By.XPath("//video/source")).GetAttribute("src");
+            var videoSource = Driver.FindElement(By.XPath("//video/source")).GetSrc();
             images = [videoSource];
         }
         else // Assume ASMR
@@ -869,7 +869,7 @@ public partial class HtmlParser : IDisposable
             {
                 await Task.Delay(100);
                 track.Click();
-                var trackSource = Driver.FindElement(By.XPath("//audio")).GetAttribute("src");
+                var trackSource = Driver.FindElement(By.XPath("//audio")).GetSrc();
                 images.Add(trackSource);
             }
 
@@ -879,7 +879,7 @@ public partial class HtmlParser : IDisposable
             {
                 thumbnail.Click();
                 var thumbnailSource = Driver.FindElement(By.XPath("//div[@class='vgs__container']//img"))
-                                            .GetAttribute("src");
+                                            .GetSrc();
                 images.Add(thumbnailSource);
                 var closeButton = Driver.FindElement(By.XPath("//button[@class='btn btn-danger vgs__close']"));
                 closeButton.Click();
@@ -2367,27 +2367,6 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> EroHiveParse()
     {
-        async Task WaitForPostLoad()
-        {
-            while (true)
-            {
-                var elm = Driver.FindElement(By.Id("has_no_img"));
-                if (elm is not null && elm.GetAttribute("class") != "")
-                {
-                    await Task.Delay(100);
-                    break;
-                }
-
-                if(Driver.FindElements(By.XPath("//h2[@class='warning-page']")).Count > 0)
-                {
-                    await Task.Delay(5000);
-                    Driver.Navigate().Refresh();
-                }
-                
-                await Task.Delay(100);
-            }
-        }
-        
         var baseUrl = CurrentUrl.Split("?")[0];
         await WaitForPostLoad();
         var soup = await Soupify();
@@ -2435,6 +2414,27 @@ public partial class HtmlParser : IDisposable
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
+
+        async Task WaitForPostLoad()
+        {
+            while (true)
+            {
+                var elm = Driver.FindElement(By.Id("has_no_img"));
+                if (elm is not null && elm.GetDomAttribute("class") != "")
+                {
+                    await Task.Delay(100);
+                    break;
+                }
+
+                if(Driver.FindElements(By.XPath("//h2[@class='warning-page']")).Count > 0)
+                {
+                    await Task.Delay(5000);
+                    await Driver.Navigate().RefreshAsync();
+                }
+                
+                await Task.Delay(100);
+            }
+        }
     }
 
     /// <summary>
@@ -3214,7 +3214,7 @@ public partial class HtmlParser : IDisposable
                     newImages = false;
                     foreach (var imageNode in imageNodes)
                     {
-                        var src = imageNode.GetAttribute("src");
+                        var src = imageNode.GetSrc();
                         if (!seen.Add(src))
                         {
                             continue;
@@ -4338,7 +4338,7 @@ public partial class HtmlParser : IDisposable
                     var highestRes = Driver.TryFindElement(By.XPath("//div[@class='ng-option-select']/child::*[2]/child::*[1]"));
                     if (highestRes is not null)
                     {
-                        var classes = highestRes.GetAttribute("class");
+                        var classes = highestRes.GetDomAttribute("class");
                         if (!classes.Contains("selected"))
                         {
                             highestRes.Click();
@@ -4821,7 +4821,7 @@ public partial class HtmlParser : IDisposable
                 break;
             }
 
-            posts.Add(post.GetAttribute("href"));
+            posts.Add(post.GetHref());
             id++;
         }
         
@@ -4854,7 +4854,7 @@ public partial class HtmlParser : IDisposable
                 {
                     foreach (var iframe in iframes!)
                     {
-                        var iframeUrl = iframe.GetAttribute("src");
+                        var iframeUrl = iframe.GetSrc();
                         if (!iframeUrl.Contains("iframe.mediadelivery.net"))
                         {
                             continue;
@@ -4867,14 +4867,14 @@ public partial class HtmlParser : IDisposable
                         for (var _ = 0; _ < maxRetries; _++)
                         {
                             var source = Driver.TryFindElement(By.XPath("//video/source")) ?? Driver.FindElement(By.XPath("//video"));
-                            url = source.GetAttribute("src");
+                            url = source.GetSrc();
                             if (url.StartsWith("blob:") || url == "")
                             {
                                 await Task.Delay(500);
                                 continue;
                             }
                             var qualities = Driver.FindElements(By.XPath("//button[@data-plyr='quality']"));
-                            maxQuality = qualities.Select(quality => int.Parse(quality.GetAttribute("value")))
+                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")))
                                                   .Prepend(0)
                                                   .Max();
                             break;
@@ -4891,7 +4891,7 @@ public partial class HtmlParser : IDisposable
                     {
                         contentFound = true;
                         var imgs = picture.FindElements(By.XPath(".//img"));
-                        images.AddRange(imgs.Select(img => img.GetAttribute("src"))
+                        images.AddRange(imgs.Select(img => img.GetSrc())
                                             .Where(url => url.Contains("m.porn3dx.com") && !url.Contains("avatar") 
                                                  && !url.Contains("thumb"))
                                             .Select(url => (StringImageLinkWrapper)url));
@@ -6422,7 +6422,7 @@ public partial class HtmlParser : IDisposable
             var qualityButton = Driver.TryFindElement(By.XPath("//a[@class='fp-settings']"));
             if (qualityButton is not null)
             {
-                var classes = player.GetAttribute("class")!;
+                var classes = player.GetDomAttribute("class")!;
                 classes += " is-settings-open";
                 Driver.ExecuteScript($"document.getElementById('kt_player').setAttribute('class', '{classes}')");
                 var bestQuality = Driver.TryFindElement(By.XPath("//div[@class='fp-settings-list-item is-hd']/a"));

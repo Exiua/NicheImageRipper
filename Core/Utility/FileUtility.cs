@@ -111,4 +111,31 @@ public class FileUtility
         await using var stream = File.Open(filepath, FileMode.Open);
         return await sha256.ComputeHashAsync(stream);
     }
+    
+    public static bool IsValidAndEnsureDirectory(string path)
+    {
+        try
+        {
+            // Check if the path is valid
+            if (string.IsNullOrWhiteSpace(path) || Path.GetInvalidPathChars().Any(path.Contains))
+            {
+                return false;
+            }
+
+            // Check if the path exists and is a directory
+            if (Directory.Exists(path))
+            {
+                return true;
+            }
+
+            // Try to create the directory if it doesn't exist
+            Directory.CreateDirectory(path);
+            return true;
+        }
+        catch (Exception)
+        {
+            // Handle any exceptions that indicate invalid or inaccessible paths
+            return false;
+        }
+    }
 }
