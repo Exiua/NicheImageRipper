@@ -6690,11 +6690,11 @@ public partial class HtmlParser : IDisposable
         return htmlDocument.DocumentNode;
     }
     
-    private static async Task<HtmlNode> Soupify(Solution solution)
+    private static Task<HtmlNode> Soupify(Solution solution)
     {
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(solution.Response);
-        return htmlDocument.DocumentNode;
+        return Task.FromResult(htmlDocument.DocumentNode);
     }
     
     /// <summary>

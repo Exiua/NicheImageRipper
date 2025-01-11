@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -23,11 +22,10 @@ public abstract partial class NicheImageRipper : IDisposable
 {
     public static Config Config { get; set; } = Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
-    
-    public string Title { get; } = "NicheImageRipper";
-
     public static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
     
+    
+    public string Title { get; } = "NicheImageRipper";
     public Version Version { get; set; } = new(3, 0, 0);
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
     public List<string> UrlQueue { get; set; } = [];
@@ -506,7 +504,7 @@ public abstract partial class NicheImageRipper : IDisposable
         #if DEBUG
         ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
         #else
-        consoleLevelSwitch.MinimumLevel = LogEventLevel.Information;
+        ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Information;
         #endif
     }
 

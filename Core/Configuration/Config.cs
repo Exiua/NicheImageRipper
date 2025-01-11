@@ -22,7 +22,7 @@ public class Config
     public int NumThreads { get; set; }
     public int MaxRetries { get; set; }
     public int RetryDelay { get; set; }
-    public string FlareSolverrUri { get; set; }
+    public string FlareSolverrUri { get; set; } = null!;
     public bool CloseFlareSolverrSession { get; set; }
     public Dictionary<string, Credentials> Logins { get; set; } = null!;
     public Dictionary<string, string> Keys { get; set; } = null!;
@@ -62,7 +62,11 @@ public class Config
         ];
         foreach (var site in siteLogins)
         {
-            config.Logins[site] = new Credentials();
+            config.Logins[site] = new Credentials
+            {
+                Username = "",
+                Password = ""
+            };
         }
 
         config.Keys = new Dictionary<string, string>();
