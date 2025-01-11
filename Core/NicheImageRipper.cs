@@ -28,61 +28,61 @@ public abstract partial class NicheImageRipper : IDisposable
 
     public static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
     
+    public Version Version { get; set; } = new(3, 0, 0);
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
     public List<string> UrlQueue { get; set; } = [];
-    public bool LiveUpdate { get; set; } = false;
-    public bool ReRipAsk { get; set; } = true;
     public bool Interrupted { get; set; } = false;
     public ImageRipper Ripper { get; set; } = null!;
-    public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
-    public UnzipProtocol UnzipProtocol { get; set; } = UnzipProtocol.None;
-    // self.status_sync: StatusSync = StatusSync()
-    // self.ripper_thread: threading.Thread = threading.Thread()
-    public Version Version { get; set; } = new(3, 0, 0);
-    public string SaveFolder { get; set; } = ".";
-    public int MaxRetries { get; set; } = 4;
-    public int RetryDelay { get; set; } = 1000; // In milliseconds
+
+    
+    public static bool LiveHistory 
+    { 
+        get => Config.LiveHistory;
+        set => Config.LiveHistory = value;
+    }
+    
+    public static bool AskToReRip
+    {
+        get => Config.AskToReRip;
+        set => Config.AskToReRip = value;
+    }
+
+    public static FilenameScheme FilenameScheme
+    {
+        get => Config.FilenameScheme;
+        set => Config.FilenameScheme = value;
+    }
+
+    public static UnzipProtocol UnzipProtocol
+    {
+        get => Config.UnzipProtocol;
+        set => Config.UnzipProtocol = value;
+    }
+
+    public static string SavePath
+    {
+        get => Config.SavePath;
+        set => Config.SavePath = value;
+    }
+
+    public static int MaxRetries
+    {
+        get => Config.MaxRetries;
+        set => Config.MaxRetries = value;
+    }
+
+    public static int RetryDelay
+    {
+        get => Config.RetryDelay;
+        set => Config.RetryDelay = value;
+    }
     
     protected WebDriverPool WebDriverPool { get; set; } = new(1);
     
     //public List<HistoryEntry> History { get; set; } = [];
     public static HistoryManager HistoryDb => HistoryManager.Instance;
     
-    protected bool Debugging { get; set; } = false;
-
-    protected virtual void LoadHistory()
-    {
-        //History = LoadHistoryData();
-    }
-
-    protected NicheImageRipper()
-    {
-        LoadAppData();
-    }
-
-    private void LoadAppData()
-    {
-        if (File.Exists("config.json"))
-        {
-            LoadConfig();
-        }
-
-        // TODO: Change to use a database
-        if (File.Exists("RipHistory.json"))
-        {
-            LoadHistory();
-        }
-    }
-
-    private void LoadConfig()
-    {
-        var config = Config.Instance;
-        SaveFolder = config.SavePath;
-        FilenameScheme = config.FilenameScheme;
-        UnzipProtocol = config.UnzipProtocol;
-        ReRipAsk = config.AskToReRip;
-        LiveUpdate = config.LiveHistory;
-    }
+    protected bool Debugging { get; set; }
 
     protected void LoadUrlFile(string filepath)
     {

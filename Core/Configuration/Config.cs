@@ -8,12 +8,10 @@ public class Config
 {
     private const string ConfigPath = "config.json";
 
-    private static Config? _config;
-
-    public static string UserAgent =>
+    public const string UserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
-    public static Config Instance => _config ??= LoadConfig();
+    public static Config Instance { get; } = LoadConfig();
 
     public string SavePath { get; set; } = null!;
     public string Theme { get; set; } = null!;
@@ -22,6 +20,8 @@ public class Config
     public bool AskToReRip { get; set; }
     public bool LiveHistory { get; set; }
     public int NumThreads { get; set; }
+    public int MaxRetries { get; set; }
+    public int RetryDelay { get; set; }
     public string FlareSolverrUri { get; set; }
     public bool CloseFlareSolverrSession { get; set; }
     public Dictionary<string, Credentials> Logins { get; set; } = null!;
@@ -46,6 +46,8 @@ public class Config
             AskToReRip = true,
             LiveHistory = false,
             NumThreads = 1,
+            MaxRetries = 4,
+            RetryDelay = 1000,
             FlareSolverrUri = "http://localhost:8191/v1",
             Logins = new Dictionary<string, Credentials>()
         };

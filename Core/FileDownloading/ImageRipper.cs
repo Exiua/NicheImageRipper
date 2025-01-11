@@ -65,14 +65,14 @@ public partial class ImageRipper : IDisposable
     private string GivenUrl { get; set; }
     private bool Interrupted { get; set; }
     public bool LoggedIn { get; set; }
-    private Dictionary<string, bool> PersistentLogins { get; set; }
-    private string SavePath { get; set; }
+    private Dictionary<string, bool> PersistentLogins { get; }
+    private string SavePath { get; }
     private HttpClient Session { get; }
     private string SiteName { get; set; }
     private float SleepTime { get; set; }
     public int CurrentIndex { get; private set; }
     private WebDriverPool DriverPool { get; }
-    private WebDriver WebDriver { get; set; }
+    private WebDriver WebDriver { get; }
     
     private FirefoxDriver Driver => WebDriver.Driver;
 
@@ -89,6 +89,7 @@ public partial class ImageRipper : IDisposable
         Interrupted = false;
         LoggedIn = File.Exists("cookies.pkl");
         PersistentLogins = new Dictionary<string, bool>();
+        // Create copy of save path, so that config can be changed without affecting current ripper instance
         SavePath = Config.SavePath;
         Session = new HttpClient();
         SiteName = "";
