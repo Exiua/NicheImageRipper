@@ -5115,7 +5115,7 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> PutMegaParse()
     {
-        const int maxRetries = 4;
+        //const int maxRetries = 4;
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//a[@data-text='album-name']").InnerText;
         var images = new List<StringImageLinkWrapper>();

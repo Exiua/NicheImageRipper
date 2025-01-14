@@ -5,7 +5,7 @@ namespace MangaDexLibrary.DataStructures;
 public class MangaVolume
 {
     [JsonPropertyName("volume")]
-    public string Volume { get; set; }
+    public string Volume { get; set; } = null!;
     [JsonPropertyName("count")]
     public int Count { get; set; }
     [JsonPropertyName("chapters")]

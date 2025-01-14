@@ -6,5 +6,5 @@ namespace MangaDexLibrary.Responses;
 public class ErrorResponse : MangaDexResponse
 {
     [JsonPropertyName("errors")]
-    public MangaDexApiError[] Errors { get; set; }
+    public MangaDexApiError[] Errors { get; set; } = null!;
 }

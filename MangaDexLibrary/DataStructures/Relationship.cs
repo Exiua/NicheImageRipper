@@ -7,5 +7,5 @@ public class Relationship
     [JsonPropertyName("id")]
     public Guid Id { get; set; }
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public string Type { get; set; } = null!;
 }
