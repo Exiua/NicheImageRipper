@@ -1,56 +1,49 @@
-# NicheImageRipper 
+﻿# NicheImageRipper
 [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE) [![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases) ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
 
 ## Table of Contents
 <!-- TOC -->
-* [NicheImageRipper](#nicheimageripper-)
+* [NicheImageRipper](#nicheimageripper)
   * [Table of Contents](#table-of-contents)
   * [About](#about)
   * [How To Use](#how-to-use)
   * [Dependencies](#dependencies)
-    * [Python Dependencies](#python-dependencies)
     * [External Dependencies](#external-dependencies)
   * [Sites Currently Supported:](#sites-currently-supported)
 <!-- TOC -->
 
 ## About
 
-NicheImageRipper is an image ripper written in python 3 to download albums from various sites.
+NicheImageRipper is an image ripper written in C# to download albums from various sites.
 
 ## How To Use
 
-Download `NicheImageRipper.7z` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases), extract all files, install the required dependencies, 
-and run `NicheImageRipper.py`.
+Download `NicheImageRipper.exe` from the [latest release](https://github.com/Exiua/NicheImageRipper/releases), install the required dependencies,
+and run `NicheImageRipper.exe`.
 
 ## Dependencies
 
-### Python Dependencies
-
-The Python dependencies can be found in the `requirements.txt` file. The easiest way to install the dependencies would 
-be to use a virtual enviroment. Run `python -m venv venv` to create the virtual environment. Run `./venv/Scripts/activate`
-to start the virtual environment. Then run `pip install -r requirements.txt` to install the Python dependencies.
-
 ### External Dependencies
 
-The program also requires `ffmpeg`, `geckodriver`, and `MegaCli` to be installed.
+The program also requires `ffmpeg` and `geckodriver` to be installed.
 
 ## Sites Currently Supported:
 
-- [imhentai.xxx](https://imhentai.xxx/)
-- [artstation.com](https://artstation.com)
-- [imgur.com](https://imgur.com/)
-- [redgifs.com](https://redgifs.com/)
-- [danbooru.donmai.us](https://danbooru.donmai.us/)
-- [gelbooru.com](https://gelbooru.com/)
-- [rule34.xxx](https://rule34.xxx/)
-- [kemono.party](https://kemono.party/)
-- [coomer.party](https://coomer.party/)
-- [sfmcompile.club](https://sfmcompile.club/)
-- [tsumino.com](https://tsumino.com/)
-- [newgrounds.com](https://newgrounds.com/)
-- [dropbox.com](https://dropbox.com/)
-- [drive.google.com](https://drive.google.com/)
-- [porn3dx.com](https://porn3dx.com/)
-- [luscious.net](https://luscious.net/)
-- [nijie.info](https://nijie.info/)
+- [imhentai.com](https://imhentai.com/)
+- [hentai.cafe](https://hentai.cafe)
+- [hotgirl.asia](https://hotgirl.asia/)
+- [cup-e.club](https://www.cup-e.club/)
+- [girlsreleased.com](https://girlsreleased.com/)
+- [bustybloom.com](https://bustybloom.com/)
+- [morazzia.com](https://morazzia.com/)
+- [novojoy.com](https://novojoy.com/)
+- [hqbabes.com](https://www.hqbabes.com/)
+- [silkengirl.com](https://www.silkengirl.com/)
+- [babesandgirls.com](https://www.babesandgirls.com/)
+- [babeimpact.com](https://www.babeimpact.com/)
+- [100bucksbabes.com](https://www.100bucksbabes.com/)
+- [sexykittenporn.com](https://www.sexykittenporn.com/)
+- [babesbang.com](https://www.babesbang.com/)
+- [exgirlfriendmarket.com](https://www.exgirlfriendmarket.com/)
+- [novoporn.com](https://www.novoporn.com/)
 - [(more)](https://github.com/Exiua/NicheImageRipper/wiki/Supported-Sites)
