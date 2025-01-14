@@ -17,12 +17,15 @@ using Core.SiteParsing.HtmlParserEnums;
 using Core.Utility;
 using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
+using MangaDexLibrary;
+using MangaDexLibrary.Responses;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
 using Serilog;
 using Serilog.Events;
 using Cookie = OpenQA.Selenium.Cookie;
+using ErrorResponse = MangaDexLibrary.Responses.ErrorResponse;
 using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing;
@@ -98,8 +101,12 @@ public partial class HtmlParser : IDisposable
 
         url = url.Replace("members.", "www.");
         GivenUrl = url;
-        CurrentUrl = url;
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        if (SiteName != "booru")
+        {
+            CurrentUrl = url;
+        }
+        
         var siteParser = GetParser(SiteName);
         try
         {
@@ -268,6 +275,13 @@ public partial class HtmlParser : IDisposable
             "sexbjcam" => SexBjCamParser,
             "pornavhd" => PornAvHdParse,
             "knit" => KnitParse,
+            "69tang" => Six9TangParse,
+            "jieav" => JieAvParse,
+            "hentaiclub" => HentaiClubParse,
+            "avav19" => Avav19Parse,
+            "booru" => AllBooruParse,
+            "mangadex" => MangaDexParse,
+            "cosblay" => CosblayParse,
             _ => throw new Exception($"Site not supported/implemented: {siteName}")
         };
     }
@@ -690,11 +704,17 @@ public partial class HtmlParser : IDisposable
     ///     Make requests to booru-like sites and extract image links
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> BooruParse(string siteName, string baseUrl, string pageParameterName, 
-                                           int startingPageIndex, int limit, string[]? jsonObjectNavigation = null, 
-                                           Dictionary<string, string>? headers = null)
+    private async Task<RipInfo> BooruParse(Booru site, string? tags = null)
     {
-        var tags = Rule34Regex().Match(CurrentUrl).Groups[1].Value;
+        var metadata = site.GetMetadata();
+        var siteName = metadata.SiteName;
+        var baseUrl = metadata.BaseUrl;
+        var pageParameterName = metadata.PageParameterName;
+        var startingPageIndex = metadata.StartingPageIndex;
+        var limit = metadata.Limit;
+        var headers = metadata.Headers;
+        var jsonObjectNavigation = metadata.JsonObjectNavigation;
+        tags ??= BooruRegex().Match(CurrentUrl).Groups[1].Value;
         tags = Uri.UnescapeDataString(tags);
         var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
         var session = new HttpClient();
@@ -759,6 +779,27 @@ public partial class HtmlParser : IDisposable
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
+
+    private async Task<RipInfo> AllBooruParse()
+    {
+        var tags = BooruRegex().Match(GivenUrl).Groups[1].Value;
+        var boorus = new[] { Booru.Danbooru, Booru.Gelbooru, Booru.Rule34, Booru.Yandere };
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var booru in boorus)
+        {
+            var metadata = booru.GetMetadata();
+            var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
+            var posts = await BooruParse(booru, tags);
+            var urls = posts.Urls.Select(u =>
+            {
+                u.Referer = referer;
+                return (StringImageLinkWrapper)u;
+            });
+            images.AddRange(urls);
+        }
+        var dirName = $"[Booru] {tags.Remove("+").Remove("tags=")}";
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
     
     #endregion
 
@@ -812,7 +853,7 @@ public partial class HtmlParser : IDisposable
             var iframe = Driver.FindElement(By.XPath("//iframe[@id='episode-frame']"));
             Driver.SwitchTo().Frame(iframe);
             await WaitForElement("//video/source", timeout: -1);
-            var videoSource = Driver.FindElement(By.XPath("//video/source")).GetAttribute("src");
+            var videoSource = Driver.FindElement(By.XPath("//video/source")).GetSrc();
             images = [videoSource];
         }
         else // Assume ASMR
@@ -828,7 +869,7 @@ public partial class HtmlParser : IDisposable
             {
                 await Task.Delay(100);
                 track.Click();
-                var trackSource = Driver.FindElement(By.XPath("//audio")).GetAttribute("src");
+                var trackSource = Driver.FindElement(By.XPath("//audio")).GetSrc();
                 images.Add(trackSource);
             }
 
@@ -838,7 +879,7 @@ public partial class HtmlParser : IDisposable
             {
                 thumbnail.Click();
                 var thumbnailSource = Driver.FindElement(By.XPath("//div[@class='vgs__container']//img"))
-                                            .GetAttribute("src");
+                                            .GetSrc();
                 images.Add(thumbnailSource);
                 var closeButton = Driver.FindElement(By.XPath("//button[@class='btn btn-danger vgs__close']"));
                 closeButton.Click();
@@ -995,6 +1036,15 @@ public partial class HtmlParser : IDisposable
         };
 
         return new RipInfo([linkInfo], dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for avav19.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Avav19Parse()
+    {
+        return await Av19aParse();
     }
     
     /// <summary>
@@ -1595,6 +1645,64 @@ public partial class HtmlParser : IDisposable
     }
 
     /// <summary>
+    ///     Parses the html for cosblay.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> CosblayParse()
+    {
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+        };
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 250);
+        var dirName = soup.SelectSingleNode("//h1[@class='entry-title']").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var pageCount = 1;
+        while (true)
+        {
+            Log.Information("Page {PageCount}", pageCount++);
+            var imageContainers = soup.SelectSingleNode("//div[@class='entry-content']/p")
+                                .SelectNodes(".//img");
+            if (imageContainers is null)
+            {
+                var nextBtn = GetNextButton(soup);
+                if (nextBtn is null)
+                {
+                    break;
+                }
+                
+                throw new RipperException("Images not found");
+            }
+            
+            var imgs = imageContainers.Select(img =>
+                                       {
+                                           var src = img.GetNullableSrc();
+                                           return src ?? img.ParentNode.GetHref();
+                                       })
+                                .ToStringImageLinks();
+            images.AddRange(imgs);
+            var nextButton = GetNextButton(soup);
+            if (nextButton is null)
+            {
+                break;
+            }
+            
+            soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+
+        // ReSharper disable once VariableHidesOuterVariable
+        HtmlNode? GetNextButton(HtmlNode soup)
+        {
+            var pager = soup.SelectSingleNode("//div[@class='pgntn-page-pagination-block']");
+            var nextButton = pager?.SelectNodes("./a").FirstOrDefault(a => a.InnerText.StartsWith("Next"));
+            return nextButton;
+        }
+    }
+
+    /// <summary>
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -1786,11 +1894,7 @@ public partial class HtmlParser : IDisposable
     /// <returns></returns>
     private Task<RipInfo> DanbooruParse()
     {
-        return BooruParse("Danbooru", "https://danbooru.donmai.us/posts.json?", 
-            "page", 0, 200, headers: new Dictionary<string, string>
-            {
-                ["User-Agent"] = "NicheImageRipper"
-            });
+        return BooruParse(Booru.Danbooru);
     }
 
     /// <summary>
@@ -2263,27 +2367,6 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> EroHiveParse()
     {
-        async Task WaitForPostLoad()
-        {
-            while (true)
-            {
-                var elm = Driver.FindElement(By.Id("has_no_img"));
-                if (elm is not null && elm.GetAttribute("class") != "")
-                {
-                    await Task.Delay(100);
-                    break;
-                }
-
-                if(Driver.FindElements(By.XPath("//h2[@class='warning-page']")).Count > 0)
-                {
-                    await Task.Delay(5000);
-                    Driver.Navigate().Refresh();
-                }
-                
-                await Task.Delay(100);
-            }
-        }
-        
         var baseUrl = CurrentUrl.Split("?")[0];
         await WaitForPostLoad();
         var soup = await Soupify();
@@ -2331,6 +2414,27 @@ public partial class HtmlParser : IDisposable
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
+
+        async Task WaitForPostLoad()
+        {
+            while (true)
+            {
+                var elm = Driver.FindElement(By.Id("has_no_img"));
+                if (elm is not null && elm.GetDomAttribute("class") != "")
+                {
+                    await Task.Delay(100);
+                    break;
+                }
+
+                if(Driver.FindElements(By.XPath("//h2[@class='warning-page']")).Count > 0)
+                {
+                    await Task.Delay(5000);
+                    await Driver.Navigate().RefreshAsync();
+                }
+                
+                await Task.Delay(100);
+            }
+        }
     }
 
     /// <summary>
@@ -2723,8 +2827,7 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private Task<RipInfo> GelbooruParse()
     {
-        return BooruParse("Gelbooru", "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&", 
-            "pid", 0, 100, jsonObjectNavigation: ["post"]);
+        return BooruParse(Booru.Gelbooru);
     }
 
     /// <summary>
@@ -2943,7 +3046,7 @@ public partial class HtmlParser : IDisposable
     }
 
     /// <summary>
-    ///     Query the google drive API to get file information to download
+    ///     Query the Google Drive API to get file information to download
     /// </summary>
     /// <param name="gdriveUrl">The url to parse (default: CurrentUrl)</param>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -2994,6 +3097,28 @@ public partial class HtmlParser : IDisposable
         return await GenericHtmlParser("hegrehunter");
     }
 
+    /// <summary>
+    ///     Parses the html for hentaiclub.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> HentaiClubParse()
+    {
+        await LazyLoad(new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250
+        });
+        
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//span[@class='post-info-text']").InnerText;
+        var images = soup.SelectSingleNode("//div[@id='masonry']")
+                         .SelectNodes("./div")
+                         .Select(div => div.SelectSingleNode("./img").GetSrc())
+                         .ToStringImageLinkWrapperList();
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for hentai-cosplays.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -3089,7 +3214,7 @@ public partial class HtmlParser : IDisposable
                     newImages = false;
                     foreach (var imageNode in imageNodes)
                     {
-                        var src = imageNode.GetAttribute("src");
+                        var src = imageNode.GetSrc();
                         if (!seen.Add(src))
                         {
                             continue;
@@ -3107,7 +3232,7 @@ public partial class HtmlParser : IDisposable
             {
                 var iframe = soup.SelectSingleNode("//iframe");
                 var iframeUrl = iframe.GetSrc();
-                images = [ iframeUrl ]; // youtube video (probably)
+                images = [ iframeUrl ]; // YouTube video (probably)
             }
         }
 
@@ -3352,6 +3477,34 @@ public partial class HtmlParser : IDisposable
             // }
             
             images.Add($"text:{link}");
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Parses the html for jieav.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> JieAvParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@id='works']/h1").InnerText;
+        var (capturer, _) = await ConfigureNetworkCapture<JieAvCapturer>();
+        Driver.Refresh();
+        var images = new List<StringImageLinkWrapper>();
+        while (true)
+        {
+            var videoLinks = capturer.GetNewVideoLinks();
+            if (videoLinks.Count == 0)
+            {
+                await Task.Delay(250);
+                continue;
+            }
+            
+            // Only one video of interest
+            images.Add(videoLinks[0]);
+            break;
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
@@ -3803,6 +3956,150 @@ public partial class HtmlParser : IDisposable
     }
 
     /// <summary>
+    ///     Parses the html for mangadex.org and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> MangaDexParse()
+    {
+        const int delay = 250;
+        const int maxRetries = 4;
+        
+        // TODO: Support other languages
+        var match = MangaDexRegex().Match(CurrentUrl);
+        if (!match.Success)
+        {
+            throw new RipperException("Unable to parse manga id");
+        }
+        
+        var mangaId = match.Groups[1].Value;
+        Log.Debug("Manga ID: {mangaId}", mangaId);
+        var client = new MangaDexClient();
+        var response = await client.Manga.GetMetadata(mangaId);
+        if (response is not MangaMetadataResponse mangaMetadata)
+        {
+            var errorResponse = (ErrorResponse) response;
+            var exception = new RipperException("Unable to get manga metadata");
+            Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+            throw exception;
+        }
+        
+        var metadataAttributes = mangaMetadata.Data.Attributes;
+        string dirName;
+        if (metadataAttributes.Title.TryGetValue("en", out var value))
+        {
+            dirName = value;
+        }
+        else
+        {
+            var foundEnTitle = metadataAttributes.AltTitles.Any(altTitle => altTitle.TryGetValue("en", out value));
+            dirName = foundEnTitle ? value! : metadataAttributes.Title.First().Value;
+        }
+        
+        response = await client.Manga.GetVolumeAndChapter(mangaId);
+        if (response is not AggregateMangaResponse manga)
+        {
+            var errorResponse = (ErrorResponse) response;
+            var exception = new RipperException("Unable to get manga volume and chapter");
+            Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+            throw exception;
+        }
+        
+        var images = new List<StringImageLinkWrapper>();
+        var mangaImages = new List<List<StringImageLinkWrapper>>();
+        var volumes = manga.Volumes;
+        foreach (var (volumeLabel, volumeData) in volumes)
+        {
+            Log.Debug("Volume {volumeLabel}", volumeLabel);
+            var chapters = volumeData.Chapters;
+            foreach (var (chapterLabel, chapterData) in chapters)
+            {
+                var chapterIds = new Guid[chapterData.Others.Length + 1];
+                chapterIds[0] = chapterData.Id;
+                for (var i = 0; i < chapterData.Others.Length; i++)
+                {
+                    chapterIds[i + 1] = chapterData.Others[i];
+                }
+
+                var found = false;
+                foreach (var chapterId in chapterIds)
+                {
+                    await Task.Delay(delay);
+                    Log.Debug("Chapter {chapterLabel} ID: {chapterId}", chapterLabel, chapterId);
+                    response = await client.Chapter.GetChapter(chapterId);
+                    if (response is not ChapterResponse chapter)
+                    {
+                        var errorResponse = (ErrorResponse) response;
+                        var exception = new RipperException("Unable to get chapter");
+                        Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+                        throw exception;
+                    }
+                    
+                    var chapterAttributes = chapter.Data.Attributes;
+                    if (chapterAttributes.TranslatedLanguage != "en")
+                    {
+                        continue;
+                    }
+                    
+                    found = true;
+                    AtHomeResponse atHome = null!;
+                    for (var i = 0; i < maxRetries; i++)
+                    {
+                        response = await client.AtHome.GetServerUrls(chapterId);
+                        if (response is ErrorResponse errorResponse)
+                        {
+                            if (i != maxRetries - 1)
+                            {
+                                await Task.Delay(delay * 4);
+                                continue;
+                            }
+                            
+                            var exception = new RipperException("Unable to get MangaDex@Home server urls");
+                            Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+                            throw exception;
+                        }
+                        
+                        atHome = (AtHomeResponse) response;
+                        break;
+                    }
+                    
+                    // Safety: atHome should never be null here as we throw an exception in the loop if it is
+                    var serverUrls = atHome.Chapter;
+                    var baseUrl = atHome.BaseUrl;
+                    var hash = serverUrls.Hash;
+                    var chapterImages = new List<StringImageLinkWrapper>();
+                    foreach (var (i, page) in serverUrls.Data.Enumerate())
+                    {
+                        var ext  = Path.GetExtension(page);
+                        var url = $"{baseUrl}/data/{hash}/{page}";
+                        var filename = volumeLabel == "none"
+                            ? $"{chapterLabel}-{i+1}{ext}"
+                            : $"{volumeLabel}-{chapterLabel}-{i+1}{ext}";
+                        var imageLink = new ImageLink(url, FilenameScheme, 0, filename: filename);
+                        chapterImages.Add(imageLink);
+                    }
+                    
+                    mangaImages.Add(chapterImages);
+                    break;
+                }
+                
+                if (!found)
+                {
+                    Log.Warning("No English chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}", 
+                        mangaId, volumeLabel, chapterLabel);
+                }
+            }
+        }
+        
+        // Order received is newest to oldest, so we reverse it
+        foreach (var chapterImages in mangaImages.AsEnumerable().Reverse())
+        {
+            images.AddRange(chapterImages);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
     ///     Parses the html for manganato.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -4041,7 +4338,7 @@ public partial class HtmlParser : IDisposable
                     var highestRes = Driver.TryFindElement(By.XPath("//div[@class='ng-option-select']/child::*[2]/child::*[1]"));
                     if (highestRes is not null)
                     {
-                        var classes = highestRes.GetAttribute("class");
+                        var classes = highestRes.GetDomAttribute("class");
                         if (!classes.Contains("selected"))
                         {
                             highestRes.Click();
@@ -4524,7 +4821,7 @@ public partial class HtmlParser : IDisposable
                 break;
             }
 
-            posts.Add(post.GetAttribute("href"));
+            posts.Add(post.GetHref());
             id++;
         }
         
@@ -4557,7 +4854,7 @@ public partial class HtmlParser : IDisposable
                 {
                     foreach (var iframe in iframes!)
                     {
-                        var iframeUrl = iframe.GetAttribute("src");
+                        var iframeUrl = iframe.GetSrc();
                         if (!iframeUrl.Contains("iframe.mediadelivery.net"))
                         {
                             continue;
@@ -4570,14 +4867,14 @@ public partial class HtmlParser : IDisposable
                         for (var _ = 0; _ < maxRetries; _++)
                         {
                             var source = Driver.TryFindElement(By.XPath("//video/source")) ?? Driver.FindElement(By.XPath("//video"));
-                            url = source.GetAttribute("src");
+                            url = source.GetSrc();
                             if (url.StartsWith("blob:") || url == "")
                             {
                                 await Task.Delay(500);
                                 continue;
                             }
                             var qualities = Driver.FindElements(By.XPath("//button[@data-plyr='quality']"));
-                            maxQuality = qualities.Select(quality => int.Parse(quality.GetAttribute("value")))
+                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")))
                                                   .Prepend(0)
                                                   .Max();
                             break;
@@ -4594,7 +4891,7 @@ public partial class HtmlParser : IDisposable
                     {
                         contentFound = true;
                         var imgs = picture.FindElements(By.XPath(".//img"));
-                        images.AddRange(imgs.Select(img => img.GetAttribute("src"))
+                        images.AddRange(imgs.Select(img => img.GetSrc())
                                             .Where(url => url.Contains("m.porn3dx.com") && !url.Contains("avatar") 
                                                  && !url.Contains("thumb"))
                                             .Select(url => (StringImageLinkWrapper)url));
@@ -4818,7 +5115,7 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> PutMegaParse()
     {
-        const int maxRetries = 4;
+        //const int maxRetries = 4;
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//a[@data-text='album-name']").InnerText;
         var images = new List<StringImageLinkWrapper>();
@@ -4914,8 +5211,7 @@ public partial class HtmlParser : IDisposable
     /// <returns></returns>
     private Task<RipInfo> Rule34Parse()
     {
-        return BooruParse("Rule34", "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
-            "pid", 0, 1000);
+        return BooruParse(Booru.Rule34);
     }
 
     /// <summary>
@@ -5420,6 +5716,20 @@ public partial class HtmlParser : IDisposable
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
+    /// <summary>
+    ///     Parses the html for 69tang.org and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> Six9TangParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='headline']/h1").InnerText;
+        var video = soup.SelectSingleNode("//div[@class='fp-player']/video")
+                         .GetSrc();
+
+        return new RipInfo([ video ], dirName, FilenameScheme);
+    }
+    
     /// <summary>
     ///     Parses the html for spacemiss.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -6112,7 +6422,7 @@ public partial class HtmlParser : IDisposable
             var qualityButton = Driver.TryFindElement(By.XPath("//a[@class='fp-settings']"));
             if (qualityButton is not null)
             {
-                var classes = player.GetAttribute("class")!;
+                var classes = player.GetDomAttribute("class")!;
                 classes += " is-settings-open";
                 Driver.ExecuteScript($"document.getElementById('kt_player').setAttribute('class', '{classes}')");
                 var bestQuality = Driver.TryFindElement(By.XPath("//div[@class='fp-settings-list-item is-hd']/a"));
@@ -6285,8 +6595,7 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private Task<RipInfo> YandeParse()
     {
-        return BooruParse("Yande.re", "https://yande.re/post.json?", "page", 
-            1, 100);
+        return BooruParse(Booru.Yandere);
     }
     
     #endregion
@@ -6381,11 +6690,11 @@ public partial class HtmlParser : IDisposable
         return htmlDocument.DocumentNode;
     }
     
-    private static async Task<HtmlNode> Soupify(Solution solution)
+    private static Task<HtmlNode> Soupify(Solution solution)
     {
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(solution.Response);
-        return htmlDocument.DocumentNode;
+        return Task.FromResult(htmlDocument.DocumentNode);
     }
     
     /// <summary>
@@ -6905,7 +7214,7 @@ public partial class HtmlParser : IDisposable
     }
 
     [GeneratedRegex("(tags=[^&]+)")]
-    private static partial Regex Rule34Regex();
+    private static partial Regex BooruRegex();
     [GeneratedRegex(@"(/p=\d+)")]
     private static partial Regex HentaiCosplayRegex();
     [GeneratedRegex(@"t\d\.")]
@@ -6918,4 +7227,6 @@ public partial class HtmlParser : IDisposable
     private static partial Regex SxChineseGirlzRegex();
     [GeneratedRegex(@"vvv=([^&]+).+t=([^&]+)")]
     private static partial Regex Av19APlaylistIdRegex();
+    [GeneratedRegex(@"/title/([^/]+)")]
+    private static partial Regex MangaDexRegex();
 }

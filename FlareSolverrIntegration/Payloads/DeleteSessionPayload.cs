@@ -8,5 +8,5 @@ public class DeleteSessionPayload : CommandPayload
     public override string Command { get; set; } = "sessions.destroy";
     
     [JsonPropertyName("session")]
-    public string Session { get; set; }
+    public required string Session { get; set; }
 }

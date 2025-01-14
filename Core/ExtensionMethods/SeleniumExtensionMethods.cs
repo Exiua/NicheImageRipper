@@ -69,14 +69,26 @@ public static class SeleniumExtensionMethods
         cookieJar.AddCookie(newCookie);
     }
     
-    public static string? GetSrc(this IWebElement element)
+    public static string GetSrc(this IWebElement element)
     {
-        return element.GetAttribute("src");
+        var src = element.GetDomAttribute("src");
+        if (src is null)
+        {
+            throw new NoSuchElementException("Element does not have a src attribute.");
+        }
+        
+        return src;
     }
     
-    public static string? GetHref(this IWebElement element)
+    public static string GetHref(this IWebElement element)
     {
-        return element.GetAttribute("href");
+        var href = element.GetDomAttribute("href");
+        if (href is null)
+        {
+            throw new NoSuchElementException("Element does not have a href attribute.");
+        }
+        
+        return href;
     }
     
     public static void ScrollElementIntoView(this IWebDriver driver, IWebElement element)

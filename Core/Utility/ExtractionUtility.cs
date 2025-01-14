@@ -18,6 +18,20 @@ public static partial class ExtractionUtility
         return (anchorTags, remaining);
     }
 
+    public static string? ExtractFolderNameFromString(string input)
+    {
+        if (!input.Contains('"'))
+        {
+            return input.Split(" ")[0];
+        }
+
+        var match = QuotedStringRegex().Match(input);
+        return match.Success ? match.Groups[1].Value : null;
+
+    }
+
     [GeneratedRegex("""<a.*?href=\\"(.*?)\\".*?>.*?<\/a>""")]
     private static partial Regex AnchorHrefRegex();
+    [GeneratedRegex("\"(.*?)\"")]
+    private static partial Regex QuotedStringRegex();
 }

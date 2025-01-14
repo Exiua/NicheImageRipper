@@ -61,17 +61,18 @@ public partial class ImageRipper : IDisposable
     private FilenameScheme FilenameScheme { get; }
     private UnzipProtocol UnzipProtocol { get; }
     public RipInfo FolderInfo { get; private set; } = null!;
+    public PostDownloadAction PostDownloadAction { get; set; }
     private string GivenUrl { get; set; }
     private bool Interrupted { get; set; }
     public bool LoggedIn { get; set; }
-    private Dictionary<string, bool> PersistentLogins { get; set; }
-    private string SavePath { get; set; }
+    private Dictionary<string, bool> PersistentLogins { get; }
+    private string SavePath { get; }
     private HttpClient Session { get; }
     private string SiteName { get; set; }
     private float SleepTime { get; set; }
     public int CurrentIndex { get; private set; }
     private WebDriverPool DriverPool { get; }
-    private WebDriver WebDriver { get; set; }
+    private WebDriver WebDriver { get; }
     
     private FirefoxDriver Driver => WebDriver.Driver;
 
@@ -88,6 +89,7 @@ public partial class ImageRipper : IDisposable
         Interrupted = false;
         LoggedIn = File.Exists("cookies.pkl");
         PersistentLogins = new Dictionary<string, bool>();
+        // Create copy of save path, so that config can be changed without affecting current ripper instance
         SavePath = Config.SavePath;
         Session = new HttpClient();
         SiteName = "";
@@ -137,6 +139,7 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadStats = new DownloadStats();
+        var filesHashes = new HashSet<byte[]>();
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
         if (FolderInfo.MustGenerateManually)
@@ -159,7 +162,13 @@ public partial class ImageRipper : IDisposable
                 {
                     try
                     {
-                        await DownloadFromUrl(imageLink, index.ToString(), fullPath, ext, downloadStats);
+                        var fullFilename = $"{index}{ext}";
+                        var imagePath = Path.Combine(fullPath, fullFilename);
+                        await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
+                        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                        {
+                            await HandleDuplicateFile(imagePath, filesHashes);
+                        }
                         break;
                     }
                     catch // TODO: Narrow down exceptions
@@ -191,7 +200,13 @@ public partial class ImageRipper : IDisposable
                         await Task.Delay((int) SleepTime * 1000);
                         try
                         {
-                            await DownloadFromList(link, fullPath, index, downloadStats);
+                            var filename = link.Filename;
+                            var imagePath = Path.Combine(fullPath, filename);
+                            await DownloadFromList(link, imagePath, index, downloadStats);
+                            if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                            {
+                                await HandleDuplicateFile(imagePath, filesHashes);
+                            }
                         }
                         catch (FileNotFoundException)
                         {
@@ -347,15 +362,24 @@ public partial class ImageRipper : IDisposable
         return exitCode;
     }
 
+    private static async Task HandleDuplicateFile(string imagePath, HashSet<byte[]> filesHashes)
+    {
+        var fileHash = await FileUtility.GetFileHash(imagePath);
+        if (!filesHashes.Add(fileHash))
+        {
+            Log.Information("Duplicate file detected: {ImagePath}", imagePath);
+            File.Delete(imagePath);
+        }
+    }
+    
     /// <summary>
     ///     Download image from image url
     /// </summary>
     /// <param name="imageLink">ImageLink containing data on the file to download</param>
     /// <param name="filename">Name of the file to download</param>
-    /// <param name="fullPath">Full path of the directory to download the file to</param>
+    /// <param name="imagePath">Full path to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
-    /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromUrl(ImageLink imageLink, string filename, string fullPath, string ext, DownloadStats downloadStats)
+    private async Task DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
@@ -364,7 +388,7 @@ public partial class ImageRipper : IDisposable
         var ripUrl = $"{url}{fullFilename}";
         var numProgress = $"({filename}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
-        var imagePath = Path.Combine(fullPath, fullFilename);
+        imageLink.Url = ripUrl;
         await DownloadFile(imagePath, imageLink, true);
         await Task.Delay(50);
     }
@@ -373,18 +397,16 @@ public partial class ImageRipper : IDisposable
     ///     Download images from url supplied from a list of image urls
     /// </summary>
     /// <param name="imageLink">ImageLink containing data on the file to download</param>
-    /// <param name="fullPath">Full path of the directory to save the file to</param>
+    /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromList(ImageLink imageLink, string fullPath, int currentFileNum,
+    private async Task DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
                                         DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
         var numProgress = $"({currentFileNum + 1}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
-        var filename = imageLink.Filename;
-        var imagePath = Path.Combine(fullPath, filename);
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
         if (imageLink.HasReferer)
         {
@@ -754,7 +776,7 @@ public partial class ImageRipper : IDisposable
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
         if (Path.GetExtension(imagePath) == "")
         {
-            var extension = GetCorrectExtension(imagePath);
+            var extension = FileUtility.GetCorrectExtension(imagePath);
             RenameFile(imagePath, imagePath + extension);
         }
         
@@ -781,6 +803,11 @@ public partial class ImageRipper : IDisposable
             var cookie = $"accountToken={cookieValue}";
             oldCookies = RequestHeaders[RequestHeaderKeys.Cookie];
             RequestHeaders[RequestHeaderKeys.Cookie] = cookie;
+        }
+        else if (imageLink.Referer.Contains("donmai.us"))
+        {
+            modifiedHeader = ModifiedHeader.UserAgent;
+            RequestHeaders[RequestHeaderKeys.UserAgent] = "NicheImageRipper";
         }
 
         Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
@@ -943,10 +970,14 @@ public partial class ImageRipper : IDisposable
             //RequestHeaders[RequestHeaderKeys.Cookie] = GoFileAccountTokenCookieRegex().Replace(RequestHeaders[RequestHeaderKeys.Cookie], "");
             RequestHeaders[RequestHeaderKeys.Cookie] = oldCookies;
         }
+        else if (modifiedHeader.HasFlag(ModifiedHeader.UserAgent))
+        {
+            RequestHeaders[RequestHeaderKeys.UserAgent] = Config.UserAgent;
+        }
 
         if (imageLink.LinkInfo == LinkInfo.GoFile)
         {
-            var ext = GetCorrectExtension(imagePath);
+            var ext = FileUtility.GetCorrectExtension(imagePath);
             if (ext != ".html")
             {
                 return true;
@@ -960,8 +991,6 @@ public partial class ImageRipper : IDisposable
         return true;
     }
     
-    // TODO: Code is duplicated in HtmlParser.cs, find a way to refactor to remove dependency on HtmlParser and
-    //  avoid code duplication
     private async Task AssociateGoFileCookies(string url)
     {
         Log.Debug("Associating GoFile cookies");
@@ -984,8 +1013,6 @@ public partial class ImageRipper : IDisposable
         {
             // Ignore
             Log.Warning("WebDriver unreachable, resetting...");
-            //Driver = new FirefoxDriver(HtmlParser.InitializeOptions(false));
-            //HtmlParser.SiteLoginStatus.Clear();
             WebDriver.RegenerateDriver(false);
         }
     }
@@ -1261,7 +1288,7 @@ public partial class ImageRipper : IDisposable
         }
         catch (InvalidDataException)
         {
-            var ext = GetCorrectExtension(zipPath);
+            var ext = FileUtility.GetCorrectExtension(zipPath);
             var newPath = Path.ChangeExtension(zipPath, ext);
             File.Move(zipPath, newPath);
             return;
@@ -1271,63 +1298,6 @@ public partial class ImageRipper : IDisposable
         {
             File.Delete(zipPath);
         }
-    }
-
-    /// <summary>
-    ///     Get correct extension for a file based on file signature
-    /// </summary>
-    /// <param name="filepath">Path to the file to analyze</param>
-    /// <returns>True extension of the file or the original extension if the file signature is unknown (will default to
-    ///     .bin if the file does not have a file extension)</returns>
-    private static string GetCorrectExtension(string filepath)
-    {
-        var signature = ReadSignature(filepath, 8);
-        if (signature is null)
-        {
-            return ".bin"; // Default extension if reading failed or file is too small
-        }
-
-        var signatureInt = ToUInt64(signature, 0);
-        ulong[] masks =
-        [
-            0xFFFF_FFFF_FFFF_FFFF, // 8 bytes
-            0xFFFF_FFFF_FFFF_0000, // 6 bytes
-            0xFFFF_FFFF_0000_0000, // 4 bytes
-            0x0000_0000_FFFF_FFFF, // 4 bytes reverse
-            0xFFFF_FF00_0000_0000, // 3 bytes
-        ];
-
-        foreach (var mask in masks)
-        {
-            var maskedSignature = signatureInt & mask;
-            if (FileSignatures.TryGetValue(maskedSignature, out var ext))
-            {
-                return ext; // Return the extension if a matching signature is found
-            }
-        }
-
-        return ".bin"; // Default extension if no matching signature is found
-    }
-    
-    private static ulong ToUInt64(byte[] bytes, int startIndex)
-    {
-        var value = 0UL;
-        for (var i = 0; i < 8; i++)
-        {
-            value |= (ulong)bytes[startIndex + i] << (8 * (7 - i));
-        }
-        
-        return value;
-    }
-
-    private static byte[]? ReadSignature(string filepath, int length)
-    {
-        var signature = new byte[length];
-        using var stream = File.OpenRead(filepath);
-        var bytesRead = stream.Read(signature, 0, length);
-        // Return null if the file is shorter than the required signature length
-        return bytesRead < length ? null : signature;
-            
     }
     
     /// <summary>

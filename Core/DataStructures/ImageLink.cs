@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Core.Enums;
+using Core.Exceptions;
 using JetBrains.Annotations;
 using Core.ExtensionMethods;
 using Core.Utility;
@@ -148,7 +149,7 @@ public partial class ImageLink
                 return index + ext;
             case FilenameScheme.Original: // Handled above
             default:
-                throw new Exception($"FilenameScheme out of bounds: {filenameScheme}"); // TODO: RipperError
+                throw new RipperException($"FilenameScheme out of bounds: {filenameScheme}");
         }
     }
 
@@ -244,6 +245,15 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^1];
             LinkInfo = LinkInfo.SeleniumImage;
+        }
+        else if (url.Contains("69tang.org"))
+        {
+            fileName = url.Split("/")[^2];
+        }
+        else if (url.Contains("ddyunbo.com"))
+        {
+            fileName = url.Split("/")[^2] + ".mp4";
+            LinkInfo = LinkInfo.M3U8Ffmpeg;
         }
         else
         {

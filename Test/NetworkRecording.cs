@@ -59,7 +59,7 @@ public class NetworkRecording
 
         await driver.Navigate().GoToUrlAsync(url);
         var cookies = driver.Manage().Cookies;
-        cookies.AddCookie(new Cookie("auth_token", "a1f647212bf77c611c2cbed940f8d7affd8e2ee1"));
+        cookies.AddCookie(new Cookie("auth_token", ""));
         await driver.Navigate().GoToUrlAsync(url);
 
         Console.WriteLine("Press any key to exit");

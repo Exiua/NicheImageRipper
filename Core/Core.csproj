@@ -9,20 +9,21 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Google.Apis.Drive.v3" Version="1.67.0.3309" />
-      <PackageReference Include="HtmlAgilityPack" Version="1.11.70" />
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3627" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
       <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-      <PackageReference Include="Selenium.WebDriver" Version="4.26.1" />
+      <PackageReference Include="Selenium.WebDriver" Version="4.27.0" />
       <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.35.0" />
-      <PackageReference Include="Serilog" Version="4.1.0" />
+      <PackageReference Include="Serilog" Version="4.2.1-dev-02337" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
       <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-      <PackageReference Include="SharpCompress" Version="0.37.2" />
-      <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+      <PackageReference Include="SharpCompress" Version="0.38.0" />
+      <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\FlareSolverrIntegration\FlareSolverrIntegration.csproj" />
+      <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
     </ItemGroup>
 
 </Project>
