@@ -15,11 +15,15 @@ public class NicheImageRipperCli : NicheImageRipper
             try
             {
                 var url = await RipUrl();
-                UpdateHistory(Ripper.FolderInfo, url);
+                if (url != "")
+                {
+                    // If empty url is returned Ripper is also null
+                    UpdateHistory(Ripper!.FolderInfo, url);
+                }
             }
             finally
             {
-                Ripper.Dispose(); // TODO: Fix this
+                Ripper?.Dispose(); // TODO: Fix this
             }
         }
     }
@@ -64,7 +68,7 @@ public class NicheImageRipperCli : NicheImageRipper
         {
             try
             {
-                LogMessageToFile("NicheImageRipper> ", newLine: false);
+                LogMessageToFile($"{Title}> ", newLine: false);
                 var userInput = Console.ReadLine();
                 if (string.IsNullOrEmpty(userInput))
                 {
@@ -338,6 +342,9 @@ public class NicheImageRipperCli : NicheImageRipper
                         NormalizeUrlsInDb();
                         break;
                     #endif
+                    case "v" or "version":
+                        LogMessageToFile($"{Title} v{Version}");
+                        break;
                     default:
                         QueueUrlsHelper(userInput);
                         break;

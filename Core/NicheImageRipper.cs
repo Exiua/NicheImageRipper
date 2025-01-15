@@ -26,11 +26,11 @@ public abstract partial class NicheImageRipper : IDisposable
     
     
     public string Title { get; } = "NicheImageRipper";
-    public Version Version { get; set; } = new(3, 0, 0);
+    public Version Version { get; set; } = new(3, 1, 0);
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; } = false;
-    public ImageRipper Ripper { get; set; } = null!;
+    public ImageRipper? Ripper { get; set; }
 
     
     public static bool LiveHistory 
@@ -268,6 +268,7 @@ public abstract partial class NicheImageRipper : IDisposable
             PrintUtility.Print("No URLs to rip.");
             return "";
         }
+        
         var url = UrlQueue[0];
         PrintUtility.Print(url);
         Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol);
@@ -311,7 +312,8 @@ public abstract partial class NicheImageRipper : IDisposable
             JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
         }
 
-        if (Interrupted && Ripper.CurrentIndex > 1)
+        // Interrupted is only set after creating ImageRipper
+        if (Interrupted && Ripper!.CurrentIndex > 1)
         {
             File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
         }
