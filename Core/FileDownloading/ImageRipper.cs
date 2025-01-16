@@ -33,24 +33,6 @@ public partial class ImageRipper : IDisposable
     private const string RipIndex = ".ripIndex";
     private const int RetryCount = 4;
 
-    private static readonly Dictionary<ulong, string> FileSignatures = new()
-    {
-        [0x89_50_4E_47_0D_0A_1A_0A] = ".png",   // /8
-        [0x43_53_46_43_48_55_4E_4B] = ".clip",  // /8
-        [0x3C_21_44_4F_43_54_59_50] = ".html",  // /8 // <!DOCTYP
-        [0x3C_21_64_6F_63_74_79_70] = ".html",  // /8 // <!doctyp
-        [0x52_61_72_21_1A_07_00_00] = ".rar",   // /6
-        [0x37_7A_BC_AF_27_1C_00_00] = ".7z",    // /6
-        [0x47_49_46_38_00_00_00_00] = ".gif",   // /4
-        [0x50_4B_03_04_00_00_00_00] = ".zip",   // /4
-        [0x38_42_50_53_00_00_00_00] = ".psd",   // /4
-        [0x25_50_44_46_00_00_00_00] = ".pdf",   // /4
-        [0x1A_45_DF_A3_00_00_00_00] = ".webm",  // /4
-        [0x52_49_46_46_00_00_00_00] = ".webp",  // /4
-        [0x00_00_00_00_66_74_79_70] = ".mp4",   // /4 reverse
-        [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
-    };
-
     private Dictionary<string, string> RequestHeaders { get; } = new()
     {
         [RequestHeaderKeys.UserAgent] = Config.UserAgent,
@@ -80,10 +62,12 @@ public partial class ImageRipper : IDisposable
     private static TokenManager TokenManager => TokenManager.Instance;
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
-    public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original, UnzipProtocol unzipProtocol = UnzipProtocol.None)
+    public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
+                       UnzipProtocol unzipProtocol = UnzipProtocol.None, PostDownloadAction postDownloadAction = PostDownloadAction.None)
     {
         FilenameScheme = filenameScheme;
         UnzipProtocol = unzipProtocol;
+        PostDownloadAction = postDownloadAction;
         //FolderInfo = null;
         GivenUrl = "";
         Interrupted = false;

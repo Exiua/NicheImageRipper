@@ -26,7 +26,7 @@ public abstract partial class NicheImageRipper : IDisposable
     
     
     public string Title { get; } = "NicheImageRipper";
-    public Version Version { get; set; } = new(3, 1, 0);
+    public Version Version { get; set; } = new(3, 0, 0, 1);
     public Version LatestVersion { get; set; } = GetLatestVersion().Result;
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; } = false;
@@ -55,6 +55,12 @@ public abstract partial class NicheImageRipper : IDisposable
     {
         get => Config.UnzipProtocol;
         set => Config.UnzipProtocol = value;
+    }
+
+    public static PostDownloadAction PostDownloadAction
+    {
+        get => Config.PostDownloadAction;
+        set => Config.PostDownloadAction = value;
     }
 
     public static string SavePath
@@ -271,7 +277,7 @@ public abstract partial class NicheImageRipper : IDisposable
         
         var url = UrlQueue[0];
         PrintUtility.Print(url);
-        Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol);
+        Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Interrupted = true;
         var retry = 0;
         do

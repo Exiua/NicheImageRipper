@@ -797,7 +797,9 @@ public partial class HtmlParser : IDisposable
             });
             images.AddRange(urls);
         }
-        var dirName = $"[Booru] {tags.Remove("+").Remove("tags=")}";
+        var tagTitle = tags.Remove("+").Remove("tags=");
+        tagTitle = Uri.UnescapeDataString(tagTitle);
+        var dirName = $"[Booru] {tagTitle}";
         return new RipInfo(images, dirName, FilenameScheme);
     }
     

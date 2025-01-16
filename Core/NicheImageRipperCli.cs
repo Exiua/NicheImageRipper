@@ -145,10 +145,43 @@ public class NicheImageRipperCli : NicheImageRipper
                                 }
 
                                 break;
+                            case "postdownloadaction":
+                                if (cmdParts.Length == 2)
+                                {
+                                    LogMessageToFile($"Post download action: {PostDownloadAction}");
+                                }
+                                else
+                                {
+                                    if (Enum.TryParse(cmdParts[2], true, out PostDownloadAction action))
+                                    {
+                                        if (action == PostDownloadAction.None)
+                                        {
+                                            PostDownloadAction = action;
+                                        }
+                                        else
+                                        {
+                                            if (PostDownloadAction.HasFlag(action))
+                                            {
+                                                PostDownloadAction &= ~action;
+                                            }
+                                            else
+                                            {
+                                                PostDownloadAction |= action;
+                                            }
+                                        }
+                                        
+                                        LogMessageToFile($"Post download action set to {PostDownloadAction}");
+                                    }
+                                    else
+                                    {
+                                        var validActions = string.Join(", ", Enum.GetNames<PostDownloadAction>());
+                                        LogMessageToFile($"Invalid action. Valid actions: {{{validActions}}}", LogEventLevel.Warning);
+                                    }
+                                }
+                                
+                                break;
                             default:
-                                LogMessageToFile($"Invalid key: {key}", LogEventLevel.Warning);
-                                // List all keys
-                                LogMessageToFile("Keys: savepath");
+                                LogMessageToFile($"Invalid key: {key}. Valid Keys: {{savepath, postdownloadaction}}", LogEventLevel.Warning);
                                 break;
                         }
                         break;
