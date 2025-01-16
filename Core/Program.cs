@@ -1,4 +1,5 @@
-﻿using Core;
+﻿using System.Text;
+using Core;
 using Core.ArgParse;
 using Core.History;
 using Core.SiteParsing;
@@ -19,6 +20,7 @@ NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
 #endif
 
 PrintUtility.PrintFunction = Log.Information;
+Console.OutputEncoding = Encoding.UTF8;
 
 #if DEBUG
 var arguments = ArgumentParser.Parse(args);
