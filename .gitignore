@@ -6,4 +6,9 @@ riderModule.iml
 Workspace/
 .idea/
 *.json
+*.txt
+*.jpg
+*.png
+*.mp4
+*.html
 NicheImageRipper.sln.DotSettings.user

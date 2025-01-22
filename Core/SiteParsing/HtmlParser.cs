@@ -4255,7 +4255,6 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> NewgroundsParse()
     {
-        // TODO: Test
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true

@@ -123,7 +123,7 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadStats = new DownloadStats();
-        var filesHashes = new HashSet<byte[]>();
+        var filesHashes = new HashSet<HashKey>();
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
         if (FolderInfo.MustGenerateManually)
@@ -346,13 +346,17 @@ public partial class ImageRipper : IDisposable
         return exitCode;
     }
 
-    private static async Task HandleDuplicateFile(string imagePath, HashSet<byte[]> filesHashes)
+    private static async Task HandleDuplicateFile(string imagePath, HashSet<HashKey> filesHashes)
     {
         var fileHash = await FileUtility.GetFileHash(imagePath);
         if (!filesHashes.Add(fileHash))
         {
             Log.Information("Duplicate file detected: {ImagePath}", imagePath);
             File.Delete(imagePath);
+        }
+        else
+        {
+            Log.Debug("File hash: {FileHash}", fileHash);
         }
     }
     

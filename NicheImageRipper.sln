@@ -8,8 +8,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlareSolverrIntegration", "FlareSolverrIntegration\FlareSolverrIntegration.csproj", "{7E110443-2DDE-4099-A4AB-D218E7A5A79D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Workspace", "Workspace\Workspace.csproj", "{24B9F5E3-9438-43E5-AF18-782660067919}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaDexLibrary", "MangaDexLibrary\MangaDexLibrary.csproj", "{DC425561-67A2-4D30-A3E4-1EDF272D9C48}"
 EndProject
 Global
@@ -34,10 +32,6 @@ Global
 		{7E110443-2DDE-4099-A4AB-D218E7A5A79D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E110443-2DDE-4099-A4AB-D218E7A5A79D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E110443-2DDE-4099-A4AB-D218E7A5A79D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{24B9F5E3-9438-43E5-AF18-782660067919}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{24B9F5E3-9438-43E5-AF18-782660067919}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{24B9F5E3-9438-43E5-AF18-782660067919}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{24B9F5E3-9438-43E5-AF18-782660067919}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DC425561-67A2-4D30-A3E4-1EDF272D9C48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DC425561-67A2-4D30-A3E4-1EDF272D9C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC425561-67A2-4D30-A3E4-1EDF272D9C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
