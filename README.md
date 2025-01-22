@@ -1,5 +1,6 @@
 ﻿# NicheImageRipper
-[![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE) [![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases) ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
+[![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE) ![GitHub Release](https://img.shields.io/github/v/release/Exiua/NicheImageRipper?include_prereleases&label=latest) ![GitHub Release](https://img.shields.io/github/v/release/Exiua/NicheImageRipper?label=stable)
+ ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
 
 ## Table of Contents
 <!-- TOC -->
