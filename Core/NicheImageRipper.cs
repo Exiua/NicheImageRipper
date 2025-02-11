@@ -276,8 +276,9 @@ public abstract partial class NicheImageRipper : IDisposable
         }
         
         var url = UrlQueue[0];
-        PrintUtility.Print(url);
+        Log.Information("{Url}", url);
         Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
+        Log.Debug("Ripper created");
         Interrupted = true;
         var retry = 0;
         do
@@ -302,7 +303,7 @@ public abstract partial class NicheImageRipper : IDisposable
                     continue;
                 }
 
-                PrintUtility.Print($"Failed to rip {url} after {MaxRetries} attempts.");
+                Log.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
                 throw;
             }
         } while (retry < MaxRetries);

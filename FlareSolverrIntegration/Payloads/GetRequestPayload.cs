@@ -54,7 +54,7 @@ public class GetRequestPayload : CommandPayload
         return this;
     }
     
-    public GetRequestPayload SetCookies(List<Dictionary<string, string>> cookies)
+    public GetRequestPayload SetCookies(List<Dictionary<string, string>>? cookies)
     {
         Cookies = cookies;
         return this;

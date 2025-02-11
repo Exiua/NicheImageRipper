@@ -1,4 +1,6 @@
 ﻿using System.Collections.Frozen;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
@@ -87,11 +89,14 @@ public partial class HtmlParser : IDisposable
     
     public async Task<RipInfo> ParseSite(string url)
     {
+        Log.Debug("Parsing {Url}", url);
         if (File.Exists("partial.json"))
         {
+            Log.Debug("Partial save file found");
             var saveData = ReadPartialSave();
             if (saveData.TryGetValue(url, out var value))
             {
+                Log.Debug("Partial save found for {Url}", url);
                 RequestHeaders["cookie"] = value.Cookies;
                 RequestHeaders["referer"] = value.Referer;
                 Interrupted = true;
@@ -99,6 +104,7 @@ public partial class HtmlParser : IDisposable
             }
         }
 
+        Log.Debug("No partial save found for site; Parsing site");
         url = url.Replace("members.", "www.");
         GivenUrl = url;
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
@@ -107,10 +113,13 @@ public partial class HtmlParser : IDisposable
             CurrentUrl = url;
         }
         
+        Log.Debug("Getting parser for {SiteName}", SiteName);
         var siteParser = GetParser(SiteName);
         try
         {
+            Log.Debug("Executing parser for {SiteName}", SiteName);
             var siteInfo = await siteParser();
+            Log.Debug("Saving partial save for {Url}", url);
             WritePartialSave(siteInfo, url);
             //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             return siteInfo;
@@ -283,7 +292,7 @@ public partial class HtmlParser : IDisposable
             "mangadex" => MangaDexParse,
             "cosblay" => CosblayParse,
             "kaizty" => KaiztyParse,
-            _ => throw new Exception($"Site not supported/implemented: {siteName}")
+            _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
 
@@ -446,9 +455,10 @@ public partial class HtmlParser : IDisposable
         var sourceSite = urlSplit[3];
         baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
         baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
+        await WaitForElement("//h1[@id='user-header__info-top']");
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
-                          .SelectSingleNode("//span[@itemprop='name']").InnerText;
+                          .SelectSingleNode(".//span[@itemprop='name']").InnerText;
         dirName = $"{dirName} - ({sourceSite})";
 
         #region Get All Posts
@@ -1286,6 +1296,13 @@ public partial class HtmlParser : IDisposable
         }
         
         var soup = await Soupify();
+        var notFound = soup.SelectSingleNode("//h1[@class='text-3xl font-bold']");
+        if (notFound is not null)
+        {
+            Log.Warning("Page not found: {CurrentUrl}", CurrentUrl);
+            return RipInfo.Empty;
+        }
+        
         string dirName;
         if (url == "")
         {
@@ -1330,7 +1347,7 @@ public partial class HtmlParser : IDisposable
                 {
                     GetImageLink();
                 }
-                else if(CurrentUrl.Contains("/v/"))
+                else if(CurrentUrl.Contains("/v/") || CurrentUrl.Contains("/f/"))
                 {
                     await GetVideoLink(soup);
                 }
@@ -1348,7 +1365,7 @@ public partial class HtmlParser : IDisposable
         {
             GetImageLink();
         }
-        else if(CurrentUrl.Contains("/v/"))
+        else if(CurrentUrl.Contains("/v/") || CurrentUrl.Contains("/f/"))
         {
             await GetVideoLink(soup);
         }
@@ -1729,6 +1746,12 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> CoomerParse()
     {
+        return await DotPartyParse("https://coomer.su");
+    }
+    
+    private async Task<RipInfo> CoomerParse(string url)
+    {
+        CurrentUrl = url;
         return await DotPartyParse("https://coomer.su");
     }
 
@@ -3568,6 +3591,13 @@ public partial class HtmlParser : IDisposable
 
         var single = false;
         var soup = await Soupify();
+        var notFound = soup.SelectSingleNode("//div[@class='page-not-found']");
+        if (notFound is not null)
+        {
+            Log.Warning("Image not found");
+            return new RipInfo([], "Not Found", FilenameScheme);
+        }
+        
         string? dirName;
         if (CurrentUrl.Contains("/a/"))
         {
@@ -5526,26 +5556,40 @@ public partial class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> SimpCityParse()
     {
-        var cookieValue = Config.Cookies["SimpCity"];
-        Driver.AddCookie("kZJdisc_user", cookieValue);
-        var soup = await SolveParseAddCookies();
-        var cookieJar = Driver.GetCookieJar();
-        var cookies = cookieJar.AllCookies;
-        var dirName = soup.SelectSingleNode("//h1[@class='p-title-value']").InnerText;
-        var resolvableSet = new HashSet<string>
+        if (CurrentUrl.Contains("//www."))
         {
-            "bunkrrr.org",
-            "bunkr.",
-            /*"bunkr.ru",
-            "bunkr.ws",
-            "bunkr.red",
-            "bunkr.media",
-            "bunkr.si",*/
-            "gofile.io",
-            "pixeldrain.com",
-            "cyberdrop.me",
-            "jpg4.su"
-        }.ToFrozenSet();
+            CurrentUrl = CurrentUrl.Replace("//www.", "//");
+        }
+        Log.Debug("Getting user cookie");
+        var cookieValue = Config.Cookies["SimpCity"];
+        Log.Debug("Adding cookie to driver");
+        Driver.AddCookie("dontlikebots_user", cookieValue);
+        Log.Debug("Solving captcha and parsing page");
+        var userCookie = new Dictionary<string, string>
+        {
+            ["name"] = "dontlikebots_user",
+            ["value"] = cookieValue
+        };
+        var soup = await SolveParseAddCookies(cookies: [ userCookie ]);
+        var cookieJar = Driver.GetCookieJar();
+        Log.Debug("Saving reference to cookies");
+        var cookies = cookieJar.AllCookies;
+        Log.Debug("Creating resolvable url map");
+        var resolvableMap = new Dictionary<string, Func<string, Task<RipInfo>>>
+        {
+            ["bunkrrr.org"] = BunkrParse,
+            ["bunkr."] = BunkrParse,
+            ["gofile.io"] = GoFileParse,
+            ["pixeldrain.com"] = PixelDrainParse,
+            ["cyberdrop.me"] = CyberDropParse,
+            ["jpg4.su"] = Jpg5Parse,
+            ["jpg5.su"] = Jpg5Parse,
+            ["coomer.party"] = CoomerParse,
+        }.ToFrozenDictionary();
+        
+        Log.Debug("Parsing page");
+        var dirName = soup.SelectSingleNode("//h1[@class='p-title-value']").InnerText;
+        Log.Debug("Directory name: {DirName}", dirName);
         var images = new List<StringImageLinkWrapper>();
 
         #region Parse Posts
@@ -5566,6 +5610,10 @@ public partial class HtmlParser : IDisposable
                 Driver.Refresh();
                 continue;
             }
+
+            #if DEBUG
+            Driver.TakeDebugScreenshot();
+            #endif
             
             var posts = soup.SelectSingleNode("//div[@class='block-body js-replyNewMessageContainer']")
                             .SelectNodes("./article");
@@ -5583,10 +5631,23 @@ public partial class HtmlParser : IDisposable
                 images.AddRange(vids);
                 var index = images.Count;
                 var links = content.SelectNodesSafe(".//a");
-                var resolve = links.Select(link => link.GetNullableHref())
+                List<string> resolve;
+                #if DEBUG
+                var rawLinks = links.Select(link => link.GetNullableHref())
+                                    .OfType<string>()
+                                    .ToList();
+                resolve = rawLinks.Where(url => resolvableMap.Keys.Any(url.Contains))
+                                  .ToList();
+                foreach (var link in rawLinks.Except(resolve))
+                {
+                    Log.Debug("Unhandled link: {Link}", link);
+                }
+                #else
+                resolve = links.Select(link => link.GetNullableHref())
                                    .OfType<string>()
-                                   .Where(url => resolvableSet.Any(url.Contains))
+                                   .Where(url => resolvableMap.Keys.Any(url.Contains))
                                    .ToList();
+                #endif
                 var iframes = content.SelectNodesSafe(".//iframe[@class='saint-iframe']")
                                      .Select(iframe => iframe.GetSrc()); //cyberdrop and saint2
                 resolve.AddRange(iframes);
@@ -5595,13 +5656,6 @@ public partial class HtmlParser : IDisposable
                     resolveLists.Add((resolve, index));
                 }
             }
-                
-            // #if DEBUG
-            // if (images.Any(l => l.StartsWith("data:")))
-            // {
-            //     Console.WriteLine("Data URL found");
-            // }
-            // #endif
 
             var nextPage = soup.SelectSingleNode("//a[@class='pageNav-jump pageNav-jump--next']");
             if (nextPage is null)
@@ -5611,7 +5665,7 @@ public partial class HtmlParser : IDisposable
             
             var nextPageUrl = $"https://simpcity.su{nextPage.GetHref()}";
             Log.Information("Parsing page: {NextPageUrl}", nextPageUrl);
-            soup = await Soupify(nextPageUrl, lazyLoadArgs: lazyLoadArgs);
+            soup = await Soupify(nextPageUrl, lazyLoadArgs: lazyLoadArgs, delay: 1000, cookies: cookieJar);
         }
 
         #endregion
@@ -5628,33 +5682,17 @@ public partial class HtmlParser : IDisposable
             {
                 Log.Information("Resolving link {Resolved} of {Total}: {Link}", resolved, total, link);
                 resolved++;
-                Func<string, Task<RipInfo>> parser;
-                if (link.Contains("bunkrrr.org") || link.Contains("bunkr.")/*link.Contains("bunkr.ru") || link.Contains("bunkr.ws")
-                    || link.Contains("bunkr.red") || link.Contains("bunkr.media") || link.Contains("bunkr.si")*/)
+                Func<string, Task<RipInfo>>? parser = null;
+                foreach (var (urlPart, p) in resolvableMap)
                 {
-                    parser = BunkrParse;
+                    if (link.Contains(urlPart))
+                    {
+                        parser = p;
+                        break;
+                    }
                 }
-                else if (link.Contains("gofile.io"))
-                {
-                    parser = GoFileParse;
-                }
-                else if (link.Contains("pixeldrain.com"))
-                {
-                    parser = PixelDrainParse;
-                }
-                else if (link.Contains("cyberdrop.me"))
-                {
-                    parser = CyberDropParse;
-                }
-                else if (link.Contains("jpg4.su") || link.Contains("jpg5.su"))
-                {
-                    parser = Jpg5Parse;
-                }
-                else if(link.Contains("saint2."))
-                {
-                    parser = Saint2Parse;
-                }
-                else
+
+                if (parser is null)
                 {
                     throw new RipperException($"Link bypassed filter: {link}");
                 }
@@ -5669,31 +5707,17 @@ public partial class HtmlParser : IDisposable
                     Log.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
-                    WebDriver.RegenerateDriver(false);
-                    cookieJar = Driver.GetCookieJar();
-                    foreach(var cookie in cookies)
-                    {
-                        cookieJar.AddCookie(cookie);
-                    }
-                    info = await parser(link);
+                    info = await ReTryParse(link, parser, cookies);
                 }
                 catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver server for URL"))
                 {
                     Log.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
-                    //Driver = new FirefoxDriver(InitializeOptions(false));
-                    WebDriver.RegenerateDriver(false);
-                    cookieJar = Driver.GetCookieJar();
-                    foreach(var cookie in cookies)
-                    {
-                        cookieJar.AddCookie(cookie);
-                    }
-                    info = await parser(link);
+                    info = await ReTryParse(link, parser, cookies);
                 }
                 
                 images.InsertRange(index, info.Urls.ToStringImageLinks());
-                index += info.Urls.Count;
                 offset += info.Urls.Count;
                 await Task.Delay(125);
             }
@@ -5723,6 +5747,17 @@ public partial class HtmlParser : IDisposable
             var id = downloadLink.Split("/d/")[^1];
             return $"https://simp2.saint2.pk/api/download.php?file={id}";
 
+        }
+
+        Task<RipInfo> ReTryParse(string link, Func<string, Task<RipInfo>> parser, ReadOnlyCollection<Cookie> cookies)
+        {
+            WebDriver.RegenerateDriver(false);
+            cookieJar = Driver.GetCookieJar();
+            foreach(var cookie in cookies)
+            {
+                cookieJar.AddCookie(cookie);
+            }
+            return parser(link);
         }
     }
 
@@ -6707,7 +6742,7 @@ public partial class HtmlParser : IDisposable
     }
     
     private async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
-                                                string xpath = "", bool urlString = true)
+                                                string xpath = "", bool urlString = true, ICookieJar? cookies = null)
     {
         if (!urlString)
         {
@@ -6717,6 +6752,15 @@ public partial class HtmlParser : IDisposable
         }
         
         CurrentUrl = url;
+        
+        if (cookies is not null)
+        {
+            var cookieJar = Driver.GetCookieJar();
+            foreach (var cookie in cookies.AllCookies)
+            {
+                cookieJar.AddCookie(cookie);
+            }
+        }
 
         return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath);
     }
@@ -6780,20 +6824,22 @@ public partial class HtmlParser : IDisposable
     ///     Get captcha solution to site, parse the html, and add the necessary cookies to the driver.
     /// </summary>
     /// <param name="regenerateSessionOnFailure">Whether to regenerate the session if getting the solution fails</param>
+    /// <param name="cookies">Cookies to add to the session</param>
     /// <returns>The parsed html</returns>
-    private async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false)
+    private async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false, 
+                                                      List<Dictionary<string, string>>? cookies = null)
     {
         Solution solution;
         try
         {
-            solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+            solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies);
         }
         catch (FailedToGetSolutionException)
         {
             if (regenerateSessionOnFailure)
             {
                 await FlareSolverrManager.DeleteSession(suppressException: true);
-                solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl);
+                solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies);
             }
             else
             {

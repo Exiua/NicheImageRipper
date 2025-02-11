@@ -88,8 +88,11 @@ public partial class ImageRipper : IDisposable
         SleepTime = 0.2f;   // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        Log.Debug("Site Name: {SiteName}", SiteName);
+        Log.Debug("Checking if cookies are needed for {SiteName}", SiteName);
         if (CookiesNeeded())
         {
+            Log.Debug("Adding cookies needed for {SiteName}", SiteName);
             AddCookies();
         }
 
@@ -99,6 +102,7 @@ public partial class ImageRipper : IDisposable
     private async Task FileGetter()
     {
         var htmlParser = new HtmlParser(WebDriver, RequestHeaders, SiteName, FilenameScheme);
+        Log.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
         Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
         //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);

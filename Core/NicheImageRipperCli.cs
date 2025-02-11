@@ -10,11 +10,14 @@ public class NicheImageRipperCli : NicheImageRipper
 {
     private async Task Rip()
     {
+        Log.Debug("Starting rip");
         while (UrlQueue.Count != 0)
         {
+            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
             try
             {
                 var url = await RipUrl();
+                Log.Debug("Ripped URL: \"{Url}\"", url);
                 if (url != "")
                 {
                     // If empty url is returned Ripper is also null
