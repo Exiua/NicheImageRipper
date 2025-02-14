@@ -752,7 +752,15 @@ public partial class HtmlParser : IDisposable
         }
         else
         {
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            try
+            {
+                json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            }
+            catch (JsonException e) when(e.Message.StartsWith("The input does not contain any JSON tokens."))
+            {
+                Log.Debug("Failed to deserialize json due to empty response");
+                return RipInfo.Empty;
+            }
         }
 
         if (json is null)
@@ -798,6 +806,7 @@ public partial class HtmlParser : IDisposable
         var images = new List<StringImageLinkWrapper>();
         foreach (var booru in boorus)
         {
+            Log.Debug("Parsing {Booru}", booru);
             var metadata = booru.GetMetadata();
             var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
             var posts = await BooruParse(booru, tags);

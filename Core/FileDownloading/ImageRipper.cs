@@ -32,6 +32,7 @@ public partial class ImageRipper : IDisposable
 {
     private const string RipIndex = ".ripIndex";
     private const int RetryCount = 4;
+    private const int MillisecondsInSecond = 1000;
 
     private Dictionary<string, string> RequestHeaders { get; } = new()
     {
@@ -53,6 +54,7 @@ public partial class ImageRipper : IDisposable
     private string SiteName { get; set; }
     private float SleepTime { get; set; }
     public int CurrentIndex { get; private set; }
+    private double FailureThreshold { get; set; } = 0.5;
     private WebDriverPool DriverPool { get; }
     private WebDriver WebDriver { get; }
     
@@ -155,7 +157,11 @@ public partial class ImageRipper : IDisposable
                         await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
                         if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
                         {
-                            await HandleDuplicateFile(imagePath, filesHashes);
+                            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                            if (duplicate)
+                            {
+                                downloadStats.NumDuplicates++;
+                            }
                         }
                         break;
                     }
@@ -185,7 +191,7 @@ public partial class ImageRipper : IDisposable
                         var index = start + i;
                         CurrentIndex = index;
                         // while(pause) { sleep(1); }
-                        await Task.Delay((int) SleepTime * 1000);
+                        await Task.Delay((int) SleepTime * MillisecondsInSecond);
                         try
                         {
                             var filename = link.Filename;
@@ -193,7 +199,11 @@ public partial class ImageRipper : IDisposable
                             await DownloadFromList(link, imagePath, index, downloadStats);
                             if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
                             {
-                                await HandleDuplicateFile(imagePath, filesHashes);
+                                var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                                if (duplicate)
+                                {
+                                    downloadStats.NumDuplicates++;
+                                }
                             }
                         }
                         catch (FileNotFoundException)
@@ -216,7 +226,7 @@ public partial class ImageRipper : IDisposable
             }
         }
         
-        if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > 0.5)
+        if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > FailureThreshold)
         {
             var e = new RipperException("More than 50% of the images failed to download");
             Log.Error(e, "More than 50% of the images failed to download");
@@ -232,7 +242,7 @@ public partial class ImageRipper : IDisposable
             UnzipFiles(fullPath, downloadStats);
         }
 
-        var downloadResults = downloadStats.GetStats();
+        var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
         Log.Information(downloadResults);
         Log.Information("Download Complete"); //{#00FF00}
     }
@@ -350,18 +360,18 @@ public partial class ImageRipper : IDisposable
         return exitCode;
     }
 
-    private static async Task HandleDuplicateFile(string imagePath, HashSet<HashKey> filesHashes)
+    private static async Task<bool> HandleDuplicateFile(string imagePath, HashSet<HashKey> filesHashes)
     {
         var fileHash = await FileUtility.GetFileHash(imagePath);
         if (!filesHashes.Add(fileHash))
         {
             Log.Information("Duplicate file detected: {ImagePath}", imagePath);
             File.Delete(imagePath);
+            return true;
         }
-        else
-        {
-            Log.Debug("File hash: {FileHash}", fileHash);
-        }
+
+        Log.Debug("File hash: {FileHash}", fileHash);
+        return false;
     }
     
     /// <summary>
@@ -779,7 +789,7 @@ public partial class ImageRipper : IDisposable
     {
         var url = imageLink.Url;
         var badCert = false;
-        await Task.Delay((int)(SleepTime * 1000));
+        await Task.Delay((int)(SleepTime * MillisecondsInSecond));
         var modifiedHeader = ModifiedHeader.None;
         var oldCookies = "";
         if (url.Contains("redgifs"))
@@ -1108,7 +1118,7 @@ public partial class ImageRipper : IDisposable
 
     private async Task DownloadPartyFile(string imagePath, string ripUrl)
     {
-        await Task.Delay((int)(SleepTime * 1000));
+        await Task.Delay((int)(SleepTime * MillisecondsInSecond));
 
         for(var _ = 0; _ < RetryCount; _++)
         {

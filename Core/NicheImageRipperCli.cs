@@ -83,7 +83,7 @@ public class NicheImageRipperCli : NicheImageRipper
                 {
                     case "booru":
                     {
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: <tags>", LogEventLevel.Warning);
                             break;
@@ -95,7 +95,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     }
                     case "c" or "clear":
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: cache or queue", LogEventLevel.Warning);
                             break;
@@ -195,7 +195,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         Debugging = true;
                         break;
                     case "delay":
-                        if(cmdParts.Length != 2)
+                        if(cmdParts.Length < 2)
                         {
                             LogMessageToFile($"Retry delay: {RetryDelay} ms");
                         }
@@ -238,7 +238,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         PrintHistory();
                         break;
                     case "l" or "load":
-                        LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
+                        LoadUrlFile(cmdParts.Length < 2 ? "UnfinishedRips.json" : cmdParts[1]);
                         LogMessageToFile("URLs loaded");
                         break;
                     case "list":
@@ -252,7 +252,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "lookup":
                     {
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: <folder_name>", LogEventLevel.Warning);
                         }
@@ -276,7 +276,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     }
                     case "merge":
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: filename", LogEventLevel.Warning);
                             break;
@@ -304,7 +304,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         //HtmlParser.RegenerateDriver();
                         break;
                     case "retries":
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile($"Max retries: {MaxRetries - 1}");
                         }
