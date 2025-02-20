@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CoreGui.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="CoreGui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="CoreGui">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Orientation="Vertical" Spacing="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Enter Url:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding UrlInput}"/>
+            <Button Command="{Binding RipCommand}">Rip</Button>
+        </StackPanel>
+        <TabControl Margin="5">
+            <TabItem Header="Logs">
+                <TextBlock Margin="5">This is tab 1 content</TextBlock>
+            </TabItem>
+            <TabItem Header="Queue">
+                <TextBlock Margin="5">This is tab 2 content</TextBlock>
+            </TabItem>
+            <TabItem Header="History">
+                <TextBlock Margin="5">This is tab 3 content</TextBlock>
+            </TabItem>
+            <TabItem Header="Settings">
+                <TextBlock Margin="5">This is tab 3 content</TextBlock>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+
+</Window>

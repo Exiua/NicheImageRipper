@@ -4,7 +4,7 @@ using Core.ArgParse;
 using Core.History;
 using Core.SiteParsing;
 using Core.Utility;
-using OpenQA.Selenium.Firefox;
+using CoreTui;
 using Serilog;
 using Serilog.Events;
 
@@ -45,7 +45,6 @@ switch (arguments.RunMode)
         break;
     }
     case RunMode.Gui:
-        //await Gui();
         Log.Error("Run the GUI through the GUI project");
         break;
     case RunMode.Cli:

@@ -10,6 +10,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlareSolverrIntegration", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaDexLibrary", "MangaDexLibrary\MangaDexLibrary.csproj", "{DC425561-67A2-4D30-A3E4-1EDF272D9C48}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreGui", "CoreGui\CoreGui.csproj", "{C99547B8-939F-4F38-A894-DC8DA05C97FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreTui", "CoreTui\CoreTui.csproj", "{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +40,13 @@ Global
 		{DC425561-67A2-4D30-A3E4-1EDF272D9C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC425561-67A2-4D30-A3E4-1EDF272D9C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC425561-67A2-4D30-A3E4-1EDF272D9C48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C99547B8-939F-4F38-A894-DC8DA05C97FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C99547B8-939F-4F38-A894-DC8DA05C97FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C99547B8-939F-4F38-A894-DC8DA05C97FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C99547B8-939F-4F38-A894-DC8DA05C97FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

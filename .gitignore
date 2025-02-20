@@ -5,6 +5,7 @@ riderModule.iml
 /_ReSharper.Caches/
 Workspace/
 .idea/
+.vs/
 *.json
 *.txt
 *.jpg

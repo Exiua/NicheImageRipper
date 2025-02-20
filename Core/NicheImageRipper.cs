@@ -18,8 +18,9 @@ using File = System.IO.File;
 
 namespace Core;
 
-public abstract partial class NicheImageRipper : IDisposable
+public partial class NicheImageRipper : IDisposable
 {
+    private Version? _latestVersion;
     public static Config Config { get; set; } = Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
     public static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
@@ -27,7 +28,9 @@ public abstract partial class NicheImageRipper : IDisposable
     
     public string Title { get; } = "NicheImageRipper";
     public Version Version { get; set; } = new(3, 0, 0, 1);
-    public Version LatestVersion { get; set; } = GetLatestVersion().Result;
+
+    public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
+
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; } = false;
     public ImageRipper? Ripper { get; set; }
@@ -80,11 +83,11 @@ public abstract partial class NicheImageRipper : IDisposable
         get => Config.RetryDelay;
         set => Config.RetryDelay = value;
     }
-    
-    protected WebDriverPool WebDriverPool { get; set; } = new(1);
+
+    private WebDriverPool WebDriverPool { get; set; } = new(1);
     
     //public List<HistoryEntry> History { get; set; } = [];
-    public static HistoryManager HistoryDb => HistoryManager.Instance;
+    protected static HistoryManager HistoryDb => HistoryManager.Instance;
     
     protected bool Debugging { get; set; }
 
@@ -103,7 +106,7 @@ public abstract partial class NicheImageRipper : IDisposable
     }
 
     // FIXME: Error handling is not implemented
-    protected List<RejectedUrlInfo> QueueUrls(string urls)
+    private List<RejectedUrlInfo> QueueUrlsHelper(string urls)
     {
         var urlList = SeparateString(urls, "https://");
         var failedUrls = new List<RejectedUrlInfo>();
@@ -267,7 +270,30 @@ public abstract partial class NicheImageRipper : IDisposable
         };
     }
 
-    protected async Task<string> RipUrl()
+    public async Task Rip()
+    {
+        Log.Debug("Starting rip");
+        while (UrlQueue.Count != 0)
+        {
+            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
+            try
+            {
+                var url = await RipUrl();
+                Log.Debug("Ripped URL: \"{Url}\"", url);
+                if (url != "")
+                {
+                    // If empty url is returned Ripper is also null
+                    UpdateHistory(Ripper!.FolderInfo, url);
+                }
+            }
+            finally
+            {
+                Ripper?.Dispose(); // TODO: Fix this
+            }
+        }
+    }
+
+    private async Task<string> RipUrl()
     {
         if (UrlQueue.Count == 0)
         {
@@ -471,6 +497,43 @@ public abstract partial class NicheImageRipper : IDisposable
         
         UrlQueue.Add(normalizedUrl);
         return null;
+    }
+    
+    public void QueueUrls(string userInput)
+    {
+        var startIndex = UrlQueue.Count;
+        var offset = 0;
+        var failedUrls = QueueUrlsHelper(userInput);
+        foreach(var failedUrl in failedUrls)
+        {
+            switch (failedUrl.Reason)
+            {
+                case QueueFailureReason.None:
+                    break;
+                case QueueFailureReason.AlreadyQueued:
+                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.NotSupported:
+                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.PreviouslyProcessed:
+                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
+                    var response = Console.ReadLine();
+                    if (response == "y")
+                    {
+                        var correctIndex = startIndex + failedUrl.Index + offset;
+                        offset++;
+                        UrlQueue.Insert(correctIndex, failedUrl.Url);
+                    }
+                    else
+                    {
+                        offset--;
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
+            }
+        }
     }
 
     public virtual void UpdateHistory(RipInfo ripInfo, string url)
