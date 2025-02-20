@@ -112,29 +112,30 @@ public partial class NicheImageRipper : IDisposable
         var failedUrls = new List<RejectedUrlInfo>();
         foreach (var (i, url) in urlList.Enumerate())
         {
-            if (url.Contains("http://"))
+            var normalizedUrl = NormalizeUrl(url);
+            if (normalizedUrl.Contains("http://"))
             {
-                var urlsSplit = SeparateString(url, "http://");
-                failedUrls.AddRange(urlsSplit.Select(u => AddToUrlQueue(u, i))
+                var urlsSplit = SeparateString(normalizedUrl, "http://");
+                failedUrls.AddRange(urlsSplit.Select(u => AddToUrlQueue(NormalizeUrl(u), i))
                                              .OfType<RejectedUrlInfo>());
             }
             else
             {
-                if (UrlUtility.UrlCheck(url))
+                if (UrlUtility.UrlCheck(normalizedUrl))
                 {
-                    if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, url)))
+                    if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, normalizedUrl)))
                     {
-                        var result = AddToUrlQueue(url, i);
+                        var result = AddToUrlQueue(normalizedUrl, i);
                         failedUrls.AddIfNotNull(result);
                     }
                     else
                     {
-                        failedUrls.Add(new RejectedUrlInfo(url, QueueFailureReason.AlreadyQueued));
+                        failedUrls.Add(new RejectedUrlInfo(normalizedUrl, QueueFailureReason.AlreadyQueued));
                     }
                 }
                 else
                 {
-                    failedUrls.Add(new RejectedUrlInfo(url, QueueFailureReason.NotSupported));
+                    failedUrls.Add(new RejectedUrlInfo(normalizedUrl, QueueFailureReason.NotSupported));
                 }
             }
         }
