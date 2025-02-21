@@ -5,6 +5,7 @@ using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using Core;
+using Core.DataStructures;
 using Core.Enums;
 using CoreGui.Utility;
 using ReactiveUI;
@@ -22,9 +23,15 @@ public class MainWindowViewModel : ViewModelBase
     private int _filenameSchemeIndex;
     private int _unzipProtocolIndex;
     private string _logText = "";
+    private int _currentHistoryPage = 1;
 
+    public int HistoryCount => NicheImageRipper.GetHistoryCount();
+    public int PageSize { get; set; } = 100;
     public ObservableCollection<string> UrlQueue { get; }
-    
+    public ObservableCollection<HistoryEntry> History { get; }
+
+    public List<string> SelectedUrls { get; set; } = [];
+
     public string SavePath
     {
         get => _savePath;
@@ -67,20 +74,42 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _logText, value);
     }
 
+    public int CurrentHistoryPage
+    {
+        get => _currentHistoryPage;
+        set => this.RaiseAndSetIfChanged(ref _currentHistoryPage, value);
+    }
+
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
+    public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
 
     public MainWindowViewModel()
     {
         _ripper = new NicheImageRipper();
-        RipCommand = ReactiveCommand.Create(QueueAndRip);   
+        RipCommand = ReactiveCommand.Create(QueueAndRip);
+        ClearCacheCommand = ReactiveCommand.Create(ClearCache);
+        DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
         UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);
+        var history = NicheImageRipper.GetHistoryPage(1, PageSize);
+        History = new ObservableCollection<HistoryEntry>(history);
         
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
+    }
+    
+    private static void ClearCache()
+    {
+        NicheImageRipper.ClearCache();
     }
     
     private void OnUrlQueueUpdated()
     {
         Dispatcher.UIThread.Post(() => UrlQueue.Update(_ripper.UrlQueue));
+    }
+    
+    private void DequeueUrls()
+    {
+        _ripper.DequeueUrls(SelectedUrls);
     }
     
     private void QueueAndRip()
@@ -126,5 +155,17 @@ public class MainWindowViewModel : ViewModelBase
     internal void LoadUnfinishedUrls(string path)
     {
         _ripper.LoadUrlFile(path);
+    }
+
+    public void LoadHistory()
+    {
+        var history = NicheImageRipper.GetHistoryPage(CurrentHistoryPage, PageSize);
+        Log.Debug("History: {@History}", history[0]);
+        History.Update(history);
+    }
+    
+    public bool NextHistoryPageExists()
+    {
+        return CurrentHistoryPage * PageSize < HistoryCount;
     }
 }

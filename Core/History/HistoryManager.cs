@@ -176,15 +176,16 @@ public class HistoryManager : IDisposable
 
     public List<HistoryEntry> GetHistory(int page, int offset)
     {
+        var pageId = page * offset;
         const string selectQuery = """
                                    SELECT * FROM history
-                                   ORDER BY Date
+                                   ORDER BY Date DESC
                                    LIMIT @Offset OFFSET @Page;
                                    """;
         
         using var selectCmd = new SQLiteCommand(selectQuery, _connection);
         selectCmd.Parameters.AddWithValue("@Offset", offset);
-        selectCmd.Parameters.AddWithValue("@Page", page * offset);
+        selectCmd.Parameters.AddWithValue("@Page", pageId);
         using var reader = selectCmd.ExecuteReader();
         
         var history = new List<HistoryEntry>();

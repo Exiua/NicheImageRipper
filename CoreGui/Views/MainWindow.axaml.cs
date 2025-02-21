@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -92,6 +91,35 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             Log.Error(exception, "Failed to open file picker");
+        }
+    }
+
+    private void PreviousHistoryPage(object? sender, RoutedEventArgs e)
+    {
+        ViewModel.CurrentHistoryPage--;
+        ViewModel.LoadHistory();
+        if (ViewModel.CurrentHistoryPage <= 0)
+        {
+            PreviousHistoryPageButton.IsEnabled = false;
+        }
+        if (ViewModel.NextHistoryPageExists())
+        {
+            NextHistoryPageButton.IsEnabled = true;
+        }
+    }
+
+    // FIXME: NextHistoryPageExists() is not working as expected
+    private void NextHistoryPage(object? sender, RoutedEventArgs e)
+    {
+        ViewModel.CurrentHistoryPage++;
+        ViewModel.LoadHistory();
+        if (ViewModel.CurrentHistoryPage > 0)
+        {
+            PreviousHistoryPageButton.IsEnabled = true;
+        }
+        if (!ViewModel.NextHistoryPageExists())
+        {
+            NextHistoryPageButton.IsEnabled = false;
         }
     }
 }

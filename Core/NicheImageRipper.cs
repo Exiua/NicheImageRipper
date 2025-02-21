@@ -107,6 +107,16 @@ public partial class NicheImageRipper : IDisposable
         return HistoryDb.GetHistory();
     }
 
+    public static List<HistoryEntry> GetHistoryPage(int start, int offset)
+    {
+        return HistoryDb.GetHistory(start, offset);
+    }
+    
+    public static int GetHistoryCount()
+    {
+        return HistoryDb.GetHistoryEntryCount();
+    }
+
     // FIXME: Error handling is not implemented
     private List<RejectedUrlInfo> QueueUrlsHelper(string urls)
     {
@@ -198,12 +208,6 @@ public partial class NicheImageRipper : IDisposable
         var url1Parts = url1.Split("/");
         var url2Parts = url2.Split("/");
         return url1Parts[4] == url2Parts[4];
-    }
-    
-    private static bool UrlIsInHistory(string url)
-    {
-        url = NormalizeUrl(url);
-        return HistoryDb.UrlInHistory(url);
     }
     
     public static string NormalizeUrl(string url)
@@ -358,7 +362,7 @@ public partial class NicheImageRipper : IDisposable
         Config.Instance.SaveConfig();
     }
     
-    protected static void ClearCache()
+    public static void ClearCache()
     {
         SilentlyRemoveFiles(".ripIndex", "partial.json");
     }
@@ -543,6 +547,16 @@ public partial class NicheImageRipper : IDisposable
         }
         
         if (updated)
+        {
+            OnUrlQueueUpdated?.Invoke();
+        }
+    }
+
+    public void DequeueUrls(List<string> urlsToRemove)
+    {
+        var currentCount = UrlQueue.Count;
+        UrlQueue = UrlQueue.Except(urlsToRemove).ToList();
+        if (currentCount != UrlQueue.Count)
         {
             OnUrlQueueUpdated?.Invoke();
         }
