@@ -391,7 +391,14 @@ public partial class ImageRipper : IDisposable
         var numProgress = $"({filename}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
         imageLink.Url = ripUrl;
-        await DownloadFile(imagePath, imageLink, true);
+        try
+        {
+            await DownloadFile(imagePath, imageLink, true);
+        }
+        finally
+        {
+            imageLink.Url = url;
+        }
         await Task.Delay(50);
     }
 

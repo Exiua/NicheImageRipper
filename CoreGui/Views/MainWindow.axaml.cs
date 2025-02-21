@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Core;
 using Core.Enums;
 using CoreGui.Utility;
@@ -13,7 +14,7 @@ namespace CoreGui.Views;
 
 public partial class MainWindow : Window
 {
-    private static FilePickerFileType Json { get; } = new FilePickerFileType("JSON")
+    private static FilePickerFileType Json { get; } = new("JSON")
     {
         Patterns = ["*.json"],
         MimeTypes = ["application/json"],
@@ -30,12 +31,17 @@ public partial class MainWindow : Window
         FilenameSchemeComboBox.SelectedIndex = (int) NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
         UnzipProtocolComboBox.SelectedIndex = (int) NicheImageRipper.UnzipProtocol;
-        GuiSink.OnLog += OnLog;
+        //GuiSink.OnLog += OnLog;
+        GuiSink.MainWindow = this;
     }
 
-    private void OnLog(string message)
+    public void OnLog(string message)
     {
-        LogTextBox.Text += message + "\n";
+        Dispatcher.UIThread.Post(() =>
+        {
+            ViewModel.LogText += message + Environment.NewLine;
+            LogTextBox.CaretIndex = int.MaxValue;
+        });
     }
     
     private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)

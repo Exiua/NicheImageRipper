@@ -1,4 +1,5 @@
 using System;
+using CoreGui.Views;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
@@ -9,6 +10,7 @@ namespace CoreGui.Utility;
 public class GuiSink(IFormatProvider? formatProvider) : ILogEventSink
 {
     public static event Action<string>? OnLog;
+    public static MainWindow? MainWindow { get; set; }
 
     public void Emit(LogEvent logEvent)
     {
@@ -16,9 +18,10 @@ public class GuiSink(IFormatProvider? formatProvider) : ILogEventSink
         {
             return;
         }
-
+        
         var message = logEvent.RenderMessage(formatProvider);
         OnLog?.Invoke(message);
+        MainWindow?.OnLog(message);
     }
 }
 

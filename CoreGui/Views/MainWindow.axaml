@@ -16,14 +16,15 @@
     </Design.DataContext>
 
     <StackPanel Orientation="Vertical" Spacing="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <StackPanel Orientation="Horizontal" Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="5">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center"/>
             <TextBox Text="{Binding UrlInput}" Width="500"/>
             <Button Command="{Binding RipCommand}">Rip</Button>
         </StackPanel>
         <TabControl Margin="5">
             <TabItem Header="Logs">
-                <TextBox x:Name="LogTextBox" Margin="5" IsReadOnly="True" MinHeight="750"/>
+                <TextBox x:Name="LogTextBox" Text="{Binding LogText}" Margin="5" 
+                         IsReadOnly="True" MinHeight="750" MaxHeight="1000"/>
             </TabItem>
             <TabItem Header="Queue" >
                 <ListBox x:Name="UrlQueue" SelectionMode="Multiple" MinHeight="750"/>

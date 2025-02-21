@@ -21,6 +21,7 @@ public class MainWindowViewModel : ViewModelBase
     private string _savePath = NicheImageRipper.SavePath;
     private int _filenameSchemeIndex;
     private int _unzipProtocolIndex;
+    private string _logText = "";
 
     public ObservableCollection<string> UrlQueue { get; }
     
@@ -58,6 +59,12 @@ public class MainWindowViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _unzipProtocolIndex, value);
             NicheImageRipper.UnzipProtocol = (UnzipProtocol) value;
         }
+    }
+
+    public string LogText
+    {
+        get => _logText;
+        set => this.RaiseAndSetIfChanged(ref _logText, value);
     }
 
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
