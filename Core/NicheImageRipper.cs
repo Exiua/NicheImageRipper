@@ -34,7 +34,8 @@ public partial class NicheImageRipper : IDisposable
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; } = false;
     public ImageRipper? Ripper { get; set; }
-
+    
+    public event Action? OnUrlQueueUpdated;
     
     public static bool LiveHistory 
     { 
@@ -91,13 +92,14 @@ public partial class NicheImageRipper : IDisposable
     
     protected bool Debugging { get; set; }
 
-    protected void LoadUrlFile(string filepath)
+    public void LoadUrlFile(string filepath)
     {
         var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
         foreach (var url in loadedUrls)
         {
             AddToUrlQueue(url, noCheck: true);
         }
+        OnUrlQueueUpdated?.Invoke();
     }
 
     private static List<HistoryEntry> LoadHistoryData()
@@ -336,6 +338,7 @@ public partial class NicheImageRipper : IDisposable
         } while (retry < MaxRetries);
         Interrupted = false;
         UrlQueue.RemoveAt(0);
+        OnUrlQueueUpdated?.Invoke();
         return url;
     }
 
@@ -505,6 +508,7 @@ public partial class NicheImageRipper : IDisposable
         var startIndex = UrlQueue.Count;
         var offset = 0;
         var failedUrls = QueueUrlsHelper(userInput);
+        var updated = failedUrls.Count == 0;
         foreach(var failedUrl in failedUrls)
         {
             switch (failedUrl.Reason)
@@ -519,12 +523,14 @@ public partial class NicheImageRipper : IDisposable
                     break;
                 case QueueFailureReason.PreviouslyProcessed:
                     LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
+                    // TODO: Replace with delegate to defer handling to application on how to get user input
                     var response = Console.ReadLine();
                     if (response == "y")
                     {
                         var correctIndex = startIndex + failedUrl.Index + offset;
                         offset++;
                         UrlQueue.Insert(correctIndex, failedUrl.Url);
+                        updated = true;
                     }
                     else
                     {
@@ -534,6 +540,11 @@ public partial class NicheImageRipper : IDisposable
                 default:
                     throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
             }
+        }
+        
+        if (updated)
+        {
+            OnUrlQueueUpdated?.Invoke();
         }
     }
 
