@@ -1,11 +1,91 @@
+using System;
+using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using Core;
+using Core.Enums;
+using CoreGui.Utility;
+using CoreGui.ViewModels;
+using Serilog;
 
 namespace CoreGui.Views;
 
 public partial class MainWindow : Window
 {
+    private static FilePickerFileType Json { get; } = new FilePickerFileType("JSON")
+    {
+        Patterns = ["*.json"],
+        MimeTypes = ["application/json"],
+    };
+    
+    private MainWindowViewModel ViewModel => (MainWindowViewModel) DataContext!;
+    
     public MainWindow()
     {
         InitializeComponent();
+        DataContext = new MainWindowViewModel();
+        UrlQueue.ItemsSource = ViewModel.UrlQueue;
+        FilenameSchemeComboBox.ItemsSource = Enum.GetValues<FilenameScheme>();
+        FilenameSchemeComboBox.SelectedIndex = (int) NicheImageRipper.FilenameScheme;
+        UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
+        UnzipProtocolComboBox.SelectedIndex = (int) NicheImageRipper.UnzipProtocol;
+        GuiSink.OnLog += OnLog;
+    }
+
+    private void OnLog(string message)
+    {
+        LogTextBox.Text += message + "\n";
+    }
+    
+    private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)
+    {
+        try
+        {
+            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Select Directory",
+                SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.SavePath)
+            });
+            
+            if (folder.Count == 0)
+            {
+                return;
+            }
+            
+            var path = Uri.UnescapeDataString(folder[0].Path.AbsolutePath);
+            Log.Debug("Selected folder: {folder}", path);
+            ViewModel.SavePath = path;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to open folder picker");
+        }
+    }
+
+    private async void SelectUnfinishedUrlFile(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var file = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Select Unfinished URL File",
+                FileTypeFilter = [ Json ],
+                SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(".") // TODO: Change to executable path
+            });
+            
+            if (file.Count == 0)
+            {
+                return;
+            }
+            
+            var path = Uri.UnescapeDataString(file[0].Path.AbsolutePath);
+            Log.Debug("Selected file: {file}", path);
+            ViewModel.LoadUnfinishedUrls(path);
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to open file picker");
+        }
     }
 }

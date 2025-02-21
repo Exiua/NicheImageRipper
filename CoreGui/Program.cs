@@ -2,6 +2,7 @@
 using Avalonia.ReactiveUI;
 using System;
 using System.Threading.Tasks;
+using CoreGui.Utility;
 using Serilog;
 using Serilog.Events;
 
@@ -21,6 +22,7 @@ sealed class Program
                     .Enrich.FromLogContext()
                     .WriteTo.Console()
                     .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Debug)
+                    .WriteTo.Gui()
                     .CreateLogger();
         #else
         Log.Logger = new LoggerConfiguration()
@@ -28,6 +30,7 @@ sealed class Program
                     .Enrich.FromLogContext()
                     .WriteTo.Console()
                     .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Information)
+                    .WriteTo.Gui()
                     .CreateLogger();
         #endif
         

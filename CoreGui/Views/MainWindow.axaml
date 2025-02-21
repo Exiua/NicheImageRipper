@@ -18,21 +18,50 @@
     <StackPanel Orientation="Vertical" Spacing="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center"/>
-            <TextBox Text="{Binding UrlInput}"/>
+            <TextBox Text="{Binding UrlInput}" Width="500"/>
             <Button Command="{Binding RipCommand}">Rip</Button>
         </StackPanel>
         <TabControl Margin="5">
             <TabItem Header="Logs">
-                <TextBlock Margin="5">This is tab 1 content</TextBlock>
+                <TextBox x:Name="LogTextBox" Margin="5" IsReadOnly="True" MinHeight="750"/>
             </TabItem>
-            <TabItem Header="Queue">
-                <TextBlock Margin="5">This is tab 2 content</TextBlock>
+            <TabItem Header="Queue" >
+                <ListBox x:Name="UrlQueue" SelectionMode="Multiple" MinHeight="750"/>
             </TabItem>
             <TabItem Header="History">
-                <TextBlock Margin="5">This is tab 3 content</TextBlock>
+                <TextBlock Margin="5">In Progress</TextBlock>
             </TabItem>
             <TabItem Header="Settings">
-                <TextBlock Margin="5">This is tab 3 content</TextBlock>
+                <StackPanel Orientation="Vertical" Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Save Location:"/>
+                        <TextBlock Text="{Binding SavePath}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Select Save Folder:"/>
+                        <Button Click="SelectFolder">Browse</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Load Unfinished Urls:"/>
+                        <Button Click="SelectUnfinishedUrlFile">Browse</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Check For Updates:"/>
+                        <Button >Check</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Clear Cache:"/>
+                        <Button >Clear</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Filename Scheme:"/>
+                        <ComboBox x:Name="FilenameSchemeComboBox" SelectedIndex="{Binding FilenameSchemeIndex}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Unzip Protocol:"/>
+                        <ComboBox x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
+                    </StackPanel>
+                </StackPanel>
             </TabItem>
         </TabControl>
     </StackPanel>
