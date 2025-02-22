@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Focusable = true;
         DataContext = new MainWindowViewModel();
         UrlQueue.ItemsSource = ViewModel.UrlQueue;
         FilenameSchemeComboBox.ItemsSource = Enum.GetValues<FilenameScheme>();
@@ -32,6 +33,12 @@ public partial class MainWindow : Window
         UnzipProtocolComboBox.SelectedIndex = (int) NicheImageRipper.UnzipProtocol;
         //GuiSink.OnLog += OnLog;
         GuiSink.MainWindow = this;
+        Closing += OnClose;
+    }
+
+    private void OnClose(object? sender, WindowClosingEventArgs windowClosingEventArgs)
+    {
+        ViewModel.SaveData();
     }
 
     public void OnLog(string message)
@@ -96,30 +103,27 @@ public partial class MainWindow : Window
 
     private void PreviousHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel.CurrentHistoryPage--;
-        ViewModel.LoadHistory();
-        if (ViewModel.CurrentHistoryPage <= 0)
-        {
-            PreviousHistoryPageButton.IsEnabled = false;
-        }
-        if (ViewModel.NextHistoryPageExists())
-        {
-            NextHistoryPageButton.IsEnabled = true;
-        }
+        ViewModel.DecrementHistoryPage();
+        LoadHistory();
     }
 
     // FIXME: NextHistoryPageExists() is not working as expected
     private void NextHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel.CurrentHistoryPage++;
+        ViewModel.IncrementHistoryPage();
+        LoadHistory();
+    }
+
+    private void UpdateCurrentHistoryPage(object? sender, RoutedEventArgs e)
+    {
+        ViewModel.RefreshHistoryPage();
+        LoadHistory();
+    }
+
+    private void LoadHistory()
+    {
         ViewModel.LoadHistory();
-        if (ViewModel.CurrentHistoryPage > 0)
-        {
-            PreviousHistoryPageButton.IsEnabled = true;
-        }
-        if (!ViewModel.NextHistoryPageExists())
-        {
-            NextHistoryPageButton.IsEnabled = false;
-        }
+        PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
+        NextHistoryPageButton.IsEnabled = ViewModel.NextHistoryPageExists();
     }
 }

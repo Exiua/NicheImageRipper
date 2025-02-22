@@ -23,6 +23,7 @@ public class MainWindowViewModel : ViewModelBase
     private int _filenameSchemeIndex;
     private int _unzipProtocolIndex;
     private string _logText = "";
+    private string _currentHistoryPageDisplay = "1";
     private int _currentHistoryPage = 1;
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
@@ -74,10 +75,22 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _logText, value);
     }
 
-    public int CurrentHistoryPage
+    public string CurrentHistoryPageDisplay
     {
-        get => _currentHistoryPage;
-        set => this.RaiseAndSetIfChanged(ref _currentHistoryPage, value);
+        get => _currentHistoryPageDisplay;
+        set
+        {
+            if (int.TryParse(value, out var result))
+            {
+                _currentHistoryPage = result;
+            }
+            else
+            {
+                result = -1;
+            }
+            
+            this.RaiseAndSetIfChanged(ref _currentHistoryPageDisplay, result.ToString());
+        }
     }
 
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
@@ -95,6 +108,38 @@ public class MainWindowViewModel : ViewModelBase
         History = new ObservableCollection<HistoryEntry>(history);
         
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
+    }
+    
+    public void DecrementHistoryPage()
+    {
+        if (_currentHistoryPage > 1)
+        {
+            _currentHistoryPage--;
+            CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
+        }
+    }
+    
+    public void IncrementHistoryPage()
+    {
+        if (NextHistoryPageExists())
+        {
+            _currentHistoryPage++;
+            CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
+        }
+    }
+
+    public void RefreshHistoryPage()
+    {
+        if(_currentHistoryPage < 1)
+        {
+            _currentHistoryPage = 1;
+        }
+        else if(_currentHistoryPage > HistoryCount / PageSize)
+        {
+            _currentHistoryPage = HistoryCount / PageSize;
+        }
+        
+        CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
     }
     
     private static void ClearCache()
@@ -159,13 +204,19 @@ public class MainWindowViewModel : ViewModelBase
 
     public void LoadHistory()
     {
-        var history = NicheImageRipper.GetHistoryPage(CurrentHistoryPage, PageSize);
-        Log.Debug("History: {@History}", history[0]);
+        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage, PageSize);
+        Log.Debug("History[{Count}]: {@History}", history.Count, history[0]);
         History.Update(history);
     }
     
     public bool NextHistoryPageExists()
     {
-        return CurrentHistoryPage * PageSize < HistoryCount;
+        Log.Debug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}", CurrentHistoryPageDisplay, PageSize, HistoryCount);
+        return HistoryCount - (_currentHistoryPage * PageSize) > PageSize;
+    }
+
+    public void SaveData()
+    {
+        _ripper.SaveData();
     }
 }

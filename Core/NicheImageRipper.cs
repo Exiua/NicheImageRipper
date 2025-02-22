@@ -346,7 +346,7 @@ public partial class NicheImageRipper : IDisposable
         return url;
     }
 
-    protected void SaveData()
+    public void SaveData()
     {
         if (UrlQueue.Count > 0)
         {

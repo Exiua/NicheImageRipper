@@ -37,7 +37,7 @@
                 <StackPanel Orientation="Vertical">
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="PreviousHistoryPageButton" Click="PreviousHistoryPage" IsEnabled="False">Previous</Button>
-                        <TextBox Text="{Binding CurrentHistoryPage}" />
+                        <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage"/>
                         <Button x:Name="NextHistoryPageButton" Click="NextHistoryPage">Next</Button>
                     </StackPanel>
                     <DataGrid Margin="20" ItemsSource="{Binding History}"
