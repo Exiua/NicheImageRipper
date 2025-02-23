@@ -18,20 +18,24 @@ using File = System.IO.File;
 
 namespace Core;
 
-public abstract partial class NicheImageRipper : IDisposable
+public partial class NicheImageRipper : IDisposable
 {
+    private Version? _latestVersion;
     public static Config Config { get; set; } = Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
     public static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
     
     
     public string Title { get; } = "NicheImageRipper";
-    public Version Version { get; set; } = new(3, 0, 0);
-    public Version LatestVersion { get; set; } = GetLatestVersion().Result;
+    public Version Version { get; set; } = new(3, 0, 0, 1);
+
+    public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
+
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; } = false;
-    public ImageRipper Ripper { get; set; } = null!;
-
+    public ImageRipper? Ripper { get; set; }
+    
+    public event Action? OnUrlQueueUpdated;
     
     public static bool LiveHistory 
     { 
@@ -57,6 +61,12 @@ public abstract partial class NicheImageRipper : IDisposable
         set => Config.UnzipProtocol = value;
     }
 
+    public static PostDownloadAction PostDownloadAction
+    {
+        get => Config.PostDownloadAction;
+        set => Config.PostDownloadAction = value;
+    }
+
     public static string SavePath
     {
         get => Config.SavePath;
@@ -74,21 +84,22 @@ public abstract partial class NicheImageRipper : IDisposable
         get => Config.RetryDelay;
         set => Config.RetryDelay = value;
     }
-    
-    protected WebDriverPool WebDriverPool { get; set; } = new(1);
+
+    private WebDriverPool WebDriverPool { get; set; } = new(1);
     
     //public List<HistoryEntry> History { get; set; } = [];
-    public static HistoryManager HistoryDb => HistoryManager.Instance;
+    protected static HistoryManager HistoryDb => HistoryManager.Instance;
     
     protected bool Debugging { get; set; }
 
-    protected void LoadUrlFile(string filepath)
+    public void LoadUrlFile(string filepath)
     {
         var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
         foreach (var url in loadedUrls)
         {
             AddToUrlQueue(url, noCheck: true);
         }
+        OnUrlQueueUpdated?.Invoke();
     }
 
     private static List<HistoryEntry> LoadHistoryData()
@@ -96,36 +107,47 @@ public abstract partial class NicheImageRipper : IDisposable
         return HistoryDb.GetHistory();
     }
 
+    public static List<HistoryEntry> GetHistoryPage(int start, int offset)
+    {
+        return HistoryDb.GetHistory(start, offset);
+    }
+    
+    public static int GetHistoryCount()
+    {
+        return HistoryDb.GetHistoryEntryCount();
+    }
+
     // FIXME: Error handling is not implemented
-    protected List<RejectedUrlInfo> QueueUrls(string urls)
+    private List<RejectedUrlInfo> QueueUrlsHelper(string urls)
     {
         var urlList = SeparateString(urls, "https://");
         var failedUrls = new List<RejectedUrlInfo>();
         foreach (var (i, url) in urlList.Enumerate())
         {
-            if (url.Contains("http://"))
+            var normalizedUrl = NormalizeUrl(url);
+            if (normalizedUrl.Contains("http://"))
             {
-                var urlsSplit = SeparateString(url, "http://");
-                failedUrls.AddRange(urlsSplit.Select(u => AddToUrlQueue(u, i))
+                var urlsSplit = SeparateString(normalizedUrl, "http://");
+                failedUrls.AddRange(urlsSplit.Select(u => AddToUrlQueue(NormalizeUrl(u), i))
                                              .OfType<RejectedUrlInfo>());
             }
             else
             {
-                if (UrlUtility.UrlCheck(url))
+                if (UrlUtility.UrlCheck(normalizedUrl))
                 {
-                    if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, url)))
+                    if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, normalizedUrl)))
                     {
-                        var result = AddToUrlQueue(url, i);
+                        var result = AddToUrlQueue(normalizedUrl, i);
                         failedUrls.AddIfNotNull(result);
                     }
                     else
                     {
-                        failedUrls.Add(new RejectedUrlInfo(url, QueueFailureReason.AlreadyQueued));
+                        failedUrls.Add(new RejectedUrlInfo(normalizedUrl, QueueFailureReason.AlreadyQueued));
                     }
                 }
                 else
                 {
-                    failedUrls.Add(new RejectedUrlInfo(url, QueueFailureReason.NotSupported));
+                    failedUrls.Add(new RejectedUrlInfo(normalizedUrl, QueueFailureReason.NotSupported));
                 }
             }
         }
@@ -186,12 +208,6 @@ public abstract partial class NicheImageRipper : IDisposable
         var url1Parts = url1.Split("/");
         var url2Parts = url2.Split("/");
         return url1Parts[4] == url2Parts[4];
-    }
-    
-    private static bool UrlIsInHistory(string url)
-    {
-        url = NormalizeUrl(url);
-        return HistoryDb.UrlInHistory(url);
     }
     
     public static string NormalizeUrl(string url)
@@ -261,16 +277,41 @@ public abstract partial class NicheImageRipper : IDisposable
         };
     }
 
-    protected async Task<string> RipUrl()
+    public async Task Rip()
+    {
+        Log.Debug("Starting rip");
+        while (UrlQueue.Count != 0)
+        {
+            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
+            try
+            {
+                var url = await RipUrl();
+                Log.Debug("Ripped URL: \"{Url}\"", url);
+                if (url != "")
+                {
+                    // If empty url is returned Ripper is also null
+                    UpdateHistory(Ripper!.FolderInfo, url);
+                }
+            }
+            finally
+            {
+                Ripper?.Dispose(); // TODO: Fix this
+            }
+        }
+    }
+
+    private async Task<string> RipUrl()
     {
         if (UrlQueue.Count == 0)
         {
             PrintUtility.Print("No URLs to rip.");
             return "";
         }
+        
         var url = UrlQueue[0];
-        PrintUtility.Print(url);
-        Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol);
+        Log.Information("{Url}", url);
+        Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
+        Log.Debug("Ripper created");
         Interrupted = true;
         var retry = 0;
         do
@@ -295,23 +336,25 @@ public abstract partial class NicheImageRipper : IDisposable
                     continue;
                 }
 
-                PrintUtility.Print($"Failed to rip {url} after {MaxRetries} attempts.");
+                Log.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
                 throw;
             }
         } while (retry < MaxRetries);
         Interrupted = false;
         UrlQueue.RemoveAt(0);
+        OnUrlQueueUpdated?.Invoke();
         return url;
     }
 
-    protected void SaveData()
+    public void SaveData()
     {
         if (UrlQueue.Count > 0)
         {
             JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
         }
 
-        if (Interrupted && Ripper.CurrentIndex > 1)
+        // Interrupted is only set after creating ImageRipper
+        if (Interrupted && Ripper!.CurrentIndex > 1)
         {
             File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
         }
@@ -319,7 +362,7 @@ public abstract partial class NicheImageRipper : IDisposable
         Config.Instance.SaveConfig();
     }
     
-    protected static void ClearCache()
+    public static void ClearCache()
     {
         SilentlyRemoveFiles(".ripIndex", "partial.json");
     }
@@ -462,6 +505,61 @@ public abstract partial class NicheImageRipper : IDisposable
         
         UrlQueue.Add(normalizedUrl);
         return null;
+    }
+    
+    public void QueueUrls(string userInput)
+    {
+        var startIndex = UrlQueue.Count;
+        var offset = 0;
+        var failedUrls = QueueUrlsHelper(userInput);
+        var updated = failedUrls.Count == 0;
+        foreach(var failedUrl in failedUrls)
+        {
+            switch (failedUrl.Reason)
+            {
+                case QueueFailureReason.None:
+                    break;
+                case QueueFailureReason.AlreadyQueued:
+                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.NotSupported:
+                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.PreviouslyProcessed:
+                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
+                    // TODO: Replace with delegate to defer handling to application on how to get user input
+                    var response = Console.ReadLine();
+                    if (response == "y")
+                    {
+                        var correctIndex = startIndex + failedUrl.Index + offset;
+                        offset++;
+                        UrlQueue.Insert(correctIndex, failedUrl.Url);
+                        updated = true;
+                    }
+                    else
+                    {
+                        offset--;
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
+            }
+        }
+        
+        if (updated)
+        {
+            OnUrlQueueUpdated?.Invoke();
+        }
+    }
+
+    public void DequeueUrls(List<string> urlsToRemove)
+    {
+        var currentCount = UrlQueue.Count;
+        UrlQueue = UrlQueue.Except(urlsToRemove).ToList();
+        if (currentCount != UrlQueue.Count)
+        {
+            OnUrlQueueUpdated?.Invoke();
+        }
     }
 
     public virtual void UpdateHistory(RipInfo ripInfo, string url)

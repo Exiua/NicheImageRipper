@@ -32,6 +32,8 @@ public class RipInfo
         get => _directoryName;
         set => _directoryName = CleanDirectoryName(value);
     }
+    
+    public static RipInfo Empty => new([]);
 
     [UsedImplicitly]
     public RipInfo()
@@ -169,7 +171,7 @@ public class RipInfo
 
     private static string CleanDirectoryName(string directoryName)
     {
-        return FilesystemUtility.CleanPathStem(directoryName);
+        return string.IsNullOrWhiteSpace(directoryName) ? "" : FilesystemUtility.CleanPathStem(directoryName);
     }
 
     private static void SaveRawUrls(List<StringImageLinkWrapper> urls)

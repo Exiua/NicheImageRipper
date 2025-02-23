@@ -1,9 +1,10 @@
-﻿using Core;
+﻿using System.Text;
+using Core;
 using Core.ArgParse;
 using Core.History;
 using Core.SiteParsing;
 using Core.Utility;
-using OpenQA.Selenium.Firefox;
+using CoreTui;
 using Serilog;
 using Serilog.Events;
 
@@ -19,6 +20,7 @@ NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
 #endif
 
 PrintUtility.PrintFunction = Log.Information;
+Console.OutputEncoding = Encoding.UTF8;
 
 #if DEBUG
 var arguments = ArgumentParser.Parse(args);
@@ -43,7 +45,6 @@ switch (arguments.RunMode)
         break;
     }
     case RunMode.Gui:
-        //await Gui();
         Log.Error("Run the GUI through the GUI project");
         break;
     case RunMode.Cli:

@@ -32,24 +32,7 @@ public partial class ImageRipper : IDisposable
 {
     private const string RipIndex = ".ripIndex";
     private const int RetryCount = 4;
-
-    private static readonly Dictionary<ulong, string> FileSignatures = new()
-    {
-        [0x89_50_4E_47_0D_0A_1A_0A] = ".png",   // /8
-        [0x43_53_46_43_48_55_4E_4B] = ".clip",  // /8
-        [0x3C_21_44_4F_43_54_59_50] = ".html",  // /8 // <!DOCTYP
-        [0x3C_21_64_6F_63_74_79_70] = ".html",  // /8 // <!doctyp
-        [0x52_61_72_21_1A_07_00_00] = ".rar",   // /6
-        [0x37_7A_BC_AF_27_1C_00_00] = ".7z",    // /6
-        [0x47_49_46_38_00_00_00_00] = ".gif",   // /4
-        [0x50_4B_03_04_00_00_00_00] = ".zip",   // /4
-        [0x38_42_50_53_00_00_00_00] = ".psd",   // /4
-        [0x25_50_44_46_00_00_00_00] = ".pdf",   // /4
-        [0x1A_45_DF_A3_00_00_00_00] = ".webm",  // /4
-        [0x52_49_46_46_00_00_00_00] = ".webp",  // /4
-        [0x00_00_00_00_66_74_79_70] = ".mp4",   // /4 reverse
-        [0xFF_D8_FF_00_00_00_00_00] = ".jpg",   // /3
-    };
+    private const int MillisecondsInSecond = 1000;
 
     private Dictionary<string, string> RequestHeaders { get; } = new()
     {
@@ -71,6 +54,7 @@ public partial class ImageRipper : IDisposable
     private string SiteName { get; set; }
     private float SleepTime { get; set; }
     public int CurrentIndex { get; private set; }
+    private double FailureThreshold { get; set; } = 0.5;
     private WebDriverPool DriverPool { get; }
     private WebDriver WebDriver { get; }
     
@@ -80,10 +64,12 @@ public partial class ImageRipper : IDisposable
     private static TokenManager TokenManager => TokenManager.Instance;
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
-    public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original, UnzipProtocol unzipProtocol = UnzipProtocol.None)
+    public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
+                       UnzipProtocol unzipProtocol = UnzipProtocol.None, PostDownloadAction postDownloadAction = PostDownloadAction.None)
     {
         FilenameScheme = filenameScheme;
         UnzipProtocol = unzipProtocol;
+        PostDownloadAction = postDownloadAction;
         //FolderInfo = null;
         GivenUrl = "";
         Interrupted = false;
@@ -104,8 +90,11 @@ public partial class ImageRipper : IDisposable
         SleepTime = 0.2f;   // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        Log.Debug("Site Name: {SiteName}", SiteName);
+        Log.Debug("Checking if cookies are needed for {SiteName}", SiteName);
         if (CookiesNeeded())
         {
+            Log.Debug("Adding cookies needed for {SiteName}", SiteName);
             AddCookies();
         }
 
@@ -115,6 +104,7 @@ public partial class ImageRipper : IDisposable
     private async Task FileGetter()
     {
         var htmlParser = new HtmlParser(WebDriver, RequestHeaders, SiteName, FilenameScheme);
+        Log.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
         Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
         //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
@@ -139,7 +129,7 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadStats = new DownloadStats();
-        var filesHashes = new HashSet<byte[]>();
+        var filesHashes = new HashSet<HashKey>();
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
         if (FolderInfo.MustGenerateManually)
@@ -167,7 +157,11 @@ public partial class ImageRipper : IDisposable
                         await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
                         if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
                         {
-                            await HandleDuplicateFile(imagePath, filesHashes);
+                            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                            if (duplicate)
+                            {
+                                downloadStats.NumDuplicates++;
+                            }
                         }
                         break;
                     }
@@ -197,7 +191,7 @@ public partial class ImageRipper : IDisposable
                         var index = start + i;
                         CurrentIndex = index;
                         // while(pause) { sleep(1); }
-                        await Task.Delay((int) SleepTime * 1000);
+                        await Task.Delay((int) SleepTime * MillisecondsInSecond);
                         try
                         {
                             var filename = link.Filename;
@@ -205,7 +199,11 @@ public partial class ImageRipper : IDisposable
                             await DownloadFromList(link, imagePath, index, downloadStats);
                             if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
                             {
-                                await HandleDuplicateFile(imagePath, filesHashes);
+                                var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                                if (duplicate)
+                                {
+                                    downloadStats.NumDuplicates++;
+                                }
                             }
                         }
                         catch (FileNotFoundException)
@@ -228,7 +226,7 @@ public partial class ImageRipper : IDisposable
             }
         }
         
-        if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > 0.5)
+        if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > FailureThreshold)
         {
             var e = new RipperException("More than 50% of the images failed to download");
             Log.Error(e, "More than 50% of the images failed to download");
@@ -244,7 +242,7 @@ public partial class ImageRipper : IDisposable
             UnzipFiles(fullPath, downloadStats);
         }
 
-        var downloadResults = downloadStats.GetStats();
+        var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
         Log.Information(downloadResults);
         Log.Information("Download Complete"); //{#00FF00}
     }
@@ -362,14 +360,18 @@ public partial class ImageRipper : IDisposable
         return exitCode;
     }
 
-    private static async Task HandleDuplicateFile(string imagePath, HashSet<byte[]> filesHashes)
+    private static async Task<bool> HandleDuplicateFile(string imagePath, HashSet<HashKey> filesHashes)
     {
         var fileHash = await FileUtility.GetFileHash(imagePath);
         if (!filesHashes.Add(fileHash))
         {
             Log.Information("Duplicate file detected: {ImagePath}", imagePath);
             File.Delete(imagePath);
+            return true;
         }
+
+        Log.Debug("File hash: {FileHash}", fileHash);
+        return false;
     }
     
     /// <summary>
@@ -389,7 +391,14 @@ public partial class ImageRipper : IDisposable
         var numProgress = $"({filename}/{numFiles})";
         Log.Information($"{ripUrl}    {numProgress}");
         imageLink.Url = ripUrl;
-        await DownloadFile(imagePath, imageLink, true);
+        try
+        {
+            await DownloadFile(imagePath, imageLink, true);
+        }
+        finally
+        {
+            imageLink.Url = url;
+        }
         await Task.Delay(50);
     }
 
@@ -787,7 +796,7 @@ public partial class ImageRipper : IDisposable
     {
         var url = imageLink.Url;
         var badCert = false;
-        await Task.Delay((int)(SleepTime * 1000));
+        await Task.Delay((int)(SleepTime * MillisecondsInSecond));
         var modifiedHeader = ModifiedHeader.None;
         var oldCookies = "";
         if (url.Contains("redgifs"))
@@ -1116,7 +1125,7 @@ public partial class ImageRipper : IDisposable
 
     private async Task DownloadPartyFile(string imagePath, string ripUrl)
     {
-        await Task.Delay((int)(SleepTime * 1000));
+        await Task.Delay((int)(SleepTime * MillisecondsInSecond));
 
         for(var _ = 0; _ < RetryCount; _++)
         {

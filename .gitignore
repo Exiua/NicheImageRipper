@@ -5,5 +5,11 @@ riderModule.iml
 /_ReSharper.Caches/
 Workspace/
 .idea/
+.vs/
 *.json
+*.txt
+*.jpg
+*.png
+*.mp4
+*.html
 NicheImageRipper.sln.DotSettings.user

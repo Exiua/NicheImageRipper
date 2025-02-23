@@ -40,7 +40,16 @@ public class WebDriverPool : IDisposable
             {
                 _currentCount++;
                 Log.Debug("Creating a new WebDriver.");
-                return CreateFirefoxDriver(debug); // Create a new driver if under capacity
+                try
+                {
+                    return CreateFirefoxDriver(debug); // Create a new driver if under capacity
+                }
+                catch
+                {
+                    _currentCount--;
+                    _semaphore.Release();
+                    throw;
+                }
             }
 
             throw new InvalidOperationException("This should not happen due to the semaphore.");

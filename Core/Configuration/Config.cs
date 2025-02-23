@@ -17,6 +17,7 @@ public class Config
     public string Theme { get; set; } = null!;
     public FilenameScheme FilenameScheme { get; set; }
     public UnzipProtocol UnzipProtocol { get; set; }
+    public PostDownloadAction PostDownloadAction { get; set; }
     public bool AskToReRip { get; set; }
     public bool LiveHistory { get; set; }
     public int NumThreads { get; set; }

@@ -1,29 +1,14 @@
-﻿using Core.Enums;
+﻿using Core;
+using Core.Enums;
 using Core.ExtensionMethods;
 using Core.Utility;
 using Serilog;
 using Serilog.Events;
 
-namespace Core;
+namespace CoreTui;
 
 public class NicheImageRipperCli : NicheImageRipper
 {
-    private async Task Rip()
-    {
-        while (UrlQueue.Count != 0)
-        {
-            try
-            {
-                var url = await RipUrl();
-                UpdateHistory(Ripper.FolderInfo, url);
-            }
-            finally
-            {
-                Ripper.Dispose(); // TODO: Fix this
-            }
-        }
-    }
-
     private void PrintHistory()
     {
         Console.WriteLine("+----------------------------------------+");
@@ -64,7 +49,7 @@ public class NicheImageRipperCli : NicheImageRipper
         {
             try
             {
-                LogMessageToFile("NicheImageRipper> ", newLine: false);
+                LogMessageToFile($"{Title}> ", newLine: false);
                 var userInput = Console.ReadLine();
                 if (string.IsNullOrEmpty(userInput))
                 {
@@ -76,7 +61,7 @@ public class NicheImageRipperCli : NicheImageRipper
                 {
                     case "booru":
                     {
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: <tags>", LogEventLevel.Warning);
                             break;
@@ -84,11 +69,11 @@ public class NicheImageRipperCli : NicheImageRipper
 
                         var tags = cmdParts[1];
                         var url = "https://booru.com/post?tags=" + tags;
-                        QueueUrlsHelper(url);
+                        QueueUrls(url);
                         break;
                     }
                     case "c" or "clear":
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: cache or queue", LogEventLevel.Warning);
                             break;
@@ -141,10 +126,43 @@ public class NicheImageRipperCli : NicheImageRipper
                                 }
 
                                 break;
+                            case "postdownloadaction":
+                                if (cmdParts.Length == 2)
+                                {
+                                    LogMessageToFile($"Post download action: {PostDownloadAction}");
+                                }
+                                else
+                                {
+                                    if (Enum.TryParse(cmdParts[2], true, out PostDownloadAction action))
+                                    {
+                                        if (action == PostDownloadAction.None)
+                                        {
+                                            PostDownloadAction = action;
+                                        }
+                                        else
+                                        {
+                                            if (PostDownloadAction.HasFlag(action))
+                                            {
+                                                PostDownloadAction &= ~action;
+                                            }
+                                            else
+                                            {
+                                                PostDownloadAction |= action;
+                                            }
+                                        }
+                                        
+                                        LogMessageToFile($"Post download action set to {PostDownloadAction}");
+                                    }
+                                    else
+                                    {
+                                        var validActions = string.Join(", ", Enum.GetNames<PostDownloadAction>());
+                                        LogMessageToFile($"Invalid action. Valid actions: {{{validActions}}}", LogEventLevel.Warning);
+                                    }
+                                }
+                                
+                                break;
                             default:
-                                LogMessageToFile($"Invalid key: {key}", LogEventLevel.Warning);
-                                // List all keys
-                                LogMessageToFile("Keys: savepath");
+                                LogMessageToFile($"Invalid key: {key}. Valid Keys: {{savepath, postdownloadaction}}", LogEventLevel.Warning);
                                 break;
                         }
                         break;
@@ -155,7 +173,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         Debugging = true;
                         break;
                     case "delay":
-                        if(cmdParts.Length != 2)
+                        if(cmdParts.Length < 2)
                         {
                             LogMessageToFile($"Retry delay: {RetryDelay} ms");
                         }
@@ -198,7 +216,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         PrintHistory();
                         break;
                     case "l" or "load":
-                        LoadUrlFile(cmdParts.Length != 2 ? "UnfinishedRips.json" : cmdParts[1]);
+                        LoadUrlFile(cmdParts.Length < 2 ? "UnfinishedRips.json" : cmdParts[1]);
                         LogMessageToFile("URLs loaded");
                         break;
                     case "list":
@@ -212,7 +230,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "lookup":
                     {
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: <folder_name>", LogEventLevel.Warning);
                         }
@@ -236,7 +254,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     }
                     case "merge":
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: filename", LogEventLevel.Warning);
                             break;
@@ -264,7 +282,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         //HtmlParser.RegenerateDriver();
                         break;
                     case "retries":
-                        if (cmdParts.Length != 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile($"Max retries: {MaxRetries - 1}");
                         }
@@ -338,51 +356,17 @@ public class NicheImageRipperCli : NicheImageRipper
                         NormalizeUrlsInDb();
                         break;
                     #endif
+                    case "v" or "version":
+                        LogMessageToFile($"{Title} v{Version}");
+                        break;
                     default:
-                        QueueUrlsHelper(userInput);
+                        QueueUrls(userInput);
                         break;
                 }
             }
             catch (Exception e)
             {
                 Log.Error(e, "An unhanded exception occurred");
-            }
-        }
-    }
-    
-    private void QueueUrlsHelper(string userInput)
-    {
-        var startIndex = UrlQueue.Count;
-        var offset = 0;
-        var failedUrls = QueueUrls(userInput);
-        foreach(var failedUrl in failedUrls)
-        {
-            switch (failedUrl.Reason)
-            {
-                case QueueFailureReason.None:
-                    break;
-                case QueueFailureReason.AlreadyQueued:
-                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
-                    break;
-                case QueueFailureReason.NotSupported:
-                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
-                    break;
-                case QueueFailureReason.PreviouslyProcessed:
-                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
-                    var response = Console.ReadLine();
-                    if (response == "y")
-                    {
-                        var correctIndex = startIndex + failedUrl.Index + offset;
-                        offset++;
-                        UrlQueue.Insert(correctIndex, failedUrl.Url);
-                    }
-                    else
-                    {
-                        offset--;
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
             }
         }
     }

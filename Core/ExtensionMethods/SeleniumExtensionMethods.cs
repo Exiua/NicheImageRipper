@@ -116,4 +116,12 @@ public static class SeleniumExtensionMethods
             _ => throw new InvalidCastException()
         };
     }
+
+    public static Cookie ToSeleniumCookie(this FlareSolverrIntegration.Responses.Cookie cookie)
+    {
+        var expiration = DateTimeOffset.FromUnixTimeSeconds(cookie.Expiry).UtcDateTime;
+        var seleniumCookie = new Cookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path, expiration, cookie.Secure, 
+            cookie.HttpOnly, cookie.SameSite);
+        return seleniumCookie;
+    }
 }

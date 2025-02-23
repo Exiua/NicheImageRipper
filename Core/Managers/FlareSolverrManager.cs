@@ -56,7 +56,7 @@ public class FlareSolverrManager(string flareSolverrUri)
         _sessionId = null;
     }
     
-    public async Task<Solution> GetSiteSolution(string url)
+    public async Task<Solution> GetSiteSolution(string url, List<Dictionary<string, string>>? cookies = null)
     {
         Log.Debug("Getting site solution for {Url}", url);
         if (_sessionId is null)
@@ -64,7 +64,7 @@ public class FlareSolverrManager(string flareSolverrUri)
             await GetSession();
         }
         
-        var payload = GetRequestPayload.SetUrl(url).SetSession(_sessionId!);
+        var payload = GetRequestPayload.SetUrl(url).SetSession(_sessionId!).SetCookies(cookies);
         var response = await _flareSolverrClient.GetRequest(payload);
         if (response is not RequestResponse requestResponse)
         {

@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CoreGui.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="CoreGui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="CoreGui">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Orientation="Vertical" Spacing="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="25">
+            <TextBlock Text="Enter Url:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding UrlInput}" Width="500"/>
+            <Button Command="{Binding RipCommand}">Rip</Button>
+        </StackPanel>
+        <TabControl Margin="25">
+            <TabItem Header="Logs">
+                <TextBox x:Name="LogTextBox" Text="{Binding LogText}" Margin="5" 
+                         IsReadOnly="True" MinHeight="750" MaxHeight="1000"/>
+            </TabItem>
+            <TabItem Header="Queue" >
+                <StackPanel Orientation="Vertical">
+                    <Button Command="{Binding DequeueUrlsCommand}">Remove Urls</Button>
+                    <ListBox x:Name="UrlQueue" SelectionMode="Multiple" 
+                             SelectedItems="{Binding SelectedUrls}" MinHeight="750" MaxHeight="1000"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="History">
+                <StackPanel Orientation="Vertical">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="PreviousHistoryPageButton" Click="PreviousHistoryPage" IsEnabled="False">Previous</Button>
+                        <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage"/>
+                        <Button x:Name="NextHistoryPageButton" Click="NextHistoryPage">Next</Button>
+                    </StackPanel>
+                    <DataGrid Margin="20" ItemsSource="{Binding History}"
+                              IsReadOnly="True"
+                              CanUserReorderColumns="True"
+                              CanUserResizeColumns="True"
+                              CanUserSortColumns="False"
+                              GridLinesVisibility="All"
+                              BorderThickness="1" BorderBrush="Gray">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name"  Binding="{Binding DirectoryName}"/>
+                            <DataGridTextColumn Header="Url" Binding="{Binding Url}" />
+                            <DataGridTextColumn Header="Date" Binding="{Binding Date}" />
+                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Settings">
+                <StackPanel Orientation="Vertical" Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Save Location:"/>
+                        <TextBlock Text="{Binding SavePath}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Select Save Folder:"/>
+                        <Button Click="SelectFolder">Browse</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Load Unfinished Urls:"/>
+                        <Button Click="SelectUnfinishedUrlFile">Browse</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Check For Updates:"/>
+                        <Button >Check</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Clear Cache:"/>
+                        <Button Command="{Binding ClearCacheCommand}">Clear</Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Filename Scheme:"/>
+                        <ComboBox x:Name="FilenameSchemeComboBox" SelectedIndex="{Binding FilenameSchemeIndex}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Unzip Protocol:"/>
+                        <ComboBox x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+
+</Window>

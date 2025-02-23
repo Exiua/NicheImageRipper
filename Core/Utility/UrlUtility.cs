@@ -72,13 +72,13 @@ public static partial class UrlUtility
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
         "https://x.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
         "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/", "https://jpg5.su/",
-        "https://simpcity.su/", "https://rule34video.com/", "https://av19a.com/", "https://www.eporner.com/",
+        "https://www.simpcity.su/", "https://rule34video.com/", "https://av19a.com/", "https://www.eporner.com/",
         "https://cgcosplay.org/", "https://www.4khd.com/", "https://cosplay69.net/", "https://www.nlegs.com/",
         "https://www.ladylap.com/", "https://www.xasiat.com/", "https://catbox.moe/", "https://en.jrants.com/",
         "https://sexbjcam.com/", "https://pornavhd.com/", "https://xx.knit.bid/", "https://www.69tang.org/",
         "https://www.jieav.com/", "https://www.hentaiclub.net/", "https://avav19.com/", 
         "https://booru.com/", // Fake site used as control signal to scrape from all supported boorus
-        "https://mangadex.org/", "https://cosblay.com/", "https://en.cosblay.com/"
+        "https://mangadex.org/", "https://cosblay.com/", "https://en.cosblay.com/", "https://www.kaizty.com/"
     }.ToFrozenSet();
 
     /// <summary>
