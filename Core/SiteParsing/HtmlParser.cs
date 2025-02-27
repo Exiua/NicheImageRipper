@@ -34,41 +34,40 @@ namespace Core.SiteParsing;
 
 public partial class HtmlParser : IDisposable
 {
-    private const string Protocol = "https:";
+    protected const string Protocol = "https:";
 
-    private static readonly string[] ExternalSites =
+    protected static readonly string[] ExternalSites =
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
 
-    private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
+    protected static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
     
-    private static Config Config => Config.Instance;
+    protected static Config Config => Config.Instance;
     
     //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
     
-    private WebDriver WebDriver { get; set; }
+    protected WebDriver WebDriver { get; set; }
     public bool Interrupted { get; set; }
-    private string SiteName { get; set; }
+    protected string SiteName { get; set; }
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
-    private string GivenUrl { get; set; }
-    private FilenameScheme FilenameScheme { get; set; }
-    private Dictionary<string, string> RequestHeaders { get; set; }
+    protected string GivenUrl { get; set; }
+    protected FilenameScheme FilenameScheme { get; set; }
+    protected Dictionary<string, string> RequestHeaders { get; set; }
 
-    private FirefoxDriver Driver => WebDriver.Driver;
-    private string CurrentUrl
+    protected FirefoxDriver Driver => WebDriver.Driver;
+
+    protected string CurrentUrl
     {
         get => Driver.Url;
         set => Driver.Url = value;
     }
-    private static bool Debugging { get; set; }
-    private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
-    private static string UserAgent => Config.UserAgent;
+    protected static bool Debugging { get; set; }
+    protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
+    protected static string UserAgent => Config.UserAgent;
 
     public HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
                       FilenameScheme filenameScheme = FilenameScheme.Original)
     {
-        //var options = InitializeOptions(siteName);
-        //Driver = new FirefoxDriver(options);
         WebDriver = driver;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
@@ -81,8 +80,6 @@ public partial class HtmlParser : IDisposable
 
     public void SetDebugMode(bool debug)
     {
-        /*Driver.Quit();
-        Driver = new FirefoxDriver(InitializeOptions(debug));*/
         WebDriver.RegenerateDriver(debug);
         Debugging = debug;
     }
@@ -5222,6 +5219,29 @@ public partial class HtmlParser : IDisposable
     }
 
     /// <summary>
+    ///     Parses the html for quatvn.love and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    private async Task<RipInfo> QuatvnParse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        var container =
+            soup.SelectSingleNode(
+                "//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']");
+        var gallery = container.SelectSingleNode(".//figure[@class='mace-gallery-teaser']");
+        if (gallery is not null)
+        {
+            var imageData = gallery.GetDataAttribute("data-g1-gallery");
+            var imageList = JsonSerializer.Deserialize<JsonNode>(imageData.Value)!.AsArray();
+            var imgs = imageList.Select(entry => entry!.AsObject()["full"]!.Deserialize<string>());
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
     ///     Parses the html for rabbitsfun.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
@@ -6683,7 +6703,7 @@ public partial class HtmlParser : IDisposable
     
     #endregion
 
-    private static string ExtractJsonObject(string json)
+    protected static string ExtractJsonObject(string json)
     {
         var depth = 0;
         var escaped = false;
@@ -6728,7 +6748,7 @@ public partial class HtmlParser : IDisposable
         throw new RipperException($"Improperly formatted json: {json}");
     }
 
-    private async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "")
+    protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "")
     {
         if (delay > 0)
         {
@@ -6750,8 +6770,8 @@ public partial class HtmlParser : IDisposable
         return doc.DocumentNode;
     }
     
-    private async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
-                                                string xpath = "", bool urlString = true, ICookieJar? cookies = null)
+    protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
+                                           string xpath = "", bool urlString = true, ICookieJar? cookies = null)
     {
         if (!urlString)
         {
@@ -6774,7 +6794,7 @@ public partial class HtmlParser : IDisposable
         return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath);
     }
 
-    private static async Task<HtmlNode> Soupify(HttpResponseMessage response)
+    protected static async Task<HtmlNode> Soupify(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
         var htmlDocument = new HtmlDocument();
@@ -6782,7 +6802,7 @@ public partial class HtmlParser : IDisposable
         return htmlDocument.DocumentNode;
     }
     
-    private static Task<HtmlNode> Soupify(Solution solution)
+    protected static Task<HtmlNode> Soupify(Solution solution)
     {
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(solution.Response);
@@ -6796,7 +6816,7 @@ public partial class HtmlParser : IDisposable
     /// <param name="delay">Delay between each check</param>
     /// <param name="timeout">Timeout for the wait (-1 for no timeout)</param>
     /// <returns>True if the element exists, false if the timeout is reached</returns>
-    private async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
+    protected async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
         var startTime = DateTime.Now;
@@ -6814,7 +6834,7 @@ public partial class HtmlParser : IDisposable
         return true;
     }
     
-    private void CleanTabs(string urlMatch)
+    protected void CleanTabs(string urlMatch)
     {
         var windowHandles = Driver.WindowHandles;
         foreach (var handle in windowHandles)
