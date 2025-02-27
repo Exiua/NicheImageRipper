@@ -512,7 +512,7 @@ public partial class NicheImageRipper : IDisposable
         var startIndex = UrlQueue.Count;
         var offset = 0;
         var failedUrls = QueueUrlsHelper(userInput);
-        var updated = failedUrls.Count == 0;
+        var updated = UrlQueue.Count != startIndex;
         foreach(var failedUrl in failedUrls)
         {
             switch (failedUrl.Reason)

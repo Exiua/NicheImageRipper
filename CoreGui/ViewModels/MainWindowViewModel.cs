@@ -219,4 +219,9 @@ public class MainWindowViewModel : ViewModelBase
     {
         _ripper.SaveData();
     }
+
+    public void Cleanup()
+    {
+        _ripper.Dispose();
+    }
 }

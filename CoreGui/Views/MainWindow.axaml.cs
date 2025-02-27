@@ -38,7 +38,14 @@ public partial class MainWindow : Window
 
     private void OnClose(object? sender, WindowClosingEventArgs windowClosingEventArgs)
     {
-        ViewModel.SaveData();
+        try
+        {
+            ViewModel.SaveData();
+        }
+        finally
+        {
+            ViewModel.Cleanup();
+        }
     }
 
     public void OnLog(string message)

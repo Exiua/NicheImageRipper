@@ -89,6 +89,7 @@
                 </StackPanel>
             </TabItem>
         </TabControl>
+        <TextBlock x:Name="PaddingHack" Text="               " />
     </StackPanel>
 
 </Window>
