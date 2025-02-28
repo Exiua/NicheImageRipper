@@ -5,7 +5,7 @@ using Core.ExtensionMethods;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using Serilog;
-using WebDriver = Core.History.WebDriver;
+using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 

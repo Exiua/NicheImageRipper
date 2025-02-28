@@ -1,26 +1,23 @@
 using System.Collections.Concurrent;
-using Core.SiteParsing;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Firefox;
 using Serilog;
 
-namespace Core.History;
+namespace Core.Driver;
 
-public class WebDriverPool : IDisposable
+public class WebDriverSet : IDisposable
 {
     private readonly ConcurrentBag<WebDriver> _availableDrivers = [];
     private readonly object _lock = new();
     private readonly SemaphoreSlim _semaphore;
     private int _currentCount;
     private readonly int _maxCapacity;
-    
-    public WebDriverPool(int maxCapacity)
+
+    public WebDriverSet(int maxCapacity)
     {
         _maxCapacity = maxCapacity;
         _semaphore = new SemaphoreSlim(maxCapacity, maxCapacity);
     }
     
-    public WebDriver AcquireDriver(bool debug)
+    public WebDriver AcquireDriver(bool headless)
     {
         // Block the thread if no resources are available
         Log.Debug("Waiting for an available WebDriver.");
@@ -32,7 +29,7 @@ public class WebDriverPool : IDisposable
             if (_availableDrivers.TryTake(out var driver))
             {
                 Log.Debug("Reusing an existing WebDriver.");
-                driver = CheckWebDriverHealth(driver, debug);
+                driver = CheckWebDriverHealth(driver, headless);
                 return driver; // Reuse an available driver
             }
 
@@ -42,7 +39,7 @@ public class WebDriverPool : IDisposable
                 Log.Debug("Creating a new WebDriver.");
                 try
                 {
-                    return CreateFirefoxDriver(debug); // Create a new driver if under capacity
+                    return CreateFirefoxDriver(headless); // Create a new driver if under capacity
                 }
                 catch
                 {
@@ -71,7 +68,23 @@ public class WebDriverPool : IDisposable
         Log.Debug("Released a WebDriver.");
     }
     
-    private static WebDriver CheckWebDriverHealth(WebDriver driver, bool debug)
+    public void DestroyDriver(WebDriver driver)
+    {
+        Log.Debug("Destroying a WebDriver.");
+        ArgumentNullException.ThrowIfNull(driver);
+
+        lock (_lock)
+        {
+            driver.Dispose();
+            _currentCount--;
+        }
+        
+        // Release the semaphore to unblock waiting threads
+        _semaphore.Release();
+        Log.Debug("Destroyed a WebDriver.");
+    }
+    
+    private static WebDriver CheckWebDriverHealth(WebDriver driver, bool headless)
     {
         try
         {
@@ -81,14 +94,14 @@ public class WebDriverPool : IDisposable
         catch (Exception e)
         {
             Log.Error(e, "WebDriver is unreachable. Regenerating the driver.");
-            driver.RegenerateDriver(debug);
+            driver.RegenerateDriver(headless);
             return driver;
         }
     }
 
-    private static WebDriver CreateFirefoxDriver(bool debug)
+    private static WebDriver CreateFirefoxDriver(bool headless)
     {
-        return new WebDriver(debug);
+        return new WebDriver(headless);
     }
 
     public void Dispose()

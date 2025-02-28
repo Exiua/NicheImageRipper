@@ -19,7 +19,7 @@ using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
 using Serilog;
 using Serilog.Events;
-using WebDriver = Core.History.WebDriver;
+using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing;
 
@@ -280,6 +280,7 @@ public abstract partial class HtmlParser : IDisposable
             "mangadex" => new MangaDexParser(webDriver, requestHeaders, "mangadex", filenameScheme),
             "cosblay" => new CosblayParser(webDriver, requestHeaders, "cosblay", filenameScheme),
             "kaizty" => new KaiztyParser(webDriver, requestHeaders, "kaizty", filenameScheme),
+            "quatvn" => new QuatvnParser(webDriver, requestHeaders, "quatvn", filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
@@ -740,7 +741,7 @@ public abstract partial class HtmlParser : IDisposable
         throw new RipperException($"Improperly formatted json: {json}");
     }
 
-    protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "")
+    protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "", int xpathTimout = 10)
     {
         if (delay > 0)
         {
@@ -749,7 +750,7 @@ public abstract partial class HtmlParser : IDisposable
 
         if (xpath != "")
         {
-            await WaitForElement(xpath);
+            await WaitForElement(xpath, timeout: xpathTimout);
         }
 
         if (lazyLoadArgs is not null)
@@ -1202,7 +1203,7 @@ public abstract partial class HtmlParser : IDisposable
     {
         siteName = TestSiteConverter(siteName);
         siteName = siteName[0].ToString().ToUpper() + siteName[1..];
-        var className = $"Core.SiteParsing.HtmlParsers.{siteName}Parser";
+        var className = $"{siteName}Parser";
         var classType = Assembly.GetExecutingAssembly()
                              .GetTypes()
                              .FirstOrDefault(t => string.Equals(t.Name, className, StringComparison.OrdinalIgnoreCase));

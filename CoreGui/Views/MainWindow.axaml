@@ -15,19 +15,19 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <StackPanel Orientation="Vertical" Spacing="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <StackPanel Orientation="Vertical" Spacing="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="{Binding Height, RelativeSource={RelativeSource Self}}">
         <StackPanel Orientation="Horizontal" Spacing="10" Margin="25">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center"/>
             <TextBox Text="{Binding UrlInput}" Width="500"/>
             <Button Command="{Binding RipCommand}">Rip</Button>
         </StackPanel>
-        <TabControl Margin="25">
-            <TabItem Header="Logs">
+        <TabControl Margin="25" Height="{Binding Height, RelativeSource={RelativeSource AncestorType=StackPanel}}">
+            <TabItem Header="Logs" Height="{Binding Height, RelativeSource={RelativeSource AncestorType=StackPanel}}">
                 <TextBox x:Name="LogTextBox" Text="{Binding LogText}" Margin="5" 
-                         IsReadOnly="True" MinHeight="750" MaxHeight="1000"/>
+                         IsReadOnly="True" MinHeight="750" MaxHeight="900"/>
             </TabItem>
             <TabItem Header="Queue" >
-                <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Vertical" Height="{Binding Height, RelativeSource={RelativeSource AncestorType=StackPanel}}">
                     <Button Command="{Binding DequeueUrlsCommand}">Remove Urls</Button>
                     <ListBox x:Name="UrlQueue" SelectionMode="Multiple" 
                              SelectedItems="{Binding SelectedUrls}" MinHeight="750" MaxHeight="1000"/>
@@ -89,7 +89,6 @@
                 </StackPanel>
             </TabItem>
         </TabControl>
-        <TextBlock x:Name="PaddingHack" Text="               " />
     </StackPanel>
 
 </Window>

@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
+using Core.Driver;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
@@ -564,10 +565,10 @@ public partial class NicheImageRipper : IDisposable
 
     public virtual void UpdateHistory(RipInfo ripInfo, string url)
     {
-        //var duplicate = History.FirstOrDefault(x => x.DirectoryName == ripInfo.DirectoryName);
         var duplicate = HistoryDb.GetHistoryEntryByDirectoryName(ripInfo.DirectoryName);
         if (duplicate is not null)
         {
+            Log.Debug("Duplicate found: {Url}; Updating...", url);
             var now = DateTime.Now;
             //History.Remove(duplicate);
             duplicate.Date = now;   // Update date
@@ -576,6 +577,7 @@ public partial class NicheImageRipper : IDisposable
         }
         else
         {
+            Log.Debug("Adding to history: {Url}", url);
             var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
             //History.Add(entry);
             HistoryDb.InsertHistoryRecord(entry);

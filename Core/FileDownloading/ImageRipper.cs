@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;
+using Core.Driver;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
@@ -24,7 +25,7 @@ using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
-using WebDriver = Core.History.WebDriver;
+using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.FileDownloading;
 
@@ -56,7 +57,7 @@ public partial class ImageRipper : IDisposable
     public int CurrentIndex { get; private set; }
     private double FailureThreshold { get; set; } = 0.5;
     private WebDriverPool DriverPool { get; }
-    private WebDriver WebDriver { get; }
+    private WebDriver WebDriver { get; set; }
     
     private FirefoxDriver Driver => WebDriver.Driver;
 
@@ -103,6 +104,26 @@ public partial class ImageRipper : IDisposable
 
     private async Task FileGetter()
     {
+        // TODO: Figure out better implementation for this
+        if (SiteName == "quatvn")
+        {
+            if (WebDriver.IsHeadless)
+            {
+                DriverPool.ReleaseDriver(WebDriver);
+                // Need non-headless driver for quatvn
+                WebDriver = DriverPool.AcquireDriver(true);
+            }
+        }
+        else
+        {
+            if (!WebDriver.IsHeadless)
+            {
+                DriverPool.ReleaseDriver(WebDriver);
+                // Can use headless driver for other sites
+                WebDriver = DriverPool.AcquireDriver(false);
+            }
+        }
+        
         var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
         Log.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);

@@ -3,7 +3,7 @@ using Core.Enums;
 using Core.ExtensionMethods;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
-using WebDriver = Core.History.WebDriver;
+using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 

@@ -1,7 +1,7 @@
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
-using WebDriver = Core.History.WebDriver;
+using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 

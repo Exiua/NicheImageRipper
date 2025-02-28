@@ -6,7 +6,7 @@ using Core.ExtensionMethods;
 using MangaDexLibrary;
 using MangaDexLibrary.Responses;
 using Serilog;
-using WebDriver = Core.History.WebDriver;
+using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
