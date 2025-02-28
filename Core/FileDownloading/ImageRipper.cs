@@ -103,7 +103,7 @@ public partial class ImageRipper : IDisposable
 
     private async Task FileGetter()
     {
-        var htmlParser = new HtmlParser(WebDriver, RequestHeaders, SiteName, FilenameScheme);
+        var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
         Log.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
         Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
