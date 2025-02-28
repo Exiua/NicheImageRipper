@@ -1,6 +1,8 @@
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
+using HtmlAgilityPack;
 using Serilog;
 using WebDriver = Core.History.WebDriver;
 
@@ -93,5 +95,49 @@ public class DropboxParser : HtmlParser
         }
     
         return new RipInfo(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme, filenames: filenames);
+    }
+    
+    private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images,
+                                       List<string> posts)
+    {
+        var filename = post.Split("/")[^1].Split("?")[0];
+        filenames.Add(filename);
+        var img = soup.SelectSingleNode("//img[@class='_fullSizeImg_1anuf_16']");
+        try
+        {
+            if (img is not null)
+            {
+                var src = img.GetSrc();
+                if (src != "")
+                {
+                    images.Add(src);
+                }
+            }
+            else
+            {
+                var vid = soup.SelectSingleNode("//video");
+                if (vid is not null)
+                {
+                    var src = vid.SelectSingleNode("//source").GetSrc();
+                    if (src != "")
+                    {
+                        images.Add(src);
+                    }
+                }
+                else
+                {
+                    var newPosts = soup
+                                  .SelectSingleNode("//ol[@class='_sl-grid-body_6yqpe_26']")
+                                  .SelectNodes("//a")
+                                  .GetHrefs()
+                                  .RemoveDuplicates();
+                    posts.AddRange(newPosts);
+                }
+            }
+        }
+        catch (AttributeNotFoundException)
+        {
+            // ignored
+        }
     }
 }

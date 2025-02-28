@@ -6,7 +6,7 @@ using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Jpg5Parser : HtmlParser
+public class Jpg5Parser : ParameterizedHtmlParser
 {
     public Jpg5Parser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
@@ -16,16 +16,7 @@ public class Jpg5Parser : HtmlParser
     ///     Parses the html for jpg5.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
-    {
-        return Jpg5Parse("");
-    }
-
-    /// <summary>
-    ///     Parses the html for jpg5.su and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> Jpg5Parse(string url)
+    public override async Task<RipInfo> Parse(string url)
     {
         if(url != "")
         {

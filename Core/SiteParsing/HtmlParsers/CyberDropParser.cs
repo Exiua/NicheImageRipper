@@ -7,7 +7,7 @@ using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class CyberDropParser : HtmlParser
+public class CyberDropParser : ParameterizedHtmlParser
 {
     public CyberDropParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
@@ -17,16 +17,7 @@ public class CyberDropParser : HtmlParser
     ///     Parses the html for cyberdrop.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
-    {
-        return await CyberDropParse("");
-    }
-
-    /// <summary>
-    ///     Parses the html for cyberdrop.me and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> CyberDropParse(string url)
+    public override async Task<RipInfo> Parse(string url)
     {
         const int parseDelay = 500;
         

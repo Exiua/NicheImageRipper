@@ -9,7 +9,7 @@ using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class GoFileParser : HtmlParser
+public class GoFileParser : ParameterizedHtmlParser
 {
     public GoFileParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
@@ -19,16 +19,7 @@ public class GoFileParser : HtmlParser
     ///     Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
-    {
-        return GoFileParse("");
-    }
-
-    /// <summary>
-    ///     Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GoFileParse(string url)
+    public override async Task<RipInfo> Parse(string url)
     {
         if (url != "")
         {

@@ -9,26 +9,17 @@ using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PixelDrainParser : HtmlParser
+public class PixelDrainParser : ParameterizedHtmlParser
 {
     public PixelDrainParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for pixeldrain.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
-    {
-        return PixelDrainParse("");
-    }
-
-    /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> PixelDrainParse(string url)
+    public override async Task<RipInfo> Parse(string url)
     {
         if (string.IsNullOrEmpty(url))
         {

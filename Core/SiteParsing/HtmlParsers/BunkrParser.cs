@@ -7,7 +7,7 @@ using WebDriver = Core.History.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BunkrParser : HtmlParser
+public class BunkrParser : ParameterizedHtmlParser
 {
     public BunkrParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
@@ -17,16 +17,7 @@ public class BunkrParser : HtmlParser
     ///     Parses the html for bunkr.si and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
-    {
-        return BunkrParse("");
-    }
-    
-    /// <summary>
-    ///     Parses the html for bunkr.si and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> BunkrParse(string url)
+    public override async Task<RipInfo> Parse(string url)
     {
         const int parseDelay = 500;
         if (url != "")

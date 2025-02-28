@@ -37,7 +37,7 @@ switch (arguments.RunMode)
 
         using var pool = new WebDriverPool(1);
         var driver = pool.AcquireDriver(arguments.Debug);
-        var parser = new HtmlParser(driver, requestHeaders);
+        var parser = HtmlParser.GetParser("imhentai", driver, requestHeaders);
         // Null check performed in ArgumentParser.Parse
         var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
         pool.ReleaseDriver(driver);

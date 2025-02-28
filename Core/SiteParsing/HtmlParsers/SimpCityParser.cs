@@ -43,16 +43,16 @@ public class SimpCityParser : HtmlParser
         Log.Debug("Saving reference to cookies");
         var cookies = cookieJar.AllCookies;
         Log.Debug("Creating resolvable url map");
-        var resolvableMap = new Dictionary<string, Func<string, Task<RipInfo>>>
+        var resolvableMap = new Dictionary<string, ParameterizedHtmlParser>
         {
-            ["bunkrrr.org"] = BunkrParse,
-            ["bunkr."] = BunkrParse,
-            ["gofile.io"] = GoFileParse,
-            ["pixeldrain.com"] = PixelDrainParse,
-            ["cyberdrop.me"] = CyberDropParse,
-            ["jpg4.su"] = Jpg5Parse,
-            ["jpg5.su"] = Jpg5Parse,
-            ["coomer.party"] = CoomerParse,
+            ["bunkrrr.org"] = new BunkrParser(WebDriver, RequestHeaders),
+            ["bunkr."] = new BunkrParser(WebDriver, RequestHeaders),
+            ["gofile.io"] = new GoFileParser(WebDriver, RequestHeaders),
+            ["pixeldrain.com"] = new PixelDrainParser(WebDriver, RequestHeaders),
+            ["cyberdrop.me"] = new CyberDropParser(WebDriver, RequestHeaders),
+            ["jpg4.su"] = new Jpg5Parser(WebDriver, RequestHeaders),
+            ["jpg5.su"] = new Jpg5Parser(WebDriver, RequestHeaders),
+            ["coomer.party"] = new CoomerParser(WebDriver, RequestHeaders),
         }.ToFrozenDictionary();
         
         Log.Debug("Parsing page");
@@ -150,7 +150,7 @@ public class SimpCityParser : HtmlParser
             {
                 Log.Information("Resolving link {Resolved} of {Total}: {Link}", resolved, total, link);
                 resolved++;
-                Func<string, Task<RipInfo>>? parser = null;
+                ParameterizedHtmlParser? parser = null;
                 foreach (var (urlPart, p) in resolvableMap)
                 {
                     if (link.Contains(urlPart))
@@ -168,7 +168,7 @@ public class SimpCityParser : HtmlParser
                 RipInfo info;
                 try
                 {
-                    info = await parser(link);
+                    info = await parser.Parse(link);
                 }
                 catch (WebDriverTimeoutException)
                 {
@@ -217,7 +217,7 @@ public class SimpCityParser : HtmlParser
     
         }
     
-        Task<RipInfo> ReTryParse(string link, Func<string, Task<RipInfo>> parser, ReadOnlyCollection<Cookie> cookies)
+        Task<RipInfo> ReTryParse(string link, ParameterizedHtmlParser parser, ReadOnlyCollection<Cookie> cookies)
         {
             WebDriver.RegenerateDriver(false);
             cookieJar = Driver.GetCookieJar();
@@ -225,7 +225,7 @@ public class SimpCityParser : HtmlParser
             {
                 cookieJar.AddCookie(cookie);
             }
-            return parser(link);
+            return parser.Parse(link);
         }
     }
 }
