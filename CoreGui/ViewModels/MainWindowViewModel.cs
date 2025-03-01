@@ -204,7 +204,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public void LoadHistory()
     {
-        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage, PageSize);
+        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage - 1, PageSize);
         Log.Debug("History[{Count}]: {@History}", history.Count, history[0]);
         History.Update(history);
     }

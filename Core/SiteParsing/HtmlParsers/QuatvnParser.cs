@@ -35,6 +35,12 @@ public class QuatvnParser : HtmlParser
             {
                 break;
             }
+            
+            var gallery = Driver.TryFindElement(By.XPath("//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']//figure[@class='mace-gallery-teaser']"));
+            if (gallery is not null)
+            {
+                break;
+            }
 
             Log.Debug("Unable to find playlist or tablist, refreshing page");
             if (i == 3)
