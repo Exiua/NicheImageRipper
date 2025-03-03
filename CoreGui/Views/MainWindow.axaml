@@ -90,6 +90,14 @@
                         <TextBlock Text="Unzip Protocol:" />
                         <ComboBox x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Max Retries:" />
+                        <TextBox x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}" LostFocus="ValidateNumericValue" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Retry Delay (ms):" />
+                        <TextBox x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
+                    </StackPanel>
                 </StackPanel>
             </TabItem>
         </TabControl>

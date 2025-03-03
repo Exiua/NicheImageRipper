@@ -133,4 +133,24 @@ public partial class MainWindow : Window
         PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
         NextHistoryPageButton.IsEnabled = ViewModel.NextHistoryPageExists();
     }
+
+    private void ValidateNumericValue(object? sender, RoutedEventArgs e)
+    {
+        var textBox = (TextBox) sender!;
+        var rawValue = textBox.Text;
+        if (!int.TryParse(rawValue, out var value) || value < 0)
+        {
+            value = -1;
+        }
+
+        switch (textBox.Name)
+        {
+            case "MaxRetriesTextBox":
+                ViewModel.SetMaxRetries(value);
+                break;
+            case "RetryDelayTextBox":
+                ViewModel.SetRetryDelay(value);
+                break;
+        }
+    }
 }

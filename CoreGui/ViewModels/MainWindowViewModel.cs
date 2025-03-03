@@ -25,6 +25,8 @@ public class MainWindowViewModel : ViewModelBase
     private string _logText = "";
     private string _currentHistoryPageDisplay = "1";
     private int _currentHistoryPage = 1;
+    private string _maxRetriesDisplay = NicheImageRipper.MaxRetries.ToString();
+    private string _retryDelayDisplay = NicheImageRipper.RetryDelay.ToString();
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -91,6 +93,18 @@ public class MainWindowViewModel : ViewModelBase
             
             this.RaiseAndSetIfChanged(ref _currentHistoryPageDisplay, result.ToString());
         }
+    }
+
+    public string MaxRetriesDisplay
+    {
+        get => _maxRetriesDisplay;
+        set => this.RaiseAndSetIfChanged(ref _maxRetriesDisplay, value);
+    }
+
+    public string RetryDelayDisplay
+    {
+        get => _retryDelayDisplay;
+        set => this.RaiseAndSetIfChanged(ref _retryDelayDisplay, value);
     }
 
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
@@ -223,5 +237,29 @@ public class MainWindowViewModel : ViewModelBase
     public void Cleanup()
     {
         _ripper.Dispose();
+    }
+    
+    public void SetMaxRetries(int maxRetries)
+    {
+        if (maxRetries == -1)
+        {
+            MaxRetriesDisplay = NicheImageRipper.MaxRetries.ToString();
+        }
+        else
+        {
+            NicheImageRipper.MaxRetries = maxRetries;
+        }
+    }
+
+    public void SetRetryDelay(int result)
+    {
+        if (result == -1)
+        {
+            RetryDelayDisplay = NicheImageRipper.RetryDelay.ToString();
+        }
+        else
+        {
+            NicheImageRipper.RetryDelay = result;
+        }
     }
 }
