@@ -61,7 +61,27 @@
                 </StackPanel>
             </TabItem>
             <TabItem Header="Settings">
-                <StackPanel Orientation="Vertical" Spacing="10">
+                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="10" Text="Save Location:" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="10" Text="{Binding SavePath}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="10" Text="Select Save Folder:" />
+                    <Button Grid.Row="1" Grid.Column="1" Margin="10" Click="SelectFolder">Browse</Button>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="10" Text="Load Unfinished Urls:" />
+                    <Button Grid.Row="2" Grid.Column="1" Margin="10" Click="SelectUnfinishedUrlFile">Browse</Button>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="10" Text="Check For Updates:" />
+                    <Button Grid.Row="3" Grid.Column="1" Margin="10">Check</Button>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Margin="10" Text="Clear Cache:" />
+                    <Button Grid.Row="4" Grid.Column="1" Margin="10" Command="{Binding ClearCacheCommand}">Clear</Button>
+                    <TextBlock Grid.Row="5" Grid.Column="0" Margin="10" Text="Filename Scheme:" />
+                    <ComboBox Grid.Row="5" Grid.Column="1" Margin="10" x:Name="FilenameSchemeComboBox" SelectedIndex="{Binding FilenameSchemeIndex}" />
+                    <TextBlock Grid.Row="6" Grid.Column="0" Margin="10" Text="Unzip Protocol:" />
+                    <ComboBox Grid.Row="6" Grid.Column="1" Margin="10" x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
+                    <TextBlock Grid.Row="7" Grid.Column="0" Margin="10" Text="Max Retries:" />
+                    <TextBox Grid.Row="7" Grid.Column="1" Margin="10" x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}" LostFocus="ValidateNumericValue" />
+                    <TextBlock Grid.Row="8" Grid.Column="0" Margin="10" Text="Retry Delay (ms):" />
+                    <TextBox Grid.Row="8" Grid.Column="1" Margin="10" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
+                </Grid>
+                <!--<StackPanel Orientation="Vertical" Spacing="10">
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <TextBlock Text="Save Location:" />
                         <TextBlock Text="{Binding SavePath}" />
@@ -98,7 +118,7 @@
                         <TextBlock Text="Retry Delay (ms):" />
                         <TextBox x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
                     </StackPanel>
-                </StackPanel>
+                </StackPanel>-->
             </TabItem>
         </TabControl>
     </Grid>
