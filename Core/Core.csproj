@@ -7,19 +7,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3627" />
-      <PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
-      <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-      <PackageReference Include="Selenium.WebDriver" Version="4.27.0" />
-      <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.35.0" />
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3703" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.74" />
+      <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
+      <PackageReference Include="Selenium.WebDriver" Version="4.29.0" />
+      <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.36.0" />
       <PackageReference Include="Serilog" Version="4.2.1-dev-02340" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1-dev-02308" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.0.1-dev-00953" />
       <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-      <PackageReference Include="SharpCompress" Version="0.38.0" />
+      <PackageReference Include="SharpCompress" Version="0.39.0" />
       <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
       <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
-      <PackageReference Include="System.Drawing.Common" Version="9.0.2" />
+      <PackageReference Include="System.Drawing.Common" Version="10.0.0-preview.1.25080.3" />
     </ItemGroup>
 
     <ItemGroup>
