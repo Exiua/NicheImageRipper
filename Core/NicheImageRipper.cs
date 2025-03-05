@@ -224,19 +224,19 @@ public partial class NicheImageRipper : IDisposable
             return NormalizePornhubUrl(url);
         }
 
-        if (host.Contains("yande"))
+        if (host.Contains("yande.re"))
         {
             return NormalizeBooruUrl(url, Booru.Yandere);
         }
-        if (host.Contains("danbooru"))
+        if (host.Contains("danbooru."))
         {
             return NormalizeBooruUrl(url, Booru.Danbooru);
         }
-        if (host.Contains("gelbooru"))
+        if (host.Contains("gelbooru."))
         {
             return NormalizeBooruUrl(url, Booru.Gelbooru);
         }
-        if (host.Contains("rule34"))
+        if (host.Contains("rule34."))
         {
             return NormalizeBooruUrl(url, Booru.Rule34);
         }
@@ -616,8 +616,8 @@ public partial class NicheImageRipper : IDisposable
     {
         ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Fatal + 1;
     }
-    
-    protected static ExternalFeatureSupport GetExternalFeatureSupport()
+
+    private static ExternalFeatureSupport GetExternalFeatureSupport()
     {
         var support = ExternalFeatureSupport.None;
         support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : 0;

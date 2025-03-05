@@ -1,6 +1,7 @@
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Utility;
 using OpenQA.Selenium;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -25,7 +26,15 @@ public class Rule34VideoParser : HtmlParser
         if (continueButton is not null)
         {
             Log.Debug("Clicking continue button");
-            continueButton.Click();
+            try
+            {
+                continueButton.Click();
+            }
+            catch (ElementNotInteractableException)
+            {
+                // Usually occurs when cookies from the previous session are still present
+                Log.Debug("Popup probably not active");
+            }
         }
         else
         {
@@ -71,7 +80,8 @@ public class Rule34VideoParser : HtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var post in videoPosts)
         {
-            soup = await Soupify(post);
+            Log.Debug("Parsing post: {Post}", post);
+            soup = await Soupify(post, delay: 500);
             Log.Debug("Searching for video info");
             var videoInfo = soup.SelectSingleNode("//div[@id='tab_video_info']");
             Log.Debug("Searching for downloads");
@@ -81,7 +91,14 @@ public class Rule34VideoParser : HtmlParser
             var downloadLink = downloads.SelectSingleNode(".//a").GetHref().DecodeUrl();
             images.Add(downloadLink);
         }
-    
+
+        var cookieJar = Driver.GetCookieJar();
+        var cookies = cookieJar.AllCookies
+                               .GroupBy(c => c.Name)
+                               .ToDictionary(g => g.Key, g => g.First().Value);
+        var cookieString = cookies.Select(kvp => $"{kvp.Key}={kvp.Value}")
+                                  .Join("; ");
+        RequestHeaders[RequestHeaderKeys.Cookie] = cookieString;
         return new RipInfo(images, dirName, FilenameScheme);
     }
 }

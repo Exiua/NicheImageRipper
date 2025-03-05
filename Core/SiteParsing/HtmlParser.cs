@@ -115,6 +115,10 @@ public abstract partial class HtmlParser : IDisposable
         catch(Exception e)
         {
             Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
+            #if DEBUG
+            Driver.TakeDebugScreenshot();
+            await File.WriteAllTextAsync("test.html", Driver.PageSource);
+            #endif
             throw;
         }
     }
@@ -787,15 +791,15 @@ public abstract partial class HtmlParser : IDisposable
         return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath);
     }
 
-    protected static async Task<HtmlNode> Soupify(HttpResponseMessage response)
+    private static async Task<HtmlNode> Soupify(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(content);
         return htmlDocument.DocumentNode;
     }
-    
-    protected static Task<HtmlNode> Soupify(Solution solution)
+
+    private static Task<HtmlNode> Soupify(Solution solution)
     {
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(solution.Response);
