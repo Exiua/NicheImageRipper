@@ -843,14 +843,31 @@ public abstract partial class HtmlParser : IDisposable
     }
 
     /// <summary>
-    ///     Get captcha solution to site, parse the html, and add the necessary cookies to the driver.
+    ///     Solves a CAPTCHA using FlareSolverr, parses the returned HTML, and adds the necessary cookies to the browser session.
     /// </summary>
-    /// <param name="regenerateSessionOnFailure">Whether to regenerate the session if getting the solution fails</param>
-    /// <param name="cookies">Cookies to add to the session</param>
-    /// <returns>The parsed html</returns>
+    /// <param name="regenerateSessionOnFailure">
+    ///     If <c>true</c>, regenerates the session and retries once if CAPTCHA solving fails.
+    /// </param>
+    /// <param name="cookies">
+    ///     Optional. A list of cookie dictionaries to include in the session when solving the CAPTCHA.
+    /// </param>
+    /// <returns>
+    ///     The parsed HTML document as an <see cref="HtmlNode"/>.
+    /// </returns>
+    /// <exception cref="FeatureNotAvailableException">
+    ///     Thrown if FlareSolverr support is not available.
+    /// </exception>
+    /// <exception cref="FailedToGetSolutionException">
+    ///     Thrown if CAPTCHA solving fails and session regeneration is disabled.
+    /// </exception>
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false, 
                                                         List<Dictionary<string, string>>? cookies = null)
     {
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
+        {
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.FlareSolverr);
+        }
+        
         Solution solution;
         try
         {

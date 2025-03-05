@@ -24,23 +24,22 @@ public class NicheImageRipperCli : NicheImageRipper
     
     public async Task Run()
     {
-        var supportedFeatures = GetExternalFeatureSupport();
-        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
+        if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
         {
             Log.Warning("ffmpeg not found. Some functionality may be limited.");
         }
         
-        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
+        if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
         {
             Log.Warning("yt-dlp not found. Some functionality may be limited.");
         }
         
-        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
+        if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
         {
             Log.Warning("MEGAcmd not found. Some functionality may be limited.");
         }
         
-        if (!supportedFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
+        if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
             Log.Warning("FlareSolverr not found. Some functionality may be limited.");
         }

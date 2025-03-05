@@ -4,18 +4,35 @@ public class WebDriverPool : IDisposable
 {
     private readonly WebDriverSet _availableHeadlessDrivers;
     private readonly WebDriverSet _availableNonHeadlessDrivers;
+    private readonly int _maxCapacity;
+    
+    private int CurrentCount => _availableHeadlessDrivers.CurrentCount + _availableNonHeadlessDrivers.CurrentCount;
     
     public WebDriverPool(int maxCapacity)
     {
-        _availableHeadlessDrivers = new WebDriverSet(maxCapacity);
-        _availableNonHeadlessDrivers = new WebDriverSet(maxCapacity);
+        _maxCapacity = maxCapacity;
+        _availableHeadlessDrivers = new WebDriverSet(maxCapacity, true);
+        _availableNonHeadlessDrivers = new WebDriverSet(maxCapacity, false);
     }
     
     public WebDriver AcquireDriver(bool headless)
     {
-        return headless 
-            ? _availableHeadlessDrivers.AcquireDriver(true) 
-            : _availableNonHeadlessDrivers.AcquireDriver(false);
+        if (headless)
+        {
+            if (CurrentCount >= _maxCapacity)
+            {
+                _availableNonHeadlessDrivers.DestroyDriver();
+            }
+            
+            return _availableHeadlessDrivers.AcquireDriver();
+        }
+
+        if (CurrentCount >= _maxCapacity)
+        {
+            _availableHeadlessDrivers.DestroyDriver();
+        }
+        
+        return _availableNonHeadlessDrivers.AcquireDriver();
     }
     
     public void ReleaseDriver(WebDriver driver)
@@ -29,20 +46,6 @@ public class WebDriverPool : IDisposable
         else
         {
             _availableNonHeadlessDrivers.ReleaseDriver(driver);
-        }
-    }
-    
-    public void DestroyDriver(WebDriver driver)
-    {
-        ArgumentNullException.ThrowIfNull(driver);
-        
-        if (driver.IsHeadless)
-        {
-            _availableHeadlessDrivers.DestroyDriver(driver);
-        }
-        else
-        {
-            _availableNonHeadlessDrivers.DestroyDriver(driver);
         }
     }
 

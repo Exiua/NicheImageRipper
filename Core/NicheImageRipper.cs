@@ -22,22 +22,25 @@ namespace Core;
 public partial class NicheImageRipper : IDisposable
 {
     private Version? _latestVersion;
-    public static Config Config { get; set; } = Config.Instance;
-    public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; set; } = new();
-    public static FlareSolverrManager FlareSolverrManager { get; set; } = new(Config.FlareSolverrUri);
     
+    public static string Title => "NicheImageRipper";
+    public static Config Config => Config.Instance;
+    public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
+    public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
     
-    public string Title { get; } = "NicheImageRipper";
-    public Version Version { get; set; } = new(3, 0, 0, 1);
+    protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
+    
+    public Version Version { get; } = new(3, 0, 0, 1);
 
     public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
 
     public List<string> UrlQueue { get; set; } = [];
-    public bool Interrupted { get; set; } = false;
+    public bool Interrupted { get; set; }
     public ImageRipper? Ripper { get; set; }
     
     public event Action? OnUrlQueueUpdated;
     
+    // TODO: Remove this as it is not used
     public static bool LiveHistory 
     { 
         get => Config.LiveHistory;
@@ -86,7 +89,7 @@ public partial class NicheImageRipper : IDisposable
         set => Config.RetryDelay = value;
     }
 
-    private WebDriverPool WebDriverPool { get; set; } = new(1);
+    private WebDriverPool WebDriverPool { get; } = new(1);
     
     //public List<HistoryEntry> History { get; set; } = [];
     protected static HistoryManager HistoryDb => HistoryManager.Instance;
@@ -103,6 +106,7 @@ public partial class NicheImageRipper : IDisposable
         OnUrlQueueUpdated?.Invoke();
     }
 
+    // Warning: This method can be slow for large history databases
     private static List<HistoryEntry> LoadHistoryData()
     {
         return HistoryDb.GetHistory();

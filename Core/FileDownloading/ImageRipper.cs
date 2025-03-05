@@ -83,7 +83,7 @@ public partial class ImageRipper : IDisposable
         SleepTime = 0.2f;
         CurrentIndex = 0;
         DriverPool = driverPool;
-        WebDriver = driverPool.AcquireDriver(false);
+        WebDriver = driverPool.AcquireDriver(true);
     }
 
     public async Task Rip(string url)
@@ -109,18 +109,22 @@ public partial class ImageRipper : IDisposable
         {
             if (WebDriver.IsHeadless)
             {
+                Log.Debug("Releasing headless driver");
                 DriverPool.ReleaseDriver(WebDriver);
                 // Need non-headless driver for quatvn
-                WebDriver = DriverPool.AcquireDriver(true);
+                Log.Debug("Acquiring non-headless driver");
+                WebDriver = DriverPool.AcquireDriver(false);
             }
         }
         else
         {
             if (!WebDriver.IsHeadless)
             {
+                Log.Debug("Releasing non-headless driver");
                 DriverPool.ReleaseDriver(WebDriver);
                 // Can use headless driver for other sites
-                WebDriver = DriverPool.AcquireDriver(false);
+                Log.Debug("Acquiring headless driver");
+                WebDriver = DriverPool.AcquireDriver(true);
             }
         }
         
