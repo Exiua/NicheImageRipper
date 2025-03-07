@@ -289,6 +289,11 @@ public partial class ImageRipper : IDisposable
     private static async Task<FfmpegStatusCode> RunFfmpeg(string[] cmd, string startMessage, string endMessage,
         bool displayOutput = false)
     {
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
+        {
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.Ffmpeg);
+        }
+        
         if (!displayOutput)
         {
             cmd = [ "-loglevel", "quiet", "-y", ..cmd ];
@@ -310,6 +315,11 @@ public partial class ImageRipper : IDisposable
 
     private static async Task<bool> RunYtDlp(string url, string path, string startMessage, string endMessage)
     {
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
+        {
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
+        }
+        
         var parent = Directory.GetParent(path)!.FullName;
         var filename = Path.GetFileName(path);
         string[] cmd = 
@@ -693,6 +703,11 @@ public partial class ImageRipper : IDisposable
     
     private Task<bool> DownloadMegaFiles(string path, ImageLink imageLink)
     {
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
+        {
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
+        }
+        
         var (email, password) = Config.Instance.Logins["Mega"];
         if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
         {
