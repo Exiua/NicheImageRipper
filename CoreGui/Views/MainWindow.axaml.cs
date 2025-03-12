@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -152,5 +154,23 @@ public partial class MainWindow : Window
                 ViewModel.SetRetryDelay(value);
                 break;
         }
+    }
+
+    private void OnUrlInput(object? sender, TextChangedEventArgs textChangedEventArgs)
+    {
+        var textBox = sender as TextBox;
+        if (textBox?.Text is null)
+        {
+            return;
+        }
+
+        var urlInput = textBox.Text;
+        urlInput = urlInput.Replace("\n", "").Replace("\r", "");
+        GridBackground.Focus();
+        DispatcherTimer.RunOnce(() =>
+        {
+            ViewModel.UrlInput = urlInput;
+            textBox.Focus();
+        }, TimeSpan.FromMilliseconds(10));
     }
 }

@@ -15,11 +15,11 @@
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="*" RowDefinitions="Auto, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-          Height="{Binding Height, RelativeSource={RelativeSource Self}}">
+    <Grid x:Name="GridBackground" ColumnDefinitions="*" RowDefinitions="Auto, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+          Height="{Binding Height, RelativeSource={RelativeSource Self}}" Focusable="True">
         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding UrlInput}" Width="500" />
+            <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput"/>
             <Button Command="{Binding RipCommand}">Rip</Button>
         </StackPanel>
         <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
