@@ -285,6 +285,7 @@ public abstract partial class HtmlParser : IDisposable
             "cosblay" => new CosblayParser(webDriver, requestHeaders, "cosblay", filenameScheme),
             "kaizty" => new KaiztyParser(webDriver, requestHeaders, "kaizty", filenameScheme),
             "quatvn" => new QuatvnParser(webDriver, requestHeaders, "quatvn", filenameScheme),
+            "mangapark" => new MangaParkParser(webDriver, requestHeaders, "mangapark", filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
@@ -893,7 +894,7 @@ public abstract partial class HtmlParser : IDisposable
         var cookieJar = Driver.GetCookieJar();
         foreach (var seleniumCookie in solution.Cookies.Select(cookie => cookie.ToSeleniumCookie()))
         {
-            cookieJar.AddCookie(seleniumCookie);
+            cookieJar.SetCookie(seleniumCookie);
         }
         
         return await Soupify(solution);
@@ -1203,9 +1204,8 @@ public abstract partial class HtmlParser : IDisposable
         {
             Log.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
             await File.WriteAllTextAsync("test.html", Driver.PageSource);
-            //var screenshot = Driver.GetFullPageScreenshot();
-            var screenshot = Driver.GetScreenshot();
-            screenshot.SaveAsFile("test.png");
+            Driver.TakeDebugScreenshot();
+            Driver.DumpCookies();
             throw;
         }
         finally

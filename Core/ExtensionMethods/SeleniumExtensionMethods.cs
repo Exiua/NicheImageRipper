@@ -55,6 +55,11 @@ public static class SeleniumExtensionMethods
         cookieJar.AddCookie(new Cookie(cookieName, cookieValue));
     }
 
+    public static void SetCookie(this IWebDriver driver, string cookieName, string cookieValue)
+    {
+        driver.GetCookieJar().SetCookie(cookieName, cookieValue);
+    }
+
     public static void SetCookie(this ICookieJar cookieJar, string cookieName, string newCookieValue)
     {
         var newCookie = new Cookie(cookieName, newCookieValue);
@@ -67,6 +72,17 @@ public static class SeleniumExtensionMethods
         }
         
         cookieJar.AddCookie(newCookie);
+    }
+    
+    public static void SetCookie(this ICookieJar cookieJar, Cookie cookie)
+    {
+        var existingCookie = cookieJar.GetCookieNamed(cookie.Name);
+        if (existingCookie is not null)
+        {
+            cookieJar.DeleteCookie(existingCookie);
+        }
+        
+        cookieJar.AddCookie(cookie);
     }
     
     public static string GetSrc(this IWebElement element)

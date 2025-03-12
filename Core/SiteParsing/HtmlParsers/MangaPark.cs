@@ -1,0 +1,53 @@
+using Core.DataStructures;
+using Core.Enums;
+using Core.ExtensionMethods;
+using Serilog;
+using WebDriver = Core.Driver.WebDriver;
+
+namespace Core.SiteParsing.HtmlParsers;
+
+public class MangaParkParser : HtmlParser
+{
+    public MangaParkParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        siteName, filenameScheme)
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for mangapark.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse()
+    {
+        List<Dictionary<string, string>> cookies = [
+            new()
+            {
+                ["name"] = "nsfw",
+                ["value"] = "2"
+            }
+        ];
+        var soup = await SolveParseAddCookies(cookies: cookies);
+        Driver.SetCookie("nsfw", "2");;
+        var dirName = soup.SelectSingleNode("//h3[@class='text-lg md:text-2xl font-bold']/a").InnerText;
+        var chapterList = soup.SelectSingleNode("//div[@data-name='chapter-list']")
+                              .SelectNodes("./div")[1]
+                              .SelectSingleNode("./div/div")
+                              .SelectNodes("./div")
+                              .Select(div => div.SelectSingleNode(".//a").GetHref())
+                              .Reverse();
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var chapter in chapterList)
+        {
+            var chapterUrl = $"https://mangapark.net{chapter}";
+            Log.Debug($"Parsing chapter {chapterUrl}");
+            soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']");
+            var pages = soup.SelectNodes("//div[@data-name='image-item']")
+                            .Select(div => div.SelectSingleNode(".//img").GetSrc())
+                            .ToStringImageLinks();
+            images.AddRange(pages);
+        }
+
+        return new RipInfo(images, dirName, FilenameScheme);
+    }
+}
