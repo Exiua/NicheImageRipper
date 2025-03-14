@@ -118,7 +118,7 @@ public class WebDriverSet : IDisposable
         catch (Exception e)
         {
             Log.Error(e, "WebDriver is unreachable. Regenerating the driver.");
-            driver.RegenerateDriver(_headless);
+            driver.RegenerateDriver();
             return driver;
         }
     }

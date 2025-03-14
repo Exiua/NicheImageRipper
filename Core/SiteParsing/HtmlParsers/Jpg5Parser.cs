@@ -1,6 +1,8 @@
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Utility;
+using OpenQA.Selenium;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -83,7 +85,18 @@ public class Jpg5Parser : ParameterizedHtmlParser
         else
         {
             var img = soup.SelectSingleNode("//div[@id='image-viewer-container']/img");
-            images.Add(img.GetSrc());
+            var imgSrc = img?.GetSrc();
+            if (imgSrc is null || imgSrc.EndsWith("loading.svg"))
+            {
+                var downloadBtn = soup.SelectSingleNode("//a[@download]");
+                var href = downloadBtn.GetHref();
+                href = ObfuscationUtility.DeobfuscateJpg5Href(href);
+                images.Add(href);
+            }
+            else
+            {
+                images.Add(imgSrc);
+            }
         }
     
         return new RipInfo(images, dirName, FilenameScheme);

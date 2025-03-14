@@ -71,7 +71,7 @@ public abstract partial class HtmlParser : IDisposable
 
     public void SetDebugMode(bool debug)
     {
-        WebDriver.RegenerateDriver(debug);
+        WebDriver.RegenerateDriver();
         Debugging = debug;
     }
     
@@ -354,27 +354,37 @@ public abstract partial class HtmlParser : IDisposable
         var sourceSite = urlSplit[3];
         baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
         baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
-        await WaitForElement("//h1[@id='user-header__info-top']");
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
-                          .SelectSingleNode(".//span[@itemprop='name']").InnerText;
+
+        using var client = new HttpClient();
+        var response = await client.GetAsync($"{baseUrl}/profile");
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new RipperException("Failed to get profile page");
+        }
+        
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
+        
+        // await WaitForElement("//h1[@id='user-header__info-top']");
+        // var soup = await SolveParseAddCookies();
+        // var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
+        //                   .SelectSingleNode(".//span[@itemprop='name']").InnerText;
         dirName = $"{dirName} - ({sourceSite})";
 
         #region Get All Posts
-
-        var client = new HttpClient();
+        
         var posts = new List<JsonObject>();
         var page = 0;
         while (true)
         {
-            var response = await client.GetAsync($"{baseUrl}?o={page*50}");
+            response = await client.GetAsync($"{baseUrl}?o={page*50}");
             page++;
             if (!response.IsSuccessStatusCode)
             {
                 throw new RipperException($"Failed to get page {page}");
             }
             
-            var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
             var jsonPosts = json!.AsArray();
             posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
             if (jsonPosts.Count < 50)
@@ -401,7 +411,7 @@ public abstract partial class HtmlParser : IDisposable
             var id = post["id"]!.Deserialize<string>()!;
             Log.Debug("Post ID: {PostId}", id);
             var content = post["content"]!.Deserialize<string>()!;
-            soup = await Soupify(content, urlString: false);
+            var soup = await Soupify(content, urlString: false);
             var links = soup.SelectNodesSafe("//a").GetHrefs();
             var possibleLinks = new List<string>();
             var possibleLinksP = soup.SelectNodes("//p");
@@ -892,8 +902,10 @@ public abstract partial class HtmlParser : IDisposable
         }
         
         var cookieJar = Driver.GetCookieJar();
-        foreach (var seleniumCookie in solution.Cookies.Select(cookie => cookie.ToSeleniumCookie()))
+        foreach (var cookie in solution.Cookies)
         {
+            Log.Debug("Adding cookie: {@Cookie}", cookie);
+            var seleniumCookie = cookie.ToSeleniumCookie();
             cookieJar.SetCookie(seleniumCookie);
         }
         

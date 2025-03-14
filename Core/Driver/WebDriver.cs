@@ -25,12 +25,11 @@ public class WebDriver : IDisposable
         Driver = CreateFirefoxDriver(headless);
         IsHeadless = headless;
     }
-    
+
     /// <summary>
     ///     Regenerate the WebDriver instance. This is useful when the WebDriver is no longer responsive.
     /// </summary>
-    /// <param name="headless">Whether to run the WebDriver in headless mode. Mainly for debugging purposes.</param>
-    public void RegenerateDriver(bool headless)
+    public void RegenerateDriver()
     {
         try
         {
@@ -41,7 +40,7 @@ public class WebDriver : IDisposable
             Log.Error(e, "Failed to quit the WebDriver.");
         }
         
-        Driver = CreateFirefoxDriver(headless);
+        Driver = CreateFirefoxDriver(IsHeadless);
         SiteLoginStatus.Clear();
     }
     

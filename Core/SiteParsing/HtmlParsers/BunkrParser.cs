@@ -65,6 +65,11 @@ public class BunkrParser : ParameterizedHtmlParser
             foreach (var (i, post) in imagePosts.Enumerate())
             {
                 var href = post.GetHref();
+                if (href[0] == '/')
+                {
+                    href = $"https://bunkr.cr{href}";
+                }
+                
                 Log.Debug("Post {index} of {total}: {href}", i + 1, imagePosts.Count, href);
                 soup = await Soupify(href, delay: parseDelay);
                 if (Driver.Title == "502 Bad Gateway")

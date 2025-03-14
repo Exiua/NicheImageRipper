@@ -9,6 +9,8 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class CyberDropParser : ParameterizedHtmlParser
 {
+    private const int ParseDelay = 500;
+    
     public CyberDropParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
     }
@@ -19,8 +21,6 @@ public class CyberDropParser : ParameterizedHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(string url)
     {
-        const int parseDelay = 500;
-        
         if (url != "")
         {
             CurrentUrl = url;
@@ -40,18 +40,13 @@ public class CyberDropParser : ParameterizedHtmlParser
                                 .Select(href => $"https://cyberdrop.me{href}");
             foreach (var image in imageList)
             {
-                soup = await Soupify(image, delay: parseDelay, xpath: "//a[@id='downloadBtn']");
-                var link = soup
-                            .SelectSingleNode("//a[@id='downloadBtn']")
-                            .GetHref();
+                var link = await GetFileUrl(image);
                 images.Add(link);
             }
         }
         else if (CurrentUrl.Contains("/f/"))
         {
-            var link = soup
-                        .SelectSingleNode("//a[@id='downloadBtn']")
-                        .GetHref();
+            var link = await GetFileUrl(CurrentUrl);
             images.Add(link);
         }
         else if (CurrentUrl.Contains("/e/"))
@@ -59,8 +54,8 @@ public class CyberDropParser : ParameterizedHtmlParser
             var video = soup.SelectSingleNode("//video[@id='player']");
             if (video is null)
             {
-                await Task.Delay(parseDelay);
-                soup = await Soupify(delay: parseDelay, xpath: "//video[@id='player']");
+                await Task.Delay(ParseDelay);
+                soup = await Soupify(delay: ParseDelay, xpath: "//video[@id='player']");
                 video = soup.SelectSingleNode("//video[@id='player']");
             }
             
@@ -74,5 +69,15 @@ public class CyberDropParser : ParameterizedHtmlParser
         }
     
         return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    private async Task<string> GetFileUrl(string url)
+    {
+        Log.Debug("Parsing image: {Image}", url);
+        var soup = await Soupify(url, delay: ParseDelay * 2, xpath: "//a[@id='downloadBtn']");
+        var link = soup.SelectSingleNode("//a[@id='downloadBtn']")
+                       .GetHref();
+        
+        return link;
     }
 }

@@ -1062,7 +1062,7 @@ public partial class ImageRipper : IDisposable
         {
             // Ignore
             Log.Warning("WebDriver unreachable, resetting...");
-            WebDriver.RegenerateDriver(false);
+            WebDriver.RegenerateDriver();
         }
     }
     

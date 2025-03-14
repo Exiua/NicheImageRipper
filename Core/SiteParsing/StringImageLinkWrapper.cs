@@ -1,4 +1,5 @@
-﻿using Core.DataStructures;
+﻿using System.Text.Json.Serialization;
+using Core.DataStructures;
 using Core.Exceptions;
 
 namespace Core.SiteParsing;
@@ -8,7 +9,14 @@ public struct StringImageLinkWrapper
     public string? Url { get; set; }
     public ImageLink? ImageLink { get; set; }
     
+    [JsonIgnore]
     public bool IsImageLink => ImageLink is not null;
+
+    [JsonConstructor]
+    public StringImageLinkWrapper()
+    {
+        
+    }
     
     public StringImageLinkWrapper(string url)
     {
