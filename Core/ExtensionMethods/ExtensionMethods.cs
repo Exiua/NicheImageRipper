@@ -135,6 +135,11 @@ public static class ExtensionMethods
         return int.Parse(s);
     }
 
+    /// <summary>
+    ///     Remove HTML artifacts from a url string (such as &amp;) and replace them with their proper characters
+    /// </summary>
+    /// <param name="s">URL string to clean</param>
+    /// <returns>Cleaned URL string</returns>
     public static string DecodeUrl(this string s)
     {
         return s.Replace("&amp;", "&");

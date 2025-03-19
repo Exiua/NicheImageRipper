@@ -286,6 +286,7 @@ public abstract partial class HtmlParser : IDisposable
             "kaizty" => new KaiztyParser(webDriver, requestHeaders, "kaizty", filenameScheme),
             "quatvn" => new QuatvnParser(webDriver, requestHeaders, "quatvn", filenameScheme),
             "mangapark" => new MangaParkParser(webDriver, requestHeaders, "mangapark", filenameScheme),
+            "noodlemagazine" => new NoodleMagazineParser(webDriver, requestHeaders, "noodlemagazine", filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }

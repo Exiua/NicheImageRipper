@@ -61,6 +61,12 @@ public class RipInfo
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
+    public RipInfo WithDirectoryName(string directoryName)
+    {
+        DirectoryName = directoryName;
+        return this;
+    }
+
     private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob,
                                                                List<string>? filenames = null)
     {
