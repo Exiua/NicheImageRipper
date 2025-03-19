@@ -23,7 +23,6 @@ public partial class NijieParser : HtmlParser
     {
         const int delay = 500;
         const int retries = 4;
-        SiteName = "nijie";
         await SiteLogin();
         var memberId = NijieRegex().Match(CurrentUrl).Groups[1].Value;
         var soup = await Soupify($"https://nijie.info/members_illust.php?id={memberId}", delay: delay);

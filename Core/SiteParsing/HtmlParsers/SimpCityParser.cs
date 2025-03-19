@@ -255,6 +255,7 @@ public class SimpCityParser : HtmlParser
             ["jpg4.su"] = jpg5,
             ["jpg5.su"] = jpg5,
             ["coomer.party"] = new CoomerParser(WebDriver, RequestHeaders),
+            ["saint2.cr"] = new Saint2Parser(WebDriver, RequestHeaders),
         };
 
         return resolvableMap;

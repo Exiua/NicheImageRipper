@@ -2,6 +2,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Utility;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -74,10 +75,25 @@ public class CyberDropParser : ParameterizedHtmlParser
     private async Task<string> GetFileUrl(string url)
     {
         Log.Debug("Parsing image: {Image}", url);
-        var soup = await Soupify(url, delay: ParseDelay * 2, xpath: "//a[@id='downloadBtn']");
-        var link = soup.SelectSingleNode("//a[@id='downloadBtn']")
-                       .GetHref();
+        while (true)
+        {
+            try
+            {
+                var soup = await Soupify(url, delay: ParseDelay * 2, xpath: "//a[@id='downloadBtn']", xpathTimout: 120);
+                #if DEBUG
+                Driver.TakeDebugScreenshot();
+                Log.Debug("Current url: {CurrentUrl}", Driver.Url);
+                #endif
+                var link = soup.SelectSingleNode("//a[@id='downloadBtn']")
+                               .GetHref();
         
-        return link;
+                return link;
+            }
+            catch (AttributeNotFoundException)
+            {
+                Log.Debug("Unable to find download button href");
+                await Task.Delay(ParseDelay * 2);
+            }
+        }
     }
 }

@@ -779,7 +779,8 @@ public abstract partial class HtmlParser : IDisposable
     }
     
     protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
-                                           string xpath = "", bool urlString = true, ICookieJar? cookies = null)
+                                           string xpath = "", bool urlString = true, ICookieJar? cookies = null,
+                                           int xpathTimout = 10)
     {
         if (!urlString)
         {
@@ -799,7 +800,7 @@ public abstract partial class HtmlParser : IDisposable
             }
         }
 
-        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath);
+        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimout: xpathTimout);
     }
 
     private static async Task<HtmlNode> Soupify(HttpResponseMessage response)

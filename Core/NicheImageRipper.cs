@@ -314,7 +314,7 @@ public partial class NicheImageRipper : IDisposable
         }
         
         var url = UrlQueue[0];
-        Log.Information("{Url}", url);
+        Log.Information("|{Url}", url);
         Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Log.Debug("Ripper created");
         Interrupted = true;

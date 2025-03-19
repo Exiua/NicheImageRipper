@@ -182,7 +182,23 @@ public class MainWindowViewModel : ViewModelBase
         Log.Debug("Queuing URL: {url}", input);
         
         UrlInput = "";
-        _ripper.QueueUrls(input);
+        var parts = input.Split(" ");
+        if (parts[0] == "booru")
+        {
+            if (parts.Length < 2)
+            {
+                Log.Warning("Missing argument: <tags>");
+                return;
+            }
+
+            var tags = parts[1];
+            var url = "https://booru.com/post?tags=" + tags;
+            _ripper.QueueUrls(url);
+        }
+        else
+        {
+            _ripper.QueueUrls(input);
+        }
         
         Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
     

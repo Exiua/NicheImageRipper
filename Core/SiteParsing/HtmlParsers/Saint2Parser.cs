@@ -6,7 +6,7 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Saint2Parser : HtmlParser
+public class Saint2Parser : ParameterizedHtmlParser
 {
     public Saint2Parser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
     {
@@ -16,16 +16,7 @@ public class Saint2Parser : HtmlParser
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
-    {
-        return await Saint2Parse("");
-    }
-
-    /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> Saint2Parse(string url)
+    public override async Task<RipInfo> Parse(string url)
     {
         if (url != "")
         {
