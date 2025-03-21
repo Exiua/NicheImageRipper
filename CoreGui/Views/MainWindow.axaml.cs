@@ -1,52 +1,58 @@
 using System;
-using System.IO;
+using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Core;
 using Core.Enums;
 using CoreGui.Utility;
 using CoreGui.ViewModels;
+using ReactiveUI;
 using Serilog;
 
 namespace CoreGui.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
     private static FilePickerFileType Json { get; } = new("JSON")
     {
         Patterns = ["*.json"],
         MimeTypes = ["application/json"],
     };
-    
-    private MainWindowViewModel ViewModel => (MainWindowViewModel) DataContext!;
-    
+
+    //private MainWindowViewModel ViewModel => (MainWindowViewModel) DataContext!;
+
     public MainWindow()
     {
         InitializeComponent();
         Focusable = true;
-        DataContext = new MainWindowViewModel();
-        UrlQueue.ItemsSource = ViewModel.UrlQueue;
+        DataContext = new MainWindowViewModel
+        {
+            MainWindow = this,
+        };
+        UrlQueue.ItemsSource = ViewModel!.UrlQueue;
         FilenameSchemeComboBox.ItemsSource = Enum.GetValues<FilenameScheme>();
-        FilenameSchemeComboBox.SelectedIndex = (int) NicheImageRipper.FilenameScheme;
+        FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
-        UnzipProtocolComboBox.SelectedIndex = (int) NicheImageRipper.UnzipProtocol;
+        UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
         //GuiSink.OnLog += OnLog;
         GuiSink.MainWindow = this;
         Closing += OnClose;
+        this.WhenActivated(action =>
+            action(ViewModel.ShowConfirmationDialog.RegisterHandler(DoShowDialogAsync)));
     }
 
     private void OnClose(object? sender, WindowClosingEventArgs windowClosingEventArgs)
     {
         try
         {
-            ViewModel.SaveData();
+            ViewModel!.SaveData();
         }
         finally
         {
-            ViewModel.Cleanup();
+            ViewModel!.Cleanup();
         }
     }
 
@@ -54,11 +60,11 @@ public partial class MainWindow : Window
     {
         Dispatcher.UIThread.Post(() =>
         {
-            ViewModel.LogText += message + Environment.NewLine;
+            ViewModel!.LogText += message + Environment.NewLine;
             LogTextBox.CaretIndex = int.MaxValue;
         });
     }
-    
+
     private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)
     {
         try
@@ -68,15 +74,15 @@ public partial class MainWindow : Window
                 Title = "Select Directory",
                 SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.SavePath)
             });
-            
+
             if (folder.Count == 0)
             {
                 return;
             }
-            
+
             var path = Uri.UnescapeDataString(folder[0].Path.AbsolutePath);
             Log.Debug("Selected folder: {folder}", path);
-            ViewModel.SavePath = path;
+            ViewModel!.SavePath = path;
         }
         catch (Exception e)
         {
@@ -91,18 +97,19 @@ public partial class MainWindow : Window
             var file = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title = "Select Unfinished URL File",
-                FileTypeFilter = [ Json ],
-                SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(".") // TODO: Change to executable path
+                FileTypeFilter = [Json],
+                SuggestedStartLocation =
+                    await StorageProvider.TryGetFolderFromPathAsync(".") // TODO: Change to executable path
             });
-            
+
             if (file.Count == 0)
             {
                 return;
             }
-            
+
             var path = Uri.UnescapeDataString(file[0].Path.AbsolutePath);
             Log.Debug("Selected file: {file}", path);
-            ViewModel.LoadUnfinishedUrls(path);
+            ViewModel!.LoadUnfinishedUrls(path);
         }
         catch (Exception exception)
         {
@@ -112,33 +119,33 @@ public partial class MainWindow : Window
 
     private void PreviousHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel.DecrementHistoryPage();
+        ViewModel!.DecrementHistoryPage();
         LoadHistory();
     }
 
     // FIXME: NextHistoryPageExists() is not working as expected
     private void NextHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel.IncrementHistoryPage();
+        ViewModel!.IncrementHistoryPage();
         LoadHistory();
     }
 
     private void UpdateCurrentHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel.RefreshHistoryPage();
+        ViewModel!.RefreshHistoryPage();
         LoadHistory();
     }
 
     private void LoadHistory()
     {
-        ViewModel.LoadHistory();
+        ViewModel!.LoadHistory();
         PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
         NextHistoryPageButton.IsEnabled = ViewModel.NextHistoryPageExists();
     }
 
     private void ValidateNumericValue(object? sender, RoutedEventArgs e)
     {
-        var textBox = (TextBox) sender!;
+        var textBox = (TextBox)sender!;
         var rawValue = textBox.Text;
         if (!int.TryParse(rawValue, out var value) || value < 0)
         {
@@ -148,12 +155,23 @@ public partial class MainWindow : Window
         switch (textBox.Name)
         {
             case "MaxRetriesTextBox":
-                ViewModel.SetMaxRetries(value);
+                ViewModel!.SetMaxRetries(value);
                 break;
             case "RetryDelayTextBox":
-                ViewModel.SetRetryDelay(value);
+                ViewModel!.SetRetryDelay(value);
                 break;
         }
+    }
+
+    private async Task DoShowDialogAsync(IInteractionContext<ConfirmationViewModel, ConfirmationViewModel?> interaction)
+    {
+        var dialog = new ConfirmationWindow
+        {
+            DataContext = interaction.Input
+        };
+
+        var result = await dialog.ShowDialog<ConfirmationViewModel?>(this);
+        interaction.SetOutput(result);
     }
 
     private void OnUrlInput(object? sender, TextChangedEventArgs textChangedEventArgs)
@@ -169,7 +187,7 @@ public partial class MainWindow : Window
         GridBackground.Focus();
         DispatcherTimer.RunOnce(() =>
         {
-            ViewModel.UrlInput = urlInput;
+            ViewModel!.UrlInput = urlInput;
             textBox.Focus();
         }, TimeSpan.FromMilliseconds(10));
     }

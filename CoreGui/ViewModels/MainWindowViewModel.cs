@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Core;
 using Core.DataStructures;
 using Core.Enums;
 using CoreGui.Utility;
+using CoreGui.Views;
 using ReactiveUI;
 using Serilog;
 
@@ -16,7 +19,9 @@ namespace CoreGui.ViewModels;
 public class MainWindowViewModel : ViewModelBase
 {
     private readonly NicheImageRipper _ripper;
-    
+
+    internal MainWindow MainWindow { get; set; } = null!;
+
     private bool _ripInProgress;
     private string _urlInput = "";
     private string _savePath = NicheImageRipper.SavePath;
@@ -57,7 +62,7 @@ public class MainWindowViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _filenameSchemeIndex, value);
-            NicheImageRipper.FilenameScheme = (FilenameScheme) value;
+            NicheImageRipper.FilenameScheme = (FilenameScheme)value;
         }
     }
 
@@ -67,7 +72,7 @@ public class MainWindowViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _unzipProtocolIndex, value);
-            NicheImageRipper.UnzipProtocol = (UnzipProtocol) value;
+            NicheImageRipper.UnzipProtocol = (UnzipProtocol)value;
         }
     }
 
@@ -90,7 +95,7 @@ public class MainWindowViewModel : ViewModelBase
             {
                 result = -1;
             }
-            
+
             this.RaiseAndSetIfChanged(ref _currentHistoryPageDisplay, result.ToString());
         }
     }
@@ -110,6 +115,7 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
     public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
+    public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     public MainWindowViewModel()
     {
@@ -120,10 +126,10 @@ public class MainWindowViewModel : ViewModelBase
         UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);
         var history = NicheImageRipper.GetHistoryPage(1, PageSize);
         History = new ObservableCollection<HistoryEntry>(history);
-        
+
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
     }
-    
+
     public void DecrementHistoryPage()
     {
         if (_currentHistoryPage > 1)
@@ -132,7 +138,7 @@ public class MainWindowViewModel : ViewModelBase
             CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
         }
     }
-    
+
     public void IncrementHistoryPage()
     {
         if (NextHistoryPageExists())
@@ -144,33 +150,33 @@ public class MainWindowViewModel : ViewModelBase
 
     public void RefreshHistoryPage()
     {
-        if(_currentHistoryPage < 1)
+        if (_currentHistoryPage < 1)
         {
             _currentHistoryPage = 1;
         }
-        else if(_currentHistoryPage > HistoryCount / PageSize)
+        else if (_currentHistoryPage > HistoryCount / PageSize)
         {
             _currentHistoryPage = HistoryCount / PageSize;
         }
-        
+
         CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
     }
-    
+
     private static void ClearCache()
     {
         NicheImageRipper.ClearCache();
     }
-    
+
     private void OnUrlQueueUpdated()
     {
         Dispatcher.UIThread.Post(() => UrlQueue.Update(_ripper.UrlQueue));
     }
-    
+
     private void DequeueUrls()
     {
         _ripper.DequeueUrls(SelectedUrls);
     }
-    
+
     private void QueueAndRip()
     {
         var input = UrlInput;
@@ -178,11 +184,17 @@ public class MainWindowViewModel : ViewModelBase
         {
             return;
         }
-        
+
         Log.Debug("Queuing URL: {url}", input);
-        
+
         UrlInput = "";
+        Task.Run(() => QueueUrls(input));
+    }
+
+    private async Task QueueUrls(string input)
+    {
         var parts = input.Split(" ");
+        RejectedUrlsInfo rejectedUrls;
         if (parts[0] == "booru")
         {
             if (parts.Length < 2)
@@ -193,23 +205,79 @@ public class MainWindowViewModel : ViewModelBase
 
             var tags = parts[1];
             var url = "https://booru.com/post?tags=" + tags;
-            _ripper.QueueUrls(url);
+            rejectedUrls = _ripper.QueueUrls(url);
         }
         else
         {
-            _ripper.QueueUrls(input);
+            rejectedUrls = _ripper.QueueUrls(input);
         }
-        
+
+        if (rejectedUrls.Count != 0)
+        {
+            var urlsToRequeue = new List<RejectedUrlInfo>(rejectedUrls.Count);
+            foreach (var failedUrl in rejectedUrls.Urls)
+            {
+                switch (failedUrl.Reason)
+                {
+                    case QueueFailureReason.None:
+                        break;
+                    case QueueFailureReason.AlreadyQueued:
+                        Log.Information("URL already queued: {Url}", failedUrl.Url);
+                        break;
+                    case QueueFailureReason.NotSupported:
+                        Log.Warning("URL not supported: {Url}", failedUrl.Url);
+                        break;
+                    case QueueFailureReason.PreviouslyProcessed:
+                        Log.Information("Re-rip url? {Url}", failedUrl.Url);
+                        var response = await ConfirmReripUrl(failedUrl.Url);
+                        if (response)
+                        {
+                            Log.Debug("Re-ripping URL: {Url}", failedUrl.Url);
+                            urlsToRequeue.Add(failedUrl);
+                        }
+                        else
+                        {
+                            Log.Debug("Skipping re-rip for URL: {Url}", failedUrl.Url);
+                        }
+
+                        break;
+                    default:
+                        throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
+                }
+            }
+
+            _ripper.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
+        }
+
         Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
-    
+
         if (_ripInProgress)
         {
             return;
         }
-        
-        Task.Run(Rip);
+
+        await Task.Run(Rip);
     }
-    
+
+    private async Task<bool> ConfirmReripUrl(string url)
+    {
+        var confirmationViewModel = new ConfirmationViewModel
+        {
+            Message = $"Are you sure you want to re-rip this URL?\n{url}"
+        };
+        
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            var windows = new ConfirmationWindow
+            {
+                DataContext = confirmationViewModel
+            };
+            await windows.ShowDialog(MainWindow);
+        });
+        
+        return confirmationViewModel.Confirmed;
+    }
+
     private async Task Rip()
     {
         _ripInProgress = true;
@@ -238,10 +306,11 @@ public class MainWindowViewModel : ViewModelBase
         Log.Debug("History[{Count}]: {@History}", history.Count, history[0]);
         History.Update(history);
     }
-    
+
     public bool NextHistoryPageExists()
     {
-        Log.Debug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}", CurrentHistoryPageDisplay, PageSize, HistoryCount);
+        Log.Debug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}",
+            CurrentHistoryPageDisplay, PageSize, HistoryCount);
         return HistoryCount - (_currentHistoryPage * PageSize) > PageSize;
     }
 
@@ -254,7 +323,7 @@ public class MainWindowViewModel : ViewModelBase
     {
         _ripper.Dispose();
     }
-    
+
     public void SetMaxRetries(int maxRetries)
     {
         if (maxRetries == -1)

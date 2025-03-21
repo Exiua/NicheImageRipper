@@ -1,4 +1,5 @@
 ﻿using Core;
+using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
 using Core.Utility;
@@ -68,7 +69,8 @@ public class NicheImageRipperCli : NicheImageRipper
 
                         var tags = cmdParts[1];
                         var url = "https://booru.com/post?tags=" + tags;
-                        QueueUrls(url);
+                        var rejectedUrls = QueueUrls(url);
+                        HandleRejectedUrls(rejectedUrls);
                         break;
                     }
                     case "c" or "clear":
@@ -359,7 +361,8 @@ public class NicheImageRipperCli : NicheImageRipper
                         LogMessageToFile($"{Title} v{Version}");
                         break;
                     default:
-                        QueueUrls(userInput);
+                        var failedUrls = QueueUrls(userInput);
+                        HandleRejectedUrls(failedUrls);
                         break;
                 }
             }
@@ -368,5 +371,36 @@ public class NicheImageRipperCli : NicheImageRipper
                 Log.Error(e, "An unhanded exception occurred");
             }
         }
+    }
+
+    private void HandleRejectedUrls(RejectedUrlsInfo failedUrls)
+    {
+        var urlsToRequeue = new List<RejectedUrlInfo>(failedUrls.Count);
+        foreach (var failedUrl in failedUrls.Urls)
+        {
+            switch (failedUrl.Reason)
+            {
+                case QueueFailureReason.None:
+                    break;
+                case QueueFailureReason.AlreadyQueued:
+                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.NotSupported:
+                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
+                    break;
+                case QueueFailureReason.PreviouslyProcessed:
+                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
+                    var response = Console.ReadLine();
+                    if (response == "y")
+                    {
+                        urlsToRequeue.Add(failedUrl);
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
+            }
+        }
+                        
+        RequeueUrls(failedUrls.WithRejectedUrls(urlsToRequeue));
     }
 }
