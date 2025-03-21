@@ -170,6 +170,10 @@ public class RipInfo
             {
                 newUrls.Add(url);
             }
+            else
+            {
+                Log.Debug("Duplicate url: {Url}", url);;
+            }
         }
 
         return newUrls;

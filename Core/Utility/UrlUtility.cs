@@ -79,7 +79,8 @@ public static partial class UrlUtility
         "https://www.jieav.com/", "https://www.hentaiclub.net/", "https://avav19.com/", 
         "https://booru.com/", // Fake site used as control signal to scrape from all supported boorus
         "https://mangadex.org/", "https://cosblay.com/", "https://en.cosblay.com/", "https://www.kaizty.com/",
-        "https://quatvn.love/", "https://mangapark.net/", "https://noodlemagazine.com/"
+        "https://quatvn.love/", "https://mangapark.net/", "https://noodlemagazine.com/", "https://spankbang.com/",
+        "https://spankbang.party/"
     }.ToFrozenSet();
 
     /// <summary>

@@ -314,7 +314,7 @@ public partial class NicheImageRipper : IDisposable
         }
         
         var url = UrlQueue[0];
-        Log.Information("|{Url}", url);
+        Log.Information(url);
         Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Log.Debug("Ripper created");
         Interrupted = true;
@@ -511,50 +511,38 @@ public partial class NicheImageRipper : IDisposable
         UrlQueue.Add(normalizedUrl);
         return null;
     }
-    
-    public void QueueUrls(string userInput)
+
+    public RejectedUrlsInfo QueueUrls(string userInput)
     {
-        var startIndex = UrlQueue.Count;
-        var offset = 0;
+        var currentCount = UrlQueue.Count;
+        var rejectedUrls = new RejectedUrlsInfo(currentCount);
         var failedUrls = QueueUrlsHelper(userInput);
-        var updated = UrlQueue.Count != startIndex;
-        foreach(var failedUrl in failedUrls)
-        {
-            switch (failedUrl.Reason)
-            {
-                case QueueFailureReason.None:
-                    break;
-                case QueueFailureReason.AlreadyQueued:
-                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
-                    break;
-                case QueueFailureReason.NotSupported:
-                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
-                    break;
-                case QueueFailureReason.PreviouslyProcessed:
-                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
-                    // TODO: Replace with delegate to defer handling to application on how to get user input
-                    var response = Console.ReadLine();
-                    if (response == "y")
-                    {
-                        var correctIndex = startIndex + failedUrl.Index + offset;
-                        offset++;
-                        UrlQueue.Insert(correctIndex, failedUrl.Url);
-                        updated = true;
-                    }
-                    else
-                    {
-                        offset--;
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
-            }
-        }
-        
-        if (updated)
+        if (currentCount != UrlQueue.Count)
         {
             OnUrlQueueUpdated?.Invoke();
         }
+        
+        return rejectedUrls.WithRejectedUrls(failedUrls);
+    }
+
+    public void RequeueUrls(RejectedUrlsInfo rejectedUrlsInfo)
+    {
+        var urls = rejectedUrlsInfo.Urls;
+        var startIndex = rejectedUrlsInfo.StartIndex;
+        if (urls.Count == 0)
+        {
+            return;
+        }
+        
+        Log.Debug("Re-queuing {Count} URLs", urls.Count);
+        var offset = 0;
+        foreach (var url in urls)
+        {
+            UrlQueue.Insert(startIndex + offset, url.Url);
+            offset++;
+        }
+        
+        OnUrlQueueUpdated?.Invoke();
     }
 
     public void DequeueUrls(List<string> urlsToRemove)

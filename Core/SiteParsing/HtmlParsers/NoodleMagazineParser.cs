@@ -70,7 +70,8 @@ public class NoodleMagazineParser : HtmlParser
             return null;
         }
 
-        var tries = 0;
+        (int Play, int Quality) tries = (0, 0);
+        // TODO: Remove this infinite loop; refactor to use retries
         while (true)
         {
             Log.Debug("Starting video");
@@ -80,7 +81,16 @@ public class NoodleMagazineParser : HtmlParser
             if (!success)
             {
                 Log.Debug("Could not find play button, retrying");
-                continue;
+                tries.Play++;
+                if (tries.Play > 3)
+                {
+                    Log.Debug("Could not find play button, giving up");
+                    tries.Play = 0;
+                }
+                else
+                {
+                    continue;
+                }
             }
 
             await Task.Delay(250);
@@ -101,8 +111,8 @@ public class NoodleMagazineParser : HtmlParser
                 "//div[@id='jw-player_box-settings-submenu-quality']//button");
             if (!success)
             {
-                tries++;
-                if (tries > 3)
+                tries.Quality++;
+                if (tries.Quality > 3)
                 {
                     Log.Debug("Could not find highest quality button, giving up");
                     break;

@@ -31,11 +31,11 @@ public abstract partial class HtmlParser : IDisposable
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
 
     protected static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
-    
+
     protected static Config Config => Config.Instance;
-    
+
     //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
-    
+
     protected WebDriver WebDriver { get; set; }
     public bool Interrupted { get; set; }
     protected string SiteName { get; set; }
@@ -52,6 +52,7 @@ public abstract partial class HtmlParser : IDisposable
         get => Driver.Url;
         set => Driver.Url = value;
     }
+
     protected static bool Debugging { get; set; }
     protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
     protected static string UserAgent => Config.UserAgent;
@@ -74,7 +75,7 @@ public abstract partial class HtmlParser : IDisposable
         WebDriver.RegenerateDriver();
         Debugging = debug;
     }
-    
+
     public async Task<RipInfo> ParseSite(string url)
     {
         Log.Debug("Parsing {Url}", url);
@@ -100,7 +101,7 @@ public abstract partial class HtmlParser : IDisposable
         {
             CurrentUrl = url;
         }
-        
+
         // Log.Debug("Getting parser for {SiteName}", SiteName);
         // var siteParser = GetParser(SiteName);
         try
@@ -112,7 +113,7 @@ public abstract partial class HtmlParser : IDisposable
             //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
             return siteInfo;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
             #if DEBUG
@@ -123,7 +124,8 @@ public abstract partial class HtmlParser : IDisposable
         }
     }
 
-    public static HtmlParser GetParser(string siteName, WebDriver webDriver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original)
+    public static HtmlParser GetParser(string siteName, WebDriver webDriver, Dictionary<string, string> requestHeaders,
+                                       FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         return siteName switch
         {
@@ -145,7 +147,8 @@ public abstract partial class HtmlParser : IDisposable
             "babecentrum" => new BabeCentrumParser(webDriver, requestHeaders, "babecentrum", filenameScheme),
             "babeimpact" => new BabeImpactParser(webDriver, requestHeaders, "babeimpact", filenameScheme),
             "babeuniversum" => new BabeUniversumParser(webDriver, requestHeaders, "babeuniversum", filenameScheme),
-            "babesandbitches" => new BabesAndBitchesParser(webDriver, requestHeaders, "babesandbitches", filenameScheme),
+            "babesandbitches" => new BabesAndBitchesParser(webDriver, requestHeaders, "babesandbitches",
+                filenameScheme),
             "babesandgirls" => new BabesAndGirlsParser(webDriver, requestHeaders, "babesandgirls", filenameScheme),
             "babesaround" => new BabesAroundParser(webDriver, requestHeaders, "babesaround", filenameScheme),
             "babesbang" => new BabesBangParser(webDriver, requestHeaders, "babesbang", filenameScheme),
@@ -162,9 +165,11 @@ public abstract partial class HtmlParser : IDisposable
             "cool18" => new Cool18Parser(webDriver, requestHeaders, "cool18", filenameScheme),
             "cutegirlporn" => new CuteGirlPornParser(webDriver, requestHeaders, "cutegirlporn", filenameScheme),
             "cyberdrop" => new CyberDropParser(webDriver, requestHeaders, "cyberdrop", filenameScheme),
-            "decorativemodels" => new DecorativeModelsParser(webDriver, requestHeaders, "decorativemodels", filenameScheme),
+            "decorativemodels" => new DecorativeModelsParser(webDriver, requestHeaders, "decorativemodels",
+                filenameScheme),
             //DeviantArt
-            "dirtyyoungbitches" => new DirtyYoungBitchesParser(webDriver, requestHeaders, "dirtyyoungbitches", filenameScheme),
+            "dirtyyoungbitches" => new DirtyYoungBitchesParser(webDriver, requestHeaders, "dirtyyoungbitches",
+                filenameScheme),
             "eahentai" => new EahentaiParser(webDriver, requestHeaders, "eahentai", filenameScheme),
             "8boobs" => new EightBoobsParser(webDriver, requestHeaders, "8boobs", filenameScheme),
             "8muses" => new EightMusesParser(webDriver, requestHeaders, "8muses", filenameScheme),
@@ -174,7 +179,8 @@ public abstract partial class HtmlParser : IDisposable
             "erome" => new EroMeParser(webDriver, requestHeaders, "erome", filenameScheme),
             "erothots" => new EroThotsParser(webDriver, requestHeaders, "erothots", filenameScheme),
             "everia" => new EveriaParser(webDriver, requestHeaders, "everia", filenameScheme),
-            "exgirlfriendmarket" => new ExGirlFriendMarketParser(webDriver, requestHeaders, "exgirlfriendmarket", filenameScheme),
+            "exgirlfriendmarket" => new ExGirlFriendMarketParser(webDriver, requestHeaders, "exgirlfriendmarket",
+                filenameScheme),
             "fapello" => new FapelloParser(webDriver, requestHeaders, "fapello", filenameScheme),
             "faponic" => new FaponicParser(webDriver, requestHeaders, "faponic", filenameScheme),
             "f5girls" => new F5GirlsParser(webDriver, requestHeaders, "f5girls", filenameScheme),
@@ -191,25 +197,30 @@ public abstract partial class HtmlParser : IDisposable
             "hegrehunter" => new HegreHunterParser(webDriver, requestHeaders, "hegrehunter", filenameScheme),
             "hentai-cosplays" => new HentaiCosplaysParser(webDriver, requestHeaders, "hentai-cosplays", filenameScheme),
             "hentairox" => new HentaiRoxParser(webDriver, requestHeaders, "hentairox", filenameScheme),
-            "hustlebootytemptats" => new HustleBootyTempTatsParser(webDriver, requestHeaders, "hustlebootytemptats", filenameScheme),
+            "hustlebootytemptats" => new HustleBootyTempTatsParser(webDriver, requestHeaders, "hustlebootytemptats",
+                filenameScheme),
             "hotgirl" => new HotGirlParser(webDriver, requestHeaders, "hotgirl", filenameScheme),
             "hotstunners" => new HotStunnersParser(webDriver, requestHeaders, "hotstunners", filenameScheme),
             "hottystop" => new HottyStopParser(webDriver, requestHeaders, "hottystop", filenameScheme),
             "100bucksbabes" => new HundredBucksBabesParser(webDriver, requestHeaders, "100bucksbabes", filenameScheme),
             "imgbox" => new ImgBoxParser(webDriver, requestHeaders, "imgbox", filenameScheme),
-            "influencersgonewild" => new InfluencersGoneWildParser(webDriver, requestHeaders, "influencersgonewild", filenameScheme),
+            "influencersgonewild" => new InfluencersGoneWildParser(webDriver, requestHeaders, "influencersgonewild",
+                filenameScheme),
             "inven" => new InvenParser(webDriver, requestHeaders, "inven", filenameScheme),
             "jkforum" => new JkForumParser(webDriver, requestHeaders, "jkforum", filenameScheme),
             "join2babes" => new Join2BabesParser(webDriver, requestHeaders, "join2babes", filenameScheme),
             "joymiihub" => new JoyMiiHubParser(webDriver, requestHeaders, "joymiihub", filenameScheme),
             "leakedbb" => new LeakedBbParser(webDriver, requestHeaders, "leakedbb", filenameScheme),
-            "livejasminbabes" => new LiveJasminBabesParser(webDriver, requestHeaders, "livejasminbabes", filenameScheme),
+            "livejasminbabes" => new LiveJasminBabesParser(webDriver, requestHeaders, "livejasminbabes",
+                filenameScheme),
             "luscious" => new LusciousParser(webDriver, requestHeaders, "luscious", filenameScheme),
             "mainbabes" => new MainBabesParser(webDriver, requestHeaders, "mainbabes", filenameScheme),
-            "manganato" or "chapmanganato" => new ManganatoParser(webDriver, requestHeaders, "manganato", filenameScheme),
+            "manganato" or "chapmanganato" => new ManganatoParser(webDriver, requestHeaders, "manganato",
+                filenameScheme),
             "metarthunter" => new MetArtHunterParser(webDriver, requestHeaders, "metarthunter", filenameScheme),
             "morazzia" => new MorazziaParser(webDriver, requestHeaders, "morazzia", filenameScheme),
-            "myhentaigallery" => new MyHentaiGalleryParser(webDriver, requestHeaders, "myhentaigallery", filenameScheme),
+            "myhentaigallery" => new MyHentaiGalleryParser(webDriver, requestHeaders, "myhentaigallery",
+                filenameScheme),
             "micmicdoll" => new MicMicDollParser(webDriver, requestHeaders, "micmicdoll", filenameScheme),
             "nakedgirls" => new NakedGirlsParser(webDriver, requestHeaders, "nakedgirls", filenameScheme),
             "nhentai" => new NHentaiParser(webDriver, requestHeaders, "nhentai", filenameScheme),
@@ -239,9 +250,11 @@ public abstract partial class HtmlParser : IDisposable
             "sfmcompile" => new SfmCompileParser(webDriver, requestHeaders, "sfmcompile", filenameScheme),
             "silkengirl" => new SilkenGirlParser(webDriver, requestHeaders, "silkengirl", filenameScheme),
             "simply-cosplay" => new SimplyCosplayParser(webDriver, requestHeaders, siteName, filenameScheme),
-            "sxchinesegirlz01" => new SxChineseGirlz01Parser(webDriver, requestHeaders, "sxchinesegirlz01", filenameScheme),
+            "sxchinesegirlz01" => new SxChineseGirlz01Parser(webDriver, requestHeaders, "sxchinesegirlz01",
+                filenameScheme),
             "pleasuregirl" => new PleasureGirlParser(webDriver, requestHeaders, "pleasuregirl", filenameScheme),
-            "theomegaproject" => new TheOmegaProjectParser(webDriver, requestHeaders, "theomegaproject", filenameScheme),
+            "theomegaproject" => new TheOmegaProjectParser(webDriver, requestHeaders, "theomegaproject",
+                filenameScheme),
             "thothub" => new ThothubParser(webDriver, requestHeaders, "thothub", filenameScheme),
             "titsintops" => new TitsInTopsParser(webDriver, requestHeaders, "titsintops", filenameScheme),
             "toonily" => new ToonilyParser(webDriver, requestHeaders, "toonily", filenameScheme),
@@ -287,10 +300,11 @@ public abstract partial class HtmlParser : IDisposable
             "quatvn" => new QuatvnParser(webDriver, requestHeaders, "quatvn", filenameScheme),
             "mangapark" => new MangaParkParser(webDriver, requestHeaders, "mangapark", filenameScheme),
             "noodlemagazine" => new NoodleMagazineParser(webDriver, requestHeaders, "noodlemagazine", filenameScheme),
+            "spankbang" => new SpankBangParser(webDriver, requestHeaders, "spankbang", filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
-    
+
     private static Dictionary<string, PartialSaveEntry> ReadPartialSave()
     {
         return JsonUtility.Deserialize<Dictionary<string, PartialSaveEntry>>("partial.json")!;
@@ -319,7 +333,7 @@ public abstract partial class HtmlParser : IDisposable
 
         Log.Debug("Logging in to {SiteName}", SiteName);
         var loginTask = SiteLoginHelper();
-        
+
         return loginTask.ContinueWith(task =>
         {
             WebDriver.SiteLoginStatus[SiteName] = task.Result;
@@ -327,7 +341,7 @@ public abstract partial class HtmlParser : IDisposable
             return task.Result;
         });
     }
-    
+
     protected virtual Task<bool> SiteLoginHelper()
     {
         throw new Exception("Site authentication not implemented");
@@ -362,10 +376,10 @@ public abstract partial class HtmlParser : IDisposable
         {
             throw new RipperException("Failed to get profile page");
         }
-        
+
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
-        
+
         // await WaitForElement("//h1[@id='user-header__info-top']");
         // var soup = await SolveParseAddCookies();
         // var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
@@ -373,18 +387,18 @@ public abstract partial class HtmlParser : IDisposable
         dirName = $"{dirName} - ({sourceSite})";
 
         #region Get All Posts
-        
+
         var posts = new List<JsonObject>();
         var page = 0;
         while (true)
         {
-            response = await client.GetAsync($"{baseUrl}?o={page*50}");
+            response = await client.GetAsync($"{baseUrl}?o={page * 50}");
             page++;
             if (!response.IsSuccessStatusCode)
             {
                 throw new RipperException($"Failed to get page {page}");
             }
-            
+
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             var jsonPosts = json!.AsArray();
             posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
@@ -420,13 +434,13 @@ public abstract partial class HtmlParser : IDisposable
             {
                 possibleLinks.AddRange(possibleLinksP.Select(p => p.InnerText));
             }
-            
+
             var possibleLinksDiv = soup.SelectNodes("//div");
-            if(possibleLinksDiv is not null)
+            if (possibleLinksDiv is not null)
             {
                 possibleLinks.AddRange(possibleLinksDiv.Select(d => d.InnerText));
             }
-            
+
             var extLinks = ExtractExternalUrls(links);
             foreach (var site in extLinks.Keys)
             {
@@ -439,21 +453,21 @@ public abstract partial class HtmlParser : IDisposable
                 externalLinks[site].AddRange(extLinks[site]);
             }
 
-            
+
             var file = post["file"]!.AsObject();
             var name = file["name"]!.Deserialize<string>()!;
             var path = file["path"]?.Deserialize<string>();
-            if(path is not null)
+            if (path is not null)
             {
                 if (path[0] == '/')
                 {
                     path = domainUrl + path;
                 }
-    
+
                 var imageLink = new ImageLink(path, FilenameScheme, 0, filename: name);
                 images.Add(imageLink);
             }
-            
+
             var attachments = post["attachments"]!.AsArray();
             foreach (var attachment in attachments)
             {
@@ -463,11 +477,11 @@ public abstract partial class HtmlParser : IDisposable
                 {
                     attachmentPath = domainUrl + attachmentPath;
                 }
-                
+
                 var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName);
                 images.Add(attachmentLink);
             }
-            
+
             var extractedAttachments = links
                                       .Where(l => attachmentExtensions.Any(l.Contains))
                                       .Select(l => (l.Contains(domainUrl) || l.Contains("http")) ? l : domainUrl + l)
@@ -552,7 +566,7 @@ public abstract partial class HtmlParser : IDisposable
                          .Select(img => Protocol + img.GetSrc().Remove("tn_"))
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();
-        
+
         return new RipInfo(images, dirName, FilenameScheme);
     }
 
@@ -562,12 +576,12 @@ public abstract partial class HtmlParser : IDisposable
         {
             "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(),
             "elitebabes" => GenericHtmlParserHelper2(),
-            "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub" 
+            "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub"
                 or "metarthunter" or "pmatehunter" or "xarthunter" => GenericHtmlParserHelper3(),
             _ => throw new RipperException($"Invalid site name: {siteName}")
         };
     }
-    
+
     /// <summary>
     ///     
     /// </summary>
@@ -581,8 +595,8 @@ public abstract partial class HtmlParser : IDisposable
                           .TakeWhile(s => s != "-")
                           .Join(" ");
         var images = soup.SelectNodes("//div[@class='gallery_thumb']")
-                            .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
-                            .ToStringImageLinkWrapperList();
+                         .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+                         .ToStringImageLinkWrapperList();
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
@@ -600,7 +614,7 @@ public abstract partial class HtmlParser : IDisposable
                               .Select(dummy => (StringImageLinkWrapper)dummy)
                               .ToList();
         var dirName = imageList[0].SelectSingleNode(".//img")
-                                 .GetAttributeValue("alt");
+                                  .GetAttributeValue("alt");
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
@@ -613,11 +627,13 @@ public abstract partial class HtmlParser : IDisposable
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//header[@id='top']").SelectSingleNode(".//h1").InnerText;
-        var images = soup.SelectSingleNode("//ul[contains(@class, 'list-gallery') and contains(@class, 'static') and contains(@class, 'css')]")
-                         .SelectNodes(".//a")
-                         .Select(img => img.GetHref())
-                         .Select(dummy => (StringImageLinkWrapper)dummy)
-                         .ToList();
+        var images = soup
+                    .SelectSingleNode(
+                         "//ul[contains(@class, 'list-gallery') and contains(@class, 'static') and contains(@class, 'css')]")
+                    .SelectNodes(".//a")
+                    .Select(img => img.GetHref())
+                    .Select(dummy => (StringImageLinkWrapper)dummy)
+                    .ToList();
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
@@ -647,6 +663,7 @@ public abstract partial class HtmlParser : IDisposable
                 session.DefaultRequestHeaders.Add(key, value);
             }
         }
+
         var querySeparator = baseUrl[^1] == '&' ? "" : "&";
 
         var requestUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}";
@@ -667,7 +684,7 @@ public abstract partial class HtmlParser : IDisposable
             {
                 json = await response.Content.ReadFromJsonAsync<JsonNode>();
             }
-            catch (JsonException e) when(e.Message.StartsWith("The input does not contain any JSON tokens."))
+            catch (JsonException e) when (e.Message.StartsWith("The input does not contain any JSON tokens."))
             {
                 Log.Debug("Failed to deserialize json due to empty response");
                 return RipInfo.Empty;
@@ -678,12 +695,12 @@ public abstract partial class HtmlParser : IDisposable
         {
             throw new RipperException("Failed to deserialize json");
         }
-        
+
         if (jsonObjectNavigation is not null)
         {
             json = jsonObjectNavigation.Aggregate(json, (current, obj) => current[obj]!);
         }
-        
+
         var data = json.AsArray();
         var images = new List<StringImageLinkWrapper>();
         var pid = startingPageIndex + 1;
@@ -691,25 +708,26 @@ public abstract partial class HtmlParser : IDisposable
         {
             var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
             images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
-            if(data.Count < limit)
+            if (data.Count < limit)
             {
                 break;
             }
-            
-            response = await session.GetAsync($"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}");
+
+            response = await session.GetAsync(
+                $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}");
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             if (jsonObjectNavigation is not null)
             {
                 json = jsonObjectNavigation.Aggregate(json, (current, obj) => current![obj]);
             }
-            
+
             data = json!.AsArray();
             pid++;
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
     }
-    
+
     #endregion
 
     protected static string ExtractJsonObject(string json)
@@ -735,19 +753,21 @@ public abstract partial class HtmlParser : IDisposable
                         {
                             depth++;
                         }
+
                         break;
                     case '}':
                         if (!inString)
                         {
                             depth--;
                         }
+
                         break;
                     case '"':
                         inString = !inString;
                         break;
                 }
             }
-                
+
             if (depth == 0)
             {
                 return json[..(i + 1)];
@@ -757,7 +777,8 @@ public abstract partial class HtmlParser : IDisposable
         throw new RipperException($"Improperly formatted json: {json}");
     }
 
-    protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "", int xpathTimout = 10)
+    protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "",
+                                           int xpathTimout = 10)
     {
         if (delay > 0)
         {
@@ -778,8 +799,8 @@ public abstract partial class HtmlParser : IDisposable
         doc.LoadHtml(Driver.PageSource);
         return doc.DocumentNode;
     }
-    
-    protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null, 
+
+    protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
                                            string xpath = "", bool urlString = true, ICookieJar? cookies = null,
                                            int xpathTimout = 10)
     {
@@ -789,9 +810,9 @@ public abstract partial class HtmlParser : IDisposable
             doc.LoadHtml(url);
             return doc.DocumentNode;
         }
-        
+
         CurrentUrl = url;
-        
+
         if (cookies is not null)
         {
             var cookieJar = Driver.GetCookieJar();
@@ -818,7 +839,7 @@ public abstract partial class HtmlParser : IDisposable
         htmlDocument.LoadHtml(solution.Response);
         return Task.FromResult(htmlDocument.DocumentNode);
     }
-    
+
     /// <summary>
     ///     Wait for an element to exist on the page
     /// </summary>
@@ -843,7 +864,7 @@ public abstract partial class HtmlParser : IDisposable
 
         return true;
     }
-    
+
     protected void CleanTabs(string urlMatch)
     {
         var windowHandles = Driver.WindowHandles;
@@ -877,14 +898,14 @@ public abstract partial class HtmlParser : IDisposable
     /// <exception cref="FailedToGetSolutionException">
     ///     Thrown if CAPTCHA solving fails and session regeneration is disabled.
     /// </exception>
-    protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false, 
+    protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
                                                         List<Dictionary<string, string>>? cookies = null)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
             throw new FeatureNotAvailableException(ExternalFeatureSupport.FlareSolverr);
         }
-        
+
         Solution solution;
         try
         {
@@ -902,7 +923,7 @@ public abstract partial class HtmlParser : IDisposable
                 throw;
             }
         }
-        
+
         var cookieJar = Driver.GetCookieJar();
         foreach (var cookie in solution.Cookies)
         {
@@ -910,7 +931,7 @@ public abstract partial class HtmlParser : IDisposable
             var seleniumCookie = cookie.ToSeleniumCookie();
             cookieJar.SetCookie(seleniumCookie);
         }
-        
+
         return await Soupify(solution);
     }
 
@@ -922,7 +943,7 @@ public abstract partial class HtmlParser : IDisposable
             Log.Information("Please solve the captcha and press enter to continue...");
             Console.ReadLine();
         }
-        
+
         return await Soupify(url);
     }
 
@@ -960,7 +981,7 @@ public abstract partial class HtmlParser : IDisposable
             var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>();
             parsedUrls.Add(responseJson!["data"]!["link"]!.Deserialize<string>()!);
         }
-        
+
         return parsedUrls;
     }
 
@@ -1090,10 +1111,10 @@ public abstract partial class HtmlParser : IDisposable
     protected Task LazyLoad(LazyLoadArgs args)
     {
         return args.StopElement is not null && Driver.TryFindElement(args.StopElement) is not null
-            ? LazyLoad(args.StopElement) 
+            ? LazyLoad(args.StopElement)
             : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll);
     }
-    
+
     /// <summary>
     ///     Scroll through the page to lazy load images
     /// </summary>
@@ -1214,7 +1235,7 @@ public abstract partial class HtmlParser : IDisposable
 
             return data;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Log.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
             await File.WriteAllTextAsync("test.html", Driver.PageSource);
@@ -1240,11 +1261,13 @@ public abstract partial class HtmlParser : IDisposable
         siteName = siteName[0].ToString().ToUpper() + siteName[1..];
         var className = $"{siteName}Parser";
         var classType = Assembly.GetExecutingAssembly()
-                             .GetTypes()
-                             .FirstOrDefault(t => string.Equals(t.Name, className, StringComparison.OrdinalIgnoreCase));
+                                .GetTypes()
+                                .FirstOrDefault(t =>
+                                     string.Equals(t.Name, className, StringComparison.OrdinalIgnoreCase));
         if (classType is not null)
         {
-            var ripper = (HtmlParser)Activator.CreateInstance(classType, WebDriver, RequestHeaders, siteName, FilenameScheme)!;
+            var ripper =
+                (HtmlParser)Activator.CreateInstance(classType, WebDriver, RequestHeaders, siteName, FilenameScheme)!;
             return ripper.Parse();
         }
 
@@ -1259,7 +1282,7 @@ public abstract partial class HtmlParser : IDisposable
         {
             return "twitter";
         }
-        
+
         if (siteName.Contains("bunkrrr"))
         {
             siteName = siteName.Replace("bunkrrr", "Bunkr");
@@ -1272,11 +1295,11 @@ public abstract partial class HtmlParser : IDisposable
         {
             siteName = siteName.Replace("chapmanganato", "Manganato");
         }
-        else if(siteName.Contains("18kami"))
+        else if (siteName.Contains("18kami"))
         {
             siteName = siteName.Replace("18kami", "EighteenKami");
         }
-        
+
         if (siteName[0] >= '0' && siteName[0] <= '9')
         {
             siteName = NumberToWord(siteName[0]) + siteName[1..];
@@ -1328,14 +1351,14 @@ public abstract partial class HtmlParser : IDisposable
     }
 
     #endregion
-    
+
     public void Dispose()
     {
         if (Config.CloseFlareSolverrSession)
         {
             FlareSolverrManager.DeleteSession().Wait();
         }
-        
+
         GC.SuppressFinalize(this);
     }
 
