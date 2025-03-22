@@ -10,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class KnitParser : HtmlParser
 {
-    public KnitParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public KnitParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class AllBooruParser : HtmlParser
 {
-    public AllBooruParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public AllBooruParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

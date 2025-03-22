@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class LeakedBbParser : HtmlParser
 {
-    public LeakedBbParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public LeakedBbParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

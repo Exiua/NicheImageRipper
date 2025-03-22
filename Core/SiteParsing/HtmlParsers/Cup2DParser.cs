@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Cup2DParser : HtmlParser
 {
-    public Cup2DParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public Cup2DParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

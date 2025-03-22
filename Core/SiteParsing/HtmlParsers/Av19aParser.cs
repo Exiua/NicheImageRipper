@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public partial class Av19aParser : HtmlParser
 {
-    public Av19aParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public Av19aParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
     

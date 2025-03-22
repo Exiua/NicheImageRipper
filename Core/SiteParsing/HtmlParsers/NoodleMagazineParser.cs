@@ -10,8 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 public class NoodleMagazineParser : HtmlParser
 {
     public NoodleMagazineParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
-                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        siteName, filenameScheme)
+                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

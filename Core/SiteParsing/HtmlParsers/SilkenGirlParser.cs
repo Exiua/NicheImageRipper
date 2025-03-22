@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class SilkenGirlParser : HtmlParser
 {
-    public SilkenGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public SilkenGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

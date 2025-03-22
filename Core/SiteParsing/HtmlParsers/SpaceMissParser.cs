@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class SpaceMissParser : HtmlParser
 {
-    public SpaceMissParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public SpaceMissParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

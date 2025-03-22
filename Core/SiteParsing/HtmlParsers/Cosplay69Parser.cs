@@ -9,7 +9,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Cosplay69Parser : HtmlParser
 {
-    public Cosplay69Parser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public Cosplay69Parser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

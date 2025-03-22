@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class BabesMachineParser : HtmlParser
 {
-    public BabesMachineParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public BabesMachineParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
     

@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class PornAvHdParser : HtmlParser
 {
-    public PornAvHdParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public PornAvHdParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

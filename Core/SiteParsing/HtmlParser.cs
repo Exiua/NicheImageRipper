@@ -57,14 +57,14 @@ public abstract partial class HtmlParser : IDisposable
     protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
     protected static string UserAgent => Config.UserAgent;
 
-    protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
+    protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         WebDriver = driver;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
         Interrupted = false;
-        SiteName = siteName;
+        SiteName = "";
         SleepTime = 0.2f;
         Jitter = 0.5f;
         GivenUrl = "";
@@ -300,7 +300,8 @@ public abstract partial class HtmlParser : IDisposable
             "quatvn" => new QuatvnParser(webDriver, requestHeaders, "quatvn", filenameScheme),
             "mangapark" => new MangaParkParser(webDriver, requestHeaders, "mangapark", filenameScheme),
             "noodlemagazine" => new NoodleMagazineParser(webDriver, requestHeaders, "noodlemagazine", filenameScheme),
-            "spankbang" => new SpankBangParser(webDriver, requestHeaders, "spankbang", filenameScheme),
+            "spankbang" => new SpankBangParser(webDriver, requestHeaders, filenameScheme),
+            "apcomics" => new ApComicsParser(webDriver, requestHeaders, "apcomics", filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }

@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class HegreHunterParser : HtmlParser
 {
-    public HegreHunterParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public HegreHunterParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

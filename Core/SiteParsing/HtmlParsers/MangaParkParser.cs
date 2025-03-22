@@ -9,8 +9,7 @@ namespace Core.SiteParsing.HtmlParsers;
 public class MangaParkParser : HtmlParser
 {
     public MangaParkParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
-                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        siteName, filenameScheme)
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

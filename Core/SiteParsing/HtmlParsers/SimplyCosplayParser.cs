@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class SimplyCosplayParser : HtmlParser
 {
-    public SimplyCosplayParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public SimplyCosplayParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

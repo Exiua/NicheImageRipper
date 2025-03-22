@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class DecorativeModelsParser : HtmlParser
 {
-    public DecorativeModelsParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public DecorativeModelsParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

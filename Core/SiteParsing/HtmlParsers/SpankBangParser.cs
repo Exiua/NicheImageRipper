@@ -10,9 +10,8 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class SpankBangParser : HtmlParser
 {
-    public SpankBangParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
-                                 FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        siteName, filenameScheme)
+    public SpankBangParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                 FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

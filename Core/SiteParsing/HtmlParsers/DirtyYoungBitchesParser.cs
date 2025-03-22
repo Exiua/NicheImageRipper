@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class DirtyYoungBitchesParser : HtmlParser
 {
-    public DirtyYoungBitchesParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public DirtyYoungBitchesParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

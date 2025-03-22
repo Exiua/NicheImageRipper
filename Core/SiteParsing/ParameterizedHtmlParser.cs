@@ -6,7 +6,7 @@ namespace Core.SiteParsing;
 
 public abstract class ParameterizedHtmlParser : HtmlParser
 {
-    protected ParameterizedHtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    protected ParameterizedHtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

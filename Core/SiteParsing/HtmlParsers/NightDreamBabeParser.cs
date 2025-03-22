@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class NightDreamBabeParser : HtmlParser
 {
-    public NightDreamBabeParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public NightDreamBabeParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 
