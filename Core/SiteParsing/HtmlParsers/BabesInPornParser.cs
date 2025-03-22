@@ -6,7 +6,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class BabesInPornParser : HtmlParser
 {
-    public BabesInPornParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public BabesInPornParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
     

@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class AnimehParser : HtmlParser
 {
-    public AnimehParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public AnimehParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

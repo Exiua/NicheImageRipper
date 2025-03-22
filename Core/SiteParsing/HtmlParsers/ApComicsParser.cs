@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class ApComicsParser : HtmlParser
 {
-    public ApComicsParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
+    public ApComicsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                                 FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }

@@ -10,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class ArtstationParser : HtmlParser
 {
-    public ArtstationParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public ArtstationParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
     
