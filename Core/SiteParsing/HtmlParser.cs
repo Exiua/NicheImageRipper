@@ -32,7 +32,7 @@ public abstract partial class HtmlParser : IDisposable
 
     protected static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
 
-    protected static Config Config => Config.Instance;
+    protected static GeneralConfig Config => Configuration.Config.Instance;
 
     //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
 

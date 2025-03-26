@@ -15,9 +15,9 @@ public class TokenManager
 {
     private const string TokenPath = "temp_tokens.json";
     
-    private static TokenManager? _instance;
+    private static GeneralConfig Config => Configuration.Config.Instance;
     
-    public static TokenManager Instance => _instance ??= new TokenManager();
+    public static TokenManager Instance { get; } = new();
 
     private Dictionary<string, Token> Tokens { get; }
     

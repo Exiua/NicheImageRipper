@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using Core;
 using Core.DataStructures;
 using Core.Enums;
+using CoreGui.Models;
 using CoreGui.Utility;
 using CoreGui.Views;
 using ReactiveUI;
@@ -19,6 +20,8 @@ namespace CoreGui.ViewModels;
 public class MainWindowViewModel : ViewModelBase
 {
     private readonly NicheImageRipper _ripper;
+
+    private static GuiConfig Config => (GuiConfig) Core.Configuration.Config.Instance;
 
     internal MainWindow MainWindow { get; set; } = null!;
 

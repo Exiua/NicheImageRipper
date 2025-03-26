@@ -7,7 +7,7 @@ namespace Core.Driver;
 
 public class WebDriver : IDisposable
 {
-    private static Config Config => Config.Instance;
+    private static GeneralConfig Config => Configuration.Config.Instance;
     private static string UserAgent => Config.UserAgent;
     
     public Dictionary<string, bool> SiteLoginStatus { get; set; } = new();

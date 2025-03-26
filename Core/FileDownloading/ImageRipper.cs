@@ -61,7 +61,7 @@ public partial class ImageRipper : IDisposable
     
     private FirefoxDriver Driver => WebDriver.Driver;
 
-    private static Config Config => Config.Instance;
+    private static GeneralConfig Config => Configuration.Config.Instance;
     private static TokenManager TokenManager => TokenManager.Instance;
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
@@ -708,7 +708,7 @@ public partial class ImageRipper : IDisposable
             throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
         }
         
-        var (email, password) = Config.Instance.Logins["Mega"];
+        var (email, password) = Config.Logins["Mega"];
         if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
         {
            PersistentLogins["Mega"] = MegaApi.WhoAmI() == email || MegaApi.Login(email, password);
@@ -740,7 +740,7 @@ public partial class ImageRipper : IDisposable
     
     private static async Task<bool> DownloadPixelDrainFiles(string path, ImageLink imageLink)
     {
-        var apiKey = Config.Instance.Keys["Pixeldrain"];
+        var apiKey = Config.Keys["Pixeldrain"];
         var authString = $":{apiKey}";
         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
         var headers = new Dictionary<string, string>

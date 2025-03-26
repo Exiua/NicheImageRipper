@@ -24,7 +24,7 @@ public partial class NicheImageRipper : IDisposable
     private Version? _latestVersion;
     
     public static string Title => "NicheImageRipper";
-    public static Config Config => Config.Instance;
+    public static GeneralConfig Config => Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
     public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
     
@@ -364,7 +364,7 @@ public partial class NicheImageRipper : IDisposable
             File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
         }
         
-        Config.Instance.SaveConfig();
+        Config.SaveConfig();
     }
     
     public static void ClearCache()
