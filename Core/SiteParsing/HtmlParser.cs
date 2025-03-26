@@ -302,6 +302,7 @@ public abstract partial class HtmlParser : IDisposable
             "noodlemagazine" => new NoodleMagazineParser(webDriver, requestHeaders, "noodlemagazine", filenameScheme),
             "spankbang" => new SpankBangParser(webDriver, requestHeaders, filenameScheme),
             "apcomics" => new ApComicsParser(webDriver, requestHeaders, filenameScheme),
+            "3hentai" => new ThreeHentaiParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
@@ -1261,6 +1262,7 @@ public abstract partial class HtmlParser : IDisposable
         siteName = TestSiteConverter(siteName);
         siteName = siteName[0].ToString().ToUpper() + siteName[1..];
         var className = $"{siteName}Parser";
+        Log.Debug("Parser: {ParserName}", className);
         var classType = Assembly.GetExecutingAssembly()
                                 .GetTypes()
                                 .FirstOrDefault(t =>
@@ -1268,7 +1270,7 @@ public abstract partial class HtmlParser : IDisposable
         if (classType is not null)
         {
             var ripper =
-                (HtmlParser)Activator.CreateInstance(classType, WebDriver, RequestHeaders, siteName, FilenameScheme)!;
+                (HtmlParser)Activator.CreateInstance(classType, WebDriver, RequestHeaders, FilenameScheme)!;
             return ripper.Parse();
         }
 
@@ -1303,7 +1305,7 @@ public abstract partial class HtmlParser : IDisposable
 
         if (siteName[0] >= '0' && siteName[0] <= '9')
         {
-            siteName = NumberToWord(siteName[0]) + siteName[1..];
+            siteName = NumberToWord(siteName[0]) + char.ToUpper(siteName[1]) + siteName[2..];
         }
 
         return siteName.Remove("-");
