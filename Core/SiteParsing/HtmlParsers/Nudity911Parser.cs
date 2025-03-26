@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Nudity911Parser : HtmlParser
 {
-    public Nudity911Parser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public Nudity911Parser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

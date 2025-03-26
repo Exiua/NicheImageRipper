@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class MyHentaiGalleryParser : HtmlParser
 {
-    public MyHentaiGalleryParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public MyHentaiGalleryParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

@@ -13,9 +13,7 @@ public class BunkrParser : ParameterizedHtmlParser
 {
     private const int ParseDelay = 500;
 
-    public BunkrParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName,
-        filenameScheme)
+    public BunkrParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

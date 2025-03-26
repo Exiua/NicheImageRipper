@@ -15,7 +15,7 @@ public class SimpCityParser : HtmlParser
 {
     private const string CacheFile = "simpcitycache.json";
 
-    public SimpCityParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "",
+    public SimpCityParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }

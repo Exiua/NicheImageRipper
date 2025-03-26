@@ -6,7 +6,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class BustyBloomParser : HtmlParser
 {
-    public BustyBloomParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public BustyBloomParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
     

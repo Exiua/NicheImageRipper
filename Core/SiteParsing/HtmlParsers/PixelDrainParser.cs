@@ -11,7 +11,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class PixelDrainParser : ParameterizedHtmlParser
 {
-    public PixelDrainParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, siteName, filenameScheme)
+    public PixelDrainParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

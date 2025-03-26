@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class ImgBoxParser : HtmlParser
 {
-    public ImgBoxParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public ImgBoxParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

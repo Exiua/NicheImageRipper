@@ -9,7 +9,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class TitsInTopsParser : HtmlParser
 {
-    public TitsInTopsParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public TitsInTopsParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

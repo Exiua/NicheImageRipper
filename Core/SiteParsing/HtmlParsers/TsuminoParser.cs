@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class TsuminoParser : HtmlParser
 {
-    public TsuminoParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public TsuminoParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

@@ -11,7 +11,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public partial class NewgroundsParser : HtmlParser
 {
-    public NewgroundsParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public NewgroundsParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

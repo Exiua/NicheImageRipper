@@ -14,7 +14,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class QuatvnParser : HtmlParser
 {
-    public QuatvnParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public QuatvnParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

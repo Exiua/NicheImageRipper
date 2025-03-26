@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class HotGirlParser : HtmlParser
 {
-    public HotGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public HotGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

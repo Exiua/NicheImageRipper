@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class RabbitsFunParser : HtmlParser
 {
-    public RabbitsFunParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public RabbitsFunParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

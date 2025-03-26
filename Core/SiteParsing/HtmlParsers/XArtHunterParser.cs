@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class XArtHunterParser : HtmlParser
 {
-    public XArtHunterParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public XArtHunterParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

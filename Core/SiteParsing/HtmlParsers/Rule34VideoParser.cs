@@ -10,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Rule34VideoParser : HtmlParser
 {
-    public Rule34VideoParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public Rule34VideoParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

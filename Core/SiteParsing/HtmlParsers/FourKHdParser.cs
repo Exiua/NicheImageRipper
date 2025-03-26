@@ -10,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class FourKHdParser : HtmlParser
 {
-    public FourKHdParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public FourKHdParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

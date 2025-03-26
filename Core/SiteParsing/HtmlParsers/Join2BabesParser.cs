@@ -7,7 +7,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Join2BabesParser : HtmlParser
 {
-    public Join2BabesParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public Join2BabesParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

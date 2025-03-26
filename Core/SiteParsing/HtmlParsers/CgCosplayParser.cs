@@ -11,7 +11,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class CgCosplayParser : HtmlParser
 {
-    public CgCosplayParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public CgCosplayParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 

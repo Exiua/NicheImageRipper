@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class SfmCompileParser : HtmlParser
 {
-    public SfmCompileParser(WebDriver driver, Dictionary<string, string> requestHeaders, string siteName = "", FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public SfmCompileParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
 
