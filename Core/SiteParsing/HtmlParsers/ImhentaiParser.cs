@@ -1,7 +1,6 @@
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
-using OpenQA.Selenium;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -25,12 +24,9 @@ public class ImhentaiParser : HtmlParser
         }
     
         var soup = await Soupify();
-        var images = soup.SelectSingleNode("//img[@class='lazy preloader']").GetAttributeValue("data-src", "");
-        if (images == "")
-        {
-            throw new NotFoundException("Image not found");
-        }
-    
+        var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNode("//img[@class='lazy entered loaded']");
+
+        var images = imageContainer.GetAttributeValue("data-src");
         var numPages = int.Parse(soup.SelectSingleNode("//li[@class='pages']").InnerText.Split()[1]);
         var dirName = soup.SelectSingleNode("//h1").InnerText;
     
