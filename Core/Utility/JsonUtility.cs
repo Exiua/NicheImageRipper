@@ -9,9 +9,9 @@ public static class JsonUtility
         WriteIndented = true,
     };
     
-    public static void Serialize<T>(string filepath, T obj)
+    public static void Serialize(string filepath, object obj)
     {
-        var json = JsonSerializer.Serialize(obj, Options);
+        var json = JsonSerializer.Serialize(obj, obj.GetType(), Options);
         File.WriteAllText(filepath, json);
     }
 
