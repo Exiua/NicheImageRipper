@@ -46,16 +46,24 @@
                     </StackPanel>
                     <DataGrid Margin="0, 10" ItemsSource="{Binding History}"
                               IsReadOnly="True"
-                              CanUserReorderColumns="True"
+                              CanUserReorderColumns="False"
                               CanUserResizeColumns="True"
                               CanUserSortColumns="False"
                               GridLinesVisibility="All"
                               BorderThickness="1" BorderBrush="Gray">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}" />
-                            <DataGridTextColumn Header="Url" Binding="{Binding Url}" />
-                            <DataGridTextColumn Header="Date" Binding="{Binding Date}" />
-                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}" />
+                            <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}" 
+                                                Width="{Binding NameWidth}" Tag="HistoryName"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTextColumn Header="Url" Binding="{Binding Url}" 
+                                                Width="{Binding UrlWidth}" Tag="HistoryUrl"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTextColumn Header="Date" Binding="{Binding Date}" 
+                                                Width="{Binding DateWidth}" Tag="HistoryDate"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}" 
+                                                Width="{Binding CountWidth}" Tag="HistoryCount"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </StackPanel>
@@ -81,44 +89,6 @@
                     <TextBlock Grid.Row="8" Grid.Column="0" Margin="10" Text="Retry Delay (ms):" />
                     <TextBox Grid.Row="8" Grid.Column="1" Margin="10" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
                 </Grid>
-                <!--<StackPanel Orientation="Vertical" Spacing="10">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Save Location:" />
-                        <TextBlock Text="{Binding SavePath}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Select Save Folder:" />
-                        <Button Click="SelectFolder">Browse</Button>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Load Unfinished Urls:" />
-                        <Button Click="SelectUnfinishedUrlFile">Browse</Button>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Check For Updates:" />
-                        <Button>Check</Button>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Clear Cache:" />
-                        <Button Command="{Binding ClearCacheCommand}">Clear</Button>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Filename Scheme:" />
-                        <ComboBox x:Name="FilenameSchemeComboBox" SelectedIndex="{Binding FilenameSchemeIndex}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Unzip Protocol:" />
-                        <ComboBox x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Max Retries:" />
-                        <TextBox x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}" LostFocus="ValidateNumericValue" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="Retry Delay (ms):" />
-                        <TextBox x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
-                    </StackPanel>
-                </StackPanel>-->
             </TabItem>
         </TabControl>
     </Grid>

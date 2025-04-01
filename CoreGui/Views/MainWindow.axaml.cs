@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -26,12 +27,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     public MainWindow()
     {
-        InitializeComponent();
-        Focusable = true;
         DataContext = new MainWindowViewModel
         {
             MainWindow = this,
         };
+        
+        // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
+        InitializeComponent();
+        Focusable = true;
         UrlQueue.ItemsSource = ViewModel!.UrlQueue;
         FilenameSchemeComboBox.ItemsSource = Enum.GetValues<FilenameScheme>();
         FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.FilenameScheme;
@@ -46,14 +49,19 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     private void OnClose(object? sender, WindowClosingEventArgs windowClosingEventArgs)
     {
-        try
+        var task = Dispatcher.UIThread.InvokeAsync(() =>
         {
-            ViewModel!.SaveData();
-        }
-        finally
-        {
-            ViewModel!.Cleanup();
-        }
+            try
+            {
+                ViewModel!.SaveData();
+            }
+            finally
+            {
+                ViewModel!.Cleanup();
+            }
+        });
+        
+        task.Wait();
     }
 
     public void OnLog(string message)
@@ -190,5 +198,32 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             ViewModel!.UrlInput = urlInput;
             textBox.Focus();
         }, TimeSpan.FromMilliseconds(10));
+    }
+
+    private void OnHistoryColumnWidthChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e is not AvaloniaPropertyChangedEventArgs<DataGridLength> dataGridLengthArgs || sender is not DataGridTextColumn column || ViewModel is null)
+        {
+            return;
+        }
+
+        switch (column.Tag)
+        {
+            case "HistoryName":
+                ViewModel.NameWidth = dataGridLengthArgs.NewValue.Value.Value;
+                break;
+            case "HistoryUrl":
+                ViewModel.UrlWidth = dataGridLengthArgs.NewValue.Value.Value;
+                break;
+            case "HistoryDate":
+                ViewModel.DateWidth = dataGridLengthArgs.NewValue.Value.Value;
+                break;
+            case "HistoryCount":
+                ViewModel.CountWidth = dataGridLengthArgs.NewValue.Value.Value;
+                break;
+            default:
+                Log.Warning("Unknown column tag: {tag}", column.Tag);
+                break;
+        }
     }
 }

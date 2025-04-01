@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Core;
 using Core.DataStructures;
@@ -35,6 +33,10 @@ public class MainWindowViewModel : ViewModelBase
     private int _currentHistoryPage = 1;
     private string _maxRetriesDisplay = NicheImageRipper.MaxRetries.ToString();
     private string _retryDelayDisplay = NicheImageRipper.RetryDelay.ToString();
+    private double _nameWidth = Config.HistoryColumnWidths.NameWidth;
+    private double _urlWidth = Config.HistoryColumnWidths.UrlWidth;
+    private double _dateWidth = Config.HistoryColumnWidths.DateWidth;
+    private double _countWidth = Config.HistoryColumnWidths.CountWidth;
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -113,6 +115,46 @@ public class MainWindowViewModel : ViewModelBase
     {
         get => _retryDelayDisplay;
         set => this.RaiseAndSetIfChanged(ref _retryDelayDisplay, value);
+    }
+
+    public double NameWidth
+    {
+        get => _nameWidth;
+        set
+        {
+            Config.HistoryColumnWidths.NameWidth = value;
+            this.RaiseAndSetIfChanged(ref _nameWidth, value);
+        }
+    }
+
+    public double UrlWidth
+    {
+        get => _urlWidth;
+        set
+        {
+            Config.HistoryColumnWidths.UrlWidth = value;
+            this.RaiseAndSetIfChanged(ref _urlWidth, value);
+        }
+    }
+
+    public double DateWidth
+    {
+        get => _dateWidth;
+        set
+        {
+            Config.HistoryColumnWidths.DateWidth = value;
+            this.RaiseAndSetIfChanged(ref _dateWidth, value);
+        }
+    }
+
+    public double CountWidth
+    {
+        get => _countWidth;
+        set
+        {
+            Config.HistoryColumnWidths.CountWidth = value;
+            this.RaiseAndSetIfChanged(ref _countWidth, value);
+        }
     }
 
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
