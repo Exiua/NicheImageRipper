@@ -293,6 +293,7 @@ public abstract partial class HtmlParser : IDisposable
             "apcomics" => new ApComicsParser(webDriver, requestHeaders, filenameScheme),
             "3hentai" => new ThreeHentaiParser(webDriver, requestHeaders, filenameScheme),
             "3600000" => new Three600000Parser(webDriver, requestHeaders, filenameScheme),
+            "asmhentai" => new AsmHentaiParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
