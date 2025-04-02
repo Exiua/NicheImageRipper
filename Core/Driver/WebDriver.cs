@@ -1,5 +1,5 @@
-using System.Drawing;
 using Core.Configuration;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 using Serilog;
 
@@ -51,8 +51,28 @@ public class WebDriver : IDisposable
     /// <returns>A new FirefoxDriver instance.</returns>
     private static FirefoxDriver CreateFirefoxDriver(bool headless)
     {
+        const int maxRetry = 4;
         var options = InitializeOptions(headless);
-        var driver = new FirefoxDriver(options);
+        // Safety: Driver will either be created or an exception will be thrown.
+        FirefoxDriver driver = null!;
+        for (var retry = 0; retry < maxRetry; retry++)
+        {
+            try
+            {
+                driver = new FirefoxDriver(options);
+                break;
+            }
+            catch (UnknownErrorException e)
+            {
+                if (retry == maxRetry - 1)
+                {
+                    Log.Error(e, "Failed to create FirefoxDriver after 4 attempts.");
+                    throw new Exception("Failed to create FirefoxDriver after 4 attempts.", e);
+                }
+
+                Log.Warning(e, "Failed to create FirefoxDriver. Retrying...");
+            }
+        }
         //driver.Manage().Window.Size = new Size(2560, 1440);
         driver.ExecuteScript("Object.defineProperty(navigator, 'webdriver', {get: () => false});");
         return driver;
