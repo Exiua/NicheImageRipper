@@ -39,14 +39,8 @@ public partial class NicheImageRipper : IDisposable
     public ImageRipper? Ripper { get; set; }
     
     public event Action? OnUrlQueueUpdated;
-    
-    // TODO: Remove this as it is not used
-    public static bool LiveHistory 
-    { 
-        get => Config.LiveHistory;
-        set => Config.LiveHistory = value;
-    }
-    
+
+    // TODO: Convert to enum with better variations on how to handle re-ripping
     public static bool AskToReRip
     {
         get => Config.AskToReRip;
@@ -91,7 +85,6 @@ public partial class NicheImageRipper : IDisposable
 
     private WebDriverPool WebDriverPool { get; } = new(1);
     
-    //public List<HistoryEntry> History { get; set; } = [];
     protected static HistoryManager HistoryDb => HistoryManager.Instance;
     
     protected bool Debugging { get; set; }
@@ -103,6 +96,7 @@ public partial class NicheImageRipper : IDisposable
         {
             AddToUrlQueue(url, noCheck: true);
         }
+        
         OnUrlQueueUpdated?.Invoke();
     }
 
