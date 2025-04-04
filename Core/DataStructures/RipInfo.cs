@@ -61,6 +61,11 @@ public class RipInfo
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
+    public static RipInfo GenerateInfo(string baseUrl, string dirName, int numUrls)
+    {
+        return new RipInfo([baseUrl], dirName, generate: true, numUrls: numUrls);
+    }
+
     public RipInfo WithDirectoryName(string directoryName)
     {
         DirectoryName = directoryName;

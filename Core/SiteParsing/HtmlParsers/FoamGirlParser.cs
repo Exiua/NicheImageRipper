@@ -21,7 +21,7 @@ public class FoamGirlParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='item_title']/h1").InnerText;
+        var dirName = soup.SelectSingleNode("//div[@class='item_title']/h1").InnerText.Split('(')[0];
         var images = new List<StringImageLinkWrapper>();
         var pageCount = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']")
                             .InnerText

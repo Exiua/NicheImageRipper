@@ -30,6 +30,6 @@ public class ImhentaiParser : HtmlParser
         var numPages = int.Parse(soup.SelectSingleNode("//li[@class='pages']").InnerText.Split()[1]);
         var dirName = soup.SelectSingleNode("//h1").InnerText;
     
-        return new RipInfo([images], dirName, generate: true, numUrls: numPages);
+        return RipInfo.GenerateInfo(images, dirName, numPages);
     }
 }

@@ -81,7 +81,8 @@ public static partial class UrlUtility
         "https://mangadex.org/", "https://cosblay.com/", "https://en.cosblay.com/", "https://www.kaizty.com/",
         "https://quatvn.love/", "https://mangapark.net/", "https://noodlemagazine.com/", "https://spankbang.com/",
         "https://spankbang.party/", "https://apcomics.org/", "https://3hentai.net/", "https://3600000.xyz/",
-        "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/"
+        "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/",
+        "https://hentaiera.com/"
     }.ToFrozenSet();
 
     /// <summary>
