@@ -1,0 +1,30 @@
+using Core.DataStructures;
+using Core.Enums;
+using Core.ExtensionMethods;
+using Serilog;
+using WebDriver = Core.Driver.WebDriver;
+
+namespace Core.SiteParsing.HtmlParsers;
+
+public class HentaiFoxParser : HtmlParser
+{
+    public HentaiFoxParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        filenameScheme)
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for hentaifox.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNode("//div[@class='info']/h1").InnerText;
+        var pageCount = soup.SelectSingleNode("//span[@class='i_text pages']").InnerText.Split(" ")[^1].ToInt();
+        var baseImage = soup.SelectSingleNode("//div[@class='g_thumb']//img").GetSrc();
+
+        return RipInfo.GenerateInfo(baseImage, dirName, pageCount);
+    }
+}

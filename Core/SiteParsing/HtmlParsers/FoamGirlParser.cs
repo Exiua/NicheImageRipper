@@ -23,9 +23,9 @@ public class FoamGirlParser : HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//div[@class='item_title']/h1").InnerText.Split('(')[0];
         var images = new List<StringImageLinkWrapper>();
-        var pageCount = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']")
-                            .InnerText
-                            .ToInt();
+        var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") 
+                            ?? soup.SelectSingleNode("//div[@class='nav-links page_imges']").SelectNodes("./a")[^2];
+        var pageCount = pageContainer.InnerText.ToInt();
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {

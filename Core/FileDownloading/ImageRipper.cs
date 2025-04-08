@@ -163,7 +163,7 @@ public partial class ImageRipper : IDisposable
             var imageLink = FolderInfo.Urls[0];
             var trimmedUrl = TrimUrl(imageLink.Url);
             imageLink.Url = trimmedUrl;
-            string[] extensions = [".jpg", ".gif", ".png", ".webp", ".webm", ".mp4", "t.jpg"];
+            string[] extensions = [".webp", ".jpg", ".gif", ".png" , ".webm", ".mp4", "t.jpg"];
             
             // Downloads all images from the general url by incrementing the file number
             //  (e.g., https://domain/gallery/##.jpg)
