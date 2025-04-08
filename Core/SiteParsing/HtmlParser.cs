@@ -298,6 +298,8 @@ public abstract partial class HtmlParser : IDisposable
             "baobua" => new BaobuaParser(webDriver, requestHeaders, filenameScheme),
             "foamgirl" => new FoamGirlParser(webDriver, requestHeaders, filenameScheme),
             "hentaiera" => new HentaiEraParser(webDriver, requestHeaders, filenameScheme),
+            "hentaifox" => new HentaiFoxParser(webDriver, requestHeaders, filenameScheme),
+            "hentaihand" => new HentaiHandParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
