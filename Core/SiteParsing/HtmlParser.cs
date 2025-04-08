@@ -300,6 +300,7 @@ public abstract partial class HtmlParser : IDisposable
             "hentaiera" => new HentaiEraParser(webDriver, requestHeaders, filenameScheme),
             "hentaifox" => new HentaiFoxParser(webDriver, requestHeaders, filenameScheme),
             "hentaihand" => new HentaiHandParser(webDriver, requestHeaders, filenameScheme),
+            "meijuntu" => new MeijuntuParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
