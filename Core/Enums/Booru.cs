@@ -6,6 +6,7 @@ public enum Booru
     Gelbooru,
     Rule34,
     Yandere,
+    E621,
 }
 
 public class BooruMetadata
@@ -16,7 +17,8 @@ public class BooruMetadata
     public int StartingPageIndex { get; init; }
     public int Limit { get; init; }
     public Dictionary<string, string>? Headers { get; init; }
-    public string[]? JsonObjectNavigation { get; init; }
+    public string[]? JsonObjectNavigationToArray { get; init; }
+    public string[] JsonObjectNavigationToUrl { get; init; } = ["file_url"];
 }
 
 public static class BooruExtensionMethods
@@ -44,7 +46,7 @@ public static class BooruExtensionMethods
                 PageParameterName = "pid",
                 StartingPageIndex = 0,
                 Limit = 100,
-                JsonObjectNavigation = ["post"]
+                JsonObjectNavigationToArray = ["post"]
             },
             Booru.Rule34 => new BooruMetadata
             {
@@ -61,6 +63,20 @@ public static class BooruExtensionMethods
                 PageParameterName = "page",
                 StartingPageIndex = 1,
                 Limit = 100
+            },
+            Booru.E621 => new BooruMetadata
+            {
+                SiteName = "E621",
+                BaseUrl = "https://e621.net/posts.json?",
+                PageParameterName = "page",
+                StartingPageIndex = 1,
+                Limit = 320,
+                Headers = new Dictionary<string, string>
+                {
+                    {"User-Agent", "NicheImageRipper"}
+                },
+                JsonObjectNavigationToArray = ["posts"],
+                JsonObjectNavigationToUrl = ["file", "url"]
             },
             _ => throw new ArgumentOutOfRangeException(nameof(site), site, null)
         };

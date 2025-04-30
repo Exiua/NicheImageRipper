@@ -651,7 +651,8 @@ public abstract partial class HtmlParser : IDisposable
         var startingPageIndex = metadata.StartingPageIndex;
         var limit = metadata.Limit;
         var headers = metadata.Headers;
-        var jsonObjectNavigation = metadata.JsonObjectNavigation;
+        var jsonObjectNavigationToArray = metadata.JsonObjectNavigationToArray;
+        var jsonObjectNavigationToUrl = metadata.JsonObjectNavigationToUrl;
         tags ??= BooruRegex().Match(CurrentUrl).Groups[1].Value;
         tags = Uri.UnescapeDataString(tags);
         var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
@@ -696,9 +697,9 @@ public abstract partial class HtmlParser : IDisposable
             throw new RipperException("Failed to deserialize json");
         }
 
-        if (jsonObjectNavigation is not null)
+        if (jsonObjectNavigationToArray is not null)
         {
-            json = jsonObjectNavigation.Aggregate(json, (current, obj) => current[obj]!);
+            json = jsonObjectNavigationToArray.Aggregate(json, (current, obj) => current[obj]!);
         }
 
         var data = json.AsArray();
@@ -706,7 +707,7 @@ public abstract partial class HtmlParser : IDisposable
         var pid = startingPageIndex + 1;
         while (true)
         {
-            var urls = data.Select(post => post!["file_url"]!.Deserialize<string>()!);
+            var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl));
             images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
             if (data.Count < limit)
             {
@@ -716,9 +717,9 @@ public abstract partial class HtmlParser : IDisposable
             response = await session.GetAsync(
                 $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}");
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
-            if (jsonObjectNavigation is not null)
+            if (jsonObjectNavigationToArray is not null)
             {
-                json = jsonObjectNavigation.Aggregate(json, (current, obj) => current![obj]);
+                json = jsonObjectNavigationToArray.Aggregate(json, (current, obj) => current![obj]);
             }
 
             data = json!.AsArray();
@@ -726,6 +727,14 @@ public abstract partial class HtmlParser : IDisposable
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
+
+        string GetUrl(JsonNode json, string[] jsonNavigation)
+        {
+            json = jsonNavigation.Aggregate(json, (current, nav) => current[nav]!);
+            var url = json.Deserialize<string>()!;
+
+            return url;
+        }
     }
 
     #endregion
