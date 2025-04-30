@@ -36,6 +36,8 @@ public class MeijuntuParser : HtmlParser
             {
                 soup = await Soupify($"{baseUrl}-{i+2}.html");
             }
+            
+            await Task.Delay(250);
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
