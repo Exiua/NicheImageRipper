@@ -6,6 +6,8 @@ public class WebDriverPool : IDisposable
     private readonly WebDriverSet _availableNonHeadlessDrivers;
     private readonly int _maxCapacity;
     
+    private bool _disposed;
+    
     private int CurrentCount => _availableHeadlessDrivers.CurrentCount + _availableNonHeadlessDrivers.CurrentCount;
     
     public WebDriverPool(int maxCapacity)
@@ -51,8 +53,19 @@ public class WebDriverPool : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        
+        _disposed = true;
         _availableHeadlessDrivers.Dispose();
         _availableNonHeadlessDrivers.Dispose();
         GC.SuppressFinalize(this);
+    }
+    
+    ~WebDriverPool()
+    {
+        Dispose();
     }
 }

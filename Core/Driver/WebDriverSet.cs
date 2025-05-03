@@ -10,6 +10,8 @@ public class WebDriverSet : IDisposable
     private readonly SemaphoreSlim _semaphore;
     private readonly int _maxCapacity;
     private readonly bool _headless;
+    
+    private bool _disposed;
 
     public int CurrentCount { get; set; }
 
@@ -108,7 +110,7 @@ public class WebDriverSet : IDisposable
         Log.Debug("Destroyed a WebDriver {{ headless = {Headless} }}", _headless);
     }
     
-    private WebDriver CheckWebDriverHealth(WebDriver driver)
+    private static WebDriver CheckWebDriverHealth(WebDriver driver)
     {
         try
         {
@@ -130,6 +132,12 @@ public class WebDriverSet : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        
+        _disposed = true;
         _semaphore.Dispose();
         foreach (var driver in _availableDrivers)
         {
@@ -145,5 +153,10 @@ public class WebDriverSet : IDisposable
         
         _availableDrivers.Clear();
         GC.SuppressFinalize(this);
+    }
+    
+    ~WebDriverSet()
+    {
+        Dispose();
     }
 }

@@ -13,6 +13,8 @@ public class WebDriver : IDisposable
     public Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
     public FirefoxDriver Driver { get; set; }
     public bool IsHeadless { get; }
+    
+    private bool _disposed;
 
     public string CurrentUrl
     {
@@ -112,7 +114,18 @@ public class WebDriver : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        
+        _disposed = true;
         Driver.Dispose();
         GC.SuppressFinalize(this);
+    }
+    
+    ~WebDriver()
+    {
+        Dispose();
     }
 }
