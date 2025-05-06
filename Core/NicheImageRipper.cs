@@ -88,6 +88,8 @@ public partial class NicheImageRipper : IDisposable
     protected static HistoryManager HistoryDb => HistoryManager.Instance;
     
     protected bool Debugging { get; set; }
+    
+    private bool _disposed;
 
     public void LoadUrlFile(string filepath)
     {
@@ -134,7 +136,7 @@ public partial class NicheImageRipper : IDisposable
             {
                 if (UrlUtility.UrlCheck(normalizedUrl))
                 {
-                    if (!UrlQueue.Any(queuedUrl => CheckIfUrlsAreEqual(queuedUrl, normalizedUrl)))
+                    if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))
                     {
                         var result = AddToUrlQueue(normalizedUrl, i);
                         failedUrls.AddIfNotNull(result);
@@ -152,61 +154,6 @@ public partial class NicheImageRipper : IDisposable
         }
         
         return failedUrls;
-    }
-    
-    private static bool CheckIfUrlsAreEqual(string url1, string url2)
-    {
-        var host1 = new Uri(url1).Host;
-        var host2 = new Uri(url2).Host;
-        if (host1 != host2)
-        {
-            return false;
-        }
-        
-        if (host1.Contains("pornhub.com"))
-        {
-            return PornhubUrlEquality(url1, url2);
-        }
-
-        if (host1.Contains("yande") || host1.Contains("danbooru") || host1.Contains("gelbooru") || host1.Contains("rule34") || host1.Contains("booru.com"))
-        {
-            return BooruUrlEquality(url1, url2);
-        }
-        
-        var normalizedUrl1 = url1.Split("?")[0];
-        var normalizedUrl2 = url2.Split("?")[0];
-        return normalizedUrl1 == normalizedUrl2;
-    }
-
-    private static bool BooruUrlEquality(string url1, string url2)
-    {
-        var tags1 = BooruRegex().Match(url1).Groups[1].Value;
-        var tags2 = BooruRegex().Match(url2).Groups[1].Value;
-        return tags1 == tags2;
-    }
-
-    private static bool PornhubUrlEquality(string url1, string url2)
-    {
-        if(url1.Contains("view_video"))
-        {
-            if(!url2.Contains("view_video"))
-            {
-                return false;
-            }
-
-            var viewKey1 = PornhubViewKeyRegex().Match(url1).Groups[1].Value;
-            var viewKey2 = PornhubViewKeyRegex().Match(url2).Groups[1].Value;
-            return viewKey1 == viewKey2;
-        }
-
-        if (url2.Contains("view_video"))
-        {
-            return false;
-        }
-
-        var url1Parts = url1.Split("/");
-        var url2Parts = url2.Split("/");
-        return url1Parts[4] == url2Parts[4];
     }
     
     public static string NormalizeUrl(string url)
@@ -308,12 +255,12 @@ public partial class NicheImageRipper : IDisposable
         }
         
         var url = UrlQueue[0];
-        Log.Information(url);
+        Log.Information(url); // This is done to output the URL without the enclosing quotes
         Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Log.Debug("Ripper created");
         Interrupted = true;
-        var retry = 0;
-        do
+        
+        for (var retry = 0; retry < MaxRetries; retry++)
         {
             try
             {
@@ -322,23 +269,22 @@ public partial class NicheImageRipper : IDisposable
             }
             catch (Exception e)
             {
-                if (retry != MaxRetries - 1)
+                if (retry == MaxRetries - 1)
                 {
-                    retry++;
-                    await Task.Delay(RetryDelay);
-                    if (Debugging)
-                    {
-                        Log.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
-                        LogMessageToFile("Press any key to continue...");
-                        Console.ReadKey();
-                    }
-                    continue;
+                    Log.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                    throw;
                 }
 
-                Log.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
-                throw;
+                await Task.Delay(RetryDelay);
+                if (Debugging)
+                {
+                    Log.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
+                    LogMessageToFile("Press any key to continue...");
+                    Console.ReadKey();
+                }
             }
-        } while (retry < MaxRetries);
+        }
+        
         Interrupted = false;
         UrlQueue.RemoveAt(0);
         OnUrlQueueUpdated?.Invoke();
@@ -443,8 +389,8 @@ public partial class NicheImageRipper : IDisposable
             return new Version(0, 0, 0);
         }
     }
-    
-    public static void NormalizeUrlsInDb()
+
+    protected static void NormalizeUrlsInDb()
     {
         const int batchSize = 1000;
         
@@ -555,24 +501,21 @@ public partial class NicheImageRipper : IDisposable
         if (duplicate is not null)
         {
             Log.Debug("Duplicate found: {Url}; Updating...", url);
-            var now = DateTime.Now;
-            //History.Remove(duplicate);
-            duplicate.Date = now;   // Update date
-            //History.Add(duplicate); // Move to the end
-            HistoryDb.UpdateDateByUrl(url, now);
+            HistoryDb.UpdateDateByUrl(url, DateTime.Now);
         }
         else
         {
             Log.Debug("Adding to history: {Url}", url);
             var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
-            //History.Add(entry);
             HistoryDb.InsertHistoryRecord(entry);
         }
     }
 
+    // TODO: This should probably be replaced with a proper TUI sink
     public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information, bool newLine = true)
     {
         DisableConsoleLogging();
+        
         if (newLine)
         {
             Console.WriteLine(message);
@@ -581,6 +524,7 @@ public partial class NicheImageRipper : IDisposable
         {
             Console.Write(message);
         }
+        
         Log.Write(level, message);
         EnableConsoleLogging();
     }
@@ -602,10 +546,10 @@ public partial class NicheImageRipper : IDisposable
     private static ExternalFeatureSupport GetExternalFeatureSupport()
     {
         var support = ExternalFeatureSupport.None;
-        support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : 0;
-        support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : 0;
-        support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : 0;
-        support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : 0;
+        support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : ExternalFeatureSupport.None;
+        support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : ExternalFeatureSupport.None;
+        support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : ExternalFeatureSupport.None;
+        support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : ExternalFeatureSupport.None;
         return support;
     }
     
@@ -659,8 +603,19 @@ public partial class NicheImageRipper : IDisposable
     
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        
+        _disposed = true;
         WebDriverPool.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    ~NicheImageRipper()
+    {
+        Dispose();
     }
 
     [GeneratedRegex("viewkey=([0-9a-z]+)")]

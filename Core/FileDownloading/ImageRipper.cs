@@ -48,7 +48,6 @@ public partial class ImageRipper : IDisposable
     public PostDownloadAction PostDownloadAction { get; set; }
     private string GivenUrl { get; set; }
     private bool Interrupted { get; set; }
-    public bool LoggedIn { get; set; }
     private Dictionary<string, bool> PersistentLogins { get; }
     private string SavePath { get; }
     private HttpClient Session { get; }
@@ -58,6 +57,7 @@ public partial class ImageRipper : IDisposable
     private double FailureThreshold { get; set; } = 0.5;
     private WebDriverPool DriverPool { get; }
     private WebDriver WebDriver { get; set; }
+    public bool Paused { get; set; }
     
     private FirefoxDriver Driver => WebDriver.Driver;
 
@@ -71,10 +71,8 @@ public partial class ImageRipper : IDisposable
         FilenameScheme = filenameScheme;
         UnzipProtocol = unzipProtocol;
         PostDownloadAction = postDownloadAction;
-        //FolderInfo = null;
         GivenUrl = "";
         Interrupted = false;
-        LoggedIn = File.Exists("cookies.pkl");
         PersistentLogins = new Dictionary<string, bool>();
         // Create copy of save path, so that config can be changed without affecting current ripper instance
         SavePath = Config.SavePath;
@@ -102,7 +100,7 @@ public partial class ImageRipper : IDisposable
         await FileGetter();
     }
 
-    private async Task FileGetter()
+    private void LoadCorrectWebDriver()
     {
         // TODO: Figure out better implementation for this
         if (SiteName == "quatvn")
@@ -127,6 +125,28 @@ public partial class ImageRipper : IDisposable
                 WebDriver = DriverPool.AcquireDriver(true);
             }
         }
+    }
+
+    private async Task<int> GetStartIndex()
+    {
+        int start;
+        if (File.Exists(RipIndex))
+        {
+            var index = await File.ReadAllTextAsync(RipIndex);
+            start = int.Parse(index);
+            File.Delete(RipIndex);
+        }
+        else
+        {
+            start = FolderInfo.MustGenerateManually ? 1 : 0;
+        }
+        
+        return start;
+    }
+
+    private async Task FileGetter()
+    {
+        LoadCorrectWebDriver();
         
         var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
         Log.Debug("Constructed HtmlParser");
@@ -141,114 +161,19 @@ public partial class ImageRipper : IDisposable
         
         Directory.CreateDirectory(fullPath);
 
-        int start;
-        if (File.Exists(RipIndex))
-        {
-            var index = await File.ReadAllTextAsync(RipIndex);
-            start = int.Parse(index);
-            File.Delete(RipIndex);
-        }
-        else
-        {
-            start = FolderInfo.MustGenerateManually ? 1 : 0;
-        }
-
+        var start = await GetStartIndex();
         var downloadStats = new DownloadStats();
         var filesHashes = new HashSet<HashKey>();
         // Can get the image through numerically ascending url for imhentai and hentairox
         //   (hard to account for gifs and other extensions otherwise)
         if (FolderInfo.MustGenerateManually)
         {
-            // Gets the general url for all images in this album
-            var imageLink = FolderInfo.Urls[0];
-            var trimmedUrl = TrimUrl(imageLink.Url);
-            imageLink.Url = trimmedUrl;
-            string[] extensions = [".webp", ".jpg", ".gif", ".png" , ".webm", ".mp4", "t.jpg"];
-            
-            // Downloads all images from the general url by incrementing the file number
-            //  (e.g., https://domain/gallery/##.jpg)
-            for (var index = start; index < FolderInfo.NumUrls + 1; index++)
-            {
-                CurrentIndex = index;
-                
-                // while(pause) { sleep(1); }
-
-                foreach (var (i, ext) in extensions.Enumerate())
-                {
-                    try
-                    {
-                        var fullFilename = $"{index}{ext}";
-                        var imagePath = Path.Combine(fullPath, fullFilename);
-                        await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
-                        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
-                        {
-                            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
-                            if (duplicate)
-                            {
-                                downloadStats.NumDuplicates++;
-                            }
-                        }
-                        break;
-                    }
-                    catch // TODO: Narrow down exceptions
-                    {
-                        if (i == 3)
-                        {
-                            downloadStats.FailedDownloads++;
-                            Log.Warning("Image not found");
-                        }
-                    }
-                }
-            }
+            await HandleGeneratingManually(start, fullPath, filesHashes, downloadStats);
         }
         // Easier to put all image url in a list and then download for these sites
         else
         {
-            switch (SiteName)
-            {
-                case "deviantart":
-                    await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
-                    break;
-                default:
-                {
-                    foreach (var (i, link) in FolderInfo.Urls[start..].Enumerate())
-                    {
-                        var index = start + i;
-                        CurrentIndex = index;
-                        // while(pause) { sleep(1); }
-                        await Task.Delay((int) SleepTime * MillisecondsInSecond);
-                        try
-                        {
-                            var filename = link.Filename;
-                            var imagePath = Path.Combine(fullPath, filename);
-                            await DownloadFromList(link, imagePath, index, downloadStats);
-                            if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
-                            {
-                                var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
-                                if (duplicate)
-                                {
-                                    downloadStats.NumDuplicates++;
-                                }
-                            }
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            if (link.LinkInfo == LinkInfo.IframeMedia)
-                            {
-                                downloadStats.FailedDownloads++;
-                                await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
-                            }
-                        }
-                        catch
-                        {
-                            await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
-                            throw;
-                        }
-                    }
-
-                    break;
-                }
-            }
+            await HandleDownloadingFromList(start, fullPath, filesHashes, downloadStats);
         }
         
         if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > FailureThreshold)
@@ -268,8 +193,110 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
-        Log.Information(downloadResults);
-        Log.Information("Download Complete"); //{#00FF00}
+        Log.Information(downloadResults); // This is done to avoid the enclosing quotes around the string
+        Log.Information("Download Complete");
+    }
+
+    private async Task HandleGeneratingManually(int start, string fullPath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
+    {
+        // Gets the general url for all images in this album
+        var imageLink = FolderInfo.Urls[0];
+        var trimmedUrl = TrimUrl(imageLink.Url);
+        imageLink.Url = trimmedUrl;
+        string[] extensions = [".webp", ".jpg", ".gif", ".png" , ".webm", ".mp4", "t.jpg"];
+            
+        // Downloads all images from the general url by incrementing the file number
+        //  (e.g., https://domain/gallery/##.jpg)
+        for (var index = start; index < FolderInfo.NumUrls + 1; index++)
+        {
+            CurrentIndex = index;
+
+            while (Paused)
+            {
+                await Task.Delay(1000);
+            }
+
+            foreach (var (i, ext) in extensions.Enumerate())
+            {
+                try
+                {
+                    var fullFilename = $"{index}{ext}";
+                    var imagePath = Path.Combine(fullPath, fullFilename);
+                    await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
+                    if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                    {
+                        var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                        if (duplicate)
+                        {
+                            downloadStats.NumDuplicates++;
+                        }
+                    }
+                    break;
+                }
+                catch // TODO: Narrow down exceptions
+                {
+                    if (i == 3)
+                    {
+                        downloadStats.FailedDownloads++;
+                        Log.Warning("Image not found");
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task HandleDownloadingFromList(int start, string fullPath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
+    {
+        switch (SiteName)
+        {
+            case "deviantart":
+                // Delegated to external tool
+                await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
+                break;
+            default:
+            {
+                foreach (var (i, link) in FolderInfo.Urls[start..].Enumerate())
+                {
+                    var index = start + i;
+                    CurrentIndex = index;
+                    while (Paused)
+                    {
+                        await Task.Delay(1000);
+                    }
+                    
+                    await Task.Delay((int) SleepTime * MillisecondsInSecond);
+                    try
+                    {
+                        var filename = link.Filename;
+                        var imagePath = Path.Combine(fullPath, filename);
+                        await DownloadFromList(link, imagePath, index, downloadStats);
+                        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                        {
+                            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                            if (duplicate)
+                            {
+                                downloadStats.NumDuplicates++;
+                            }
+                        }
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        if (link.LinkInfo == LinkInfo.IframeMedia)
+                        {
+                            downloadStats.FailedDownloads++;
+                            await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
+                        }
+                    }
+                    catch
+                    {
+                        await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
+                        throw;
+                    }
+                }
+
+                break;
+            }
+        }
     }
     
     private static async Task<bool> DeviantArtDownload(string fullPath, string url)
