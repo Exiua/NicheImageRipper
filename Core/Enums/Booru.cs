@@ -1,3 +1,5 @@
+using Core.Configuration;
+
 namespace Core.Enums;
 
 public enum Booru
@@ -11,7 +13,9 @@ public enum Booru
 
 public class BooruMetadata
 {
+    public required Booru Booru { get; init; }
     public required string SiteName { get; init; }
+    // BaseUrl must end with either ? or &
     public required string BaseUrl { get; init; }
     public required string PageParameterName { get; init; }
     public int StartingPageIndex { get; init; }
@@ -19,6 +23,60 @@ public class BooruMetadata
     public Dictionary<string, string>? Headers { get; init; }
     public string[]? JsonObjectNavigationToArray { get; init; }
     public string[] JsonObjectNavigationToUrl { get; init; } = ["file_url"];
+
+    private static GeneralConfig Config => Configuration.Config.Instance;
+
+    // The full base url must end with either ? or &
+    public string GetFullBaseUrl()
+    {
+        switch (Booru)
+        {
+            case Booru.Danbooru:
+            {
+                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Danbooru];
+                if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                {
+                    return $"{BaseUrl}api_key={password}&login={username}&";
+                }
+
+                return BaseUrl;
+            }
+            case Booru.Gelbooru:
+            {
+                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Gelbooru];
+                if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                {
+                    return $"{BaseUrl}api_key={password}&user_id={username}&";
+                }
+                return BaseUrl;
+            }
+            case Booru.Rule34:
+            {
+                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Rule34];
+                // TODO: Find out how to authenticate with Rule34 if it's possible
+                return BaseUrl;
+            }
+            case Booru.Yandere:
+            {
+                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Yandere];
+                // TODO: Find out how to authenticate with Yandere if it's possible
+                // Signups are disabled (as of 2025-05-06), so unable to test this
+                return BaseUrl;
+            }
+            case Booru.E621:
+            {
+                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.E621];
+                if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                {
+                    return $"{BaseUrl}login={username}&api_key={password}&";
+                }
+                
+                return BaseUrl;
+            }
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
 }
 
 public static class BooruExtensionMethods
@@ -29,6 +87,7 @@ public static class BooruExtensionMethods
         {
             Booru.Danbooru => new BooruMetadata
             {
+                Booru = site,
                 SiteName = "Danbooru",
                 BaseUrl = "https://danbooru.donmai.us/posts.json?",
                 PageParameterName = "page",
@@ -41,6 +100,7 @@ public static class BooruExtensionMethods
             },
             Booru.Gelbooru => new BooruMetadata
             {
+                Booru = site,
                 SiteName = "Gelbooru",
                 BaseUrl = "https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&",
                 PageParameterName = "pid",
@@ -50,6 +110,7 @@ public static class BooruExtensionMethods
             },
             Booru.Rule34 => new BooruMetadata
             {
+                Booru = site,
                 SiteName = "Rule34",
                 BaseUrl = "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
                 PageParameterName = "pid",
@@ -58,6 +119,7 @@ public static class BooruExtensionMethods
             },
             Booru.Yandere => new BooruMetadata
             {
+                Booru = site,
                 SiteName = "Yande.re",
                 BaseUrl = "https://yande.re/post.json?",
                 PageParameterName = "page",
@@ -66,6 +128,7 @@ public static class BooruExtensionMethods
             },
             Booru.E621 => new BooruMetadata
             {
+                Booru = site,
                 SiteName = "E621",
                 BaseUrl = "https://e621.net/posts.json?",
                 PageParameterName = "page",

@@ -18,7 +18,12 @@ public class Config
             ConfigKeys.LoginKeys.Mega,
             ConfigKeys.LoginKeys.TitsInTops,
             ConfigKeys.LoginKeys.Newgrounds,
-            ConfigKeys.LoginKeys.Nijie
+            ConfigKeys.LoginKeys.Nijie,
+            ConfigKeys.LoginKeys.Danbooru,
+            ConfigKeys.LoginKeys.Gelbooru,
+            ConfigKeys.LoginKeys.Rule34,
+            ConfigKeys.LoginKeys.Yandere,
+            ConfigKeys.LoginKeys.E621,
         ];
         foreach (var site in siteLogins)
         {

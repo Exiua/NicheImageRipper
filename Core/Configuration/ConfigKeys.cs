@@ -10,6 +10,11 @@ public static class ConfigKeys
         public const string TitsInTops = "TitsInTops";
         public const string Newgrounds = "Newgrounds";
         public const string Nijie = "Nijie";
+        public const string Danbooru = "Danbooru";
+        public const string Gelbooru = "Gelbooru";
+        public const string Rule34 = "Rule34";
+        public const string Yandere = "Yandere";
+        public const string E621 = "E621";
     }
 
     public static class KeyKeys

@@ -646,7 +646,7 @@ public abstract partial class HtmlParser : IDisposable
     {
         var metadata = site.GetMetadata();
         var siteName = metadata.SiteName;
-        var baseUrl = metadata.BaseUrl;
+        var baseUrl = metadata.GetFullBaseUrl();
         var pageParameterName = metadata.PageParameterName;
         var startingPageIndex = metadata.StartingPageIndex;
         var limit = metadata.Limit;
