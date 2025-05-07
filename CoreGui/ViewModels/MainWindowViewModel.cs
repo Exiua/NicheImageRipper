@@ -165,7 +165,7 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _ripper = new NicheImageRipper();
-        RipCommand = ReactiveCommand.Create(QueueAndRip);
+        RipCommand = ReactiveCommand.CreateRunInBackground(QueueAndRip);
         ClearCacheCommand = ReactiveCommand.Create(ClearCache);
         DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
         UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);

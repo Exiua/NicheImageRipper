@@ -653,6 +653,7 @@ public abstract partial class HtmlParser : IDisposable
         var headers = metadata.Headers;
         var jsonObjectNavigationToArray = metadata.JsonObjectNavigationToArray;
         var jsonObjectNavigationToUrl = metadata.JsonObjectNavigationToUrl;
+        var delay = metadata.Delay;
         tags ??= BooruRegex().Match(CurrentUrl).Groups[1].Value;
         tags = Uri.UnescapeDataString(tags);
         var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
@@ -665,7 +666,7 @@ public abstract partial class HtmlParser : IDisposable
             }
         }
 
-        var querySeparator = baseUrl[^1] == '&' ? "" : "&";
+        var querySeparator = baseUrl[^1] == '&' || baseUrl[^1] == '?' ? "" : "&";
 
         var requestUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}";
         var response = await session.GetAsync(requestUrl);
@@ -724,6 +725,11 @@ public abstract partial class HtmlParser : IDisposable
 
             data = json!.AsArray();
             pid++;
+            
+            if (delay > 0)
+            {
+                await Task.Delay(delay);
+            }
         }
 
         return new RipInfo(images, dirName, FilenameScheme);

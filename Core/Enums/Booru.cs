@@ -23,6 +23,7 @@ public class BooruMetadata
     public Dictionary<string, string>? Headers { get; init; }
     public string[]? JsonObjectNavigationToArray { get; init; }
     public string[] JsonObjectNavigationToUrl { get; init; } = ["file_url"];
+    public int Delay { get; init; } = 250;
 
     private static GeneralConfig Config => Configuration.Config.Instance;
 
@@ -139,7 +140,8 @@ public static class BooruExtensionMethods
                     {"User-Agent", "NicheImageRipper"}
                 },
                 JsonObjectNavigationToArray = ["posts"],
-                JsonObjectNavigationToUrl = ["file", "url"]
+                JsonObjectNavigationToUrl = ["file", "url"],
+                Delay = 520
             },
             _ => throw new ArgumentOutOfRangeException(nameof(site), site, null)
         };
