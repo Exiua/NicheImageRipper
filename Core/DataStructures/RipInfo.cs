@@ -167,11 +167,7 @@ public class RipInfo
         var newUrls = new List<StringImageLinkWrapper>();
         foreach (var url in urls)
         {
-            if (url.Url is not null && urlSet.Add(url.Url))
-            {
-                newUrls.Add(url);
-            }
-            else if (url.ImageLink is not null && urlSet.Add(url.ImageLink.Url))
+            if (url.Url is not null && urlSet.Add(url.Url) || url.ImageLink is not null && urlSet.Add(url.ImageLink.Url))
             {
                 newUrls.Add(url);
             }

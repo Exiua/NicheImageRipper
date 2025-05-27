@@ -652,6 +652,7 @@ public abstract partial class HtmlParser : IDisposable
         var limit = metadata.Limit;
         var headers = metadata.Headers;
         var jsonObjectNavigationToArray = metadata.JsonObjectNavigationToArray;
+        var arrayMayNotExist = metadata.ArrayMayNotExist;
         var jsonObjectNavigationToUrl = metadata.JsonObjectNavigationToUrl;
         var delay = metadata.Delay;
         tags ??= BooruRegex().Match(CurrentUrl).Groups[1].Value;
@@ -669,6 +670,7 @@ public abstract partial class HtmlParser : IDisposable
         var querySeparator = baseUrl[^1] == '&' || baseUrl[^1] == '?' ? "" : "&";
 
         var requestUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}";
+        Log.Debug("Request URL: {RequestUrl}", requestUrl);
         var response = await session.GetAsync(requestUrl);
         JsonNode? json;
         if (!response.IsSuccessStatusCode)
@@ -700,10 +702,11 @@ public abstract partial class HtmlParser : IDisposable
 
         if (jsonObjectNavigationToArray is not null)
         {
-            json = jsonObjectNavigationToArray.Aggregate(json, (current, obj) => current[obj]!);
+            json = GetUrlArray(json, jsonObjectNavigationToArray, arrayMayNotExist);
         }
 
         var data = json.AsArray();
+        Log.Debug("Data: {@Data}", data);
         var images = new List<StringImageLinkWrapper>();
         var pid = startingPageIndex + 1;
         while (true)
@@ -720,7 +723,7 @@ public abstract partial class HtmlParser : IDisposable
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             if (jsonObjectNavigationToArray is not null)
             {
-                json = jsonObjectNavigationToArray.Aggregate(json, (current, obj) => current![obj]);
+                json = GetUrlArray(json, jsonObjectNavigationToArray, arrayMayNotExist);
             }
 
             data = json!.AsArray();
@@ -733,14 +736,34 @@ public abstract partial class HtmlParser : IDisposable
         }
 
         return new RipInfo(images, dirName, FilenameScheme);
+    }
+    
+    private static string GetUrl(JsonNode json, string[] jsonNavigation)
+    {
+        json = jsonNavigation.Aggregate(json, (current, nav) => current[nav]!);
+        var url = json.Deserialize<string>()!;
 
-        string GetUrl(JsonNode json, string[] jsonNavigation)
+        return url;
+    }
+
+    private static JsonNode GetUrlArray(JsonNode json, string[] jsonNavigation, bool arrayMayNotExist)
+    {
+        foreach (var name in jsonNavigation)
         {
-            json = jsonNavigation.Aggregate(json, (current, nav) => current[nav]!);
-            var url = json.Deserialize<string>()!;
+            if (json[name] is null)
+            {
+                if (arrayMayNotExist)
+                {
+                    return new JsonArray();
+                }
 
-            return url;
+                throw new RipperException($"Failed to find json object: {name}");
+            }
+                
+            json = json[name]!;
         }
+
+        return json;
     }
 
     #endregion

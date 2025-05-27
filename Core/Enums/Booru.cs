@@ -22,6 +22,7 @@ public class BooruMetadata
     public int Limit { get; init; }
     public Dictionary<string, string>? Headers { get; init; }
     public string[]? JsonObjectNavigationToArray { get; init; }
+    public bool ArrayMayNotExist { get; init; } = false;
     public string[] JsonObjectNavigationToUrl { get; init; } = ["file_url"];
     public int Delay { get; init; } = 250;
 
@@ -107,7 +108,8 @@ public static class BooruExtensionMethods
                 PageParameterName = "pid",
                 StartingPageIndex = 0,
                 Limit = 100,
-                JsonObjectNavigationToArray = ["post"]
+                JsonObjectNavigationToArray = ["post"],
+                ArrayMayNotExist = true
             },
             Booru.Rule34 => new BooruMetadata
             {

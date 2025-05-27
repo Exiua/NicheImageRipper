@@ -15,7 +15,7 @@ public class AllBooruParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var tags = BooruRegex().Match(GivenUrl).Groups[1].Value;
-        var boorus = new[] { Booru.Danbooru, Booru.Gelbooru, Booru.Rule34, Booru.Yandere };
+        var boorus = Enum.GetValues<Booru>();
         var images = new List<StringImageLinkWrapper>();
         foreach (var booru in boorus)
         {
