@@ -2,6 +2,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
 using OpenQA.Selenium;
+using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -18,28 +19,31 @@ public class ToonilyParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        var btn = Driver.TryFindElement(By.XPath("//div[@id='show-more-chapters']"));
-        if (btn is not null)
-        {
-            ScrollElementIntoView(btn);
-            await Task.Delay(250);
-            btn.Click();
-            await Task.Delay(1000);
-        }
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='name box']")
-                            .SelectSingleNode(".//h1")
-                            .InnerText;
-        var chapterList = soup.SelectSingleNode("//ul[@id='chapter-list']")
-                                .SelectNodes(".//li");
-        var chapters = chapterList.Select(chapter => $"https://toonily.me{chapter.SelectSingleNode(".//a").GetHref()}");
+        var dirName = soup.SelectSingleNode("//div[@class='post-title']/h1")!.InnerText;
+        var chapterList = soup.SelectSingleNode("//ul[@class='main version-chap no-volumn']")!
+                              .SelectNodes("./li")!
+                              .Select(li =>
+                               {
+                                   var a = li.SelectSingleNode("./a");
+                                   var href = a!.GetHref();
+                                   var text = a!.InnerText.Trim();
+                                   return (href, text);
+                               })
+                              .Reverse();
+
         var images = new List<StringImageLinkWrapper>();
-        foreach (var chapter in chapters.Reverse())
+        foreach (var (chapter, name) in chapterList)
         {
-            soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs {ScrollBy = true, Increment = 5000});
-            var imageList = soup.SelectSingleNode("//div[@id='chapter-images']")
-                                .SelectNodes(".//img");
-            images.AddRange(imageList.Select(img => (StringImageLinkWrapper)img.GetSrc()));
+            Log.Information("Parsing {ChapterName}", name);
+            soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 5000, ScrollPauseTime = 1000 });
+            var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!
+                                .SelectNodes("./div")!
+                                .Select(div => div.SelectSingleNode("./img"))
+                                .Select(img => img!.GetSrc().Trim())
+                                .ToStringImageLinks();
+            
+            images.AddRange(imageList);
         }
     
         return new RipInfo(images, dirName, FilenameScheme);

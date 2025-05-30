@@ -151,7 +151,7 @@ public partial class ImageRipper : IDisposable
         var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
         Log.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
-        Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
+        //Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
         //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)

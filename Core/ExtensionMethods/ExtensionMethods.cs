@@ -82,6 +82,11 @@ public static class ExtensionMethods
         return enumerable.Any(other.Contains);
     }
 
+    public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> src) where T : class
+    {
+        return src.OfType<T>();
+    }
+    
     public static List<T> RemoveDuplicates<T>(this IEnumerable<T> src)
     {
         return src.Distinct().ToList();

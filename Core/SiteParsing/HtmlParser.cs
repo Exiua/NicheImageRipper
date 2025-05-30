@@ -695,6 +695,7 @@ public abstract partial class HtmlParser : IDisposable
             }
         }
 
+        Log.Debug("Got Response");
         if (json is null)
         {
             throw new RipperException("Failed to deserialize json");
@@ -705,13 +706,17 @@ public abstract partial class HtmlParser : IDisposable
             json = GetUrlArray(json, jsonObjectNavigationToArray, arrayMayNotExist);
         }
 
+        Log.Debug("Got Json Array");
         var data = json.AsArray();
-        Log.Debug("Data: {@Data}", data);
+        //Log.Debug("Data: {@Data}", data);
         var images = new List<StringImageLinkWrapper>();
         var pid = startingPageIndex + 1;
         while (true)
         {
-            var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl));
+            Log.Debug("Fetching page {PageNumber}", pid);
+            var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl))
+                           .OfType<string>()
+                           .ToStringImageLinks();
             images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
             if (data.Count < limit)
             {
@@ -723,7 +728,7 @@ public abstract partial class HtmlParser : IDisposable
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             if (jsonObjectNavigationToArray is not null)
             {
-                json = GetUrlArray(json, jsonObjectNavigationToArray, arrayMayNotExist);
+                json = GetUrlArray(json!, jsonObjectNavigationToArray, arrayMayNotExist);
             }
 
             data = json!.AsArray();
@@ -738,10 +743,10 @@ public abstract partial class HtmlParser : IDisposable
         return new RipInfo(images, dirName, FilenameScheme);
     }
     
-    private static string GetUrl(JsonNode json, string[] jsonNavigation)
+    private static string? GetUrl(JsonNode json, string[] jsonNavigation)
     {
         json = jsonNavigation.Aggregate(json, (current, nav) => current[nav]!);
-        var url = json.Deserialize<string>()!;
+        var url = json.Deserialize<string>();
 
         return url;
     }

@@ -60,6 +60,12 @@ public struct StringImageLinkWrapper
         return Url ?? ImageLink?.Url ?? throw new RipperException("StringImageLinkWrapper is empty.");
     }
 
+    // Debugging Use Only
+    private bool IsInvalid()
+    {
+        return Url is null && ImageLink is null;
+    }
+
     public static implicit operator StringImageLinkWrapper(string url) => new(url);
     public static implicit operator StringImageLinkWrapper(ImageLink imageLink) => new(imageLink);
     public static implicit operator string(StringImageLinkWrapper wrapper)
