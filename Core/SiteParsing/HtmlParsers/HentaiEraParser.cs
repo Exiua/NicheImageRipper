@@ -26,6 +26,6 @@ public class HentaiEraParser : HtmlParser
         var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNode("//img[@class='lazy entered loaded']");
         var baseUrl = imageContainer.GetAttributeValue("data-src");
 
-        return RipInfo.GenerateInfo(baseUrl, dirName, pageCount);
+        return RipInfo.FromGenerateInfo(baseUrl, dirName, pageCount);
     }
 }

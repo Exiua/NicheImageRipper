@@ -894,24 +894,18 @@ public partial class ImageRipper : IDisposable
         }
         catch (HttpRequestException e) when (e.InnerException is InvalidOperationException)
         {
-            Log.Error($"Unable to establish a connection to {url}");
+            Log.Error("Unable to establish a connection to {Url}", url);
             return false;
         }
         catch (HttpRequestException e) when (e.InnerException is SocketException)
         {
-            Log.Error($"Unable to establish a connection to {url}");
+            Log.Error("Unable to establish a connection to {Url}", url);
             return false;
         }
 
         if (!response.IsSuccessStatusCode)
         {
-            if(response.StatusCode == HttpStatusCode.Forbidden && SiteName == "kemono" && !url.Contains(".psd"))
-            {
-                Log.Information("Wrong subdomain, trying again...");
-                throw new BadSubdomainException();
-            }
-
-            Log.Warning($"<Response {response.StatusCode}>");
+            Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
             await Task.Delay(500);
             
             switch (response.StatusCode)
@@ -929,6 +923,15 @@ public partial class ImageRipper : IDisposable
                 case HttpStatusCode.Unauthorized:
                     return false;
                 case HttpStatusCode.Forbidden:
+                    switch (SiteName)
+                    {
+                        case "kemono" when !url.Contains(".psd"):
+                            Log.Information("Wrong subdomain, trying again...");
+                            throw new BadSubdomainException();
+                        case "e-hentai":
+                            await Task.Delay(30 * MillisecondsInSecond); // Wait for 30 seconds before retrying
+                            break;
+                    }
                     return false;
                 case HttpStatusCode.BadGateway:
                     return false;

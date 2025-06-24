@@ -35,6 +35,6 @@ public class HentaiHandParser : HtmlParser
                           .GetSrc()
                           .Replace("/thumbnails/", "/images/");
 
-        return RipInfo.GenerateInfo(baseUrl, dirName, pageCount);
+        return RipInfo.FromGenerateInfo(baseUrl, dirName, pageCount);
     }
 }

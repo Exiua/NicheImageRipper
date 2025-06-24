@@ -63,10 +63,18 @@ public class EHentaiParser : HtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
+            // TODO: Handle links missing keystamp or fileindex
+            // TODO: Handle long downloads that may exceed link validity
+            // TODO: Handle files that download as invalid request
             Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
-            await Task.Delay(2500);
+            await Task.Delay(1000);
             soup = await Soupify(link);
             var img = soup.SelectNode("//img[@id='img']").GetSrc();
+            if (!img.Contains("keystamp") || !img.Contains("fileindex"))
+            {
+                Log.Warning("Url may not contain keystamp or fileindex: {img}", img);
+            }
+            
             images.Add(img);
         }
         

@@ -79,7 +79,11 @@ public abstract partial class HtmlParser : IDisposable
     public async Task<RipInfo> ParseSite(string url)
     {
         Log.Debug("Parsing {Url}", url);
-        if (File.Exists("partial.json"))
+        url = url.Replace("members.", "www.");
+        GivenUrl = url;
+        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        // e-hentai image links expire too quickly, so we need to parse the site every time
+        if (File.Exists("partial.json") && SiteName != "e-hentai")
         {
             Log.Debug("Partial save file found");
             var saveData = ReadPartialSave();
@@ -92,11 +96,8 @@ public abstract partial class HtmlParser : IDisposable
                 return value.RipInfo;
             }
         }
-
+        
         Log.Debug("No partial save found for site; Parsing site");
-        url = url.Replace("members.", "www.");
-        GivenUrl = url;
-        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         if (SiteName != "booru")
         {
             CurrentUrl = url;
