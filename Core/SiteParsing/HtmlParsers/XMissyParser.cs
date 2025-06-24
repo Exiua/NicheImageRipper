@@ -29,6 +29,6 @@ public class XMissyParser : HtmlParser
                             .Select(img => img.SelectSingleNode(".//img").GetNullableSrc() ?? img.SelectSingleNode(".//img").GetSrc())
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

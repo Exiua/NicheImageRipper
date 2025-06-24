@@ -41,6 +41,6 @@ public class ApComicsParser : HtmlParser
             images.AddRange(imgs);
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

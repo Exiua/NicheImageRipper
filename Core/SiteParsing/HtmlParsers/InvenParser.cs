@@ -25,6 +25,6 @@ public class InvenParser : HtmlParser
                             .Select(img => img.GetSrc().Split("?")[0])
                             .ToStringImageLinkWrapperList();
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

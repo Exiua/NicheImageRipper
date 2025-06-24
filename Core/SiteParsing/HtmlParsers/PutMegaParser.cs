@@ -42,6 +42,6 @@ public class PutMegaParser : HtmlParser
             soup = await Soupify("https://putmega.com" + nextPageUrl.Replace("&amp;", "&"), delay: 250);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

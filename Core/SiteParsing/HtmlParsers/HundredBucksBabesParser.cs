@@ -26,6 +26,6 @@ public class HundredBucksBabesParser : HtmlParser
                             .Select(img => Protocol + img.GetAttributeValue("data-url"))
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

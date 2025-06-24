@@ -83,7 +83,7 @@ public class SpankBangParser : HtmlParser
                 throw new ArgumentOutOfRangeException();
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     private async Task<string> GetVideoUrl()

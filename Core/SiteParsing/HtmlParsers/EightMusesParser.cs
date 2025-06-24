@@ -27,6 +27,6 @@ public class EightMusesParser : HtmlParser
                             .Select(img => "https://comics.8muses.com" + img.GetSrc().Replace("/th/", "/fm/"))
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

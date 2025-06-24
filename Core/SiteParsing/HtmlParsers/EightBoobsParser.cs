@@ -29,6 +29,6 @@ public class EightBoobsParser : HtmlParser
                                         .Remove("tn_"))
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

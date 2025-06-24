@@ -24,6 +24,6 @@ public class BestPrettyGirlParser : HtmlParser
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

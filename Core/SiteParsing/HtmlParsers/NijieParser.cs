@@ -94,7 +94,7 @@ public partial class NijieParser : HtmlParser
                             .SelectNodes("./div");
         if (doujins is null)
         {
-            return new RipInfo(images, dirName, FilenameScheme);
+            return RipInfo.FromUrlList(images, dirName, FilenameScheme);
         }
         
         posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNode(".//a").GetHref()));
@@ -126,7 +126,7 @@ public partial class NijieParser : HtmlParser
             images.AddRange(imgs);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     protected override async Task<bool> SiteLoginHelper()

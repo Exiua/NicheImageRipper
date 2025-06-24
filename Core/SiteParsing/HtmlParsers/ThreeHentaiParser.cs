@@ -31,6 +31,6 @@ public class ThreeHentaiParser : HtmlParser
                          .Select(src => src.Replace("t.", "."))
                          .ToStringImageLinkWrapperList();
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

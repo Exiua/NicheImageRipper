@@ -87,6 +87,6 @@ public class FlickrParser : HtmlParser
             images.Add(Protocol + imgUrl);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

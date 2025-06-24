@@ -48,6 +48,6 @@ public class ImgurParser : HtmlParser
         var dirName = jsonData["title"]!.Deserialize<string>()!;
         var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();
     
-        return new RipInfo(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme);
     }
 }

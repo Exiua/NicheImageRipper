@@ -26,6 +26,6 @@ public class ImgBoxParser : HtmlParser
                             .Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o"))
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

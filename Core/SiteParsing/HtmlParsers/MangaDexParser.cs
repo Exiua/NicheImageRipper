@@ -157,7 +157,7 @@ public partial class MangaDexParser : HtmlParser
             images.AddRange(chapterImages);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
     
     [GeneratedRegex(@"/title/([^/]+)")]

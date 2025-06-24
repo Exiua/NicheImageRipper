@@ -27,6 +27,6 @@ public class TheOmegaProjectParser : HtmlParser
                             .Select(img => img.GetSrc())
                             .ToStringImageLinkWrapperList();
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

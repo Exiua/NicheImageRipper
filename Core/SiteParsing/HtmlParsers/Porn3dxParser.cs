@@ -129,6 +129,6 @@ public class Porn3dxParser : HtmlParser
             }
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

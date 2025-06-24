@@ -22,6 +22,6 @@ public class DeviantartParser : HtmlParser
     
         var images = new List<StringImageLinkWrapper>();
         // TODO: Implement the rest of the method
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -31,22 +31,22 @@ public class Jpg5Parser : ParameterizedHtmlParser
         if (notFound is not null)
         {
             Log.Warning("Image not found");
-            return new RipInfo([], "Not Found", FilenameScheme);
+            return RipInfo.Empty.WithDirectoryName("Not Found");
         }
         
         string? dirName;
         if (CurrentUrl.Contains("/a/"))
         {
-            dirName = soup.SelectSingleNode("//a[@data-text='album-name']").InnerText;
+            dirName = soup.SelectNode("//a[@data-text='album-name']").InnerText;
         }
         else if (CurrentUrl.Contains("/img/"))
         {
-            dirName = soup.SelectSingleNode("//a[@data-text='image-title']").InnerText;
+            dirName = soup.SelectNode("//a[@data-text='image-title']").InnerText;
             single = true;
         }
         else
         {
-            dirName = soup.SelectSingleNode("//div[@class='header']").InnerText;
+            dirName = soup.SelectNode("//div[@class='header']").InnerText;
         }
     
         var images = new List<StringImageLinkWrapper>();
@@ -65,9 +65,9 @@ public class Jpg5Parser : ParameterizedHtmlParser
                     soup = await Soupify();
                 }
     
-                var posts = soup.SelectSingleNode("//div[@class='pad-content-listing']")
+                var posts = soup.SelectNode("//div[@class='pad-content-listing']")
                                 .SelectNodes("./div")
-                                .Select(div => div.SelectSingleNode(".//img").GetSrc().Remove(".md"))
+                                .Select(div => div.SelectNode(".//img").GetSrc().Remove(".md"))
                                 .ToStringImageLinks();
                 images.AddRange(posts);
                 var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
@@ -88,7 +88,7 @@ public class Jpg5Parser : ParameterizedHtmlParser
             var imgSrc = img?.GetSrc();
             if (imgSrc is null || imgSrc.EndsWith("loading.svg"))
             {
-                var downloadBtn = soup.SelectSingleNode("//a[@download]");
+                var downloadBtn = soup.SelectNode("//a[@download]");
                 var href = downloadBtn.GetHref();
                 href = ObfuscationUtility.DeobfuscateJpg5Href(href);
                 images.Add(href);
@@ -99,6 +99,6 @@ public class Jpg5Parser : ParameterizedHtmlParser
             }
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

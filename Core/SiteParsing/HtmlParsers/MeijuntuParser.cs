@@ -40,6 +40,6 @@ public class MeijuntuParser : HtmlParser
             await Task.Delay(250);
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

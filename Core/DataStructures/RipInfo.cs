@@ -61,9 +61,24 @@ public class RipInfo
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
-    public static RipInfo FromGenerateInfo(string baseUrl, string dirName, int numUrls)
+    public static RipInfo FromGenerateInfo(StringImageLinkWrapper baseUrl, string dirName, int numUrls)
     {
-        return new RipInfo([baseUrl], dirName, generate: true, numUrls: numUrls);
+        return new RipInfo([ baseUrl ], dirName, generate: true, numUrls: numUrls);
+    }
+
+    public static RipInfo FromUrlList(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme, bool nameReuse = false)
+    {
+        // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
+        return nameReuse 
+            ? new RipInfo(urls, dirName, filenameScheme == FilenameScheme.Original 
+                ? FilenameScheme.Chronological 
+                : filenameScheme) 
+            : new RipInfo(urls, dirName, filenameScheme);
+    }
+    
+    public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme, List<string> filenames)
+    {
+        return new RipInfo(urls, dirName, filenameScheme, filenames: filenames);
     }
 
     public RipInfo WithDirectoryName(string directoryName)

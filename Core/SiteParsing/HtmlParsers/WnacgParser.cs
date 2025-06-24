@@ -52,6 +52,6 @@ public class WnacgParser : HtmlParser
             images.Add(imgSrc.Contains("https:") ? imgSrc : $"https:{imgSrc}");
         }
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

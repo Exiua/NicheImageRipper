@@ -45,6 +45,6 @@ public class ArcaParser : HtmlParser
             images.AddRange(videos);
         }
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

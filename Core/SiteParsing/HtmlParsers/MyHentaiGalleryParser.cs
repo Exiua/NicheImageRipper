@@ -28,6 +28,6 @@ public class MyHentaiGalleryParser : HtmlParser
                                                 .Replace("/thumbnail/", "/original/"))
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

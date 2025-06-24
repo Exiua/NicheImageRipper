@@ -118,7 +118,7 @@ public class TwitterParser : HtmlParser
             }
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     
         async Task<(List<string>, List<(int, string)>)> TwitterParserHelper(string postLink, bool logFailure)
         {

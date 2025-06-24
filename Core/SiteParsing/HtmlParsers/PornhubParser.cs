@@ -97,7 +97,7 @@ public class PornhubParser : HtmlParser
         {
             (images, dirName) = await PornhubLinkExtractor(soup);
         }
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     private async Task<(List<StringImageLinkWrapper> images, string dirName)> PornhubLinkExtractor(HtmlNode soup)

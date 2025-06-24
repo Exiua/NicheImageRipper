@@ -27,6 +27,6 @@ public class SexHdParser : HtmlParser
                             .Select(img => $"https://sexhd.pics{img.SelectSingleNode(".//a").GetHref()}")
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

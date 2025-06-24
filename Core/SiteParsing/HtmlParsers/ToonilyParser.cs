@@ -46,6 +46,6 @@ public class ToonilyParser : HtmlParser
             images.AddRange(imageList);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

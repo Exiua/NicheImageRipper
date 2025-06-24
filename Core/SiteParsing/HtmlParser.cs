@@ -551,7 +551,7 @@ public abstract partial class HtmlParser : IDisposable
             }
         }
 
-        return new RipInfo(unique, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
     }
 
     /// <summary>
@@ -569,7 +569,7 @@ public abstract partial class HtmlParser : IDisposable
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     protected Task<RipInfo> GenericHtmlParser(string siteName)
@@ -600,7 +600,7 @@ public abstract partial class HtmlParser : IDisposable
                          .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
                          .ToStringImageLinkWrapperList();
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     /// <summary>
@@ -618,7 +618,7 @@ public abstract partial class HtmlParser : IDisposable
         var dirName = imageList[0].SelectSingleNode(".//img")
                                   .GetAttributeValue("alt");
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     /// <summary>
@@ -637,7 +637,7 @@ public abstract partial class HtmlParser : IDisposable
                     .Select(dummy => (StringImageLinkWrapper)dummy)
                     .ToList();
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     /// <summary>
@@ -742,7 +742,7 @@ public abstract partial class HtmlParser : IDisposable
             }
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
     
     private static string? GetUrl(JsonNode json, string[] jsonNavigation)

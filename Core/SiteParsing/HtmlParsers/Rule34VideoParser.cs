@@ -99,6 +99,6 @@ public class Rule34VideoParser : HtmlParser
         var cookieString = cookies.Select(kvp => $"{kvp.Key}={kvp.Value}")
                                   .Join("; ");
         RequestHeaders[RequestHeaderKeys.Cookie] = cookieString;
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

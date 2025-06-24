@@ -41,6 +41,6 @@ public class FoamGirlParser : HtmlParser
             }
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -37,7 +37,7 @@ public class DropboxParser : HtmlParser
             if (dropboxUrl.Contains("/scl/fi/"))
             {
                 dropboxUrl = dropboxUrl.Replace("dl=0", "dl=1");
-                return new RipInfo([dropboxUrl], "", FilenameScheme);
+                return RipInfo.FromUrlList([dropboxUrl], "", FilenameScheme);
             }
     
             CurrentUrl = dropboxUrl;
@@ -58,7 +58,7 @@ public class DropboxParser : HtmlParser
                     soup.SelectSingleNode("//h2[@class='dig-Title dig-Title--size-large dig-Title--color-standard']");
                 if (deletedNotice is not null)
                 {
-                    return new RipInfo([], "Deleted", FilenameScheme);
+                    return RipInfo.FromUrlList([], "Deleted", FilenameScheme);
                 }
     
                 Log.Error("Could not find directory name. Unable to continue.");
@@ -72,7 +72,7 @@ public class DropboxParser : HtmlParser
     
         if (CurrentUrl.Contains("/scl/fi/"))
         {
-            return new RipInfo([CurrentUrl.Replace("dl=0", "dl=1")], "", FilenameScheme);
+            return RipInfo.FromUrlList([CurrentUrl.Replace("dl=0", "dl=1")], "", FilenameScheme);
         }
     
         var images = new List<string>();
@@ -94,7 +94,7 @@ public class DropboxParser : HtmlParser
             GetDropboxFile(soup, CurrentUrl, filenames, images, posts);
         }
     
-        return new RipInfo(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme, filenames: filenames);
+        return RipInfo.FromUrlListWithFilenames(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme, filenames);
     }
     
     private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images,

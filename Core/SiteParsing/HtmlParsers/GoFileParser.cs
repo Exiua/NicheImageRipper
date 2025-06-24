@@ -38,7 +38,7 @@ public class GoFileParser : ParameterizedHtmlParser
             Log.Warning("URL is password protected. Writing url to file...");
             await File.WriteAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n");
             // TODO: Find a better way to handle password protected files
-            return new RipInfo([], "Password Protected", FilenameScheme);
+            return RipInfo.Empty.WithDirectoryName("Password Protected");
         }
         
         var folderNotFound = soup.SelectSingleNode("//div[@class='alert alert-secondary border border-danger text-white']");
@@ -46,13 +46,13 @@ public class GoFileParser : ParameterizedHtmlParser
         {
             Log.Warning("Folder not found. Writing url to file...");
             // TODO: Find a better way to indicate that data does not exist
-            return new RipInfo([], "Folder Not Found", FilenameScheme);
+            return RipInfo.Empty.WithDirectoryName("Folder Not Found");
         }
         
         var dirName = soup.SelectSingleNode("//span[@id='filesContentFolderName']").InnerText;
         var images = await GoFileParserHelper("", true);
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     
         // ReSharper disable once VariableHidesOuterVariable
         async Task<List<StringImageLinkWrapper>> GoFileParserHelper(string url, bool topLevel = false)

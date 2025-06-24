@@ -37,6 +37,6 @@ public class CamwhoresParser : HtmlParser
         var videoUrl = video.GetSrc();
         var images = new List<StringImageLinkWrapper> { videoUrl };
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

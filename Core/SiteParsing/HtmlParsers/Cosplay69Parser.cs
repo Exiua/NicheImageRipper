@@ -54,6 +54,6 @@ public class Cosplay69Parser : HtmlParser
                             .ToStringImageLinkWrapperList();
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

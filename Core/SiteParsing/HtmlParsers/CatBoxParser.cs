@@ -26,6 +26,6 @@ public class CatBoxParser : HtmlParser
                             .Select(vid => vid.GetSrc())
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

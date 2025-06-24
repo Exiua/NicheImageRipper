@@ -42,6 +42,6 @@ public class F5GirlsParser : HtmlParser
             soup = await Soupify(nextPage);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

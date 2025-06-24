@@ -18,10 +18,10 @@ public class Six9TangParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='headline']/h1").InnerText;
-        var video = soup.SelectSingleNode("//div[@class='fp-player']/video")
+        var dirName = soup.SelectNode("//div[@class='headline']/h1").InnerText;
+        var video = soup.SelectNode("//div[@class='fp-player']/video")
                             .GetSrc();
     
-        return new RipInfo([ video ], dirName, FilenameScheme);
+        return RipInfo.FromUrlList([ video ], dirName, FilenameScheme);
     }
 }

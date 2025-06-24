@@ -43,7 +43,7 @@ public partial class NHentaiParser : HtmlParser
                                 .Select(newThumb => newThumb.Replace("t.", "."))
                                 .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
     
     [GeneratedRegex(@"t\d\.")]

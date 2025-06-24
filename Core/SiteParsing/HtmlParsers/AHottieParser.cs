@@ -47,6 +47,6 @@ public class AHottieParser : HtmlParser
             soup = await Soupify(nextUrl);
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

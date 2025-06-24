@@ -27,6 +27,6 @@ public class JkForumParser : HtmlParser
                             .ToStringImageLinkWrapperList();
         // TODO: Find a way to download videos as well
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

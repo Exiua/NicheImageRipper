@@ -65,7 +65,7 @@ public class EroHiveParser : HtmlParser
             images.Add(img);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     
         async Task WaitForPostLoad()
         {

@@ -53,6 +53,6 @@ public class FaponicParser : HtmlParser
             images[i] = vid;
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

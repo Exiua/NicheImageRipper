@@ -134,7 +134,7 @@ public class SimpCityParser : HtmlParser
         #endregion
 
         File.Delete(CacheFile);
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     private async Task<(List<StringImageLinkWrapper>, List<IndexedContainer<List<string>>>, string)> ParsePosts(Dictionary<string, ParameterizedHtmlParser> resolvableMap)

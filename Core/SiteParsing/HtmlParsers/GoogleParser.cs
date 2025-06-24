@@ -33,6 +33,6 @@ public class GoogleParser : HtmlParser
         }
     
         // Actual querying happens within the RipInfo object
-        return Task.FromResult(new RipInfo([gdriveUrl], "", FilenameScheme));
+        return Task.FromResult(RipInfo.FromUrlList([gdriveUrl], "", FilenameScheme));
     }
 }

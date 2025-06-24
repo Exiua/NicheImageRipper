@@ -31,6 +31,6 @@ public class FoxHqParser : HtmlParser
                     .Select(dummy => (StringImageLinkWrapper)dummy)
                     .ToList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

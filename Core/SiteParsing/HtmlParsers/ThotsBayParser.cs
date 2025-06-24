@@ -35,6 +35,6 @@ public class ThotsBayParser : HtmlParser
         
         // Unable to download videos from blob, parse in on hold
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -100,6 +100,6 @@ public class ArtstationParser : HtmlParser
         
         #endregion
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

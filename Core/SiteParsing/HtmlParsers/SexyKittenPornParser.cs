@@ -31,6 +31,6 @@ public class SexyKittenPornParser : HtmlParser
                                 .GetSrc()}");
         }
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

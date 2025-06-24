@@ -47,6 +47,6 @@ public class NLegsParser : HtmlParser
                                 .Trim();
         RequestHeaders[RequestHeaderKeys.Cookie] = cookies;
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

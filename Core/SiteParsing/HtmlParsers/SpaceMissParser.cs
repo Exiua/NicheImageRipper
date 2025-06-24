@@ -26,6 +26,6 @@ public class SpaceMissParser : HtmlParser
                     .Select(img => img.GetHref())
                     .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

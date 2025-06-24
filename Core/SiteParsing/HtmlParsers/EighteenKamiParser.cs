@@ -29,6 +29,6 @@ public class EighteenKamiParser : HtmlParser
                             .Select(img => $"https://18kami.com{img.GetSrc()}")
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

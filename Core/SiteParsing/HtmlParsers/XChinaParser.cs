@@ -98,7 +98,7 @@ public class XChinaParser : HtmlParser
             }
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
     
     private static string GetVideoUrl(HtmlNode soup)

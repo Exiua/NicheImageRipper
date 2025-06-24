@@ -38,6 +38,6 @@ public class ManganatoParser : HtmlParser
             nextChapter = soup.SelectSingleNode("//a[@class='navi-change-chapter-btn-next a-h']");
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

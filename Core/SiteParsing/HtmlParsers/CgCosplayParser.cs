@@ -74,7 +74,7 @@ public class CgCosplayParser : HtmlParser
             }
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     
         async Task<string> ResolveVkLink(string url, PlaylistCapturer capturer)
         {

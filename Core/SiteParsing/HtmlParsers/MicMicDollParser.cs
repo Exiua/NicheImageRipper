@@ -34,6 +34,6 @@ public class MicMicDollParser : HtmlParser
                             .Select(item => item!)
                             .ToStringImageLinkWrapperList();
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

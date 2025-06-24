@@ -20,8 +20,8 @@ public class SexBjCamParser : HtmlParser
     {
         var soup = await SolveParseAddCookies(regenerateSessionOnFailure: true);
         //Driver.TakeDebugScreenshot();
-        var dirName = soup.SelectSingleNode("//h1[@class='entry-title']").InnerText;
-        var iframe = soup.SelectSingleNode("//iframe");
+        var dirName = soup.SelectNode("//h1[@class='entry-title']").InnerText;
+        var iframe = soup.SelectNode("//iframe");
         var iframeUrl = iframe.GetSrc();
         var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
         CurrentUrl = iframeUrl;
@@ -42,6 +42,6 @@ public class SexBjCamParser : HtmlParser
             break;
         }
         
-        return new RipInfo([ playlist ], dirName, FilenameScheme);
+        return RipInfo.FromUrlList([ playlist ], dirName, FilenameScheme);
     }
 }

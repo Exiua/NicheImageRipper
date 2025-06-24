@@ -39,6 +39,6 @@ public class JapaneseAsmrParser : HtmlParser
             images.Add($"text:{link}");
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

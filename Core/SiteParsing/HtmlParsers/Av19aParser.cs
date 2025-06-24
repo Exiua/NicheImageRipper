@@ -31,7 +31,7 @@ public partial class Av19aParser : HtmlParser
             Referer = "https://david.cdnbuzz.buzz/"
         };
 
-        return new RipInfo([linkInfo], dirName, FilenameScheme);
+        return RipInfo.FromUrlList([linkInfo], dirName, FilenameScheme);
     }
     
     [GeneratedRegex(@"vvv=([^&]+).+t=([^&]+)")]

@@ -24,16 +24,16 @@ public class AnimehParser : HtmlParser
         {
             CurrentUrl = CurrentUrl.Split("?")[0] + "?tab=reading";
             var soup = await Soupify();
-            dirName = soup.SelectSingleNode("//h1[@class='main-night container']").InnerText
+            dirName = soup.SelectNode("//h1[@class='main-night container']").InnerText
                               .Split("Manga")[1]
                               .Trim();
-            var metadata = soup.SelectSingleNode("//div[@class='col-md-8 col-sm-12']");
+            var metadata = soup.SelectNode("//div[@class='col-md-8 col-sm-12']");
             var pageCountRaw = metadata.SelectNodes("./div")
                                        .First(div => div.InnerText.Contains("Page"))
                                        .InnerText.Split(" ")[1];
             var pageCount = int.Parse(pageCountRaw);
-            var imageUrl = soup.SelectSingleNode("//div[@id='pictureViewer']")
-                               .SelectSingleNode(".//img")
+            var imageUrl = soup.SelectNode("//div[@id='pictureViewer']")
+                               .SelectNode(".//img")
                                .GetSrc();
             var urlParts = imageUrl.Split("/");
             imageUrl = "/".Join(urlParts[..^1]);
@@ -53,7 +53,7 @@ public class AnimehParser : HtmlParser
             // var highestQualityButton = Driver.FindElement(By.XPath("(//div[@class='source-btn-group']/a)[2]"));
             // highestQualityButton.Click();
             var soup = await Soupify();
-            dirName = soup.SelectSingleNode("//h1[@class='main-night']").InnerText
+            dirName = soup.SelectNode("//h1[@class='main-night']").InnerText
                           .Split("Hentai")[1]
                           .Trim();
             var playButton = Driver.FindElement(By.XPath("//button[@class='btn btn-play']"));
@@ -68,7 +68,7 @@ public class AnimehParser : HtmlParser
         else // Assume ASMR
         {
             var soup = await Soupify();
-            dirName = soup.SelectSingleNode("//h1[@class='main-night']").InnerText
+            dirName = soup.SelectNode("//h1[@class='main-night']").InnerText
                           .Split(" ")[2..]
                           .Join(" ");
             images = [];
@@ -96,6 +96,6 @@ public class AnimehParser : HtmlParser
             }
         }
 
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

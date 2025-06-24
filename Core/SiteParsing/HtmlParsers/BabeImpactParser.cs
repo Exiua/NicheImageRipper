@@ -44,6 +44,6 @@ public class BabeImpactParser : HtmlParser
             images.Add((StringImageLinkWrapper)(Protocol + img));
         }
         
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -45,6 +45,6 @@ public class KaiztyParser : HtmlParser
             soup = await Soupify($"https://www.kaizty.com{nextPage}");
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

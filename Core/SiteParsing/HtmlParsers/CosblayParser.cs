@@ -61,7 +61,7 @@ public class CosblayParser : HtmlParser
             soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250);
         }
     
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     
         // ReSharper disable once VariableHidesOuterVariable
         HtmlNode? GetNextButton(HtmlNode soup)

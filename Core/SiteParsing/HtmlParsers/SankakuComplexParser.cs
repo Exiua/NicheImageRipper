@@ -22,6 +22,6 @@ public class SankakuComplexParser : HtmlParser
         var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
         var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image)
                                 .Select(dummy => (StringImageLinkWrapper)dummy).ToList();
-        return new RipInfo(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

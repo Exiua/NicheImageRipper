@@ -66,7 +66,6 @@ public class OmegaScansParser : HtmlParser
         }
     
         // Files are numbered per chapter, so original will have the files overwrite each other
-        return new RipInfo(images, dirName,
-            FilenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme, nameReuse: true);
     }
 }
