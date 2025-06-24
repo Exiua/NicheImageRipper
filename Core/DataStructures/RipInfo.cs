@@ -14,17 +14,13 @@ public class RipInfo
 {
     private string _directoryName = null!; // Initialized through the property setter
 
-    [UsedImplicitly]
-    public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
-    
-    [UsedImplicitly]
-    public List<ImageLink> Urls { get; set; } = null!;
-    
-    [UsedImplicitly]
-    public bool MustGenerateManually { get; set; }
+    [UsedImplicitly] public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
 
-    [UsedImplicitly]
-    public int NumUrls { get; set; }
+    [UsedImplicitly] public List<ImageLink> Urls { get; set; } = null!;
+
+    [UsedImplicitly] public bool MustGenerateManually { get; set; }
+
+    [UsedImplicitly] public int NumUrls { get; set; }
 
     [UsedImplicitly]
     public string DirectoryName
@@ -32,7 +28,7 @@ public class RipInfo
         get => _directoryName;
         set => _directoryName = CleanDirectoryName(value);
     }
-    
+
     public static RipInfo Empty => new([]);
 
     [UsedImplicitly]
@@ -40,9 +36,9 @@ public class RipInfo
     {
     }
 
-    public RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "", 
-                   FilenameScheme filenameScheme = FilenameScheme.Original,
-                   bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
+    private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
+                    FilenameScheme filenameScheme = FilenameScheme.Original,
+                    bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
     {
         // SaveRawUrls(urls);
         FilenameScheme = filenameScheme;
@@ -56,27 +52,29 @@ public class RipInfo
             Log.Debug("Failed to convert urls to image links: {@urls}", urls);
             throw;
         }
-        
+
         MustGenerateManually = generate;
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
     public static RipInfo FromGenerateInfo(StringImageLinkWrapper baseUrl, string dirName, int numUrls)
     {
-        return new RipInfo([ baseUrl ], dirName, generate: true, numUrls: numUrls);
+        return new RipInfo([baseUrl], dirName, generate: true, numUrls: numUrls);
     }
 
-    public static RipInfo FromUrlList(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme, bool nameReuse = false)
+    public static RipInfo FromUrlList(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
+                                      bool nameReuse = false)
     {
         // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
-        return nameReuse 
-            ? new RipInfo(urls, dirName, filenameScheme == FilenameScheme.Original 
-                ? FilenameScheme.Chronological 
-                : filenameScheme) 
+        return nameReuse
+            ? new RipInfo(urls, dirName, filenameScheme == FilenameScheme.Original
+                ? FilenameScheme.Chronological
+                : filenameScheme)
             : new RipInfo(urls, dirName, filenameScheme);
     }
-    
-    public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme, List<string> filenames)
+
+    public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName,
+                                                   FilenameScheme filenameScheme, List<string> filenames)
     {
         return new RipInfo(urls, dirName, filenameScheme, filenames: filenames);
     }
@@ -182,13 +180,14 @@ public class RipInfo
         var newUrls = new List<StringImageLinkWrapper>();
         foreach (var url in urls)
         {
-            if (url.Url is not null && urlSet.Add(url.Url) || url.ImageLink is not null && urlSet.Add(url.ImageLink.Url))
+            if (url.Url is not null && urlSet.Add(url.Url) ||
+                url.ImageLink is not null && urlSet.Add(url.ImageLink.Url))
             {
                 newUrls.Add(url);
             }
             else
             {
-                Log.Debug("Duplicate url: {Url}", url);;
+                Log.Debug("Duplicate url: {Url}", url);
             }
         }
 
