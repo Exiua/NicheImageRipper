@@ -862,7 +862,6 @@ public partial class ImageRipper : IDisposable
     private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually)
     {
         var url = imageLink.Url;
-        var badCert = false;
         await Task.Delay((int)(SleepTime * MillisecondsInSecond));
         var modifiedHeader = ModifiedHeader.None;
         var oldCookies = "";
@@ -893,25 +892,6 @@ public partial class ImageRipper : IDisposable
             using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
             response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         }
-        catch (HttpRequestException e) when (e.InnerException is AuthenticationException)
-        {
-            try
-            {
-                // TODO: See if this can be removed
-                using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
-                using var insecureClient = new HttpClient(new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-                });
-                response = await insecureClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-                badCert = true;
-                Log.Warning("Bad certificate detected: {Url}", url);
-            }
-            catch (HttpRequestException e2) when (e2.InnerException is AuthenticationException)
-            {
-                return false;
-            }
-        }
         catch (HttpRequestException e) when (e.InnerException is InvalidOperationException)
         {
             Log.Error($"Unable to establish a connection to {url}");
@@ -923,7 +903,7 @@ public partial class ImageRipper : IDisposable
             return false;
         }
 
-        if (!response.IsSuccessStatusCode && !badCert)
+        if (!response.IsSuccessStatusCode)
         {
             if(response.StatusCode == HttpStatusCode.Forbidden && SiteName == "kemono" && !url.Contains(".psd"))
             {
