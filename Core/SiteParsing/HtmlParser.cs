@@ -167,6 +167,7 @@ public abstract partial class HtmlParser : IDisposable
             "decorativemodels" => new DecorativeModelsParser(webDriver, requestHeaders, filenameScheme),
             //DeviantArt
             "dirtyyoungbitches" => new DirtyYoungBitchesParser(webDriver, requestHeaders, filenameScheme),
+            "e-hentai" => new EHentaiParser(webDriver, requestHeaders, filenameScheme),
             "eahentai" => new EahentaiParser(webDriver, requestHeaders, filenameScheme),
             "8boobs" => new EightBoobsParser(webDriver, requestHeaders, filenameScheme),
             "8muses" => new EightMusesParser(webDriver, requestHeaders, filenameScheme),

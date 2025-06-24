@@ -14,27 +14,36 @@ public class EHentaiParser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for eahentai.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for e-hentai.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[id='gn']").InnerText;
+        var dirName = soup.SelectNode("//h1[@id='gn']").InnerText;
         var imageLinks = new List<string>();
         var pageCount = 1;
         while (true)
         {
             Log.Information("Parsing page {pageCount}", pageCount);
-            var imageTags = soup.SelectNodes("//div[@class='gdt']//a").GetHrefs();
+            var imageTags = soup.SelectNodesSafe("//div[@id='gdt']/a").GetHrefs();
+            if (imageTags.Count == 0)
+            {
+                Log.Warning("No image links found on page {pageCount}. Stopping parsing.", pageCount);
+                break;
+            }
+            
             imageLinks.AddRange(imageTags);
-            var nextPage = soup.SelectSingleNode("//table[@class='ptb']").SelectNodes("//a").GetHrefs().Last();
+            var nextPage = soup.SelectNode("//table[@class='ptb']")
+                               .SelectNodesSafe(".//a")
+                               .Last()
+                               .GetHref();
             if (nextPage == CurrentUrl)
             {
                 break;
             }
             
-            await Task.Delay(5000);
+            await Task.Delay(1000);
             try
             {
                 pageCount += 1;
@@ -49,13 +58,15 @@ public class EHentaiParser : HtmlParser
             soup = await Soupify();
         }
         
+        Log.Debug("Found {count} image links", imageLinks.Count);
+        
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
             Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
             await Task.Delay(2500);
             soup = await Soupify(link);
-            var img = soup.SelectSingleNode("//img[@id='img']").GetAttributeValue("src", "");
+            var img = soup.SelectNode("//img[@id='img']").GetSrc();
             images.Add(img);
         }
         

@@ -61,7 +61,15 @@ public static class HtmlAgilityPackExtensionMethods
     
     public static string? GetNullableAttributeValue(this HtmlNode node, string attributeName)
     {
-        return node.GetAttributeValue(attributeName, null);
+        // Caution: empty string will be treated as null
+        var value = node.GetAttributeValue(attributeName,"");
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
+    
+    public static HtmlNode SelectNode(this HtmlNode node, string xpath)
+    {
+        var selectedNode = node.SelectSingleNode(xpath) ?? throw new ElementNotFoundException(xpath);
+        return selectedNode;
     }
 
     public static HtmlNodeCollection SelectNodesSafe(this HtmlNode node, string xpath)
