@@ -219,7 +219,6 @@ public abstract partial class HtmlParser : IDisposable
             "nhentai" => new NHentaiParser(webDriver, requestHeaders, filenameScheme),
             "nightdreambabe" => new NightDreamBabeParser(webDriver, requestHeaders, filenameScheme),
             "nijie" => new NijieParser(webDriver, requestHeaders, filenameScheme),
-            "animeh" => new AnimehParser(webDriver, requestHeaders, filenameScheme),
             "novoglam" => new NovoGlamParser(webDriver, requestHeaders, filenameScheme),
             "novohot" => new NovoHotParser(webDriver, requestHeaders, filenameScheme),
             "novoporn" => new NovoPornParser(webDriver, requestHeaders, filenameScheme),

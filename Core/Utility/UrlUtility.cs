@@ -63,7 +63,7 @@ public static partial class UrlUtility
         "https://manganato.com/",
         "https://sfmcompile.club/", "https://www.tsumino.com/", "https://danbooru.donmai.us/",
         "https://www.flickr.com/", "https://rule34.xxx/", "https://titsintops.com/",
-        "https://gelbooru.com/", "https://animeh.to/", "https://fapello.com/",
+        "https://gelbooru.com/", "https://fapello.com/",
         "https://nijie.info/", "https://faponic.com/", "https://erothots.co/",
         "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
         "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
