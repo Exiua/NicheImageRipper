@@ -15,6 +15,7 @@ using Core.ExtensionMethods;
 using Core.History;
 using Core.Managers;
 using Core.SiteParsing;
+using Core.SiteParsing.HtmlParsers;
 using Core.Utility;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -253,44 +254,65 @@ public partial class ImageRipper : IDisposable
                 // Delegated to external tool
                 await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url);
                 break;
+            // Probably need to extract parts into separate methods
             default:
             {
-                foreach (var (i, link) in FolderInfo.Urls[start..].Enumerate())
+                while (true)
                 {
-                    var index = start + i;
-                    CurrentIndex = index;
-                    while (Paused)
-                    {
-                        await Task.Delay(1000);
-                    }
-                    
-                    await Task.Delay((int) SleepTime * MillisecondsInSecond);
                     try
                     {
-                        var filename = link.Filename;
-                        var imagePath = Path.Combine(fullPath, filename);
-                        await DownloadFromList(link, imagePath, index, downloadStats);
-                        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                        foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                         {
-                            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
-                            if (duplicate)
+                            var index = start + i;
+                            CurrentIndex = index;
+                            while (Paused)
                             {
-                                downloadStats.NumDuplicates++;
+                                await Task.Delay(1000);
+                            }
+
+                            await Task.Delay((int)SleepTime * MillisecondsInSecond);
+                            try
+                            {
+                                var filename = link.Filename;
+                                var imagePath = Path.Combine(fullPath, filename);
+                                await DownloadFromList(link, imagePath, index, downloadStats);
+                                if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+                                {
+                                    var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+                                    if (duplicate)
+                                    {
+                                        downloadStats.NumDuplicates++;
+                                    }
+                                }
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                if (link.LinkInfo == LinkInfo.IframeMedia)
+                                {
+                                    downloadStats.FailedDownloads++;
+                                    await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
+                                }
+                            }
+                            catch (EHentaiUrlExpiredException e)
+                            {
+                                e.ResumeIndex = index;
+                                throw;
+                            }
+                            catch
+                            {
+                                await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
+                                throw;
                             }
                         }
+
+                        break;
                     }
-                    catch (FileNotFoundException)
+                    catch (EHentaiUrlExpiredException e)
                     {
-                        if (link.LinkInfo == LinkInfo.IframeMedia)
-                        {
-                            downloadStats.FailedDownloads++;
-                            await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
-                        }
-                    }
-                    catch
-                    {
-                        await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
-                        throw;
+                        var parser = new EHentaiParser(WebDriver, RequestHeaders, FilenameScheme);
+                        start = e.ResumeIndex;
+                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
+                        FolderInfo.Urls = updatedLinks;
                     }
                 }
 
@@ -929,8 +951,9 @@ public partial class ImageRipper : IDisposable
                             Log.Information("Wrong subdomain, trying again...");
                             throw new BadSubdomainException();
                         case "e-hentai":
-                            await Task.Delay(30 * MillisecondsInSecond); // Wait for 30 seconds before retrying
-                            break;
+                            Log.Information("E-Hentai URL expired, trying to update links...");
+                            await Task.Delay(10 * MillisecondsInSecond); // Wait for 10 seconds before retrying
+                            throw new EHentaiUrlExpiredException();
                     }
                     return false;
                 case HttpStatusCode.BadGateway:

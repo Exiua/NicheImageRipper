@@ -1,6 +1,9 @@
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Utility;
+using HtmlAgilityPack;
 using OpenQA.Selenium;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -9,6 +12,11 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class EHentaiParser : HtmlParser
 {
+    private const string ImageLinksFileName = "ehentai.json";
+
+    // Quick fix for updating links, should be replaced with a more robust solution
+    private static string _lastUrl = "";
+    
     public EHentaiParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
     }
@@ -19,9 +27,107 @@ public class EHentaiParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
+        var currentUrl = CurrentUrl;
+        _lastUrl = currentUrl;
         var soup = await Soupify();
         var dirName = soup.SelectNode("//h1[@id='gn']").InnerText;
-        var imageLinks = new List<string>();
+        var imageLinks = await GetImageLinks(soup, currentUrl);
+        
+        Log.Debug("Found {count} image links", imageLinks.Count);
+        
+        var imageLinksSave = new Dictionary<string, List<string>>
+        {
+            [currentUrl] = imageLinks
+        };
+        
+        JsonUtility.Serialize(ImageLinksFileName, imageLinksSave);
+        
+        var images = new List<StringImageLinkWrapper>();
+        foreach (var (i, link) in imageLinks.Enumerate())
+        {
+            // TODO: Handle links missing keystamp or fileindex
+            // TODO: Handle files that download as invalid request
+            Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
+            var img = await GetImageLink(link);
+            images.Add(img);
+            await Task.Delay(1000);
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+
+    private async Task<string> GetImageLink(string link)
+    {
+        var soup = await Soupify(link);
+        var img = soup.SelectNode("//img[@id='img']").GetSrc();
+        if (!img.Contains("keystamp") || !img.Contains("fileindex"))
+        {
+            Log.Warning("Url may not contain keystamp or fileindex: {img}", img);
+        }
+
+        return img;
+    }
+
+    // Should never be called before Parse() is called
+    public async Task<List<ImageLink>> UpdateLinks(List<ImageLink> links, int start)
+    {
+        if (!File.Exists(ImageLinksFileName))
+        {
+            throw new RipperException("Image links file does not exist. Please run Parse() first.");
+        }
+        
+        var imageLinksMap = JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
+        if (imageLinksMap is null || !imageLinksMap.TryGetValue(_lastUrl, out var imageLinks))
+        {
+            throw new RipperException("Image links not found in the file. Please run Parse() first.");
+        }
+        
+        if (start < 0 || start >= imageLinks.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(start), "Start index is out of range.");
+        }
+        
+        Log.Information("Updating links from link {start} of {count}", start + 1, imageLinks.Count);
+        foreach (var (i, link) in imageLinks.Enumerate())
+        {
+            if (i < start)
+            {
+                continue;
+            }
+            
+            var img = await GetImageLink(link);
+            Log.Information("Updating image link {i} of {count}", i + 1, imageLinks.Count);
+            links[i].Url = img;
+        }
+        
+        Log.Information("Updated {count} image links", imageLinks.Count - start);
+        return links;
+    }
+
+    private async Task<List<string>> GetImageLinks(HtmlNode soup, string currentUrl)
+    {
+        List<string> imageLinks;
+        if (File.Exists(ImageLinksFileName))
+        {
+            var imageLinksMap = JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
+            // Safety: if TryGetValue fails, imageLinks will be re-initialized, so it won't be null
+            if (imageLinksMap is null || !imageLinksMap.TryGetValue(currentUrl, out imageLinks!))
+            {
+                imageLinks = [];
+                await ExtractImageLinks(soup, imageLinks);
+            }
+        }
+        else
+        {
+            imageLinks = [];
+            await ExtractImageLinks(soup, imageLinks);
+        }
+
+        return imageLinks;
+    }
+    
+    private async Task ExtractImageLinks(HtmlNode soup, List<string> imageLinks)
+    {
         var pageCount = 1;
         while (true)
         {
@@ -57,27 +163,5 @@ public class EHentaiParser : HtmlParser
             }
             soup = await Soupify();
         }
-        
-        Log.Debug("Found {count} image links", imageLinks.Count);
-        
-        var images = new List<StringImageLinkWrapper>();
-        foreach (var (i, link) in imageLinks.Enumerate())
-        {
-            // TODO: Handle links missing keystamp or fileindex
-            // TODO: Handle long downloads that may exceed link validity
-            // TODO: Handle files that download as invalid request
-            Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
-            await Task.Delay(1000);
-            soup = await Soupify(link);
-            var img = soup.SelectNode("//img[@id='img']").GetSrc();
-            if (!img.Contains("keystamp") || !img.Contains("fileindex"))
-            {
-                Log.Warning("Url may not contain keystamp or fileindex: {img}", img);
-            }
-            
-            images.Add(img);
-        }
-        
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }
