@@ -60,11 +60,6 @@ public class EHentaiParser : HtmlParser
     {
         var soup = await Soupify(link);
         var img = soup.SelectNode("//img[@id='img']").GetSrc();
-        if (!img.Contains("keystamp") || !img.Contains("fileindex"))
-        {
-            Log.Warning("Url may not contain keystamp or fileindex: {img}", img);
-        }
-
         return img;
     }
 

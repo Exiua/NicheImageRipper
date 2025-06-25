@@ -1257,18 +1257,47 @@ public partial class ImageRipper : IDisposable
     /// <param name="response">Response to write to file</param>
     /// <param name="path">Filepath to write to</param>
     /// <returns>Boolean based on successfulness</returns>
-    private static async Task<DownloadStatus> WriteToFile(HttpResponseMessage response, string path)
+    private async Task<DownloadStatus> WriteToFile(HttpResponseMessage response, string path)
     {
         var expandedFilePath = path.StartsWith('~')
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..])
             : path;
 
+        var idleTimeout = TimeSpan.FromSeconds(30); // 30 seconds idle timeout
         var savePath = Path.GetFullPath(expandedFilePath);
+        const int minimumFileSize = 1024; // 1KB minimum file size
         try
         {
+            await using var stream = await response.Content.ReadAsStreamAsync();
             await using var fileStream =
                 new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await response.Content.CopyToAsync(fileStream);
+            var buffer = new byte[4096]; // 4KB buffer
+            int bytesRead;
+            var totalSize = 0;
+            var lastActivity = DateTime.UtcNow;
+
+            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+            {
+                totalSize += bytesRead;
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+
+                if (DateTime.UtcNow - lastActivity > idleTimeout)
+                {
+                    throw new TimeoutException("No data received for too long.");
+                }
+                
+                lastActivity = DateTime.UtcNow;
+            }
+            
+            if (totalSize < minimumFileSize)
+            {
+                Log.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
+                if (SiteName == "e-hentai")
+                {
+                    throw new EHentaiUrlExpiredException();
+                }
+            }
+            
             return DownloadStatus.Ok; // Success
         }
         catch (HttpRequestException)
