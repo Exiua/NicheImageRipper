@@ -50,6 +50,14 @@ public class EHentaiParser : HtmlParser
             Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
             var img = await GetImageLink(link);
             images.Add(img);
+            // if (i != 0 && i % 150 == 0)
+            // {
+            //     await Task.Delay(5000);
+            // }
+            // else
+            // {
+            //     await Task.Delay(1000);
+            // }
             await Task.Delay(1000);
         }
 
