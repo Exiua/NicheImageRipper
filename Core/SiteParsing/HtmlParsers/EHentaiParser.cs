@@ -1,3 +1,4 @@
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
@@ -21,12 +22,35 @@ public class EHentaiParser : HtmlParser
     {
     }
 
+    protected override async Task<bool> SiteLoginHelper()
+    {
+        const string loginUrl = "https://forums.e-hentai.org/index.php?act=Login&CODE=00";
+        var (username, password) = Config.Logins[ConfigKeys.LoginKeys.EHentai];
+        var currentUrl = CurrentUrl;
+        CurrentUrl = loginUrl;
+        Driver.FindElement(By.XPath("//input[@name='UserName']")).SendKeys(username);
+        Driver.FindElement(By.XPath("//input[@name='PassWord']")).SendKeys(password);
+        Driver.FindElement(By.XPath("//input[@name='submit']")).Click();
+        while (CurrentUrl == loginUrl)
+        {
+            await Task.Delay(1000);
+        }
+        
+        CurrentUrl = "https://exhentai.org/";
+        await Task.Delay(2500);
+        CurrentUrl = currentUrl;
+
+        return true;
+    }
+
     /// <summary>
     ///     Parses the html for e-hentai.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
+        await SiteLogin();
+        CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org"); // Redirect to exhentai
         var currentUrl = CurrentUrl;
         _lastUrl = currentUrl;
         var soup = await Soupify();

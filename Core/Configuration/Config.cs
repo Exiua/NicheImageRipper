@@ -12,19 +12,7 @@ public class Config
     {
         var config = (T)Activator.CreateInstance(typeof(T), [ true ])!;
 
-        string[] siteLogins = [
-            ConfigKeys.LoginKeys.SexyEGirls,
-            ConfigKeys.LoginKeys.DeviantArt,
-            ConfigKeys.LoginKeys.Mega,
-            ConfigKeys.LoginKeys.TitsInTops,
-            ConfigKeys.LoginKeys.Newgrounds,
-            ConfigKeys.LoginKeys.Nijie,
-            ConfigKeys.LoginKeys.Danbooru,
-            ConfigKeys.LoginKeys.Gelbooru,
-            ConfigKeys.LoginKeys.Rule34,
-            ConfigKeys.LoginKeys.Yandere,
-            ConfigKeys.LoginKeys.E621,
-        ];
+        var siteLogins = ConfigKeys.LoginKeys.All;
         foreach (var site in siteLogins)
         {
             config.Logins[site] = new Credentials
@@ -35,27 +23,14 @@ public class Config
         }
 
         config.Keys = new Dictionary<string, string>();
-        string[] siteKeys = [
-            ConfigKeys.KeyKeys.Imgur,
-            ConfigKeys.KeyKeys.Google,
-            ConfigKeys.KeyKeys.Dropbox,
-            ConfigKeys.KeyKeys.Pixeldrain
-        ];
+        var siteKeys = ConfigKeys.KeyKeys.All;
         foreach (var site in siteKeys)
         {
             config.Keys[site] = "";
         }
 
         config.Cookies = new Dictionary<string, string>();
-        string[] siteCookies = [
-            ConfigKeys.CookieKeys.Twitter,
-            ConfigKeys.CookieKeys.Newgrounds,
-            ConfigKeys.CookieKeys.Porn3dx,
-            ConfigKeys.CookieKeys.Pornhub,
-            ConfigKeys.CookieKeys.Thothub,
-            ConfigKeys.CookieKeys.Kemono,
-            ConfigKeys.CookieKeys.SimpCity
-        ];
+        var siteCookies = ConfigKeys.CookieKeys.All;
         foreach (var site in siteCookies)
         {
             config.Cookies[site] = "";

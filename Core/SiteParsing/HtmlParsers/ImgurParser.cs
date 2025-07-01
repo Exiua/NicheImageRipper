@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
@@ -23,7 +24,7 @@ public class ImgurParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        var clientId = Config.Keys["Imgur"];
+        var clientId = Config.Keys[ConfigKeys.KeyKeys.Imgur];
         if (clientId == "")
         {
             Log.Error("Client Id not set");

@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
@@ -25,7 +26,7 @@ public class PixelDrainParser : ParameterizedHtmlParser
         {
             url = CurrentUrl;
         }
-        var apiKey = Config.Keys["Pixeldrain"];
+        var apiKey = Config.Keys[ConfigKeys.KeyKeys.Pixeldrain];
         var counter = 0;
         var images = new List<StringImageLinkWrapper>();
         string dirName;

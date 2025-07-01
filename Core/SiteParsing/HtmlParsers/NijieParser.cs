@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
@@ -132,7 +133,7 @@ public partial class NijieParser : HtmlParser
     protected override async Task<bool> SiteLoginHelper()
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Logins["Nijie"];
+        var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Nijie];
         CurrentUrl = "https://nijie.info/login.php";
         if (CurrentUrl.Contains("age_ver.php"))
         {

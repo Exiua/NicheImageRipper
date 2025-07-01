@@ -323,8 +323,8 @@ public partial class ImageRipper : IDisposable
     
     private static async Task<bool> DeviantArtDownload(string fullPath, string url)
     {
-        var cmd = new []{"-D", $"\"{fullPath}\"", "-u", Config.Logins["DeviantArt"].Username, "-p", 
-            Config.Logins["DeviantArt"].Password, "--write-log", "log.txt", url};
+        var cmd = new []{"-D", $"\"{fullPath}\"", "-u", Config.Logins[ConfigKeys.LoginKeys.DeviantArt].Username, "-p", 
+            Config.Logins[ConfigKeys.LoginKeys.DeviantArt].Password, "--write-log", "log.txt", url};
         var exitCode = await RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
             endMessage: "Deviantart download finished");
         if (exitCode != 0)
@@ -757,7 +757,7 @@ public partial class ImageRipper : IDisposable
             throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
         }
         
-        var (email, password) = Config.Logins["Mega"];
+        var (email, password) = Config.Logins[ConfigKeys.LoginKeys.Mega];
         if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
         {
            PersistentLogins["Mega"] = MegaApi.WhoAmI() == email || MegaApi.Login(email, password);
@@ -789,7 +789,7 @@ public partial class ImageRipper : IDisposable
     
     private static async Task<bool> DownloadPixelDrainFiles(string path, ImageLink imageLink)
     {
-        var apiKey = Config.Keys["Pixeldrain"];
+        var apiKey = Config.Keys[ConfigKeys.KeyKeys.Pixeldrain];
         var authString = $":{apiKey}";
         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
         var headers = new Dictionary<string, string>

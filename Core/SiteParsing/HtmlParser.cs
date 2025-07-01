@@ -79,11 +79,12 @@ public abstract partial class HtmlParser : IDisposable
     public async Task<RipInfo> ParseSite(string url)
     {
         Log.Debug("Parsing {Url}", url);
-        url = url.Replace("members.", "www.");
+        url = url.Replace("members.", "www.") // For HAnime
+                 .Replace("exhentai.org", "e-hentai.org"); // Need to go through e-hentai first for cookies
         GivenUrl = url;
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         // e-hentai image links expire too quickly, so we need to parse the site every time
-        if (File.Exists("partial.json") && SiteName != "e-hentai")
+        if (File.Exists("partial.json") && (SiteName != "e-hentai" && SiteName != "exhentai"))
         {
             Log.Debug("Partial save file found");
             var saveData = ReadPartialSave();
@@ -1002,7 +1003,7 @@ public abstract partial class HtmlParser : IDisposable
     protected static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
     {
         var parsedUrls = new List<string>();
-        var imgurKey = Config.Keys["Imgur"];
+        var imgurKey = Config.Keys[ConfigKeys.KeyKeys.Imgur];
         var headers = new Dictionary<string, string>
         {
             ["Authorization"] = $"Client-Id {imgurKey}"

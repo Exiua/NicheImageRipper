@@ -1,3 +1,4 @@
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
@@ -100,7 +101,7 @@ public class TitsInTopsParser : HtmlParser
     protected override async Task<bool> SiteLoginHelper()
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Logins["TitsInTops"];
+        var (username, password) = Config.Logins[ConfigKeys.LoginKeys.TitsInTops];
         CurrentUrl = "https://titsintops.com/phpBB2/index.php?login/login";
         var loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         while (loginInput is null)

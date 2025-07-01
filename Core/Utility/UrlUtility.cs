@@ -57,7 +57,7 @@ public static partial class UrlUtility
         "https://www.cool18.com/", "https://putmega.com/",
         "https://comics.8muses.com/",
         "https://www.jkforum.net/",
-        "https://leakedbb.com/", "https://e-hentai.org/",
+        "https://leakedbb.com/", "https://e-hentai.org/", "https://exhentai.org/",
         "https://www.artstation.com/",
         "https://porn3dx.com/", "https://www.deviantart.com/", "https://readmanganato.com/",
         "https://manganato.com/",
@@ -126,7 +126,7 @@ public static partial class UrlUtility
         {
             requestHeaders["referer"] = "";
         }
-        else if (givenUrl.Contains("https://e-hentai.org/"))
+        else if (givenUrl.Contains("https://e-hentai.org/") || givenUrl.Contains("https://exhentai.org/"))
         {
             return (domain, 5f);
         }
