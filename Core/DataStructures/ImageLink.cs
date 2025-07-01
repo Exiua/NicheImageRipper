@@ -17,7 +17,16 @@ public partial class ImageLink
     public string Filename { get; set; } = null!;
     
     public bool IsBlob => Url.StartsWith("blob:");
+    public bool IsInvalid => Url == "";
     public bool HasReferer => !string.IsNullOrEmpty(Referer);
+    
+    public static ImageLink Invalid => new()
+    {
+        Referer = "",
+        LinkInfo = LinkInfo.None,
+        Url = "",
+        Filename = "",
+    };
 
     // Only used for (de)serialization
     [UsedImplicitly]
@@ -45,6 +54,11 @@ public partial class ImageLink
     {
         var ext = Path.GetExtension(Filename);
         Filename = newStem + ext;
+    }
+    
+    public void RegenerateFilename(FilenameScheme filenameScheme, int index)
+    {
+        Filename = GenerateFilename(Url, filenameScheme, index);
     }
     
     public bool Contains(string url)

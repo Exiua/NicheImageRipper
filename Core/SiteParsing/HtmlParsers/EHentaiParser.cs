@@ -42,26 +42,32 @@ public class EHentaiParser : HtmlParser
         
         JsonUtility.Serialize(ImageLinksFileName, imageLinksSave);
         
-        var images = new List<StringImageLinkWrapper>();
+        var imageUrls = new List<string>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
-            // TODO: Handle links missing keystamp or fileindex
-            // TODO: Handle files that download as invalid request
-            Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
-            var img = await GetImageLink(link);
-            images.Add(img);
-            // if (i != 0 && i % 150 == 0)
-            // {
-            //     await Task.Delay(5000);
-            // }
-            // else
-            // {
-            //     await Task.Delay(1000);
-            // }
-            await Task.Delay(1000);
+            // Done to prevent taking too long getting links to the point where the links have expired
+            // Also, E-Hentai seems to hang for too long when too many requests are made in a short period of time
+            if (i >= 250)
+            {
+                Log.Information("Skipping image {i} of {count}", i + 1, imageLinks.Count);
+                imageUrls.Add("");
+            }
+            else
+            {
+                Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
+                var img = await GetImageLink(link);
+                imageUrls.Add(img);
+                await Task.Delay(1000);
+            }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        var images = new List<ImageLink>(imageUrls.Count);
+        foreach (var (i, link) in imageUrls.Enumerate())
+        {
+            images.Add(link == "" ? ImageLink.Invalid : new ImageLink(link, FilenameScheme, i));
+        }
+
+        return RipInfo.GenerateWithInvalid(images, dirName, FilenameScheme);
     }
 
     private async Task<string> GetImageLink(string link)
@@ -91,19 +97,33 @@ public class EHentaiParser : HtmlParser
         }
         
         Log.Information("Updating links from link {start} of {count}", start + 1, imageLinks.Count);
+        var updated = 0;
         foreach (var (i, link) in imageLinks.Enumerate())
         {
             if (i < start)
             {
                 continue;
             }
-            
+
+            if (i >= start + 250)
+            {
+                break;
+            }
+
+            // Expired links will have valid filenames, while invalid links will not have filenames
+            var regenFilename = links[i].IsInvalid;
             var img = await GetImageLink(link);
             Log.Information("Updating image link {i} of {count}", i + 1, imageLinks.Count);
             links[i].Url = img;
+            if (regenFilename)
+            {
+                links[i].RegenerateFilename(FilenameScheme, i);
+            }
+
+            updated++;
         }
         
-        Log.Information("Updated {count} image links", imageLinks.Count - start);
+        Log.Information("Updated {count} image links", updated);
         return links;
     }
 

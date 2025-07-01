@@ -57,6 +57,22 @@ public class RipInfo
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
+    private RipInfo(List<ImageLink> urls, string directoryName, FilenameScheme filenameScheme)
+    {
+        FilenameScheme = filenameScheme;
+        DirectoryName = directoryName;
+        Urls = urls;
+        MustGenerateManually = false;
+        NumUrls = Urls.Count;
+    }
+
+    // Mainly used for e-hentai to allow partial parsing, where some links are invalid and need to be "re-generated"
+    internal static RipInfo GenerateWithInvalid(List<ImageLink> urls, string directoryName,
+                                                FilenameScheme filenameScheme)
+    {
+        return new RipInfo(urls, directoryName, filenameScheme);
+    }
+
     public static RipInfo FromGenerateInfo(StringImageLinkWrapper baseUrl, string dirName, int numUrls)
     {
         return new RipInfo([baseUrl], dirName, generate: true, numUrls: numUrls);

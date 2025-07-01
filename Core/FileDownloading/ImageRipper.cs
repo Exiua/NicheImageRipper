@@ -883,6 +883,19 @@ public partial class ImageRipper : IDisposable
 
     private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually)
     {
+        if (imageLink.IsInvalid)
+        {
+            if (SiteName == "e-hentai")
+            {
+                // Used to force generation of unparsed links
+                // Using a partial parsing approach, so this may be called multiple times per rip
+                throw new EHentaiUrlExpiredException();
+            }
+
+            // This should never happen for any other site
+            throw new RipperException("Invalid ImageLink found for non-EHentai site");
+        }
+        
         var url = imageLink.Url;
         await Task.Delay((int)(SleepTime * MillisecondsInSecond));
         var modifiedHeader = ModifiedHeader.None;
