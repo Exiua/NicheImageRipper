@@ -23,9 +23,9 @@ public class EighteenKamiParser : HtmlParser
             ScrollBy = true,
             Increment = 1250
         });
-        var dirName = soup.SelectSingleNode("//div[@class='panel-heading']/div[@class='pull-left']").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='row thumb-overlay-albums']")
-                            .SelectNodes(".//img")
+        var dirName = soup.SelectNode("//div[@class='panel-heading']/div[@class='pull-left']").InnerText;
+        var images = soup.SelectNode("//div[@class='row thumb-overlay-albums']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => $"https://18kami.com{img.GetSrc()}")
                             .ToStringImageLinkWrapperList();
     

@@ -128,7 +128,7 @@ public static partial class UrlUtility
         }
         else if (givenUrl.Contains("https://e-hentai.org/") || givenUrl.Contains("https://exhentai.org/"))
         {
-            return (domain, 5f);
+            return (domain, 2.5f);
         }
 
         return (domain, 0.2f);

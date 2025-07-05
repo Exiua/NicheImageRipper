@@ -31,7 +31,7 @@ public class BuonduaParser : HtmlParser
         }
         
         var pages = soup.SelectSingleNode("//div[@class='pagination-list']")
-                        .SelectNodes(".//span")
+                        .SelectNodesOrThrow(".//span")
                         .Count;
         var currUrl = CurrentUrl.Replace("?page=1", "");
         
@@ -39,7 +39,7 @@ public class BuonduaParser : HtmlParser
         for (var i = 0; i < pages; i++)
         {
             var imageList = soup.SelectSingleNode("//div[@class='article-fulltext']")
-                                .SelectNodes(".//img")
+                                .SelectNodesOrThrow(".//img")
                                 .Select(img => img.GetSrc())
                                 .Select(dummy => (StringImageLinkWrapper)dummy)
                                 .ToList();

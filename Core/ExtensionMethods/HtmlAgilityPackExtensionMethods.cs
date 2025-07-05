@@ -71,6 +71,12 @@ public static class HtmlAgilityPackExtensionMethods
         var selectedNode = node.SelectSingleNode(xpath) ?? throw new ElementNotFoundException(xpath);
         return selectedNode;
     }
+    
+    public static HtmlNodeCollection SelectNodesOrThrow(this HtmlNode node, string xpath)
+    {
+        var selectedNodes = node.SelectNodes(xpath) ?? throw new ElementNotFoundException(xpath);
+        return selectedNodes;
+    }
 
     public static HtmlNodeCollection SelectNodesSafe(this HtmlNode node, string xpath)
     {

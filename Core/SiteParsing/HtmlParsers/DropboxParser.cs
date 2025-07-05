@@ -81,7 +81,7 @@ public class DropboxParser : HtmlParser
         var posts = new List<string>();
         if (postsNodes is not null)
         {
-            posts = postsNodes.SelectNodes("//a").GetHrefs().RemoveDuplicates();
+            posts = postsNodes.SelectNodesOrThrow("//a").GetHrefs().RemoveDuplicates();
             foreach (var post in posts)
             {
                 soup = await Soupify(post, xpath: "//img[@class='_fullSizeImg_1anuf_16']");

@@ -27,23 +27,23 @@ public abstract partial class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
 
-    protected static readonly string[] ExternalSites =
+    private static readonly string[] ExternalSites =
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
 
-    protected static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
+    private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
 
     protected static GeneralConfig Config => Configuration.Config.Instance;
 
     //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
 
-    protected WebDriver WebDriver { get; set; }
+    protected WebDriver WebDriver { get; }
     public bool Interrupted { get; set; }
-    protected string SiteName { get; set; }
+    private string SiteName { get; set; }
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
-    protected string GivenUrl { get; set; }
-    protected FilenameScheme FilenameScheme { get; set; }
-    protected Dictionary<string, string> RequestHeaders { get; set; }
+    protected string GivenUrl { get; private set; }
+    protected FilenameScheme FilenameScheme { get; }
+    protected Dictionary<string, string> RequestHeaders { get; }
 
     protected FirefoxDriver Driver => WebDriver.Driver;
 
@@ -54,7 +54,7 @@ public abstract partial class HtmlParser : IDisposable
     }
 
     protected static bool Debugging { get; set; }
-    protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
+    private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
     protected static string UserAgent => Config.UserAgent;
 
     protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
@@ -68,12 +68,6 @@ public abstract partial class HtmlParser : IDisposable
         SleepTime = 0.2f;
         Jitter = 0.5f;
         GivenUrl = "";
-    }
-
-    public void SetDebugMode(bool debug)
-    {
-        WebDriver.RegenerateDriver();
-        Debugging = debug;
     }
 
     public async Task<RipInfo> ParseSite(string url)
@@ -170,6 +164,7 @@ public abstract partial class HtmlParser : IDisposable
             //DeviantArt
             "dirtyyoungbitches" => new DirtyYoungBitchesParser(webDriver, requestHeaders, filenameScheme),
             "e-hentai" => new EHentaiParser(webDriver, requestHeaders, filenameScheme),
+            "exhentai" => new EHentaiParser(webDriver, requestHeaders, filenameScheme),
             "eahentai" => new EahentaiParser(webDriver, requestHeaders, filenameScheme),
             "8boobs" => new EightBoobsParser(webDriver, requestHeaders, filenameScheme),
             "8muses" => new EightMusesParser(webDriver, requestHeaders, filenameScheme),
@@ -561,10 +556,10 @@ public abstract partial class HtmlParser : IDisposable
     protected async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode(dirNameXpath)
+        var dirName = soup.SelectNode(dirNameXpath)
                           .InnerText;
-        var images = soup.SelectNodes(imageContainerXpath)
-                         .SelectMany(im => im.SelectNodes(".//img"))
+        var images = soup.SelectNodesOrThrow(imageContainerXpath)
+                         .SelectMany(im => im.SelectNodesOrThrow(".//img"))
                          .Select(img => Protocol + img.GetSrc().Remove("tn_"))
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();
@@ -591,13 +586,13 @@ public abstract partial class HtmlParser : IDisposable
     private async Task<RipInfo> GenericHtmlParserHelper1()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//img[@title='Click To Enlarge!']")
+        var dirName = soup.SelectNode("//img[@title='Click To Enlarge!']")
                           .GetAttributeValue("alt")
                           .Split(" ")
                           .TakeWhile(s => s != "-")
                           .Join(" ");
-        var images = soup.SelectNodes("//div[@class='gallery_thumb']")
-                         .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+        var images = soup.SelectNodesOrThrow("//div[@class='gallery_thumb']")
+                         .Select(img => Protocol + img.SelectNode(".//img").GetSrc().Remove("tn_"))
                          .ToStringImageLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -610,12 +605,12 @@ public abstract partial class HtmlParser : IDisposable
     private async Task<RipInfo> GenericHtmlParserHelper2()
     {
         var soup = await Soupify();
-        var imageList = soup.SelectSingleNode("//ul[@class='list-gallery static css has-data']")
-                            .SelectNodes(".//a");
+        var imageList = soup.SelectNode("//ul[@class='list-gallery static css has-data']")
+                            .SelectNodesOrThrow(".//a");
         var images = imageList.Select(image => image.GetHref())
                               .Select(dummy => (StringImageLinkWrapper)dummy)
                               .ToList();
-        var dirName = imageList[0].SelectSingleNode(".//img")
+        var dirName = imageList[0].SelectNode(".//img")
                                   .GetAttributeValue("alt");
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -628,11 +623,11 @@ public abstract partial class HtmlParser : IDisposable
     private async Task<RipInfo> GenericHtmlParserHelper3()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//header[@id='top']").SelectSingleNode(".//h1").InnerText;
+        var dirName = soup.SelectNode("//header[@id='top']").SelectNode(".//h1").InnerText;
         var images = soup
-                    .SelectSingleNode(
+                    .SelectNode(
                          "//ul[contains(@class, 'list-gallery') and contains(@class, 'static') and contains(@class, 'css')]")
-                    .SelectNodes(".//a")
+                    .SelectNodesOrThrow(".//a")
                     .Select(img => img.GetHref())
                     .Select(dummy => (StringImageLinkWrapper)dummy)
                     .ToList();
@@ -719,7 +714,7 @@ public abstract partial class HtmlParser : IDisposable
             var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl))
                            .OfType<string>()
                            .ToStringImageLinks();
-            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+            images.AddRange(urls);
             if (data.Count < limit)
             {
                 break;
@@ -980,18 +975,6 @@ public abstract partial class HtmlParser : IDisposable
         return await Soupify(solution);
     }
 
-    private async Task<HtmlNode> SolveCaptcha(string url, bool humanSolving)
-    {
-        await SolveParseAddCookies(); // Replace with a proper captcha solver
-        if (humanSolving)
-        {
-            Log.Information("Please solve the captcha and press enter to continue...");
-            Console.ReadLine();
-        }
-
-        return await Soupify(url);
-    }
-
     protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();
@@ -1018,7 +1001,7 @@ public abstract partial class HtmlParser : IDisposable
 
             var response = await client.GetAsync(url);
             var soup = await Soupify(response: response);
-            var imgurUrl = soup.SelectSingleNode("//a[@id='image-link']")
+            var imgurUrl = soup.SelectNode("//a[@id='image-link']")
                                .GetHref();
             var imageHash = imgurUrl.Split("#")[^1];
             var message = headers.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/image/{imageHash}");
@@ -1136,7 +1119,7 @@ public abstract partial class HtmlParser : IDisposable
                 var content = await response.Content.ReadAsStringAsync();
                 var soup = new HtmlDocument();
                 soup.LoadHtml(content);
-                var sourceLink = soup.DocumentNode.SelectSingleNode("//source[@id='video_source']")
+                var sourceLink = soup.DocumentNode.SelectNode("//source[@id='video_source']")
                                      .GetAttributeValue("src", "");
                 resolvedLinks.Add(sourceLink);
             }
@@ -1232,7 +1215,7 @@ public abstract partial class HtmlParser : IDisposable
 
     protected void ScrollPage(int distance = 1250)
     {
-        var currHeight = (long)Driver.ExecuteScript("return window.pageYOffset");
+        var currHeight = (long)(Driver.ExecuteScript("return window.pageYOffset") ?? 0);
         var scrollScript = $"window.scrollBy({{top: {currHeight + distance}, left: 0, behavior: 'smooth'}});";
         Driver.ExecuteScript(scrollScript);
     }
@@ -1240,11 +1223,6 @@ public abstract partial class HtmlParser : IDisposable
     protected void ScrollToTop()
     {
         Driver.ExecuteScript("window.scrollTo(0, 0);");
-    }
-
-    protected void ScrollElementIntoView(IWebElement element)
-    {
-        Driver.ExecuteScript("arguments[0].scrollIntoView(true);", element);
     }
 
     protected static void LogFailedUrl(string url)

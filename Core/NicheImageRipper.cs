@@ -188,6 +188,11 @@ public partial class NicheImageRipper : IDisposable
             var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
             return $"https://booru.com/post?{tags}";
         }
+
+        if (host.Contains("exhentai.org"))
+        {
+            return url.Replace("exhentai.org", "e-hentai.org");
+        }
         
         return url.Split("?")[0];
     }
@@ -219,6 +224,7 @@ public partial class NicheImageRipper : IDisposable
             Booru.Gelbooru => $"{baseUrl}?page=post&s=list&{tags}",
             Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
             Booru.Yandere => $"{baseUrl}?{tags}",
+            Booru.E621 => throw new NotImplementedException(),
             _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
         };
     }
@@ -264,7 +270,11 @@ public partial class NicheImageRipper : IDisposable
         {
             try
             {
+                var start = DateTime.Now;
                 await Ripper.Rip(url);
+                var elapsed = DateTime.Now - start;
+                var elapsedFormatted = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
+                Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
                 break;
             }
             catch (Exception e)
@@ -442,7 +452,8 @@ public partial class NicheImageRipper : IDisposable
         var normalizedUrl = NormalizeUrl(url);
         if (!noCheck)
         {
-            if (HistoryDb.GetHistoryByUrl(normalizedUrl) is not null)
+            var searchUrl = normalizedUrl.Replace("e-hentai.org", "exhentai.org");
+            if (HistoryDb.GetHistoryByUrl(searchUrl) is not null)
             {
                 return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
             }
