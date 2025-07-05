@@ -247,6 +247,7 @@ public abstract partial class HtmlParser : IDisposable
             "tsumino" => new TsuminoParser(webDriver, requestHeaders, filenameScheme),
             "twitter" => new TwitterParser(webDriver, requestHeaders, filenameScheme),
             "x" => new TwitterParser(webDriver, requestHeaders, filenameScheme),
+            "xcancel" => new XCancelParser(webDriver, requestHeaders, filenameScheme),
             "wantedbabes" => new WantedBabesParser(webDriver, requestHeaders, filenameScheme),
             "xarthunter" => new XArtHunterParser(webDriver, requestHeaders, filenameScheme),
             "xmissy" => new XMissyParser(webDriver, requestHeaders, filenameScheme),
@@ -941,6 +942,28 @@ public abstract partial class HtmlParser : IDisposable
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
                                                         List<Dictionary<string, string>>? cookies = null)
     {
+        var solution = await Solve(regenerateSessionOnFailure, cookies);
+        var cookieJar = Driver.GetCookieJar();
+        foreach (var cookie in solution.Cookies)
+        {
+            Log.Debug("Adding cookie: {@Cookie}", cookie);
+            var seleniumCookie = cookie.ToSeleniumCookie();
+            cookieJar.SetCookie(seleniumCookie);
+        }
+
+        return await Soupify(solution);
+    }
+
+    protected async Task<HtmlNode> SolveParse(bool regenerateSessionOnFailure = false,
+                                              List<Dictionary<string, string>>? cookies = null)
+    {
+        var solution = await Solve(regenerateSessionOnFailure, cookies);
+        return await Soupify(solution);
+    }
+
+    private async Task<Solution> Solve(bool regenerateSessionOnFailure = false,
+                                       List<Dictionary<string, string>>? cookies = null)
+    {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
             throw new FeatureNotAvailableException(ExternalFeatureSupport.FlareSolverr);
@@ -963,16 +986,8 @@ public abstract partial class HtmlParser : IDisposable
                 throw;
             }
         }
-
-        var cookieJar = Driver.GetCookieJar();
-        foreach (var cookie in solution.Cookies)
-        {
-            Log.Debug("Adding cookie: {@Cookie}", cookie);
-            var seleniumCookie = cookie.ToSeleniumCookie();
-            cookieJar.SetCookie(seleniumCookie);
-        }
-
-        return await Soupify(solution);
+        
+        return solution;
     }
 
     protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
@@ -1246,7 +1261,14 @@ public abstract partial class HtmlParser : IDisposable
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName);
             var end = DateTime.Now;
-            Log.Debug("Referer: {Referer}", data.Urls[0].Referer);
+            if (data.Urls.Count == 0)
+            {
+                Log.Error("No URLs found for {SiteName}Parse", SiteName);
+            }
+            else
+            {
+                Log.Debug("Referer: {Referer}", data.Urls[0].Referer);
+            }
             Log.Debug("Time Elapsed: {TimeElapsed}", end - start);
             var outData = data.Urls.Select(d => d.Url).ToList();
             JsonUtility.Serialize("test.json", outData);

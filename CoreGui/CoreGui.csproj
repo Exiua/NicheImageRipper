@@ -8,6 +8,15 @@
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+<!--        <UseWPF>true</UseWPF>-->
+        <DefineConstants>WINDOWS</DefineConstants>
+    </PropertyGroup>
+<!--    <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-windows'">-->
+<!--        <UseWPF>true</UseWPF>-->
+<!--        <DefineConstants>WINDOWS</DefineConstants>-->
+<!--    </PropertyGroup>-->
+
     <ItemGroup>
         <AvaloniaResource Include="Assets\**"/>
     </ItemGroup>
@@ -21,6 +30,10 @@
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.0" />
         <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.0" />
+        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />

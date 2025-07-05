@@ -174,6 +174,15 @@ public class MainWindowViewModel : ViewModelBase
 
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
     }
+    
+    private ITaskbarProgressService? GetTaskbarProgressService()
+    {
+        #if WINDOWS
+        return new WindowsTaskbarProgressService();
+        #else
+        return null;
+        #endif
+    }
 
     public void DecrementHistoryPage()
     {
