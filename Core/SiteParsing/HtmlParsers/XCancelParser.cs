@@ -14,6 +14,11 @@ public class XCancelParser : HtmlParser
     {
     }
 
+    private static int GenerateDelay()
+    {
+        return Random.Shared.Next(1000, 3500); // Random delay between 1 and 3.5 seconds
+    }
+
     /// <summary>
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -26,12 +31,16 @@ public class XCancelParser : HtmlParser
             CurrentUrl = baseUrl;
         }
         
+        // TODO: Add anti-bot page detection handling
         var soup = await SolveParse();
-        await Task.Delay(500); // Delay to avoid overwhelming the server
+        await Task.Delay(GenerateDelay()); // Delay to avoid overwhelming the server
         var dirName = soup.SelectNode("//a[@class='profile-card-username']").InnerText[1..]; // Skip the '@' at the start
         var images = new List<StringImageLinkWrapper>();
+        var page = 1;
         while (true)
         {
+            Log.Information("Parsing page {page}", page);
+            page++;
             var timeline = soup.SelectNode("//div[@class='timeline']")
                                .SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
             foreach (var div in timeline)
@@ -57,7 +66,8 @@ public class XCancelParser : HtmlParser
             var nextUrl = nextButton.GetHref();
             CurrentUrl = $"{baseUrl}{nextUrl}";
             soup = await SolveParse();
-            await Task.Delay(500); // Delay to avoid overwhelming the server
+            var multiplier = page % 10 == 0 ? 10 : 1; // Increase delay every 10 pages to avoid overwhelming the server
+            await Task.Delay(GenerateDelay() * multiplier); // Delay to avoid overwhelming the server
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
