@@ -39,6 +39,7 @@ public partial class NicheImageRipper : IDisposable
     public ImageRipper? Ripper { get; set; }
     
     public event Action? OnUrlQueueUpdated;
+    public event Action? OnUrlRipComplete;
 
     // TODO: Convert to enum with better variations on how to handle re-ripping
     public static bool AskToReRip
@@ -275,6 +276,7 @@ public partial class NicheImageRipper : IDisposable
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
                 Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
+                OnUrlRipComplete?.Invoke();
                 break;
             }
             catch (Exception e)
