@@ -1,17 +1,15 @@
-﻿using System.Runtime.CompilerServices;
-using Core.Exceptions;
+﻿using Common.Exceptions;
 using HtmlAgilityPack;
 
-namespace Core.ExtensionMethods;
+namespace Common.ExtensionMethods;
 
 public static class HtmlAgilityPackExtensionMethods
 {
     public static List<string> GetHrefs(this HtmlNodeCollection nodes)
     {
         return nodes
-            .SelectWhere(node => 
-                node.GetAttributeValue("href", string.Empty), link => link != string.Empty)
-            .ToList();
+              .Select(node => node.GetHref())
+              .ToList();
     }
     
     public static List<string> GetSrcs(this HtmlNodeCollection nodes)
