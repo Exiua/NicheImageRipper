@@ -1,3 +1,4 @@
+using Common.ExtensionMethods;
 using System.Text.RegularExpressions;
 using Core.Configuration;
 using Core.DataStructures;

@@ -1,3 +1,4 @@
+using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.DataStructures.VideoCapturers;
 using Core.Enums;

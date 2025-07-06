@@ -1,3 +1,4 @@
+using Common.ExtensionMethods;
 using System.Text.RegularExpressions;
 using Core.DataStructures;
 using Core.Enums;

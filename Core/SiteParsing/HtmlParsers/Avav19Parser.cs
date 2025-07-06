@@ -1,3 +1,4 @@
+using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using WebDriver = Core.Driver.WebDriver;
