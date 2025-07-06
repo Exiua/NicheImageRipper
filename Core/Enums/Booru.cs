@@ -1,4 +1,5 @@
 using Core.Configuration;
+using Core.Exceptions;
 
 namespace Core.Enums;
 
@@ -50,7 +51,8 @@ public class BooruMetadata
                 {
                     return $"{BaseUrl}api_key={password}&user_id={username}&";
                 }
-                return BaseUrl;
+
+                throw new ApiKeyRequired("Gelbooru");
             }
             case Booru.Rule34:
             {
