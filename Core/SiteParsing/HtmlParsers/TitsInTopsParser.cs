@@ -1,8 +1,12 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Common.ExtensionMethods;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using HtmlAgilityPack;
 using OpenQA.Selenium;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -27,7 +31,7 @@ public class TitsInTopsParser : HtmlParser
         var cookieStr = cookies.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value};");
         RequestHeaders["cookie"] = cookieStr;
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='p-title-value']")
+        var dirName = soup.SelectNode("//h1[@class='p-title-value']")
                             .InnerText;
         var images = new List<StringImageLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
@@ -36,12 +40,12 @@ public class TitsInTopsParser : HtmlParser
         {
             Log.Information("Parsing page {PageCount}", pageCount);
             pageCount++;
-            var posts = soup.SelectSingleNode("//div[@class='block-body js-replyNewMessageContainer']")
-                            .SelectNodes(".//div[@class='message-content js-messageContent']");
+            var posts = soup.SelectNode("//div[@class='block-body js-replyNewMessageContainer']")
+                            .SelectNodesOrThrow(".//div[@class='message-content js-messageContent']");
             foreach (var post in posts)
             {
-                var imgs = post.SelectSingleNode(".//article[@class='message-body js-selectToQuote']")
-                                .SelectNodes(".//img");
+                var imgs = post.SelectNode(".//article[@class='message-body js-selectToQuote']")
+                               .SelectNodes(".//img");
                 if (imgs is not null)
                 {
                     var imgList = imgs.Select(im => im.GetSrc())
@@ -52,7 +56,7 @@ public class TitsInTopsParser : HtmlParser
                 var videos = post.SelectNodes(".//video");
                 if (videos is not null)
                 {
-                    var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectSingleNode(".//source").GetSrc()}");
+                    var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectNode(".//source").GetSrc()}");
                     images.AddRange(videoUrls.Select(vid => (StringImageLinkWrapper)vid));
                 }
                 
@@ -73,7 +77,7 @@ public class TitsInTopsParser : HtmlParser
                     images.AddRange(attachList.Select(attach => (StringImageLinkWrapper)attach));
                 }
 
-                var links = post.SelectSingleNode(".//article[@class='message-body js-selectToQuote']")
+                var links = post.SelectNode(".//article[@class='message-body js-selectToQuote']")
                                 .SelectNodes(".//a");
                 if (links is not null)
                 {
@@ -121,5 +125,79 @@ public class TitsInTopsParser : HtmlParser
         
         CurrentUrl = origUrl;
         return true;
+    }
+
+    private static async Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict,
+                                                                     Dictionary<string, List<string>> dstDict)
+    {
+        var downloadableLinks = new List<string>();
+        var downloadableSites = new[] { "sendvid.com" };
+        foreach (var site in srcDict.Keys)
+        {
+            if (downloadableSites.Contains(site))
+            {
+                downloadableLinks.AddRange(srcDict[site]);
+                srcDict[site].Clear();
+            }
+            else
+            {
+                dstDict[site].AddRange(srcDict[site]);
+            }
+        }
+
+        return await ResolveDownloadableLinks(downloadableLinks);
+    }
+
+    private static async Task<List<string>> ResolveDownloadableLinks(List<string> links)
+    {
+        var resolvedLinks = new List<string>();
+        var client = new HttpClient();
+        foreach (var link in links)
+        {
+            if (link.Contains("sendvid.com"))
+            {
+                var response = await client.GetAsync(link);
+                var soup = await Soupify(response);
+                var sourceLink = soup.SelectNode("//source[@id='video_source']")
+                                     .GetAttributeValue("src", "");
+                resolvedLinks.Add(sourceLink);
+            }
+            else
+            {
+                resolvedLinks.Add(link);
+            }
+        }
+
+        return resolvedLinks;
+    }
+
+    private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
+    {
+        var parsedUrls = new List<string>();
+        var imgurKey = Config.Keys[ConfigKeys.KeyKeys.Imgur];
+        var headers = new Dictionary<string, string>
+        {
+            ["Authorization"] = $"Client-Id {imgurKey}"
+        };
+        var client = new HttpClient();
+        foreach (var url in urls)
+        {
+            if (!url.Contains("imgur"))
+            {
+                continue;
+            }
+
+            var response = await client.GetAsync(url);
+            var soup = await Soupify(response);
+            var imgurUrl = soup.SelectNode("//a[@id='image-link']")
+                               .GetHref();
+            var imageHash = imgurUrl.Split("#")[^1];
+            var message = headers.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/image/{imageHash}");
+            response = await client.SendAsync(message);
+            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>();
+            parsedUrls.Add(responseJson!["data"]!["link"]!.Deserialize<string>()!);
+        }
+
+        return parsedUrls;
     }
 }

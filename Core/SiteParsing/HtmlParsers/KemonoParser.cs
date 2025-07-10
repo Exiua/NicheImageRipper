@@ -6,7 +6,7 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class KemonoParser : HtmlParser
+public class KemonoParser : DotPartyParser
 {
     public KemonoParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
@@ -16,8 +16,13 @@ public class KemonoParser : HtmlParser
     ///     Parses the html for kemono.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    public override async Task<RipInfo> Parse(string url)
     {
+        if (url != "")
+        {
+            CurrentUrl = url;
+        }
+        
         return await DotPartyParse("https://kemono.su");
     }
 }

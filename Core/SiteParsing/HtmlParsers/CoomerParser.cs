@@ -6,7 +6,7 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class CoomerParser : ParameterizedHtmlParser
+public class CoomerParser : DotPartyParser
 {
     public CoomerParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
@@ -18,7 +18,11 @@ public class CoomerParser : ParameterizedHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(string url)
     {
-        CurrentUrl = url;
+        if (url != "")
+        {
+            CurrentUrl = url;
+        }
+        
         return await DotPartyParse("https://coomer.su");
     }
 }
