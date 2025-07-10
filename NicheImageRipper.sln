@@ -14,6 +14,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreGui", "CoreGui\CoreGui.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreTui", "CoreTui\CoreTui.csproj", "{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwiApi", "TwiApi\TwiApi.csproj", "{ABD9AEF7-8167-4BA2-B85A-26783639E60F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{8CA7B3FC-6E65-4668-84E7-15D3867BEB34}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +52,13 @@ Global
 		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABD9AEF7-8167-4BA2-B85A-26783639E60F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABD9AEF7-8167-4BA2-B85A-26783639E60F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABD9AEF7-8167-4BA2-B85A-26783639E60F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABD9AEF7-8167-4BA2-B85A-26783639E60F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CA7B3FC-6E65-4668-84E7-15D3867BEB34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CA7B3FC-6E65-4668-84E7-15D3867BEB34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CA7B3FC-6E65-4668-84E7-15D3867BEB34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CA7B3FC-6E65-4668-84E7-15D3867BEB34}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

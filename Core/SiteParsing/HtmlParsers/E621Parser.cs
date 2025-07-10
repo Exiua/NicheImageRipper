@@ -7,7 +7,7 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class E621Parser : HtmlParser
+public class E621Parser : BooruParser
 {
     public E621Parser(WebDriver driver, Dictionary<string, string> requestHeaders,
                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,

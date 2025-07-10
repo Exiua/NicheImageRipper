@@ -423,6 +423,7 @@ FodyWeavers.xsd
 Workspace/
 .idea/
 scripts/
+TwiApi/
 
 # Custom files
 *.json
