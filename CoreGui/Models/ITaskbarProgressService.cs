@@ -6,4 +6,5 @@ public interface ITaskbarProgressService
 {
     void Initialize();
     void SetProgress(IntPtr windowHandle, ulong current, ulong total);
+    void SetError(IntPtr windowHandle);
 }

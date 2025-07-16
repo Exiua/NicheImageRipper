@@ -38,6 +38,11 @@ public class WindowsTaskbarProgressService : ITaskbarProgressService
             TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.NoProgress);
         }
     }
+
+    public void SetError(IntPtr windowHandle)
+    {
+        TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Error);
+    }
 }
 
 public static partial class TaskbarProgress
