@@ -23,10 +23,10 @@ public class Cup2DParser : HtmlParser
             ScrollBy = true,
             Increment = 1250
         });
-        var dirName = soup.SelectSingleNode("//h1[@class='post-title entry-title']/a").InnerText;
+        var dirName = soup.SelectNode("//h1[@class='post-title entry-title']").InnerText;
         var images = new List<StringImageLinkWrapper>();
-        var node = soup.SelectSingleNode("//div[@class='entry-content gridshow-clearfix']/div")
-                        .SelectNodes("./*[self::a or self::iframe]");
+        var node = soup.SelectNode("//div[@class='entry-content gridshow-clearfix']/div")
+                       .SelectNodesOrThrow("./*[self::a or self::iframe]");
         foreach (var n in node)
         {
             if(n.Name == "a")
