@@ -39,7 +39,6 @@ public partial class NicheImageRipper : IDisposable
     public ImageRipper? Ripper { get; set; }
     
     public event Action? OnUrlQueueUpdated;
-    public event Action? OnUrlRipComplete;
     public event Action<int, int>? OnProgressChanged;
 
     // TODO: Convert to enum with better variations on how to handle re-ripping

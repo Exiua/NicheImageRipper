@@ -39,7 +39,6 @@ public class MainWindowViewModel : ViewModelBase
     private double _urlWidth = Config.HistoryColumnWidths.UrlWidth;
     private double _dateWidth = Config.HistoryColumnWidths.DateWidth;
     private double _countWidth = Config.HistoryColumnWidths.CountWidth;
-    private (int Processed, int Total) _sessionProgress = (0, 0);
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -176,7 +175,6 @@ public class MainWindowViewModel : ViewModelBase
         History = new ObservableCollection<HistoryEntry>(history);
 
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
-        _ripper.OnUrlRipComplete += OnUrlRipCompleted;
         _ripper.OnProgressChanged += OnProgressChanged;
     }
     
@@ -235,48 +233,26 @@ public class MainWindowViewModel : ViewModelBase
     {
         if (_progressService is not null)
         {
-            var windowHandle = TopLevel.GetTopLevel(MainWindow)?.TryGetPlatformHandle();
-            if (windowHandle is null)
+            var windowHandle = GetWindowHandle();
+            if (windowHandle == IntPtr.Zero)
             {
                 Log.Warning("Failed to get window handle for progress update.");
                 return;
             }
             
-            _progressService.SetProgress(windowHandle.Handle, (ulong)current, (ulong)total);
+            _progressService.SetProgress(windowHandle, (ulong)current, (ulong)total);
         }
     }
-
-    private void OnUrlRipCompleted()
+    
+    private IntPtr GetWindowHandle()
     {
-        _sessionProgress.Processed++;
-        Log.Debug("Rip completed. Processed: {Processed}, Total: {Total}", 
-            _sessionProgress.Processed, _sessionProgress.Total);
-        
-        if (_progressService is not null)
-        {
-            var windowHandle = TopLevel.GetTopLevel(MainWindow)?.TryGetPlatformHandle();
-            if (windowHandle is null)
-            {
-                Log.Warning("Failed to get window handle for progress update.");
-                return;
-            }
-            
-            _progressService.SetProgress(windowHandle.Handle, 
-                (ulong)_sessionProgress.Processed, (ulong)_sessionProgress.Total);
-        }
-        
-        if (_sessionProgress.Processed >= _sessionProgress.Total || _ripper.UrlQueue.Count == 0)
-        {
-            _sessionProgress = (0, 0);
-            Log.Debug("All URLs processed. Resetting session progress.");
-        }
+        var handle = TopLevel.GetTopLevel(MainWindow)?.TryGetPlatformHandle()?.Handle;
+        return handle ?? IntPtr.Zero;
     }
     
     private void DequeueUrls()
     {
-        var removedCount = SelectedUrls.Count;
         _ripper.DequeueUrls(SelectedUrls);
-        _sessionProgress.Total -= removedCount;
     }
 
     private void QueueAndRip()
@@ -296,7 +272,6 @@ public class MainWindowViewModel : ViewModelBase
     private async Task QueueUrls(string input)
     {
         var parts = input.Split(" ");
-        var currentQueueCount = _ripper.UrlQueue.Count;
         RejectedUrlsInfo rejectedUrls;
         if (parts[0] == "booru")
         {
@@ -315,11 +290,6 @@ public class MainWindowViewModel : ViewModelBase
             rejectedUrls = _ripper.QueueUrls(input);
         }
         
-        var updatedQueueCount = _ripper.UrlQueue.Count;
-        var addedCount = updatedQueueCount - currentQueueCount;
-        _sessionProgress.Total += addedCount;
-        currentQueueCount = updatedQueueCount;
-
         if (rejectedUrls.Count != 0)
         {
             var urlsToRequeue = new List<RejectedUrlInfo>(rejectedUrls.Count);
@@ -355,9 +325,6 @@ public class MainWindowViewModel : ViewModelBase
             }
 
             _ripper.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
-            updatedQueueCount = _ripper.UrlQueue.Count;
-            addedCount = updatedQueueCount - currentQueueCount;
-            _sessionProgress.Total += addedCount;
         }
 
         Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
@@ -402,6 +369,15 @@ public class MainWindowViewModel : ViewModelBase
         }
         finally
         {
+            if (_progressService is not null)
+            {
+                var windowHandle = GetWindowHandle();
+                if (windowHandle != IntPtr.Zero)
+                {
+                    _progressService.SetError(windowHandle);
+                }
+            }
+            
             _ripInProgress = false;
         }
     }

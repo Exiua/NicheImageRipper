@@ -764,6 +764,7 @@ public partial class ImageRipper : IDisposable
             throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
         }
         
+        Log.Debug("Logging in to MegaCmd");
         var (email, password) = Config.Logins[ConfigKeys.LoginKeys.Mega];
         if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
         {
@@ -779,15 +780,19 @@ public partial class ImageRipper : IDisposable
         
         if(!PersistentLogins["Mega"])
         {
-            throw new Exception("Unable to login to MegaCmd");
+            var e = new RipperException("Unable to login to MegaCmd");
+            Log.Error(e, "Unable to login to MegaCmd");
+            throw e;
         }
 
         if (imageLink.Url.Contains("/file/"))
         {
+            Log.Debug("Downloading file from Mega: {Url}", imageLink.Url);
             path = Path.GetDirectoryName(path)!;
         }
         else
         {
+            Log.Debug("Downloading folder from Mega: {Url}", imageLink.Url);
             Directory.CreateDirectory(path);
         }
         
