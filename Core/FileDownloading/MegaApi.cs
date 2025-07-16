@@ -49,6 +49,7 @@ public static class MegaApi
                 FileName = "cmd.exe",
                 Arguments = $"/C {string.Join(" ", cmd)}",
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
@@ -56,6 +57,50 @@ public static class MegaApi
         
         process.Start();
         process.WaitForExit();
+
+        return process;
+    }
+    
+    private static async Task<Process> RunSubprocessAsync(IEnumerable<string> cmd, CancellationToken cancellationToken)
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/C {string.Join(" ", cmd)}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            },
+            EnableRaisingEvents = true
+        };
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        cancellationToken.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch { /* Ignore if already exited or failed to kill */ }
+            tcs.TrySetCanceled();
+        });
+
+        process.Exited += (s, e) => tcs.TrySetResult(true);
+
+        process.Start();
+
+        // Optional: Start reading stdout/stderr if needed
+        _ = Task.Run(() => process.StandardOutput.ReadToEndAsync(cancellationToken), cancellationToken);
+        _ = Task.Run(() => process.StandardError.ReadToEndAsync(cancellationToken), cancellationToken);
+
+        await tcs.Task.ConfigureAwait(false);
 
         return process;
     }
