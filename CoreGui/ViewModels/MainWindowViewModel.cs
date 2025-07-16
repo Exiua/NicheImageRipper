@@ -362,13 +362,19 @@ public class MainWindowViewModel : ViewModelBase
         try
         {
             await _ripper.Rip();
+        
+            if (_progressService is not null)
+            {
+                var windowHandle = GetWindowHandle();
+                if (windowHandle != IntPtr.Zero)
+                {
+                    _progressService.ClearProgress(windowHandle);
+                }
+            }
         }
         catch (Exception e)
         {
             Dispatcher.UIThread.Post(() => { Log.Error(e, "Error occurred while ripping"); });
-        }
-        finally
-        {
             if (_progressService is not null)
             {
                 var windowHandle = GetWindowHandle();
@@ -377,7 +383,9 @@ public class MainWindowViewModel : ViewModelBase
                     _progressService.SetError(windowHandle);
                 }
             }
-            
+        }
+        finally
+        {
             _ripInProgress = false;
         }
     }

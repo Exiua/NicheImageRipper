@@ -43,6 +43,16 @@ public class WindowsTaskbarProgressService : ITaskbarProgressService
     {
         TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Error);
     }
+    
+    public void SetPaused(IntPtr windowHandle)
+    {
+        TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Paused);
+    }
+    
+    public void ClearProgress(IntPtr windowHandle)
+    {
+        TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.NoProgress);
+    }
 }
 
 public static partial class TaskbarProgress

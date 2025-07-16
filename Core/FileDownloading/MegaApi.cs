@@ -30,6 +30,20 @@ public static class MegaApi
         return process.ExitCode == 0;
     }
     
+    public static async Task<bool> DownloadAsync(string url, string dest, CancellationToken cancellationToken)
+    {
+        string[] cmd = ["mega-get", url, $"\"{dest}\""];
+        
+        using var process = await RunSubprocessAsync(cmd, cancellationToken);
+        
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+
+        return process.ExitCode == 0;
+    }
+    
     public static string WhoAmI()
     {
         string[] cmd = ["mega-whoami"];
@@ -92,13 +106,9 @@ public static class MegaApi
             tcs.TrySetCanceled();
         });
 
-        process.Exited += (s, e) => tcs.TrySetResult(true);
+        process.Exited += (_, _) => tcs.TrySetResult(true);
 
         process.Start();
-
-        // Optional: Start reading stdout/stderr if needed
-        _ = Task.Run(() => process.StandardOutput.ReadToEndAsync(cancellationToken), cancellationToken);
-        _ = Task.Run(() => process.StandardError.ReadToEndAsync(cancellationToken), cancellationToken);
 
         await tcs.Task.ConfigureAwait(false);
 

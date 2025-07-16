@@ -757,7 +757,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
     
-    private Task<bool> DownloadMegaFiles(string path, ImageLink imageLink)
+    private async Task<bool> DownloadMegaFiles(string path, ImageLink imageLink)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
         {
@@ -795,8 +795,19 @@ public partial class ImageRipper : IDisposable
             Log.Debug("Downloading folder from Mega: {Url}", imageLink.Url);
             Directory.CreateDirectory(path);
         }
-        
-        return Task.FromResult(MegaApi.Download(imageLink.Url, path));
+
+        while (true)
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            try
+            {
+                return await MegaApi.DownloadAsync(imageLink.Url, path, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Warning("Mega download timed out, retrying...");
+            }
+        }
     }
     
     private static async Task<bool> DownloadPixelDrainFiles(string path, ImageLink imageLink)
