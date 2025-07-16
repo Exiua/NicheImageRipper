@@ -40,6 +40,7 @@ public partial class NicheImageRipper : IDisposable
     
     public event Action? OnUrlQueueUpdated;
     public event Action? OnUrlRipComplete;
+    public event Action<int, int>? OnProgressChanged;
 
     // TODO: Convert to enum with better variations on how to handle re-ripping
     public static bool AskToReRip
@@ -248,7 +249,10 @@ public partial class NicheImageRipper : IDisposable
             }
             finally
             {
-                Ripper?.Dispose(); // TODO: Fix this
+                if (Ripper is not null){
+                    Ripper.OnProgressChanged -= OnProgressChangedHandler;
+                    Ripper.Dispose(); // TODO: Fix this
+                }
             }
         }
     }
@@ -264,6 +268,7 @@ public partial class NicheImageRipper : IDisposable
         var url = UrlQueue[0];
         Log.Information(url); // This is done to output the URL without the enclosing quotes
         Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
+        Ripper.OnProgressChanged += OnProgressChanged;
         Log.Debug("Ripper created");
         Interrupted = true;
         
@@ -276,7 +281,7 @@ public partial class NicheImageRipper : IDisposable
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
                 Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
-                OnUrlRipComplete?.Invoke();
+                //OnUrlRipComplete?.Invoke();
                 break;
             }
             catch (Exception e)
@@ -303,6 +308,11 @@ public partial class NicheImageRipper : IDisposable
         return url;
     }
 
+    private void OnProgressChangedHandler(int current, int total)
+    {
+        OnProgressChanged?.Invoke(current, total);
+    }
+    
     public void SaveData()
     {
         if (UrlQueue.Count > 0)
@@ -622,6 +632,12 @@ public partial class NicheImageRipper : IDisposable
         }
         
         _disposed = true;
+        if (Ripper is not null)
+        {
+            Ripper.OnProgressChanged -= OnProgressChangedHandler;
+            Ripper.Dispose();
+        }
+        
         WebDriverPool.Dispose();
         GC.SuppressFinalize(this);
     }

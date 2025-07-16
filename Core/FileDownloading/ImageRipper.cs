@@ -65,6 +65,8 @@ public partial class ImageRipper : IDisposable
     private static GeneralConfig Config => Configuration.Config.Instance;
     private static TokenManager TokenManager => TokenManager.Instance;
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
+    
+    public event Action<int, int>? OnProgressChanged;
 
     public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
                        UnzipProtocol unzipProtocol = UnzipProtocol.None, PostDownloadAction postDownloadAction = PostDownloadAction.None)
@@ -87,6 +89,7 @@ public partial class ImageRipper : IDisposable
 
     public async Task Rip(string url)
     {
+        OnProgressChanged?.Invoke(0, 0); // Indeterminate progress at the start
         SleepTime = 0.2f;   // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
@@ -232,6 +235,8 @@ public partial class ImageRipper : IDisposable
                             downloadStats.NumDuplicates++;
                         }
                     }
+                    
+                    OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
                     break;
                 }
                 catch // TODO: Narrow down exceptions
@@ -303,6 +308,8 @@ public partial class ImageRipper : IDisposable
                                 await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
                                 throw;
                             }
+                            
+                            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls);
                         }
 
                         break;

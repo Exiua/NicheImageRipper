@@ -177,6 +177,7 @@ public class MainWindowViewModel : ViewModelBase
 
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
         _ripper.OnUrlRipComplete += OnUrlRipCompleted;
+        _ripper.OnProgressChanged += OnProgressChanged;
     }
     
     private static ITaskbarProgressService? GetTaskbarProgressService()
@@ -228,6 +229,21 @@ public class MainWindowViewModel : ViewModelBase
     private void OnUrlQueueUpdated()
     {
         Dispatcher.UIThread.Post(() => UrlQueue.Update(_ripper.UrlQueue));
+    }
+
+    private void OnProgressChanged(int current, int total)
+    {
+        if (_progressService is not null)
+        {
+            var windowHandle = TopLevel.GetTopLevel(MainWindow)?.TryGetPlatformHandle();
+            if (windowHandle is null)
+            {
+                Log.Warning("Failed to get window handle for progress update.");
+                return;
+            }
+            
+            _progressService.SetProgress(windowHandle.Handle, (ulong)current, (ulong)total);
+        }
     }
 
     private void OnUrlRipCompleted()
