@@ -22,6 +22,7 @@ public class WebDriverSet : IDisposable
         _semaphore = new SemaphoreSlim(maxCapacity, maxCapacity);
     }
     
+    // TODO: Fix issue in AcquireDriver/ReleaseDriver can somehow result in releasing a driver that will overflow the semaphore.
     public WebDriver AcquireDriver(bool checkHealth = true)
     {
         // Block the thread if no resources are available

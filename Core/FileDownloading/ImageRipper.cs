@@ -60,6 +60,8 @@ public partial class ImageRipper : IDisposable
     private WebDriver WebDriver { get; set; }
     public bool Paused { get; set; }
     
+    private bool _disposed;
+    
     private FirefoxDriver Driver => WebDriver.Driver;
 
     private static GeneralConfig Config => Configuration.Config.Instance;
@@ -89,6 +91,12 @@ public partial class ImageRipper : IDisposable
 
     public async Task Rip(string url)
     {
+        // Cannot rip if the instance is disposed, but everything else is fine to access
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(ImageRipper), "Cannot use a disposed ImageRipper instance");
+        }
+        
         OnProgressChanged?.Invoke(0, 0); // Indeterminate progress at the start
         SleepTime = 0.2f;   // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
@@ -163,6 +171,7 @@ public partial class ImageRipper : IDisposable
             // TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
         }
         
+        Log.Debug("Dir Length: {DirLength}", fullPath.Length);
         Directory.CreateDirectory(fullPath);
 
         var start = await GetStartIndex();
@@ -806,6 +815,23 @@ public partial class ImageRipper : IDisposable
             catch (OperationCanceledException)
             {
                 Log.Warning("Mega download timed out, retrying...");
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to download from Mega: {Url}", imageLink.Url);
+                if (e.Message.Contains("No such file or directory"))
+                {
+                    Log.Error("The specified file or directory does not exist on Mega: {Url}", imageLink.Url);
+                    return false;
+                }
+                
+                if (e.Message.Contains("Invalid URL"))
+                {
+                    Log.Error("The provided URL is invalid: {Url}", imageLink.Url);
+                    return false;
+                }
+                
+                throw; // Re-throw the exception for further handling
             }
         }
     }
@@ -1502,9 +1528,20 @@ public partial class ImageRipper : IDisposable
     
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        
+        _disposed = true;
         Session.Dispose();
         DriverPool.ReleaseDriver(WebDriver);
         GC.SuppressFinalize(this);
+    }
+    
+    ~ImageRipper()
+    {
+        Dispose();
     }
     
     [GeneratedRegex(@"//c(\d)+")]

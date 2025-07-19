@@ -25,7 +25,7 @@ public class KnitParser : HtmlParser
         {
             ScrollBy = true,
             Increment = 1250,
-            ScrollPauseTime = 1000
+            ScrollPauseTime = 2500
         };
         
         var agreeButton = Driver.TryFindElement(By.XPath("//button[@id='agree-over18']"));
@@ -60,18 +60,42 @@ public class KnitParser : HtmlParser
             
             loadMoreButton.Click();
         }
-    
-        var soup  = await Soupify();    
-        var dirName = soup.SelectSingleNode("//h1[@class='focusbox-title']").InnerText;
-        var images = soup.SelectSingleNode("//article[@id='img-box']")
-            .SelectNodes("./p")
-            .Select(p => "https://xx-media.knit.bid" + p.SelectSingleNode("./img").GetSrc())
-            .ToStringImageLinkWrapperList();
-        var videos = soup.SelectSingleNode("//article[@id='img-box']/div[@class='wrapper']")
-            .SelectNodesSafe(".//source")
-            .Select(source => source.GetSrc())
-            .ToStringImageLinks();
-        images.AddRange(videos);
+
+        var soup = await Soupify();
+        var dirName = soup.SelectNode("//h1[@class='focusbox-title']").InnerText;
+        var baseUrl = CurrentUrl.Split("/").Take(6).Join("/");
+        var images = new List<StringImageLinkWrapper>();
+        var page = 1;
+        while(true)
+        {
+            Log.Information("Parsing page {Page}", page);
+            var imgs = soup.SelectNode("//div[@class='image-container']")
+                             .SelectNodesOrThrow("./p")
+                             .Select(p => "https://xx-media.knit.bid" + p.SelectNode("./img").GetSrc())
+                             .ToStringImageLinkWrapperList();
+            var imageGallery = soup.SelectSingleNode("//article[@id='image-gallery']");
+            if (imageGallery is not null)
+            {
+                var videos = imageGallery.SelectNode(".//div[@class='wrapper']")
+                                         .SelectNodesSafe(".//source")
+                                         .Select(source => source.GetSrc())
+                                         .ToStringImageLinks();
+                imgs.AddRange(videos);
+            }
+            
+            images.AddRange(imgs);
+            page++;
+            
+            var nextPageButton = soup.SelectSingleNode("//li[@class='next-page']");
+            if (nextPageButton is not null)
+            {
+                soup = await Soupify($"{baseUrl}/page/{page}", lazyLoadArgs: lazyLoadArgs);
+            }
+            else
+            {
+                break;
+            }
+        }
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

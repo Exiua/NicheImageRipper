@@ -232,27 +232,33 @@ public partial class NicheImageRipper : IDisposable
 
     public async Task Rip()
     {
+        Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
+        Ripper.OnProgressChanged += OnProgressChanged;
+        Log.Debug("Ripper created");
         Log.Debug("Starting rip");
-        while (UrlQueue.Count != 0)
+        try
         {
-            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
-            try
+            while (UrlQueue.Count != 0)
             {
+                Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
                 var url = await RipUrl();
-                Log.Debug("Ripped URL: \"{Url}\"", url);
+                Log.Debug("Ripped URL: {Url}", url);
                 if (url != "")
                 {
                     // If empty url is returned Ripper is also null
                     UpdateHistory(Ripper!.FolderInfo, url);
                 }
             }
-            finally
+        }
+        catch
+        {
+            if (Ripper is not null)
             {
-                if (Ripper is not null){
-                    Ripper.OnProgressChanged -= OnProgressChangedHandler;
-                    Ripper.Dispose(); // TODO: Fix this
-                }
+                Ripper.OnProgressChanged -= OnProgressChangedHandler;
+                Ripper.Dispose(); // TODO: Fix this
             }
+            
+            throw;
         }
     }
 
@@ -266,9 +272,6 @@ public partial class NicheImageRipper : IDisposable
         
         var url = UrlQueue[0];
         Log.Information(url); // This is done to output the URL without the enclosing quotes
-        Ripper = new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
-        Ripper.OnProgressChanged += OnProgressChanged;
-        Log.Debug("Ripper created");
         Interrupted = true;
         
         for (var retry = 0; retry < MaxRetries; retry++)
@@ -276,7 +279,7 @@ public partial class NicheImageRipper : IDisposable
             try
             {
                 var start = DateTime.Now;
-                await Ripper.Rip(url);
+                await Ripper!.Rip(url);
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
                 Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
