@@ -111,7 +111,7 @@ public class TitsInTopsParser : HtmlParser
         var loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         while (loginInput is null)
         {
-            await Task.Delay(100);
+            await Sleep(100);
             loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         }
         loginInput.SendKeys(username);
@@ -120,7 +120,7 @@ public class TitsInTopsParser : HtmlParser
         Driver.FindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")).Click();
         while (Driver.TryFindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")) is not null)
         {
-            await Task.Delay(100);
+            await Sleep(100);
         }
         
         CurrentUrl = origUrl;

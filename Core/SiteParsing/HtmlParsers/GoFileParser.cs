@@ -31,7 +31,7 @@ public class GoFileParser : ParameterizedHtmlParser
         // var cookie = new Cookie("accountToken", cookieValue, ".gofile.io", "/", null, 
         //     true, false, "Lax");
         // Driver.AddCookie(cookie);
-        await Task.Delay(5000);
+        await Sleep(5000);
         var soup = await Soupify();
         var password = soup.SelectSingleNode("//input[@type='password']");
         if (password is not null)
@@ -62,7 +62,7 @@ public class GoFileParser : ParameterizedHtmlParser
             {
                 Log.Debug("Found nested url: {url}", url);
                 CurrentUrl = url;
-                await Task.Delay(5000);
+                await Sleep(5000);
             }
             
             var playButtons = Driver.FindElements(By.CssSelector(
@@ -81,7 +81,7 @@ public class GoFileParser : ParameterizedHtmlParser
                         Driver.GetScreenshot().SaveAsFile("test.png");
                         Driver.ExecuteScript("arguments[0].click();", button);
                     }
-                    await Task.Delay(125);
+                    await Sleep(125);
                 }
             }
     
@@ -153,10 +153,10 @@ public class GoFileParser : ParameterizedHtmlParser
         var origUrl = CurrentUrl;
         var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
         CurrentUrl = loginLink;
-        await Task.Delay(10000);
+        await Sleep(10000);
         for (var i = 0; i < 4; i++)
         {
-            await Task.Delay(2500);
+            await Sleep(2500);
             if (CurrentUrl == "https://gofile.io/myProfile")
             {
                 Log.Debug("Logged in to GoFile");

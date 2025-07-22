@@ -60,7 +60,7 @@ public class XChinaParser : HtmlParser
                 var vidSrc = GetVideoUrl(soup);
                 while (vidSrc == prevUrl)
                 {
-                    await Task.Delay(250);
+                    await Sleep(250);
                     // var vidNode = Driver.FindElement(By.XPath("//video"));
                     // vidSrc = vidNode.GetSrc()!;
                     soup = await Soupify();

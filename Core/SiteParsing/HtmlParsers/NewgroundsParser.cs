@@ -100,7 +100,7 @@ public partial class NewgroundsParser : HtmlParser
                                 nextBtn.Click();
                             }
     
-                            await Task.Delay(500);
+                            await Sleep(500);
                             soup = await Soupify();
                         }
                     }
@@ -121,7 +121,7 @@ public partial class NewgroundsParser : HtmlParser
             var numPosts = posts.Count;
             foreach (var (i, post) in posts.Enumerate())
             {
-                await Task.Delay(100);
+                await Sleep(100);
                 Log.Information("Parsing Movie Post {i}/{numPosts}", i + 1, numPosts);
                 CurrentUrl = post;
                 await LazyLoad(lazyLoadArgs);
@@ -138,7 +138,7 @@ public partial class NewgroundsParser : HtmlParser
                         blackoutZone.Click();
                         videoStart.Click();
                     }
-                    await Task.Delay(500);
+                    await Sleep(500);
                     var optionsBtn = Driver.FindElement(By.XPath("//button[@title='Display Options']"));
                     optionsBtn.Click();
                     var highestRes = Driver.TryFindElement(By.XPath("//div[@class='ng-option-select']/child::*[2]/child::*[1]"));
@@ -155,7 +155,7 @@ public partial class NewgroundsParser : HtmlParser
                     var videoUrl = video.SelectSingleNode(".//source").GetSrc();
                     while (videoUrl.StartsWith("data:"))
                     {
-                        await Task.Delay(1000);
+                        await Sleep(1000);
                         soup = await Soupify();
                         video = soup.SelectSingleNode("//video");
                         videoUrl = video.SelectSingleNode(".//source").GetSrc();

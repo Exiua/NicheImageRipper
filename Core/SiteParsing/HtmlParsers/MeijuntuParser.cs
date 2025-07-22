@@ -38,7 +38,7 @@ public class MeijuntuParser : HtmlParser
                 soup = await Soupify($"{baseUrl}-{i+2}.html");
             }
             
-            await Task.Delay(250);
+            await Sleep(250);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

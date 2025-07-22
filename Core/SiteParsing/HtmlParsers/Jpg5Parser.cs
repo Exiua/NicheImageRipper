@@ -61,7 +61,7 @@ public class Jpg5Parser : ParameterizedHtmlParser
                 var error = soup.SelectSingleNode("//h1");
                 if (error is not null && error.InnerText.StartsWith("500 I"))
                 {
-                    await Task.Delay(5000); // Most likely due to rate limiting
+                    await Sleep(5000); // Most likely due to rate limiting
                     Driver.Refresh();
                     soup = await Soupify();
                 }

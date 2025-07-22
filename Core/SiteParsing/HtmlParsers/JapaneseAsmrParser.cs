@@ -34,7 +34,7 @@ public class JapaneseAsmrParser : HtmlParser
             // CurrentUrl = link;
             // while (CurrentUrl == link)
             // {
-            //     await Task.Delay(1000);
+            //     await Sleep(1000);
             // }
             
             images.Add($"text:{link}");

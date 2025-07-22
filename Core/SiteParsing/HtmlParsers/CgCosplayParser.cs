@@ -80,7 +80,7 @@ public class CgCosplayParser : HtmlParser
         async Task<string> ResolveVkLink(string url, PlaylistCapturer capturer)
         {
             CurrentUrl = url;
-            await Task.Delay(250);
+            await Sleep(250);
             while (true)
             {
                 if (CurrentUrl.Contains("autoplay=1"))
@@ -93,7 +93,7 @@ public class CgCosplayParser : HtmlParser
                 {
                     Log.Debug("Play button not found, retrying...");
                     Driver.TakeDebugScreenshot();
-                    await Task.Delay(1000);
+                    await Sleep(1000);
                     continue;
                 }
     
@@ -108,7 +108,7 @@ public class CgCosplayParser : HtmlParser
                 if (links.Count == 0)
                 {
                     Log.Debug("No links found, retrying...");
-                    await Task.Delay(1000);
+                    await Sleep(1000);
                     continue;
                 }
                 

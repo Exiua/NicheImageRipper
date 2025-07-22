@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -23,16 +24,28 @@ public class WnacgParser : HtmlParser
             CurrentUrl = CurrentUrl.Replace("-slist-", "-index-");
         }
         
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h2").InnerText;
-        var numImages = soup.SelectSingleNode("//span[@class='name tb']").InnerText;
+        var soup = await SolveParseAddCookies();
+        Log.Debug("Fetching directory name");
+        var dirNode = soup.SelectSingleNode("//h2");
+        if (dirNode is null)
+        {
+            Driver.Refresh();
+            soup = await Soupify();
+            dirNode = soup.SelectNode("//h2");
+        }
+
+        var dirName = dirNode.InnerText;
+        var numImages = soup.SelectNode("//span[@class='name tb']").InnerText;
         var imageLinks = new List<string>();
-    
+        Log.Debug("Fetching image links");
+        var page = 1;
         while (true)
         {
+            Log.Debug("Fetching page {Page}", page);
+            page++;
             var imageList = soup
-                            .SelectNodes("//li[@class='li tb gallary_item']")
-                            .Select(n => n.SelectSingleNode(".//a").GetHref());
+                            .SelectNodesOrThrow("//li[@class='li tb gallary_item']")
+                            .Select(n => n.SelectNode(".//a").GetHref());
             imageLinks.AddRange(imageList);
             var nextPageButton = soup.SelectSingleNode("//span[@class='next']");
             if (nextPageButton is null)
@@ -40,15 +53,19 @@ public class WnacgParser : HtmlParser
                 break;
             }
             
-            var nextPageUrl = nextPageButton.SelectSingleNode(".//a").GetHref();
+            var nextPageUrl = nextPageButton.SelectNode(".//a").GetHref();
             soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
         }
         
+        Log.Debug("Found {NumImages} images", imageLinks.Count);
         var images = new List<StringImageLinkWrapper>();
         foreach (var image in imageLinks)
         {
-            soup = await Soupify($"https://www.wnacg.com{image}");
-            var img = soup.SelectSingleNode("//img[@id='picarea']");
+            await JitterSleep(max: 350);
+            Log.Debug("Fetching image {Image}", image);
+            CurrentUrl = $"https://www.wnacg.com{image}";
+            soup = await SolveParse();
+            var img = soup.SelectNode("//img[@id='picarea']");
             var imgSrc = img.GetSrc();
             images.Add(imgSrc.Contains("https:") ? imgSrc : $"https:{imgSrc}");
         }

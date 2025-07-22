@@ -236,29 +236,16 @@ public partial class NicheImageRipper : IDisposable
         Ripper.OnProgressChanged += OnProgressChanged;
         Log.Debug("Ripper created");
         Log.Debug("Starting rip");
-        try
+        while (UrlQueue.Count != 0)
         {
-            while (UrlQueue.Count != 0)
+            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
+            var url = await RipUrl();
+            Log.Debug("Ripped URL: {Url}", url);
+            if (url != "")
             {
-                Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
-                var url = await RipUrl();
-                Log.Debug("Ripped URL: {Url}", url);
-                if (url != "")
-                {
-                    // If empty url is returned Ripper is also null
-                    UpdateHistory(Ripper!.FolderInfo, url);
-                }
+                // If empty url is returned Ripper is also null
+                UpdateHistory(Ripper!.FolderInfo, url);
             }
-        }
-        catch
-        {
-            if (Ripper is not null)
-            {
-                Ripper.OnProgressChanged -= OnProgressChangedHandler;
-                Ripper.Dispose(); // TODO: Fix this
-            }
-            
-            throw;
         }
     }
 

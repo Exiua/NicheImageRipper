@@ -71,7 +71,7 @@ public class ArtstationParser : HtmlParser
             }
             
             pageCount += 1;
-            await Task.Delay(100);
+            await Sleep(100);
         }
         
         #endregion
@@ -89,7 +89,7 @@ public class ArtstationParser : HtmlParser
             }
             catch (HttpRequestException)
             {
-                await Task.Delay(5000);
+                await Sleep(5000);
                 response = await client.GetAsync(url);
             }
             

@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Core.DataStructures;
 using Core.Exceptions;
 
@@ -9,6 +10,8 @@ public struct StringImageLinkWrapper
     public string? Url { get; set; }
     public ImageLink? ImageLink { get; set; }
     
+    [MemberNotNullWhen(true, nameof(ImageLink))]
+    [MemberNotNullWhen(false, nameof(Url))]
     [JsonIgnore]
     public bool IsImageLink => ImageLink is not null;
 

@@ -92,7 +92,7 @@ public class NoodleMagazineParser : HtmlParser
                 }
             }
 
-            await Task.Delay(250);
+            await Sleep(250);
 
             Log.Debug("Finding settings button");
             success = await TryClickElementByXPath(
@@ -103,7 +103,7 @@ public class NoodleMagazineParser : HtmlParser
                 continue;
             }
 
-            await Task.Delay(250);
+            await Sleep(250);
 
             Log.Debug("Finding highest quality button");
             success = await TryClickElementByXPath(
@@ -121,7 +121,7 @@ public class NoodleMagazineParser : HtmlParser
                 continue;
             }
 
-            await Task.Delay(250);
+            await Sleep(250);
 
             break;
         }

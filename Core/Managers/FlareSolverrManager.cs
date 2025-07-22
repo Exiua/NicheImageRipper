@@ -71,7 +71,7 @@ public class FlareSolverrManager(string flareSolverrUri)
             throw new FailedToGetSolutionException();
         }
 
-        Log.Debug("Got site solution {@solution}", requestResponse.Solution.Cookies);
+        Log.Debug("Got site solution");
         return requestResponse.Solution;
     }
 }

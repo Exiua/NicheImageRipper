@@ -39,7 +39,7 @@ public class Cosplay69Parser : HtmlParser
                 if (links.Count == 0)
                 {
                     Log.Debug("No links found, retrying...");
-                    await Task.Delay(1000);
+                    await Sleep(1000);
                     continue;
                 }
                 

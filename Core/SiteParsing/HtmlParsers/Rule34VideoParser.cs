@@ -21,7 +21,7 @@ public class Rule34VideoParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        await Task.Delay(500);
+        await Sleep(500);
         Log.Debug("Searching for continue button");
         var continueButton = Driver.TryFindElement(By.XPath("//input[@name='continue']"));
         if (continueButton is not null)
@@ -61,7 +61,7 @@ public class Rule34VideoParser : HtmlParser
             while (uiBlock is not null)
             {
                 Log.Debug("Waiting for blockOverlay to disappear");
-                await Task.Delay(500);
+                await Sleep(500);
                 uiBlock = Driver.TryFindElement(By.XPath("//div[@class='blockUI blockOverlay']"));
             }
             

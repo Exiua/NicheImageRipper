@@ -63,12 +63,12 @@ public class Porn3dxParser : HtmlParser
             while (!contentFound)
             {
                 CurrentUrl = post;
-                await Task.Delay(100);
+                await Sleep(100);
                 var iframes = Driver.FindElements(By.XPath("//main[@id='postView']//iframe"));
                 var pictures = Driver.FindElements(By.XPath("//picture"));
                 while (iframes?.Count == 0 && pictures?.Count == 0)
                 {
-                    await Task.Delay(5000);
+                    await Sleep(5000);
                     if (CurrentUrl == origUrl)
                     {
                         var ad = Driver.TryFindElement(By.XPath("//div[@class='ex-over-top ex-opened']//div[@class='ex-over-btn']"));
@@ -100,7 +100,7 @@ public class Porn3dxParser : HtmlParser
                             url = source.GetSrc();
                             if (url.StartsWith("blob:") || url == "")
                             {
-                                await Task.Delay(500);
+                                await Sleep(500);
                                 continue;
                             }
                             var qualities = Driver.FindElements(By.XPath("//button[@data-plyr='quality']"));

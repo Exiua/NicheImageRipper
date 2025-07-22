@@ -21,7 +21,7 @@ public class XMissyParser : HtmlParser
     {
         var loadButton = Driver.TryFindElement(By.Id("loadallbutton"));
         loadButton?.Click();
-        await Task.Delay(1000);
+        await Sleep(1000);
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//h1[@id='pagetitle']")
                             .InnerText;

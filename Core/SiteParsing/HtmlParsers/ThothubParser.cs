@@ -62,7 +62,7 @@ public class ThothubParser : HtmlParser
                                 .ToArray();
                 if(posts.Any(p => p.Contains("data:")))
                 {
-                    await Task.Delay(1000);
+                    await Sleep(1000);
                     ScrollToTop();
                     soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
                     continue;

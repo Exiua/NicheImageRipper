@@ -75,17 +75,17 @@ public class EroHiveParser : HtmlParser
                 var elm = Driver.FindElement(By.Id("has_no_img"));
                 if (elm is not null && elm.GetDomAttribute("class") != "")
                 {
-                    await Task.Delay(100);
+                    await Sleep(100);
                     break;
                 }
     
                 if(Driver.FindElements(By.XPath("//h2[@class='warning-page']")).Count > 0)
                 {
-                    await Task.Delay(5000);
+                    await Sleep(5000);
                     await Driver.Navigate().RefreshAsync();
                 }
                 
-                await Task.Delay(100);
+                await Sleep(100);
             }
         }
     }

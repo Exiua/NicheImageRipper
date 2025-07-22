@@ -22,7 +22,7 @@ public class RedGifsParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        await Task.Delay(3000);
+        await Sleep(3000);
         const string baseRequest = "https://api.redgifs.com/v2/gifs?ids=";
         await LazyLoad(scrollBy: true, increment: 1250);
         var soup = await Soupify();

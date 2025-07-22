@@ -70,7 +70,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 break;
             }
 
-            await Task.Delay(250);
+            await Sleep(250);
         }
 
         #endregion

@@ -629,6 +629,10 @@ public abstract partial class HtmlParser : IDisposable
                                               List<Dictionary<string, string>>? cookies = null)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies);
+        #if DEBUG
+        await File.WriteAllTextAsync("test-solver.html", solution.Response);
+        Log.Debug("User-Agent: {UserAgent}", solution.UserAgent);
+        #endif
         return await Soupify(solution);
     }
 
@@ -640,25 +644,40 @@ public abstract partial class HtmlParser : IDisposable
             throw new FeatureNotAvailableException(ExternalFeatureSupport.FlareSolverr);
         }
 
-        Solution solution;
-        try
+        // Safety: Solution will not be null unless all attempts fail in which case an exception is thrown.
+        Solution solution = null!;
+        for(var i = 0; i < 4; i++)
         {
-            solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies);
-        }
-        catch (FailedToGetSolutionException)
-        {
-            if (regenerateSessionOnFailure)
+            try
             {
-                await FlareSolverrManager.DeleteSession(suppressException: true);
+                Log.Debug("Attempting to get site solution for {CurrentUrl} (Attempt {Attempt})", CurrentUrl, i + 1);
                 solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies);
+                break;
             }
-            else
+            catch (FailedToGetSolutionException)
             {
-                throw;
+                if (i == 3)
+                {
+                    throw;
+                }
+
+                await Sleep(250);
+                Log.Warning("Failed to get site solution for {CurrentUrl}, retrying...", CurrentUrl);
             }
         }
         
         return solution;
+    }
+
+    protected static Task JitterSleep(int min = 250, int max = 2500)
+    {
+        var jitter = Random.Shared.Next(min, max);
+        return Task.Delay(jitter);
+    }
+    
+    protected static Task Sleep(int milliseconds)
+    {
+        return Task.Delay(milliseconds);
     }
 
     protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()

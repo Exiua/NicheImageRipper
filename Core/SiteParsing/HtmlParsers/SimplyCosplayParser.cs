@@ -19,7 +19,7 @@ public class SimplyCosplayParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        await Task.Delay(5000);
+        await Sleep(5000);
         var viewButton = Driver.TryFindElement(By.XPath("//button[@class='btn btn-default']"));
         viewButton?.Click();
         var soup = await Soupify();

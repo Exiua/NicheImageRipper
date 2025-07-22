@@ -64,7 +64,7 @@ public class XasiatParser : HtmlParser
                 }
             }
             
-            await Task.Delay(1000);
+            await Sleep(1000);
             var video = Driver.TryFindElement(By.XPath("//video"));
             var src = video!.GetSrc()!;
             images = [src];

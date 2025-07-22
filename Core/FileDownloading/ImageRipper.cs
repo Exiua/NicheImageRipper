@@ -209,6 +209,11 @@ public partial class ImageRipper : IDisposable
         Log.Information(downloadResults); // This is done to avoid the enclosing quotes around the string
         Log.Information("Download Complete");
     }
+    
+    private static Task Sleep(int milliseconds)
+    {
+        return Task.Delay(milliseconds);
+    }
 
     private async Task HandleGeneratingManually(int start, string fullPath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
     {
@@ -226,7 +231,7 @@ public partial class ImageRipper : IDisposable
 
             while (Paused)
             {
-                await Task.Delay(1000);
+                await Sleep(1000);
             }
 
             foreach (var (i, ext) in extensions.Enumerate())
@@ -281,7 +286,7 @@ public partial class ImageRipper : IDisposable
                             CurrentIndex = index;
                             while (Paused)
                             {
-                                await Task.Delay(1000);
+                                await Sleep(1000);
                             }
 
                             await Task.Delay((int)SleepTime * MillisecondsInSecond);
@@ -499,7 +504,7 @@ public partial class ImageRipper : IDisposable
         {
             imageLink.Url = url;
         }
-        await Task.Delay(50);
+        await Sleep(50);
     }
 
     /// <summary>
@@ -576,7 +581,7 @@ public partial class ImageRipper : IDisposable
         }
 
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
-        await Task.Delay(50);
+        await Sleep(50);
     }
 
     private async Task<bool> ResolveAndDownloadFile(string path, ImageLink imageLink)
@@ -588,7 +593,7 @@ public partial class ImageRipper : IDisposable
             if (imageUrl == "")
             {
             
-                await Task.Delay(500);
+                await Sleep(500);
                 continue;
             }
             
@@ -601,7 +606,7 @@ public partial class ImageRipper : IDisposable
                 return true;
             }
 
-            await Task.Delay(500);
+            await Sleep(500);
         }
         
         return false;
@@ -990,7 +995,7 @@ public partial class ImageRipper : IDisposable
         if (!response.IsSuccessStatusCode)
         {
             Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
-            await Task.Delay(500);
+            await Sleep(500);
             
             switch (response.StatusCode)
             {
@@ -1150,7 +1155,7 @@ public partial class ImageRipper : IDisposable
             Driver.Url = url;
             Log.Debug("Loading {CurrentUrl}", Driver.Url);
             Driver.Refresh();
-            await Task.Delay(5000);
+            await Sleep(5000);
             // TODO: Also need to get account token for requests
         }
         catch (WebDriverException)
@@ -1166,10 +1171,10 @@ public partial class ImageRipper : IDisposable
         var origUrl = Driver.Url;
         var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
         Driver.Url = loginLink;
-        await Task.Delay(10000);
+        await Sleep(10000);
         for (var i = 0; i < 4; i++)
         {
-            await Task.Delay(2500);
+            await Sleep(2500);
             if (Driver.Url == "https://gofile.io/myProfile")
             {
                 Log.Debug("Logged in to GoFile");
@@ -1365,7 +1370,7 @@ public partial class ImageRipper : IDisposable
         catch (HttpRequestException)
         {
             Log.Warning("Connection Reset, Retrying...");
-            await Task.Delay(1000); // Wait for 1 second before retrying
+            await Sleep(1000); // Wait for 1 second before retrying
             return DownloadStatus.ConnectionReset;
         }
         catch (IOException)

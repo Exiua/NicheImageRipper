@@ -34,11 +34,11 @@ public class EHentaiParser : HtmlParser
         Driver.FindElement(By.XPath("//input[@name='submit']")).Click();
         while (CurrentUrl == loginUrl)
         {
-            await Task.Delay(1000);
+            await Sleep(1000);
         }
         
         CurrentUrl = "https://exhentai.org/";
-        await Task.Delay(2500);
+        await Sleep(2500);
         CurrentUrl = currentUrl;
 
         return true;
@@ -82,7 +82,7 @@ public class EHentaiParser : HtmlParser
                 Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
                 var img = await GetImageLink(link);
                 imageUrls.Add(img);
-                await Task.Delay(1000);
+                await Sleep(1000);
             }
         }
 
@@ -197,7 +197,7 @@ public class EHentaiParser : HtmlParser
                 break;
             }
             
-            await Task.Delay(1000);
+            await Sleep(1000);
             try
             {
                 pageCount += 1;
@@ -206,7 +206,7 @@ public class EHentaiParser : HtmlParser
             catch (WebDriverTimeoutException)
             {
                 Log.Warning("Timed out. Sleeping for 10 seconds before retrying...");
-                await Task.Delay(10000);
+                await Sleep(10000);
                 CurrentUrl = nextPage;
             }
             soup = await Soupify();

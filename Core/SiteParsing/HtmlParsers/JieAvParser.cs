@@ -29,7 +29,7 @@ public class JieAvParser : HtmlParser
             var videoLinks = capturer.GetNewVideoLinks();
             if (videoLinks.Count == 0)
             {
-                await Task.Delay(250);
+                await Sleep(250);
                 continue;
             }
             

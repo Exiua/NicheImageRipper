@@ -90,7 +90,7 @@ public class PornhubParser : HtmlParser
                 images.AddRange(postImages);
                 if (i % 50 == 0)
                 {
-                    await Task.Delay(5000);
+                    await Sleep(5000);
                 }
             }
         }

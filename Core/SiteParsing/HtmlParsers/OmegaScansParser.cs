@@ -20,7 +20,7 @@ public class OmegaScansParser : HtmlParser
     /// <returns></returns>
     public override async Task<RipInfo> Parse()
     {
-        await Task.Delay(5000);
+        await Sleep(5000);
         var soup = await Soupify();
         var dirName = soup
                         .SelectSingleNode(

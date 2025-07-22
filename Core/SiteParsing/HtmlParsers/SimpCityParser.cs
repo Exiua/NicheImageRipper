@@ -128,7 +128,7 @@ public class SimpCityParser : HtmlParser
 
                 images.InsertRange(index, info.Urls.ToStringImageLinks());
                 offset += info.Urls.Count;
-                await Task.Delay(250);
+                await Sleep(250);
             }
         }
 
@@ -176,7 +176,7 @@ public class SimpCityParser : HtmlParser
             if (Driver.Title == "SimpCity - Rate Limit")
             {
                 Log.Warning("Rate limited, waiting 30 seconds");
-                await Task.Delay(30000);
+                await Sleep(30000);
                 Driver.Refresh();
                 continue;
             }
