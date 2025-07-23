@@ -968,7 +968,7 @@ public partial class ImageRipper : IDisposable
             oldCookies = RequestHeaders[RequestHeaderKeys.Cookie];
             RequestHeaders[RequestHeaderKeys.Cookie] = cookie;
         }
-        else if (imageLink.Referer.Contains("donmai.us"))
+        else if (imageLink.Url.Contains("donmai.us"))
         {
             modifiedHeader = ModifiedHeader.UserAgent;
             RequestHeaders[RequestHeaderKeys.UserAgent] = "NicheImageRipper";
@@ -1501,7 +1501,7 @@ public partial class ImageRipper : IDisposable
     private byte[] GetImageViaSelenium(string url)
     {
         Driver.Url = url;
-        var b64Img = (string)Driver.ExecuteScript("""
+        var b64Img = (string?)Driver.ExecuteScript("""
                                                   var img = document.getElementsByTagName("img")[0];
                                                   var canvas = document.createElement("canvas");
                                                   canvas.width = img.naturalWidth;
@@ -1511,7 +1511,7 @@ public partial class ImageRipper : IDisposable
                                                   var dataURL = canvas.toDataURL("image/png");
                                                   return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
                                                   """);
-        var bytes = Convert.FromBase64String(b64Img);
+        var bytes = Convert.FromBase64String(b64Img!);
         return bytes;
     }
 
