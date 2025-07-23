@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Core;
 using Core.DataStructures;
 using Core.Enums;
+using Core.History;
 using CoreGui.Models;
 using CoreGui.Utility;
 using CoreGui.Views;
@@ -39,6 +40,7 @@ public class MainWindowViewModel : ViewModelBase
     private double _urlWidth = Config.HistoryColumnWidths.UrlWidth;
     private double _dateWidth = Config.HistoryColumnWidths.DateWidth;
     private double _countWidth = Config.HistoryColumnWidths.CountWidth;
+    private string _historyFilterText = "";
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -159,9 +161,16 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    public string HistoryFilterText
+    {
+        get => _historyFilterText;
+        set => this.RaiseAndSetIfChanged(ref _historyFilterText, value);
+    }
+
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
     public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
+    public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     public MainWindowViewModel()
@@ -170,6 +179,7 @@ public class MainWindowViewModel : ViewModelBase
         RipCommand = ReactiveCommand.CreateRunInBackground(QueueAndRip);
         ClearCacheCommand = ReactiveCommand.Create(ClearCache);
         DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
+        ReRipUrlCommand = ReactiveCommand.Create<string>(Rerip);
         UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);
         var history = NicheImageRipper.GetHistoryPage(1, PageSize);
         History = new ObservableCollection<HistoryEntry>(history);
@@ -253,6 +263,27 @@ public class MainWindowViewModel : ViewModelBase
     private void DequeueUrls()
     {
         _ripper.DequeueUrls(SelectedUrls);
+    }
+
+    private void Rerip(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            Log.Warning("Cannot re-rip an empty URL.");
+            return;
+        }
+        
+        Log.Debug("Re-ripping URL: {url}", url);
+        _ripper.ForceQueueUrl(url);
+        
+        Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
+
+        if (_ripInProgress)
+        {
+            return;
+        }
+
+        Task.Run(Rip);
     }
 
     private void QueueAndRip()
@@ -395,9 +426,9 @@ public class MainWindowViewModel : ViewModelBase
         _ripper.LoadUrlFile(path);
     }
 
-    public void LoadHistory()
+    public void LoadHistory(HistoryFilter? filter = null)
     {
-        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage - 1, PageSize);
+        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage - 1, PageSize, filter);
         Log.Debug("History[{Count}]: {@History}", history.Count, history[0]);
         History.Update(history);
     }
@@ -441,5 +472,10 @@ public class MainWindowViewModel : ViewModelBase
         {
             NicheImageRipper.RetryDelay = result;
         }
+    }
+
+    public void ClearHistoryFilter()
+    {
+        HistoryFilterText = "";
     }
 }

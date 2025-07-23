@@ -109,9 +109,9 @@ public partial class NicheImageRipper : IDisposable
         return HistoryDb.GetHistory();
     }
 
-    public static List<HistoryEntry> GetHistoryPage(int start, int offset)
+    public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
     {
-        return HistoryDb.GetHistory(start, offset);
+        return HistoryDb.GetHistory(start, offset, filter);
     }
     
     public static int GetHistoryCount()
@@ -475,6 +475,20 @@ public partial class NicheImageRipper : IDisposable
         }
         
         return rejectedUrls.WithRejectedUrls(failedUrls);
+    }
+    
+    public void ForceQueueUrl(string url)
+    {
+        var normalizedUrl = NormalizeUrl(url);
+        if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))
+        {
+            UrlQueue.Add(normalizedUrl);
+            OnUrlQueueUpdated?.Invoke();
+        }
+        else
+        {
+            Log.Warning("URL {Url} is already in the queue.", normalizedUrl);
+        }
     }
 
     public void RequeueUrls(RejectedUrlsInfo rejectedUrlsInfo)

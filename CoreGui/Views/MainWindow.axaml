@@ -39,11 +39,18 @@
             </TabItem>
             <TabItem Header="History">
                 <StackPanel Orientation="Vertical">
-                    <StackPanel Orientation="Horizontal">
-                        <Button x:Name="PreviousHistoryPageButton" Click="PreviousHistoryPage" IsEnabled="False">Previous</Button>
-                        <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage" />
-                        <Button x:Name="NextHistoryPageButton" Click="NextHistoryPage">Next</Button>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Button x:Name="PreviousHistoryPageButton" Click="PreviousHistoryPage" IsEnabled="False">Previous</Button>
+                            <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage" />
+                            <Button x:Name="NextHistoryPageButton" Click="NextHistoryPage">Next</Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" /> <!-- Spacer -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBox Text="{Binding HistoryFilterText}" Width="500" LostFocus="UpdateCurrentHistoryPageWithFilter" />
+                            <Button Click="ClearHistoryFilter">Clear</Button>
+                        </StackPanel>
+                    </Grid>
                     <DataGrid Margin="0, 10" ItemsSource="{Binding History}"
                               IsReadOnly="True"
                               CanUserReorderColumns="False"
@@ -64,6 +71,15 @@
                             <DataGridTextColumn Header="#" Binding="{Binding NumUrls}" 
                                                 Width="{Binding CountWidth}" Tag="HistoryCount"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTemplateColumn Header="Action">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Re-rip" 
+                                                Command="{Binding ((vm:MainWindowViewModel)DataContext).ReRipUrlCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                                CommandParameter="{Binding Url}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </StackPanel>
