@@ -31,7 +31,7 @@ public class TwitterParser : HtmlParser
     
         # endregion
     
-        var cookieValue = Config.Cookies["Twitter"];
+        var cookieValue = Config.Cookies.Twitter;
         var cookieJar = Driver.GetCookieJar();
         cookieJar.AddCookie("auth_token", cookieValue);
         var dirName = CurrentUrl.Split("/")[3];

@@ -22,7 +22,7 @@ public class Porn3dxParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         const int maxRetries = 4;
-        var cookie = Config.Cookies["Porn3dx"];
+        var cookie = Config.Cookies.Porn3dx;
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.DeleteCookieNamed("porn3dx_session");
         cookieJar.AddCookie(new Cookie("porn3dx_session", cookie));

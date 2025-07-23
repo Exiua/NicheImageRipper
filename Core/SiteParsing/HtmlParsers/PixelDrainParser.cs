@@ -27,7 +27,7 @@ public class PixelDrainParser : ParameterizedHtmlParser
         {
             url = CurrentUrl;
         }
-        var apiKey = Config.Keys[ConfigKeys.KeyKeys.Pixeldrain];
+        var apiKey = Config.Keys.Pixeldrain;
         var counter = 0;
         var images = new List<StringImageLinkWrapper>();
         string dirName;

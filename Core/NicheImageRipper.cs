@@ -103,12 +103,6 @@ public partial class NicheImageRipper : IDisposable
         OnUrlQueueUpdated?.Invoke();
     }
 
-    // Warning: This method can be slow for large history databases
-    private static List<HistoryEntry> LoadHistoryData()
-    {
-        return HistoryDb.GetHistory();
-    }
-
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
     {
         return HistoryDb.GetHistory(start, offset, filter);

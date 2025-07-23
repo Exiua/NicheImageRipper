@@ -36,7 +36,7 @@ public class BooruMetadata
         {
             case Booru.Danbooru:
             {
-                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Danbooru];
+                var (username, password) = Config.Logins.Danbooru;
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&login={username}&";
@@ -46,7 +46,7 @@ public class BooruMetadata
             }
             case Booru.Gelbooru:
             {
-                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Gelbooru];
+                var (username, password) = Config.Logins.Gelbooru;
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&user_id={username}&";
@@ -56,20 +56,20 @@ public class BooruMetadata
             }
             case Booru.Rule34:
             {
-                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Rule34];
+                var (username, password) = Config.Logins.Rule34;
                 // TODO: Find out how to authenticate with Rule34 if it's possible
                 return BaseUrl;
             }
             case Booru.Yandere:
             {
-                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Yandere];
+                var (username, password) = Config.Logins.Yandere;
                 // TODO: Find out how to authenticate with Yandere if it's possible
                 // Signups are disabled (as of 2025-05-06), so unable to test this
                 return BaseUrl;
             }
             case Booru.E621:
             {
-                var (username, password) = Config.Logins[ConfigKeys.LoginKeys.E621];
+                var (username, password) = Config.Logins.E621;
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}login={username}&api_key={password}&";

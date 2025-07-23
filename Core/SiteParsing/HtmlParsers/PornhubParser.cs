@@ -24,7 +24,7 @@ public class PornhubParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        var cookie = Config.Cookies["Pornhub"];
+        var cookie = Config.Cookies.Pornhub;
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.AddCookie(new Cookie("il", cookie));
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));

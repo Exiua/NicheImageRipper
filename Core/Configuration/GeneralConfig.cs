@@ -21,9 +21,9 @@ public class GeneralConfig
     public int RetryDelay { get; set; }
     public string FlareSolverrUri { get; set; } = null!;
     public bool CloseFlareSolverrSession { get; set; }
-    public Dictionary<string, Credentials> Logins { get; set; } = null!;
-    public Dictionary<string, string> Keys { get; set; } = null!;
-    public Dictionary<string, string> Cookies { get; set; } = null!;
+    public LoginConfig Logins { get; set; } = null!;
+    public KeyConfig Keys { get; set; } = null!;
+    public CookieConfig Cookies { get; set; } = null!;
     public Dictionary<string, Dictionary<string, string>> Custom { get; set; } = null!;
     
     [JsonExtensionData]
@@ -51,7 +51,9 @@ public class GeneralConfig
         MaxRetries = 4;
         RetryDelay = 1000;
         FlareSolverrUri = "";
-        Logins = new Dictionary<string, Credentials>();
+        Logins = LoginConfig.New();
+        Keys = KeyConfig.New();
+        Cookies = CookieConfig.New();
         ExtraData = new Dictionary<string, JsonElement>();
     }
     

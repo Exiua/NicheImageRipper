@@ -26,7 +26,7 @@ public class ThothubParser : HtmlParser
         {
             cookieJar.DeleteCookie(cookie);
         }
-        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies["Thothub"]));
+        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies.Thothub));
         Driver.Refresh();
         var lazyLoadArgs = new LazyLoadArgs
         {

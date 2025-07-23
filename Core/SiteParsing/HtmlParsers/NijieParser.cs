@@ -134,7 +134,7 @@ public partial class NijieParser : HtmlParser
     protected override async Task<bool> SiteLoginHelper()
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Logins[ConfigKeys.LoginKeys.Nijie];
+        var (username, password) = Config.Logins.Nijie;
         CurrentUrl = "https://nijie.info/login.php";
         if (CurrentUrl.Contains("age_ver.php"))
         {

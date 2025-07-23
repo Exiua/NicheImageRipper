@@ -106,7 +106,7 @@ public class TitsInTopsParser : HtmlParser
     protected override async Task<bool> SiteLoginHelper()
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Logins[ConfigKeys.LoginKeys.TitsInTops];
+        var (username, password) = Config.Logins.TitsInTops;
         CurrentUrl = "https://titsintops.com/phpBB2/index.php?login/login";
         var loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         while (loginInput is null)
@@ -174,7 +174,7 @@ public class TitsInTopsParser : HtmlParser
     private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
     {
         var parsedUrls = new List<string>();
-        var imgurKey = Config.Keys[ConfigKeys.KeyKeys.Imgur];
+        var imgurKey = Config.Keys.Imgur;
         var headers = new Dictionary<string, string>
         {
             ["Authorization"] = $"Client-Id {imgurKey}"

@@ -146,7 +146,7 @@ public class SimpCityParser : HtmlParser
         }
 
         Log.Debug("Getting user cookie");
-        var cookieValue = Config.Cookies["SimpCity"];
+        var cookieValue = Config.Cookies.SimpCity;
         Log.Debug("Solving captcha and parsing page");
         var userCookie = new Dictionary<string, string>
         {

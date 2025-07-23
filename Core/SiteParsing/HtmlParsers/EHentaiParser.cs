@@ -26,7 +26,7 @@ public class EHentaiParser : HtmlParser
     protected override async Task<bool> SiteLoginHelper()
     {
         const string loginUrl = "https://forums.e-hentai.org/index.php?act=Login&CODE=00";
-        var (username, password) = Config.Logins[ConfigKeys.LoginKeys.EHentai];
+        var (username, password) = Config.Logins.EHentai;
         var currentUrl = CurrentUrl;
         CurrentUrl = loginUrl;
         Driver.FindElement(By.XPath("//input[@name='UserName']")).SendKeys(username);

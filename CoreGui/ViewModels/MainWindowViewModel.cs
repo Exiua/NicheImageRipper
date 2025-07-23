@@ -33,7 +33,7 @@ public class MainWindowViewModel : ViewModelBase
     private int _unzipProtocolIndex;
     private string _logText = "";
     private string _currentHistoryPageDisplay = "1";
-    private int _currentHistoryPage = 1;
+    private int _currentHistoryPage;
     private string _maxRetriesDisplay = NicheImageRipper.MaxRetries.ToString();
     private string _retryDelayDisplay = NicheImageRipper.RetryDelay.ToString();
     private double _nameWidth = Config.HistoryColumnWidths.NameWidth;

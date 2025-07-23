@@ -12,30 +12,6 @@ public class Config
     {
         var config = (T)Activator.CreateInstance(typeof(T), [ true ])!;
 
-        var siteLogins = ConfigKeys.LoginKeys.All;
-        foreach (var site in siteLogins)
-        {
-            config.Logins[site] = new Credentials
-            {
-                Username = "",
-                Password = ""
-            };
-        }
-
-        config.Keys = new Dictionary<string, string>();
-        var siteKeys = ConfigKeys.KeyKeys.All;
-        foreach (var site in siteKeys)
-        {
-            config.Keys[site] = "";
-        }
-
-        config.Cookies = new Dictionary<string, string>();
-        var siteCookies = ConfigKeys.CookieKeys.All;
-        foreach (var site in siteCookies)
-        {
-            config.Cookies[site] = "";
-        }
-
         config.Custom = new Dictionary<string, Dictionary<string, string>>
         {
             [ConfigKeys.CustomKeys.V2PH] = new()

@@ -26,7 +26,7 @@ public partial class NewgroundsParser : HtmlParser
         {
             ScrollBy = true
         };
-        var cookieValue = Config.Cookies["Newgrounds"];
+        var cookieValue = Config.Cookies.Newgrounds;
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.DeleteAllCookies();
         cookieJar.AddCookie(new Cookie("vmk1du5I8m", cookieValue));

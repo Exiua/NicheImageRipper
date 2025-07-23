@@ -25,7 +25,7 @@ public class ImgurParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        var clientId = Config.Keys[ConfigKeys.KeyKeys.Imgur];
+        var clientId = Config.Keys.Imgur;
         if (clientId == "")
         {
             Log.Error("Client Id not set");
