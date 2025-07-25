@@ -298,6 +298,7 @@ public abstract partial class HtmlParser : IDisposable
             "hentaifox" => new HentaiFoxParser(webDriver, requestHeaders, filenameScheme),
             "hentaihand" => new HentaiHandParser(webDriver, requestHeaders, filenameScheme),
             "meijuntu" => new MeijuntuParser(webDriver, requestHeaders, filenameScheme),
+            "pixiv" => new PixivParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
@@ -568,7 +569,12 @@ public abstract partial class HtmlParser : IDisposable
             await Task.Delay((int)(delay * 1000));
             var currTime = DateTime.Now;
             // ReSharper disable once CompareOfFloatsByEqualityOperator
-            if (timeout != -1 && currTime - startTime >= timeoutSpan)
+            if (timeout == -1)
+            {
+                continue; // No timeout, keep waiting
+            }
+            
+            if (currTime - startTime >= timeoutSpan)
             {
                 return false;
             }
@@ -727,6 +733,11 @@ public abstract partial class HtmlParser : IDisposable
 
             File.AppendAllLines($"{site}_links.txt", siteLinks);
         }
+    }
+
+    protected static bool UrlCanBeParsed(string url)
+    {
+        return !string.IsNullOrEmpty(url) && ExternalSites.Any(url.Contains);
     }
 
     /// <summary>

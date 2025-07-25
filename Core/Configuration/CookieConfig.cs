@@ -9,6 +9,7 @@ public class CookieConfig
     public required string Thothub { get; set; }
     public required string Kemono { get; set; }
     public required string SimpCity { get; set; }
+    public required string Pixiv { get; set; }
     
     public static CookieConfig New()
     {
@@ -20,7 +21,8 @@ public class CookieConfig
             Pornhub = "",
             Thothub = "",
             Kemono = "",
-            SimpCity = ""
+            SimpCity = "",
+            Pixiv = ""
         };
     }
 }

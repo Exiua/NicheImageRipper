@@ -82,7 +82,8 @@ public static partial class UrlUtility
         "https://quatvn.love/", "https://mangapark.net/", "https://noodlemagazine.com/", "https://spankbang.com/",
         "https://spankbang.party/", "https://apcomics.org/", "https://3hentai.net/", "https://3600000.xyz/",
         "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/",
-        "https://hentaiera.com/", "https://hentaifox.com/", "https://hentaihand.com/", "https://meijuntu.com/"
+        "https://hentaiera.com/", "https://hentaifox.com/", "https://hentaihand.com/", "https://meijuntu.com/",
+        "https://www.pixiv.net/"
     }.ToFrozenSet();
 
     /// <summary>
