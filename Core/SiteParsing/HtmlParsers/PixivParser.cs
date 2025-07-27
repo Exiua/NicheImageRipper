@@ -101,6 +101,7 @@ public class PixivParser : HtmlParser
                 Driver.Refresh();
             }
             
+            var buttonClicked = false;
             var showButton = Driver.TryFindElement(By.XPath("//div[@class='sc-9222a8f6-2 eVaEhv']"));
             if (showButton is not null)
             {
@@ -111,17 +112,19 @@ public class PixivParser : HtmlParser
                 }
                 
                 showButton.Click();
+                buttonClicked = true;
                 await Sleep(delay);
             }
 
-            var found = await WaitForElement(xpathToFindDescription, timeout: 30);
+            var found = await WaitForElement(xpathToFindDescription);
             if (!found)
             {
-                Log.Warning("Description not found for post {Post}", post);
+                Log.Debug("Description not found for post {Post}", post);
             }
             
             //DebugUtility.Pause();
             soup = await Soupify(xpath: xpathToFindImages);
+            var currentCount = images.Count;
             switch (viewType)
             {
                 case ViewType.Normal:
@@ -146,6 +149,14 @@ public class PixivParser : HtmlParser
                     throw new ArgumentOutOfRangeException();
             }
 
+            if (buttonClicked)
+            {
+                if (images.Count - currentCount < 2)
+                {
+                    Log.Warning("Parser may have missed images for {Post}", post);
+                }
+            }
+
             var description = soup.SelectSingleNode(xpathToFindDescription);
             if (description is not null)
             {
@@ -157,10 +168,6 @@ public class PixivParser : HtmlParser
                                        .Where(UrlCanBeParsed)
                                        .ToStringImageLinks();
                 images.AddRange(links);
-            }
-            else
-            {
-                Log.Debug("Description not found for post {Post}", post);
             }
         }
 
