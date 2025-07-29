@@ -44,7 +44,7 @@ public class PixivParser : HtmlParser
 
         const string xpathToFind = "//ul[@class='sc-bf8cea3f-1 bCxfvI']/li";
         var soup = await Soupify(delay: delay, xpath: xpathToFind);
-        var dirName = soup.SelectNode("//h1[@class='sc-f9e1b767-5 fqTVNC']").InnerText;
+        var dirName = soup.SelectNode("//h1").InnerText;
         var posts = new List<string>();
         var page = 1;
         while (true)

@@ -241,15 +241,7 @@ public partial class ImageRipper : IDisposable
                     var fullFilename = $"{index}{ext}";
                     var imagePath = Path.Combine(fullPath, fullFilename);
                     await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
-                    if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
-                    {
-                        var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
-                        if (duplicate)
-                        {
-                            downloadStats.NumDuplicates++;
-                        }
-                    }
-                    
+                    await PostProcess(imagePath, filesHashes, downloadStats);
                     OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
                     break;
                 }
@@ -295,14 +287,7 @@ public partial class ImageRipper : IDisposable
                                 var filename = link.Filename;
                                 var imagePath = Path.Combine(fullPath, filename);
                                 await DownloadFromList(link, imagePath, index, downloadStats);
-                                if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
-                                {
-                                    var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
-                                    if (duplicate)
-                                    {
-                                        downloadStats.NumDuplicates++;
-                                    }
-                                }
+                                await PostProcess(imagePath, filesHashes, downloadStats);
                             }
                             catch (FileNotFoundException)
                             {
@@ -338,6 +323,24 @@ public partial class ImageRipper : IDisposable
                 }
 
                 break;
+            }
+        }
+    }
+
+    private async Task PostProcess(string imagePath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
+    {
+        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+        {
+            // Maybe handle directory downloads (e.g., Mega) in the future?
+            if (Directory.Exists(imagePath))
+            {
+                return;
+            }
+            
+            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+            if (duplicate)
+            {
+                downloadStats.NumDuplicates++;
             }
         }
     }
@@ -545,6 +548,7 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.Mega:
                 success = await DownloadMegaFiles(imagePath, imageLink);
+                Log.Debug("Success from Mega: {Success}", success);
                 break;
             case LinkInfo.PixelDrain:
                 success = await DownloadPixelDrainFiles(imagePath, imageLink);

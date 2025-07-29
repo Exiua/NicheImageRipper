@@ -4,6 +4,9 @@ namespace Core.FileDownloading;
 
 public static class MegaApi
 {
+    public static event Action<string?>? OnOutputReceived;
+    public static event Action<string?>? OnErrorReceived;
+    
     public static bool Login(string email, string password)
     {
         string[] cmd = ["mega-login", email, $"\"{password}\""];
@@ -107,10 +110,15 @@ public static class MegaApi
         });
 
         process.Exited += (_, _) => tcs.TrySetResult(true);
+        process.OutputDataReceived += (_, args) => OnOutputReceived?.Invoke(args.Data);
+        process.ErrorDataReceived += (_, args) => OnErrorReceived?.Invoke(args.Data);
 
         process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
 
         await tcs.Task.ConfigureAwait(false);
+        await process.WaitForExitAsync(cancellationToken);
 
         return process;
     }
