@@ -269,6 +269,10 @@ public partial class ImageLink
             fileName = url.Split("/")[^2] + ".mp4";
             LinkInfo = LinkInfo.M3U8Ffmpeg;
         }
+        else if (url.Contains("fcww0.com"))
+        {
+            fileName = url.Split("/")[^2];
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
@@ -284,7 +288,7 @@ public partial class ImageLink
     
     public override string ToString()
     {
-        var linkInfo = Enum.GetName(typeof(LinkInfo), LinkInfo);
+        var linkInfo = Enum.GetName(LinkInfo);
         return Referer != "" ? $"({Url}, {Filename}, {Referer}, {linkInfo})" : $"({Url}, {Filename}, {linkInfo})";
     }
 

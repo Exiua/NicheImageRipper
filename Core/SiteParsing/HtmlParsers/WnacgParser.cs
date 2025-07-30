@@ -31,11 +31,11 @@ public class WnacgParser : HtmlParser
         {
             Driver.Refresh();
             soup = await Soupify();
-            dirNode = soup.SelectNode("//h2");
+            dirNode = soup.SelectSingleNodeOrThrow("//h2");
         }
 
         var dirName = dirNode.InnerText;
-        var numImages = soup.SelectNode("//span[@class='name tb']").InnerText;
+        var numImages = soup.SelectSingleNodeOrThrow("//span[@class='name tb']").InnerText;
         var imageLinks = new List<string>();
         Log.Debug("Fetching image links");
         var page = 1;
@@ -45,7 +45,7 @@ public class WnacgParser : HtmlParser
             page++;
             var imageList = soup
                             .SelectNodesOrThrow("//li[@class='li tb gallary_item']")
-                            .Select(n => n.SelectNode(".//a").GetHref());
+                            .Select(n => n.SelectSingleNodeOrThrow(".//a").GetHref());
             imageLinks.AddRange(imageList);
             var nextPageButton = soup.SelectSingleNode("//span[@class='next']");
             if (nextPageButton is null)
@@ -53,7 +53,7 @@ public class WnacgParser : HtmlParser
                 break;
             }
             
-            var nextPageUrl = nextPageButton.SelectNode(".//a").GetHref();
+            var nextPageUrl = nextPageButton.SelectSingleNodeOrThrow(".//a").GetHref();
             soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
         }
         
@@ -65,7 +65,7 @@ public class WnacgParser : HtmlParser
             Log.Debug("Fetching image {Image}", image);
             CurrentUrl = $"https://www.wnacg.com{image}";
             soup = await SolveParse();
-            var img = soup.SelectNode("//img[@id='picarea']");
+            var img = soup.SelectSingleNodeOrThrow("//img[@id='picarea']");
             var imgSrc = img.GetSrc();
             images.Add(imgSrc.Contains("https:") ? imgSrc : $"https:{imgSrc}");
         }

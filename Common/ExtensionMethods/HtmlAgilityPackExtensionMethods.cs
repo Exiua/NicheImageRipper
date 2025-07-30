@@ -64,7 +64,7 @@ public static class HtmlAgilityPackExtensionMethods
         return string.IsNullOrEmpty(value) ? null : value;
     }
     
-    public static HtmlNode SelectNode(this HtmlNode node, string xpath)
+    public static HtmlNode SelectSingleNodeOrThrow(this HtmlNode node, string xpath)
     {
         var selectedNode = node.SelectSingleNode(xpath) ?? throw new ElementNotFoundException(xpath);
         return selectedNode;

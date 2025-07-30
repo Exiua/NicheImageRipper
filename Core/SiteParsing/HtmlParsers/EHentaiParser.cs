@@ -55,7 +55,7 @@ public class EHentaiParser : HtmlParser
         var currentUrl = CurrentUrl;
         _lastUrl = currentUrl;
         var soup = await Soupify();
-        var dirName = soup.SelectNode("//h1[@id='gn']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='gn']").InnerText;
         var imageLinks = await GetImageLinks(soup, currentUrl);
         
         Log.Debug("Found {count} image links", imageLinks.Count);
@@ -98,7 +98,7 @@ public class EHentaiParser : HtmlParser
     private async Task<string> GetImageLink(string link)
     {
         var soup = await Soupify(link);
-        var img = soup.SelectNode("//img[@id='img']").GetSrc();
+        var img = soup.SelectSingleNodeOrThrow("//img[@id='img']").GetSrc();
         return img;
     }
 
@@ -188,7 +188,7 @@ public class EHentaiParser : HtmlParser
             }
             
             imageLinks.AddRange(imageTags);
-            var nextPage = soup.SelectNode("//table[@class='ptb']")
+            var nextPage = soup.SelectSingleNodeOrThrow("//table[@class='ptb']")
                                .SelectNodesSafe(".//a")
                                .Last()
                                .GetHref();

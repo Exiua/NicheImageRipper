@@ -44,20 +44,20 @@ public class PixivParser : HtmlParser
 
         const string xpathToFind = "//ul[@class='sc-bf8cea3f-1 bCxfvI']/li";
         var soup = await Soupify(delay: delay, xpath: xpathToFind);
-        var dirName = soup.SelectNode("//h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var posts = new List<string>();
         var page = 1;
         while (true)
         {
             Log.Information("Parsing page {Page}", page);
             page++;
-            var p = soup.SelectNode("//ul[@class='sc-bf8cea3f-1 bCxfvI']")
+            var p = soup.SelectSingleNodeOrThrow("//ul[@class='sc-bf8cea3f-1 bCxfvI']")
                            .SelectNodesOrThrow("./li")
-                           .Select(li => li.SelectNode(".//a").GetHref())
+                           .Select(li => li.SelectSingleNodeOrThrow(".//a").GetHref())
                            .Select(href => $"https://www.pixiv.net{href}");
             posts.AddRange(p);
 
-            var lastNavButton = soup.SelectNode("//nav[@class='sc-27a0ff07-0 bbkQMy']")
+            var lastNavButton = soup.SelectSingleNodeOrThrow("//nav[@class='sc-27a0ff07-0 bbkQMy']")
                                     .SelectNodesOrThrow("./a")
                                     .Last();
             var icon = lastNavButton.SelectSingleNode("./svg");
@@ -129,7 +129,7 @@ public class PixivParser : HtmlParser
             {
                 case ViewType.Normal:
                 {
-                    var imgs = soup.SelectNode("//div[@role='presentation']")
+                    var imgs = soup.SelectSingleNodeOrThrow("//div[@role='presentation']")
                                    .SelectNodesOrThrow(".//a")
                                    .Select(a => a.GetHref())
                                    .ToStringImageLinks();
@@ -138,7 +138,7 @@ public class PixivParser : HtmlParser
                 }
                 case ViewType.Webtoon:
                 {
-                    var imgs = soup.SelectNode("//div[@class='sc-e06c24aa-1 edbfOL']")
+                    var imgs = soup.SelectSingleNodeOrThrow("//div[@class='sc-e06c24aa-1 edbfOL']")
                                    .SelectNodesOrThrow(".//a")
                                    .Select(a => a.GetHref())
                                    .ToStringImageLinks();

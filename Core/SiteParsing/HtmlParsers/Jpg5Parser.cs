@@ -38,16 +38,16 @@ public class Jpg5Parser : ParameterizedHtmlParser
         string? dirName;
         if (CurrentUrl.Contains("/a/"))
         {
-            dirName = soup.SelectNode("//a[@data-text='album-name']").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//a[@data-text='album-name']").InnerText;
         }
         else if (CurrentUrl.Contains("/img/"))
         {
-            dirName = soup.SelectNode("//a[@data-text='image-title']").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//a[@data-text='image-title']").InnerText;
             single = true;
         }
         else
         {
-            dirName = soup.SelectNode("//div[@class='header']").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//div[@class='header']").InnerText;
         }
     
         var images = new List<StringImageLinkWrapper>();
@@ -66,9 +66,9 @@ public class Jpg5Parser : ParameterizedHtmlParser
                     soup = await Soupify();
                 }
     
-                var posts = soup.SelectNode("//div[@class='pad-content-listing']")
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
                                 .SelectNodes("./div")
-                                .Select(div => div.SelectNode(".//img").GetSrc().Remove(".md"))
+                                .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc().Remove(".md"))
                                 .ToStringImageLinks();
                 images.AddRange(posts);
                 var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
@@ -89,7 +89,7 @@ public class Jpg5Parser : ParameterizedHtmlParser
             var imgSrc = img?.GetSrc();
             if (imgSrc is null || imgSrc.EndsWith("loading.svg"))
             {
-                var downloadBtn = soup.SelectNode("//a[@download]");
+                var downloadBtn = soup.SelectSingleNodeOrThrow("//a[@download]");
                 var href = downloadBtn.GetHref();
                 href = ObfuscationUtility.DeobfuscateJpg5Href(href);
                 images.Add(href);

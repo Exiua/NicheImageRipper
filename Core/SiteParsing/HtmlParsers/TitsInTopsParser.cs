@@ -31,7 +31,7 @@ public class TitsInTopsParser : HtmlParser
         var cookieStr = cookies.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value};");
         RequestHeaders["cookie"] = cookieStr;
         var soup = await Soupify();
-        var dirName = soup.SelectNode("//h1[@class='p-title-value']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='p-title-value']")
                             .InnerText;
         var images = new List<StringImageLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
@@ -40,11 +40,11 @@ public class TitsInTopsParser : HtmlParser
         {
             Log.Information("Parsing page {PageCount}", pageCount);
             pageCount++;
-            var posts = soup.SelectNode("//div[@class='block-body js-replyNewMessageContainer']")
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='block-body js-replyNewMessageContainer']")
                             .SelectNodesOrThrow(".//div[@class='message-content js-messageContent']");
             foreach (var post in posts)
             {
-                var imgs = post.SelectNode(".//article[@class='message-body js-selectToQuote']")
+                var imgs = post.SelectSingleNodeOrThrow(".//article[@class='message-body js-selectToQuote']")
                                .SelectNodes(".//img");
                 if (imgs is not null)
                 {
@@ -56,7 +56,7 @@ public class TitsInTopsParser : HtmlParser
                 var videos = post.SelectNodes(".//video");
                 if (videos is not null)
                 {
-                    var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectNode(".//source").GetSrc()}");
+                    var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectSingleNodeOrThrow(".//source").GetSrc()}");
                     images.AddRange(videoUrls.Select(vid => (StringImageLinkWrapper)vid));
                 }
                 
@@ -77,7 +77,7 @@ public class TitsInTopsParser : HtmlParser
                     images.AddRange(attachList.Select(attach => (StringImageLinkWrapper)attach));
                 }
 
-                var links = post.SelectNode(".//article[@class='message-body js-selectToQuote']")
+                var links = post.SelectSingleNodeOrThrow(".//article[@class='message-body js-selectToQuote']")
                                 .SelectNodes(".//a");
                 if (links is not null)
                 {
@@ -158,7 +158,7 @@ public class TitsInTopsParser : HtmlParser
             {
                 var response = await client.GetAsync(link);
                 var soup = await Soupify(response);
-                var sourceLink = soup.SelectNode("//source[@id='video_source']")
+                var sourceLink = soup.SelectSingleNodeOrThrow("//source[@id='video_source']")
                                      .GetAttributeValue("src", "");
                 resolvedLinks.Add(sourceLink);
             }
@@ -189,7 +189,7 @@ public class TitsInTopsParser : HtmlParser
 
             var response = await client.GetAsync(url);
             var soup = await Soupify(response);
-            var imgurUrl = soup.SelectNode("//a[@id='image-link']")
+            var imgurUrl = soup.SelectSingleNodeOrThrow("//a[@id='image-link']")
                                .GetHref();
             var imageHash = imgurUrl.Split("#")[^1];
             var message = headers.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/image/{imageHash}");

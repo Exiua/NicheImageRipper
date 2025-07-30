@@ -66,6 +66,11 @@ public static class ExtensionMethods
         return uriBuilder.ToString();
     }
     
+    public static List<StringImageLinkWrapper> IntoStringImageLinkWrapperList(this string src)
+    {
+        return [new StringImageLinkWrapper(src)];
+    }
+    
     public static string HexDigest(this byte[] bytes)
     {
         return BitConverter.ToString(bytes).Replace("-", "").ToLower();

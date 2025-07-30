@@ -21,8 +21,8 @@ public class SexBjCamParser : HtmlParser
     {
         var soup = await SolveParseAddCookies(regenerateSessionOnFailure: true);
         //Driver.TakeDebugScreenshot();
-        var dirName = soup.SelectNode("//h1[@class='entry-title']").InnerText;
-        var iframe = soup.SelectNode("//iframe");
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
+        var iframe = soup.SelectSingleNodeOrThrow("//iframe");
         var iframeUrl = iframe.GetSrc();
         var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
         CurrentUrl = iframeUrl;

@@ -62,21 +62,21 @@ public class KnitParser : HtmlParser
         }
 
         var soup = await Soupify();
-        var dirName = soup.SelectNode("//h1[@class='focusbox-title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='focusbox-title']").InnerText;
         var baseUrl = CurrentUrl.Split("/").Take(6).Join("/");
         var images = new List<StringImageLinkWrapper>();
         var page = 1;
         while(true)
         {
             Log.Information("Parsing page {Page}", page);
-            var imgs = soup.SelectNode("//div[@class='image-container']")
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']")
                              .SelectNodesOrThrow("./p")
-                             .Select(p => "https://xx-media.knit.bid" + p.SelectNode("./img").GetSrc())
+                             .Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc())
                              .ToStringImageLinkWrapperList();
             var imageGallery = soup.SelectSingleNode("//article[@id='image-gallery']");
             if (imageGallery is not null)
             {
-                var videos = imageGallery.SelectNode(".//div[@class='wrapper']")
+                var videos = imageGallery.SelectSingleNodeOrThrow(".//div[@class='wrapper']")
                                          .SelectNodesSafe(".//source")
                                          .Select(source => source.GetSrc())
                                          .ToStringImageLinks();

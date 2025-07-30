@@ -35,14 +35,14 @@ public class XCancelParser : HtmlParser
         // TODO: Add anti-bot page detection handling
         var soup = await SolveParse();
         await Task.Delay(GenerateDelay()); // Delay to avoid overwhelming the server
-        var dirName = soup.SelectNode("//a[@class='profile-card-username']").InnerText[1..]; // Skip the '@' at the start
+        var dirName = soup.SelectSingleNodeOrThrow("//a[@class='profile-card-username']").InnerText[1..]; // Skip the '@' at the start
         var images = new List<StringImageLinkWrapper>();
         var page = 1;
         while (true)
         {
             Log.Information("Parsing page {page}", page);
             page++;
-            var timeline = soup.SelectNode("//div[@class='timeline']")
+            var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']")
                                .SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
             foreach (var div in timeline)
             {

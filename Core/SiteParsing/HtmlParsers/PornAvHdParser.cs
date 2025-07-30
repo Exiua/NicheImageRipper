@@ -20,8 +20,8 @@ public class PornAvHdParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await SolveParseAddCookies();
-        var dirName = soup.SelectNode("//h1[@itemprop='name']").InnerText;
-        var iframe = soup.SelectNode("//div[@class='responsive-player']/iframe");
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@itemprop='name']").InnerText;
+        var iframe = soup.SelectSingleNodeOrThrow("//div[@class='responsive-player']/iframe");
         var iframeUrl = iframe.GetSrc();
         var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
         CurrentUrl = iframeUrl;

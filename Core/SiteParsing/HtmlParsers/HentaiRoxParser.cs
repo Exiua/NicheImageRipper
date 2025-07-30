@@ -19,13 +19,13 @@ public class HentaiRoxParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNode("//div[@class='col-md-7 col-sm-7 col-lg-8 right_details']")
-                            .SelectNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='col-md-7 col-sm-7 col-lg-8 right_details']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        var images = soup.SelectNode("//div[@id='append_thumbs']")
-                            .SelectNode(".//img[@class='lazy preloader']")
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='append_thumbs']")
+                            .SelectSingleNodeOrThrow(".//img[@class='lazy preloader']")
                             .GetAttributeValue("data-src");
-        var numFiles = int.Parse(soup.SelectNode("//li[@class='pages']").InnerText.Split()[0]);
+        var numFiles = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[0]);
 
         return RipInfo.FromGenerateInfo(images, dirName, numFiles);
     }

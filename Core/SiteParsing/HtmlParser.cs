@@ -299,6 +299,7 @@ public abstract partial class HtmlParser : IDisposable
             "hentaihand" => new HentaiHandParser(webDriver, requestHeaders, filenameScheme),
             "meijuntu" => new MeijuntuParser(webDriver, requestHeaders, filenameScheme),
             "pixiv" => new PixivParser(webDriver, requestHeaders, filenameScheme),
+            "fcww0" => new Fcww0Parser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
@@ -362,7 +363,7 @@ public abstract partial class HtmlParser : IDisposable
     protected async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNode(dirNameXpath)
+        var dirName = soup.SelectSingleNodeOrThrow(dirNameXpath)
                           .InnerText;
         var images = soup.SelectNodesOrThrow(imageContainerXpath)
                          .SelectMany(im => im.SelectNodesOrThrow(".//img"))
@@ -392,13 +393,13 @@ public abstract partial class HtmlParser : IDisposable
     private async Task<RipInfo> GenericHtmlParserHelper1()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNode("//img[@title='Click To Enlarge!']")
+        var dirName = soup.SelectSingleNodeOrThrow("//img[@title='Click To Enlarge!']")
                           .GetAttributeValue("alt")
                           .Split(" ")
                           .TakeWhile(s => s != "-")
                           .Join(" ");
         var images = soup.SelectNodesOrThrow("//div[@class='gallery_thumb']")
-                         .Select(img => Protocol + img.SelectNode(".//img").GetSrc().Remove("tn_"))
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .ToStringImageLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -411,12 +412,12 @@ public abstract partial class HtmlParser : IDisposable
     private async Task<RipInfo> GenericHtmlParserHelper2()
     {
         var soup = await Soupify();
-        var imageList = soup.SelectNode("//ul[@class='list-gallery static css has-data']")
+        var imageList = soup.SelectSingleNodeOrThrow("//ul[@class='list-gallery static css has-data']")
                             .SelectNodesOrThrow(".//a");
         var images = imageList.Select(image => image.GetHref())
                               .Select(dummy => (StringImageLinkWrapper)dummy)
                               .ToList();
-        var dirName = imageList[0].SelectNode(".//img")
+        var dirName = imageList[0].SelectSingleNodeOrThrow(".//img")
                                   .GetAttributeValue("alt");
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -429,9 +430,9 @@ public abstract partial class HtmlParser : IDisposable
     private async Task<RipInfo> GenericHtmlParserHelper3()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNode("//header[@id='top']").SelectNode(".//h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//header[@id='top']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var images = soup
-                    .SelectNode(
+                    .SelectSingleNodeOrThrow(
                          "//ul[contains(@class, 'list-gallery') and contains(@class, 'static') and contains(@class, 'css')]")
                     .SelectNodesOrThrow(".//a")
                     .Select(img => img.GetHref())
