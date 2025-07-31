@@ -22,14 +22,14 @@ namespace Core;
 public partial class NicheImageRipper : IDisposable
 {
     private Version? _latestVersion;
-    
+
     public static string Title => "NicheImageRipper";
     public static GeneralConfig Config => Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
     public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
-    
+
     protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
-    
+
     public Version Version { get; } = new(3, 1, 0, 0);
 
     public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
@@ -37,7 +37,7 @@ public partial class NicheImageRipper : IDisposable
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; }
     public ImageRipper? Ripper { get; set; }
-    
+
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
@@ -85,11 +85,11 @@ public partial class NicheImageRipper : IDisposable
     }
 
     private WebDriverPool WebDriverPool { get; } = new(1);
-    
+
     protected static HistoryManager HistoryDb => HistoryManager.Instance;
-    
+
     protected bool Debugging { get; set; }
-    
+
     private bool _disposed;
 
     public void LoadUrlFile(string filepath)
@@ -99,7 +99,7 @@ public partial class NicheImageRipper : IDisposable
         {
             AddToUrlQueue(url, noCheck: true);
         }
-        
+
         OnUrlQueueUpdated?.Invoke();
     }
 
@@ -107,7 +107,7 @@ public partial class NicheImageRipper : IDisposable
     {
         return HistoryDb.GetHistory(start, offset, filter);
     }
-    
+
     public static int GetHistoryCount()
     {
         return HistoryDb.GetHistoryEntryCount();
@@ -147,14 +147,14 @@ public partial class NicheImageRipper : IDisposable
                 }
             }
         }
-        
+
         return failedUrls;
     }
-    
+
     public static string NormalizeUrl(string url)
     {
         var host = new Uri(url).Host;
-        
+
         if (host.Contains("pornhub.com"))
         {
             return NormalizePornhubUrl(url);
@@ -164,14 +164,17 @@ public partial class NicheImageRipper : IDisposable
         {
             return NormalizeBooruUrl(url, Booru.Yandere);
         }
+
         if (host.Contains("danbooru."))
         {
             return NormalizeBooruUrl(url, Booru.Danbooru);
         }
+
         if (host.Contains("gelbooru."))
         {
             return NormalizeBooruUrl(url, Booru.Gelbooru);
         }
+
         if (host.Contains("rule34."))
         {
             return NormalizeBooruUrl(url, Booru.Rule34);
@@ -188,13 +191,13 @@ public partial class NicheImageRipper : IDisposable
         {
             return url.Replace("exhentai.org", "e-hentai.org");
         }
-        
+
         return url.Split("?")[0];
     }
-    
+
     private static string NormalizePornhubUrl(string url)
     {
-        if(url.Contains("view_video"))
+        if (url.Contains("view_video"))
         {
             var id = PornhubViewKeyRegex().Match(url).Groups[1].Value;
             return $"https://www.pornhub.com/view_video.php?viewkey={id}";
@@ -203,7 +206,7 @@ public partial class NicheImageRipper : IDisposable
         var urlParts = url.Split('/');
         return urlParts[..5].Join('/').Split('?')[0];
     }
-    
+
     private static string NormalizeBooruUrl(string url, Booru booru)
     {
         var baseUrl = url.Split("?")[0];
@@ -212,7 +215,7 @@ public partial class NicheImageRipper : IDisposable
         {
             tags = tags[..^1];
         }
-        
+
         return booru switch
         {
             Booru.Danbooru => $"{baseUrl}?{tags}",
@@ -250,11 +253,11 @@ public partial class NicheImageRipper : IDisposable
             PrintUtility.Print("No URLs to rip.");
             return "";
         }
-        
+
         var url = UrlQueue[0];
         Log.Information(url); // This is done to output the URL without the enclosing quotes
         Interrupted = true;
-        
+
         for (var retry = 0; retry < MaxRetries; retry++)
         {
             try
@@ -262,7 +265,8 @@ public partial class NicheImageRipper : IDisposable
                 var start = DateTime.Now;
                 await Ripper!.Rip(url);
                 var elapsed = DateTime.Now - start;
-                var elapsedFormatted = $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
+                var elapsedFormatted =
+                    $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
                 Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
                 //OnUrlRipComplete?.Invoke();
                 break;
@@ -284,7 +288,7 @@ public partial class NicheImageRipper : IDisposable
                 }
             }
         }
-        
+
         Interrupted = false;
         UrlQueue.RemoveAt(0);
         OnUrlQueueUpdated?.Invoke();
@@ -295,7 +299,7 @@ public partial class NicheImageRipper : IDisposable
     {
         OnProgressChanged?.Invoke(current, total);
     }
-    
+
     public void SaveData()
     {
         if (UrlQueue.Count > 0)
@@ -308,10 +312,10 @@ public partial class NicheImageRipper : IDisposable
         {
             File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
         }
-        
+
         Config.SaveConfig();
     }
-    
+
     public static void ClearCache()
     {
         SilentlyRemoveFiles(".ripIndex", "partial.json");
@@ -336,7 +340,7 @@ public partial class NicheImageRipper : IDisposable
             // ignored
         }
     }
-    
+
     /// <summary>
     ///     Split a string while keeping the delimiter attached to each part
     /// </summary>
@@ -353,12 +357,12 @@ public partial class NicheImageRipper : IDisposable
 
         return stringList.Select(s => delimiter + s.Trim());
     }
-    
+
     private bool IsLatestVersion()
     {
         return Version >= LatestVersion;
     }
-    
+
     /// <summary>
     ///     Retrieve the latest version of the NicheImageRipper from the remote git repo
     /// </summary>
@@ -366,26 +370,29 @@ public partial class NicheImageRipper : IDisposable
     private static async Task<Version> GetLatestVersion()
     {
         var client = new HttpClient();
-        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
+        client.DefaultRequestHeaders.Add("User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
         try
         {
             var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest");
-            if(!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
                 return new Version(0, 0, 0);
             }
-            
+
             var jsonString = await response.Content.ReadAsStringAsync();
             var json = JsonSerializer.Deserialize<JsonNode>(jsonString);
-            if(json is null)
+            if (json is null)
             {
                 return new Version(0, 0, 0);
             }
+
             var versionString = json["tag_name"]?.Deserialize<string>()?.Remove(0, 1);
-            if(versionString is null)
+            if (versionString is null)
             {
                 return new Version(0, 0, 0);
             }
+
             var version = Version.Parse(versionString);
             return version;
         }
@@ -398,7 +405,7 @@ public partial class NicheImageRipper : IDisposable
     protected static void NormalizeUrlsInDb()
     {
         const int batchSize = 1000;
-        
+
         var numEntries = HistoryDb.GetHistoryEntryCount();
         var transaction = HistoryDb.BeginTransaction();
         try
@@ -410,7 +417,7 @@ public partial class NicheImageRipper : IDisposable
                 {
                     throw new RipperException("Failed to retrieve URL from database for ID: " + i);
                 }
-                
+
                 var normalizedUrl = NormalizeUrl(url);
                 if (url != normalizedUrl)
                 {
@@ -453,7 +460,7 @@ public partial class NicheImageRipper : IDisposable
                 return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
             }
         }
-        
+
         UrlQueue.Add(normalizedUrl);
         return null;
     }
@@ -467,10 +474,10 @@ public partial class NicheImageRipper : IDisposable
         {
             OnUrlQueueUpdated?.Invoke();
         }
-        
+
         return rejectedUrls.WithRejectedUrls(failedUrls);
     }
-    
+
     public void ForceQueueUrl(string url)
     {
         var normalizedUrl = NormalizeUrl(url);
@@ -493,7 +500,7 @@ public partial class NicheImageRipper : IDisposable
         {
             return;
         }
-        
+
         Log.Debug("Re-queuing {Count} URLs", urls.Count);
         var offset = 0;
         foreach (var url in urls)
@@ -501,7 +508,7 @@ public partial class NicheImageRipper : IDisposable
             UrlQueue.Insert(startIndex + offset, url.Url);
             offset++;
         }
-        
+
         OnUrlQueueUpdated?.Invoke();
     }
 
@@ -532,10 +539,11 @@ public partial class NicheImageRipper : IDisposable
     }
 
     // TODO: This should probably be replaced with a proper TUI sink
-    public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information, bool newLine = true)
+    public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information,
+                                        bool newLine = true)
     {
         DisableConsoleLogging();
-        
+
         if (newLine)
         {
             Console.WriteLine(message);
@@ -544,7 +552,7 @@ public partial class NicheImageRipper : IDisposable
         {
             Console.Write(message);
         }
-        
+
         Log.Write(level, message);
         EnableConsoleLogging();
     }
@@ -572,17 +580,17 @@ public partial class NicheImageRipper : IDisposable
         support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : ExternalFeatureSupport.None;
         return support;
     }
-    
+
     private static bool CheckForFfmpeg()
     {
         return CheckForProcess("ffmpeg", "-version");
     }
-    
+
     private static bool CheckForYtDlp()
     {
         return CheckForProcess("yt-dlp", "--version");
     }
-    
+
     private static bool CheckForMegaCmd()
     {
         return CheckForProcess("mega-version.bat", "-v");
@@ -607,7 +615,7 @@ public partial class NicheImageRipper : IDisposable
                 CreateNoWindow = true
             }
         };
-        
+
         try
         {
             process.Start();
@@ -617,24 +625,24 @@ public partial class NicheImageRipper : IDisposable
         {
             return false;
         }
-        
+
         return true;
     }
-    
+
     public void Dispose()
     {
         if (_disposed)
         {
             return;
         }
-        
+
         _disposed = true;
         if (Ripper is not null)
         {
             Ripper.OnProgressChanged -= OnProgressChangedHandler;
             Ripper.Dispose();
         }
-        
+
         WebDriverPool.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -646,6 +654,7 @@ public partial class NicheImageRipper : IDisposable
 
     [GeneratedRegex("viewkey=([0-9a-z]+)")]
     private static partial Regex PornhubViewKeyRegex();
+
     [GeneratedRegex(@"(tags=[^&]+)")]
     private static partial Regex BooruRegex();
 }

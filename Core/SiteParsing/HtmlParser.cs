@@ -300,6 +300,7 @@ public abstract partial class HtmlParser : IDisposable
             "meijuntu" => new MeijuntuParser(webDriver, requestHeaders, filenameScheme),
             "pixiv" => new PixivParser(webDriver, requestHeaders, filenameScheme),
             "fcww0" => new Fcww0Parser(webDriver, requestHeaders, filenameScheme),
+            "xsnvshen" => new XsnvshenParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }

@@ -38,14 +38,15 @@ public class RipInfo
 
     private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
                     FilenameScheme filenameScheme = FilenameScheme.Original,
-                    bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false)
+                    bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
+                    string referer = "")
     {
         // SaveRawUrls(urls);
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         try
         {
-            Urls = ConvertUrlsToImageLink(urls, discardBlobs, filenames).Result;
+            Urls = ConvertUrlsToImageLink(urls, discardBlobs, filenames, referer: referer).Result;
         }
         catch (Exception)
         {
@@ -79,14 +80,14 @@ public class RipInfo
     }
 
     public static RipInfo FromUrlList(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
-                                      bool nameReuse = false)
+                                      bool nameReuse = false, string referer = "")
     {
         // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
         return nameReuse
             ? new RipInfo(urls, dirName, filenameScheme == FilenameScheme.Original
                 ? FilenameScheme.Chronological
                 : filenameScheme)
-            : new RipInfo(urls, dirName, filenameScheme);
+            : new RipInfo(urls, dirName, filenameScheme, referer: referer);
     }
 
     public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName,
@@ -102,7 +103,7 @@ public class RipInfo
     }
 
     private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob,
-                                                               List<string>? filenames = null)
+                                                               List<string>? filenames = null, string referer = "")
     {
         var imageLinks = new List<ImageLink>();
         var linkCounter = 0; // Current index of image_links (used for naming image_links when generating numeric names)
@@ -124,7 +125,7 @@ public class RipInfo
                 continue;
             }
 
-            if (url.Url!.Contains("drive.google.com"))
+            if (url.Url.Contains("drive.google.com"))
             {
                 try
                 {
@@ -141,7 +142,7 @@ public class RipInfo
             {
                 var filename = filenames?[filenameCounter] ?? "";
                 filenameCounter++;
-                var imageLink = new ImageLink(url.Url, FilenameScheme, linkCounter, filename: filename);
+                var imageLink = new ImageLink(url.Url, FilenameScheme, linkCounter, filename: filename, referer: referer);
                 imageLinks.Add(imageLink);
                 linkCounter++;
             }

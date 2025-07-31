@@ -36,9 +36,9 @@ public partial class ImageLink
     }
     
     public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", 
-                     LinkInfo linkInfo = LinkInfo.None)
+                     LinkInfo linkInfo = LinkInfo.None, string referer = "")
     {
-        Referer = "";
+        Referer = referer;
         LinkInfo = linkInfo;
         Url = GenerateUrl(url);
         Filename = GenerateFilename(url, filenameScheme, index, filename);

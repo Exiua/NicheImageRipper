@@ -85,7 +85,7 @@ public static partial class UrlUtility
         "https://spankbang.party/", "https://apcomics.org/", "https://3hentai.net/", "https://3600000.xyz/",
         "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/",
         "https://hentaiera.com/", "https://hentaifox.com/", "https://hentaihand.com/", "https://meijuntu.com/",
-        "https://www.pixiv.net/", "https://fcww0.com/"
+        "https://www.pixiv.net/", "https://fcww0.com/", "https://www.xsnvshen.com/"
     }.ToFrozenSet();
 
     /// <summary>
