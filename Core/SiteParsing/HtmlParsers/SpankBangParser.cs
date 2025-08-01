@@ -12,7 +12,8 @@ namespace Core.SiteParsing.HtmlParsers;
 public class SpankBangParser : HtmlParser
 {
     public SpankBangParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                                 FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        filenameScheme)
     {
     }
 
@@ -23,8 +24,7 @@ public class SpankBangParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         const string playlistXPath = "//div[contains(concat(' ', @class, ' '), ' video-list ') and " +
-                                     "contains(concat(' ', @class, ' '), ' video-rotate ') and " +
-                                     "contains(concat(' ', @class, ' '), ' four-col ')]";
+                                     "contains(concat(' ', @class, ' '), ' video-rotate ')]";
 
         if (CurrentUrl.Contains("spankbang.party"))
         {
@@ -33,8 +33,16 @@ public class SpankBangParser : HtmlParser
         }
 
         var ageCheck = Driver.TryFindElement(By.XPath("//button[@id='age-check-yes']"));
-        ageCheck?.Click();
+        if(ageCheck is not null){
+            Driver.Click(ageCheck);
+        }
         var soup = await Soupify();
+        var blockedHeadline = soup.SelectSingleNode("//h1[@data-translate='block_headline']");
+        if (blockedHeadline is not null)
+        {
+            soup = await SolveParseAddCookies();
+        }
+        
         string dirName;
         var images = new List<StringImageLinkWrapper>();
         var (urlType, id) = GetUrlType();
@@ -43,33 +51,38 @@ public class SpankBangParser : HtmlParser
             case UrlType.Unknown:
                 Log.Error("Unknown url type: {Url}", CurrentUrl);
                 throw new RipperException("Unknown url type");
-            case UrlType.Playlist:{
-                dirName = soup.SelectSingleNode("//ul[@class='top profile-top']//em").InnerText + $" ({id})";
-                var videos = soup.SelectSingleNode(playlistXPath)
-                                 .SelectNodes("./div")
-                                 .Select(div => div.SelectSingleNode(".//a").GetHref())
+            case UrlType.Playlist:
+            {
+                var dirNameNode = soup.SelectSingleNode("//ul[@class='top profile-top']//em") ?? soup.SelectSingleNodeOrThrow("//h1");
+
+                dirName = dirNameNode.InnerText + $" ({id})";
+                var videos = soup.SelectSingleNodeOrThrow(playlistXPath)
+                                 .SelectNodesOrThrow("./div")
+                                 .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
                                  .Select(src => $"https://spankbang.com{src}");
                 foreach (var video in videos)
                 {
+                    Log.Information("Parsing video: {Video}", video);
                     CurrentUrl = video;
                     var src = await GetVideoUrl();
                     images.Add(src);
                 }
+
                 break;
             }
             case UrlType.SingleVideo:
             {
-                dirName = soup.SelectSingleNode("//h1[@class='main_content_title']").InnerText;
+                dirName = soup.SelectSingleNodeOrThrow("//h1[@class='main_content_title']").InnerText;
                 var src = await GetVideoUrl();
                 images.Add(src);
                 break;
             }
             case UrlType.Search:
             {
-                dirName = soup.SelectSingleNode("//h1[@class='main_content_title']").InnerText + $" ({id})";
-                var videos = soup.SelectSingleNode(playlistXPath)
-                                 .SelectNodes("./div")
-                                 .Select(div => div.SelectSingleNode(".//a").GetHref())
+                dirName = soup.SelectSingleNodeOrThrow("//h1[@class='main_content_title']").InnerText + $" ({id})";
+                var videos = soup.SelectSingleNodeOrThrow(playlistXPath)
+                                 .SelectNodesOrThrow("./div")
+                                 .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
                                  .Select(src => $"https://spankbang.com{src}");
                 await File.WriteAllTextAsync("test2.html", Driver.PageSource);
                 foreach (var video in videos)
@@ -78,6 +91,7 @@ public class SpankBangParser : HtmlParser
                     var src = await GetVideoUrl();
                     images.Add(src);
                 }
+
                 break;
             }
             default:
@@ -89,11 +103,37 @@ public class SpankBangParser : HtmlParser
 
     private async Task<string> GetVideoUrl()
     {
-        var playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
-        //playButton?.Click();
-        if (playButton is not null)
+        while (true)
         {
-            Driver.Click(playButton);
+            var playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
+            //playButton?.Click();
+            if (playButton is not null)
+            {
+                Driver.Click(playButton);
+                break;
+            }
+            
+            var playButton2 = Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button']"));
+            if (playButton2 is not null)
+            {
+                Driver.Click(playButton2);
+                break;
+            }
+            
+            var playButton3 = Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button vjs-paused']"));
+            if (playButton3 is not null)
+            {
+                Driver.Click(playButton3);
+                break;
+            }
+            
+            var playButton4 = Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button vjs-playing']"));
+            if (playButton4 is not null)
+            {
+                break;
+            }
+
+            await Sleep(250);
         }
 
         var settingsButton =
@@ -109,7 +149,7 @@ public class SpankBangParser : HtmlParser
         //highestQualityButton.Click();
         Driver.Click(highestQualityButton);
         var soup = await Soupify();
-        var src = soup.SelectSingleNode("//video[@id='main_video_player_html5_api']").GetSrc().DecodeUrl();
+        var src = soup.SelectSingleNodeOrThrow("//video[@id='main_video_player_html5_api']").GetSrc().DecodeUrl();
         return src;
     }
 
@@ -120,18 +160,20 @@ public class SpankBangParser : HtmlParser
         {
             return id.Contains('-') ? (UrlType.SingleVideo, id) : (UrlType.Playlist, id);
         }
+
         if (CurrentUrl.Contains("/video/"))
         {
             return (UrlType.SingleVideo, id);
         }
+
         if (CurrentUrl.Contains("/s/"))
         {
             return (UrlType.Search, id);
         }
-        
+
         return (UrlType.Unknown, id);
     }
-    
+
     private enum UrlType
     {
         Unknown,
