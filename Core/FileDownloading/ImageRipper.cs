@@ -1367,6 +1367,8 @@ public partial class ImageRipper : IDisposable
                 {
                     throw new EHentaiUrlExpiredException();
                 }
+
+                return DownloadStatus.Failed;
             }
             
             return DownloadStatus.Ok; // Success

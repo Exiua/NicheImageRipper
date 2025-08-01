@@ -301,6 +301,7 @@ public abstract partial class HtmlParser : IDisposable
             "pixiv" => new PixivParser(webDriver, requestHeaders, filenameScheme),
             "fcww0" => new Fcww0Parser(webDriver, requestHeaders, filenameScheme),
             "xsnvshen" => new XsnvshenParser(webDriver, requestHeaders, filenameScheme),
+            "06se" => new Zero6SeParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
