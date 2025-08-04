@@ -302,6 +302,7 @@ public abstract partial class HtmlParser : IDisposable
             "fcww0" => new Fcww0Parser(webDriver, requestHeaders, filenameScheme),
             "xsnvshen" => new XsnvshenParser(webDriver, requestHeaders, filenameScheme),
             "06se" => new Zero6SeParser(webDriver, requestHeaders, filenameScheme),
+            "meirentu" => new MeirentuParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported/implemented: {siteName}")
         };
     }
