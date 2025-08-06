@@ -86,7 +86,7 @@ public static partial class UrlUtility
         "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/",
         "https://hentaiera.com/", "https://hentaifox.com/", "https://hentaihand.com/", "https://meijuntu.com/",
         "https://www.pixiv.net/", "https://fcww0.com/", "https://www.xsnvshen.com/", "https://www.06se.com/",
-        "https://meirentu.cc/"
+        "https://meirentu.cc/", "https://tw.8se.me/"
     }.ToFrozenSet();
 
     /// <summary>

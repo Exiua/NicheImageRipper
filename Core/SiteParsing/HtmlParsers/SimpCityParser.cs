@@ -159,7 +159,7 @@ public class SimpCityParser : HtmlParser
         var cookieJar = Driver.GetCookieJar();
 
         Log.Debug("Parsing page");
-        var dirName = soup.SelectSingleNode("//h1[@class='p-title-value']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='p-title-value']").InnerText;
         Log.Debug("Directory name: {DirName}", dirName);
         
         var lazyLoadArgs = new LazyLoadArgs
@@ -185,11 +185,11 @@ public class SimpCityParser : HtmlParser
             Driver.TakeDebugScreenshot();
             #endif
 
-            var posts = soup.SelectSingleNode("//div[@class='block-body js-replyNewMessageContainer']")
-                            .SelectNodes("./article");
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='block-body js-replyNewMessageContainer']")
+                            .SelectNodesSafe("./article");
             foreach (var post in posts)
             {
-                var content = post.SelectSingleNode(".//div[@class='bbWrapper']");
+                var content = post.SelectSingleNodeOrThrow(".//div[@class='bbWrapper']");
                 var imgs = content.SelectNodesSafe(".//img")
                                   .Select(img => img.GetSrc().Remove(".md"))
                                   .Where(url => !url.StartsWith("data:image/gif")) // Ignore emojis
@@ -201,19 +201,18 @@ public class SimpCityParser : HtmlParser
                 images.AddRange(vids);
                 var index = images.Count;
                 var links = content.SelectNodesSafe(".//a");
-                List<string> resolve;
                 #if DEBUG
                 var rawLinks = links.Select(link => link.GetNullableHref())
                                     .OfType<string>()
                                     .ToList();
-                resolve = rawLinks.Where(url => resolvableMap.Keys.Any(url.Contains))
+                var resolve = rawLinks.Where(url => resolvableMap.Keys.Any(url.Contains))
                                   .ToList();
                 foreach (var link in rawLinks.Except(resolve))
                 {
                     Log.Debug("Unhandled link: {Link}", link);
                 }
                 #else
-                resolve = links.Select(link => link.GetNullableHref())
+                var resolve = links.Select(link => link.GetNullableHref())
                                     .OfType<string>()
                                     .Where(url => resolvableMap.Keys.Any(url.Contains))
                                     .ToList();
@@ -269,7 +268,7 @@ public class SimpCityParser : HtmlParser
             return src.Remove("-mobile");
         }
 
-        var source = video.SelectSingleNode(".//source");
+        var source = video.SelectSingleNodeOrThrow(".//source");
         src = source.GetSrc();
         if (!src.Contains("saint2.pk"))
         {
@@ -277,7 +276,7 @@ public class SimpCityParser : HtmlParser
         }
 
         var grandParent = video.ParentNode.ParentNode;
-        var downloadLink = grandParent.SelectSingleNode(".//a[@class='plyr__controls__item plyr__control']").GetHref();
+        var downloadLink = grandParent.SelectSingleNodeOrThrow(".//a[@class='plyr__controls__item plyr__control']").GetHref();
         var id = downloadLink.Split("/d/")[^1];
         return $"https://simp2.saint2.pk/api/download.php?file={id}";
     }

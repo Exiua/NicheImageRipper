@@ -17,6 +17,18 @@ public static class SeleniumExtensionMethods
         }
     }
     
+    public static IWebElement? TryFindElement(this IWebElement webElement, By by)
+    {
+        try
+        {
+            return webElement.FindElement(by);
+        }
+        catch (NoSuchElementException)
+        {
+            return null;
+        }
+    }
+    
     public static void Refresh(this IWebDriver driver)
     {
         driver.Navigate().Refresh();
