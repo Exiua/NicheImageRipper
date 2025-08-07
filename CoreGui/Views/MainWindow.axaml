@@ -29,10 +29,18 @@
             </TabItem>
             <TabItem Header="Queue">
                 <Grid RowDefinitions="Auto, *" ColumnDefinitions="*">
-                    <Button Grid.Row="0" Grid.Column="0" Command="{Binding DequeueUrlsCommand}"
-                            Margin="0,10">
-                        Remove Urls
-                    </Button>
+                    <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Button Command="{Binding DequeueUrlsCommand}"
+                                    Margin="0,10">
+                                Remove Urls
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" /> <!-- Spacer -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBlock Text="{Binding UrlCountText}" />
+                        </StackPanel>
+                    </Grid>
                     <ListBox Grid.Row="1" Grid.Column="0" x:Name="UrlQueue" SelectionMode="Multiple"
                              SelectedItems="{Binding SelectedUrls}" />
                 </Grid>

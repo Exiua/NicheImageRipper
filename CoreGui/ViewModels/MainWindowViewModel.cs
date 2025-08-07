@@ -41,6 +41,7 @@ public class MainWindowViewModel : ViewModelBase
     private double _dateWidth = Config.HistoryColumnWidths.DateWidth;
     private double _countWidth = Config.HistoryColumnWidths.CountWidth;
     private string _historyFilterText = "";
+    private string _urlCountText = "URLs in queue: 0";
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -167,6 +168,12 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _historyFilterText, value);
     }
 
+    public string UrlCountText
+    {
+        get => _urlCountText;
+        set => this.RaiseAndSetIfChanged(ref _urlCountText, value);
+    }
+
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
     public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
@@ -236,7 +243,11 @@ public class MainWindowViewModel : ViewModelBase
 
     private void OnUrlQueueUpdated()
     {
-        Dispatcher.UIThread.Post(() => UrlQueue.Update(_ripper.UrlQueue));
+        Dispatcher.UIThread.Post(() =>
+        {
+            UrlQueue.Update(_ripper.UrlQueue);
+            UrlCountText = $"URLs in queue: {_ripper.UrlQueue.Count}";
+        });
     }
 
     private void OnProgressChanged(int current, int total)
