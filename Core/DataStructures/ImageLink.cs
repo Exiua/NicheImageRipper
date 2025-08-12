@@ -127,6 +127,12 @@ public partial class ImageLink
             return match.Success ? $"https://www.youtube.com/watch?v={match.Groups[1].Value}" : url;
         }
         
+        if (url.StartsWith("data:image/") && url.Contains(";base64,"))
+        {
+            LinkInfo = LinkInfo.Base64;
+            return url;
+        }
+        
         return url.StartsWith("//") ? $"https:{url}" : url;
     }
 
@@ -134,12 +140,33 @@ public partial class ImageLink
     {
         if(filename == "")
         {
-            if (LinkInfo == LinkInfo.Text)
+            switch (LinkInfo)
             {
-                return "urls.txt";
+                case LinkInfo.Text:
+                    return "urls.txt";
+                case LinkInfo.Base64:
+                {
+                    var b64Ext = url.Split("image/")[1].Split(";")[0];
+                    var hash = BytesToString(MD5.HashData(Encoding.UTF8.GetBytes(url)));
+                    filename = $"{hash}.{b64Ext}";
+                    break;
+                }
+                case LinkInfo.None:
+                case LinkInfo.M3U8Ffmpeg:
+                case LinkInfo.GDrive:
+                case LinkInfo.IframeMedia:
+                case LinkInfo.Mega:
+                case LinkInfo.PixelDrain:
+                case LinkInfo.Youtube:
+                case LinkInfo.GoFile:
+                case LinkInfo.MpegDash:
+                case LinkInfo.ResolveImage:
+                case LinkInfo.M3U8YtDlp:
+                case LinkInfo.SeleniumImage:
+                default:
+                    filename = ExtractFilename(url);
+                    break;
             }
-            
-            filename = ExtractFilename(url);
         }
         
         if(filenameScheme == FilenameScheme.Original)
@@ -156,7 +183,7 @@ public partial class ImageLink
         {
             case FilenameScheme.Hash:
             {
-                var hash5 = MD5.HashData(Encoding.UTF8.GetBytes(url)).ToString();
+                var hash5 = BytesToString(MD5.HashData(Encoding.UTF8.GetBytes(url)));
                 return hash5 + ext;
             }
             case FilenameScheme.Chronological:
@@ -289,7 +316,18 @@ public partial class ImageLink
     public override string ToString()
     {
         var linkInfo = Enum.GetName(LinkInfo);
-        return Referer != "" ? $"({Url}, {Filename}, {Referer}, {linkInfo})" : $"({Url}, {Filename}, {linkInfo})";
+        var url = LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(Url) : Url;
+        return Referer != "" ? $"({url}, {Filename}, {Referer}, {linkInfo})" : $"({url}, {Filename}, {linkInfo})";
+    }
+    
+    private static string BytesToString(byte[] bytes)
+    {
+        var sb = new StringBuilder(32);
+        foreach (var b in bytes)
+        {
+            sb.Append(b.ToString("X2"));
+        }
+        return sb.ToString();
     }
 
     [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]

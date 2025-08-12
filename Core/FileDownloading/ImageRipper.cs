@@ -2,7 +2,6 @@
 using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,7 +11,6 @@ using Core.Driver;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
-using Core.History;
 using Core.Managers;
 using Core.SiteParsing;
 using Core.SiteParsing.HtmlParsers;
@@ -522,8 +520,8 @@ public partial class ImageRipper : IDisposable
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
-        var numProgress = $"({currentFileNum + 1}/{numFiles})";
-        Log.Information($"{ripUrl}    {numProgress}");
+        var displayUrl = imageLink.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
+        Log.Information("{Url:l}    ({CurrentProgress}/{TotalProgress})", displayUrl, currentFileNum + 1, numFiles);
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
         if (imageLink.HasReferer)
         {
@@ -568,6 +566,9 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.SeleniumImage:
                 success = await DownloadSeleniumImage(imagePath, imageLink);
+                break;
+            case LinkInfo.Base64:
+                success = await DownloadBase64Image(imagePath, imageLink);
                 break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
@@ -890,6 +891,22 @@ public partial class ImageRipper : IDisposable
         catch (Exception e)
         {
             Log.Error(e, "Failed to download image");
+            return false;
+        }
+    }
+    
+    private static async Task<bool> DownloadBase64Image(string path, ImageLink imageLink)
+    {
+        try
+        {
+            var base64Data = imageLink.Url.Split(',')[1];
+            var imageData = Convert.FromBase64String(base64Data);
+            await File.WriteAllBytesAsync(path, imageData);
+            return true;
+        }
+        catch (FormatException e)
+        {
+            Log.Error(e, "Failed to decode base64 image");
             return false;
         }
     }
