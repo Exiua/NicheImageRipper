@@ -12,7 +12,7 @@ namespace Core.SiteParsing.HtmlParsers;
 public class EightSeParser : HtmlParser
 {
     private const string CachePath = "eightsecache.json";
-    
+
     public EightSeParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
         filenameScheme)
@@ -47,7 +47,7 @@ public class EightSeParser : HtmlParser
         {
             (dirName, imageLinks, videos) = await ParseLinks();
         }
-        
+
         if (!usingCache)
         {
             var cache = new EightSeCache
@@ -56,7 +56,7 @@ public class EightSeParser : HtmlParser
                 Videos = videos,
                 Links = imageLinks
             };
-            
+
             JsonUtility.Serialize(CachePath, cache);
         }
 
@@ -67,7 +67,7 @@ public class EightSeParser : HtmlParser
             var soup = await Soupify(link, delay: 250);
             var img = soup.SelectSingleNodeOrThrow("//div[@class='container']/img").GetSrc();
             images.Add(img);
-            if(i % 100 == 0 && i > 0)
+            if (i % 100 == 0 && i > 0)
             {
                 await Sleep(2500); // Sleep every 100 images to avoid being rate-limited
             }
@@ -83,35 +83,40 @@ public class EightSeParser : HtmlParser
         var id = CurrentUrl.Split("/")[4].Remove("id-").Remove(".html");
         var videos = await GetVideos();
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info-card photo-detail']//div[@class='text']").InnerText + $" - ({id})";
+        var dirName =
+            soup.SelectSingleNodeOrThrow("//div[@class='info-card photo-detail']//div[@class='text']").InnerText +
+            $" - ({id})";
         var imageLinks = new List<string>();
         while (true)
         {
-            var links = soup.SelectSingleNodeOrThrow("//div[@class='list photo-items']")
-                            .SelectNodesOrThrow(".//a")
-                            .Select(a => "https://tw.8se.me" + a.GetHref());
+            var imageContainer = soup.SelectSingleNode("//div[@class='list photo-items']") ??
+                                 soup.SelectSingleNodeOrThrow("//div[@class='list amateur-items']");
+            var links = imageContainer
+                       .SelectNodesOrThrow(".//a")
+                       .Select(a => "https://tw.8se.me" + a.GetHref());
             imageLinks.AddRange(links);
             var nextPageButton = soup.SelectSingleNode("//a[@class='pager-btn pager-next']");
             if (nextPageButton is null)
             {
                 break;
             }
-            
+
             var nextPageUrl = "https://tw.8se.me" + nextPageButton.GetHref();
             soup = await Soupify(nextPageUrl, delay: 250);
         }
-        
+
         return (dirName, imageLinks, videos);
     }
 
     private async Task<List<string>> GetVideos()
     {
-        var contentBox = Driver.TryFindElement(By.XPath("//div[@class='content-box']/div[@class='mp4-player-in-photo']"));
+        var contentBox =
+            Driver.TryFindElement(By.XPath("//div[@class='content-box']/div[@class='mp4-player-in-photo']"));
         if (contentBox is null)
         {
             return [];
         }
-        
+
         var videos = new List<string>();
         var counter = 1;
         while (true)
@@ -128,18 +133,18 @@ public class EightSeParser : HtmlParser
             {
                 Log.Warning("No video source found in the video element.");
             }
-            
+
             var nextButton = contentBox.TryFindElement(By.XPath(".//div[@class='btn next']"));
             if (nextButton is null || nextButton.GetAttribute("disabled") is not null)
             {
                 break;
             }
-            
+
             //nextButton.Click();
             Driver.Click(nextButton);
             await Sleep(250); // Wait for the next video to load
         }
-        
+
         return videos;
     }
 
@@ -148,7 +153,7 @@ public class EightSeParser : HtmlParser
         public required string DirName { get; set; }
         public required List<string> Links { get; set; }
         public required List<string> Videos { get; set; }
-        
+
         public void Deconstruct(out string dirName, out List<string> links, out List<string> videos)
         {
             dirName = DirName;
