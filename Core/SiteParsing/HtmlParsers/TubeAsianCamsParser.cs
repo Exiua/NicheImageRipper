@@ -21,7 +21,7 @@ public partial class TubeAsianCamsParser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for tubeasiancams.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
@@ -35,7 +35,6 @@ public partial class TubeAsianCamsParser : HtmlParser
         Driver.SwitchTo().Frame(iframe);
         var startButton = Driver.FindElement(By.XPath("//div[@id='a']"));
         startButton.Click();
-        string filename;
         var images = new List<StringImageLinkWrapper>();
         while (true)
         {
@@ -57,16 +56,17 @@ public partial class TubeAsianCamsParser : HtmlParser
                 url = links[0];
             }
             
-            filename = UrlUtility.GetUrlParameterValue(url, "t");
-            var imageLink = new ImageLink(url, FilenameScheme, 0, filename: filename)
+            var filename = UrlUtility.GetUrlParameterValue(url, "t");
+            var imageLink = new ImageLink(url, FilenameScheme, 0, filename: filename + ".mp4")
             {
-                Referer = "https://jilliandescribecompany.com/"
+                Referer = "https://jilliandescribecompany.com/",
+                LinkInfo = LinkInfo.M3U8YtDlp
             };
             images.Add(imageLink);
             break;
         }
 
-        return RipInfo.FromUrlListWithFilenames(images, dirName, FilenameScheme, filenames: [filename]);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     [GeneratedRegex("(?<=[?&]mu=)[^&]*")]
