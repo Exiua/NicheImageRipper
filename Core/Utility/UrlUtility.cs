@@ -86,7 +86,7 @@ public static partial class UrlUtility
         "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/",
         "https://hentaiera.com/", "https://hentaifox.com/", "https://hentaihand.com/", "https://meijuntu.com/",
         "https://www.pixiv.net/", "https://fcww0.com/", "https://www.xsnvshen.com/", "https://www.06se.com/",
-        "https://meirentu.cc/", "https://tw.8se.me/", "https://51cg1.com/"
+        "https://meirentu.cc/", "https://tw.8se.me/", "https://51cg1.com/", "https://tubeasiancams.com/"
     }.ToFrozenSet();
 
     /// <summary>
@@ -251,6 +251,11 @@ public static partial class UrlUtility
     public static string TruncateLongUrl(string url)
     {
         return string.Concat(url.AsSpan(0, 50), "...", url.AsSpan(url.Length - 49));
+    }
+    
+    public static string GetUrlParameterValue(string url, string parameter)
+    {
+        return url.Split($"{parameter}=")[1].Split("&")[0];
     }
 
     [GeneratedRegex(@"(\?usp=sharing|\?usp=share_link|\?id=)")]

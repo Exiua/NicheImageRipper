@@ -1,8 +1,8 @@
 using Common.ExtensionMethods;
 using Core.DataStructures;
-using Core.DataStructures.VideoCapturers;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.SiteParsing.VideoCapturers;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;

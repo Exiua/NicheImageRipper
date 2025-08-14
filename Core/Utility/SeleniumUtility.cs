@@ -10,6 +10,19 @@ public static class SeleniumUtility
     {
         ((ITakesScreenshot)driver).GetScreenshot().SaveAsFile("test.png");
     }
+    
+    [Conditional("DEBUG")]
+    public static void DumpHtml(this IWebDriver driver)
+    {
+        var html = driver.PageSource;
+        if (string.IsNullOrEmpty(html))
+        {
+            Debug.WriteLine("HTML is empty or null.");
+            return;
+        }
+        
+        File.WriteAllText("test.html", html);
+    }
 
     [Conditional("DEBUG")]
     public static void DumpCookies(this IWebDriver driver)

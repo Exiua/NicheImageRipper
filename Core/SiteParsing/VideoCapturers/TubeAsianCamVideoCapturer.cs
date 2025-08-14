@@ -1,9 +1,9 @@
+using Core.Utility;
 using OpenQA.Selenium.BiDi.Modules.Network;
-using Serilog;
 
-namespace Core.DataStructures.VideoCapturers;
+namespace Core.SiteParsing.VideoCapturers;
 
-public class SexBjCamVideoCapturer : PlaylistCapturer
+public class TubeAsianCamVideoCapturer : PlaylistCapturer
 {
     protected override bool ResponseIsInteresting(ResponseCompletedEventArgs e)
     {
@@ -12,6 +12,6 @@ public class SexBjCamVideoCapturer : PlaylistCapturer
 
     protected override string GetId(string url)
     {
-        return GetUrlParameterValue(url, "t");
+        return UrlUtility.GetUrlParameterValue(url, "t");
     }
 }

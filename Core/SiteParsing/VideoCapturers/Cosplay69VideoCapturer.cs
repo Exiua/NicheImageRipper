@@ -1,6 +1,6 @@
 using OpenQA.Selenium.BiDi.Modules.Network;
 
-namespace Core.DataStructures.VideoCapturers;
+namespace Core.SiteParsing.VideoCapturers;
 
 public class Cosplay69VideoCapturer : PlaylistCapturer
 {

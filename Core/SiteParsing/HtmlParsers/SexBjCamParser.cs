@@ -1,8 +1,8 @@
 using Common.ExtensionMethods;
 using Core.DataStructures;
-using Core.DataStructures.VideoCapturers;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.SiteParsing.VideoCapturers;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -24,7 +24,8 @@ public class SexBjCamParser : HtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var iframe = soup.SelectSingleNodeOrThrow("//iframe");
         var iframeUrl = iframe.GetSrc();
-        var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
+        await using var bidi = b;
         CurrentUrl = iframeUrl;
         var referer = iframeUrl.Split("/")[..3].Join("/") + '/';
         StringImageLinkWrapper playlist;

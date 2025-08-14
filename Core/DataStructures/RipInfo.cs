@@ -91,9 +91,9 @@ public class RipInfo
     }
 
     public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName,
-                                                   FilenameScheme filenameScheme, List<string> filenames)
+                                                   FilenameScheme filenameScheme, List<string> filenames, string referer = "")
     {
-        return new RipInfo(urls, dirName, filenameScheme, filenames: filenames);
+        return new RipInfo(urls, dirName, filenameScheme, filenames: filenames, referer: referer);
     }
 
     public RipInfo WithDirectoryName(string directoryName)

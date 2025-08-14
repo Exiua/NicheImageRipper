@@ -1,7 +1,6 @@
 using OpenQA.Selenium.BiDi.Modules.Network;
-using Serilog;
 
-namespace Core.DataStructures.VideoCapturers;
+namespace Core.SiteParsing.VideoCapturers;
 
 public abstract class PlaylistCapturer
 {
@@ -52,10 +51,5 @@ public abstract class PlaylistCapturer
     {
         _videoUrls.Clear();
         _seenIds.Clear();
-    }
-    
-    protected static string GetUrlParameterValue(string url, string parameter)
-    {
-        return url.Split($"{parameter}=")[1].Split("&")[0];
     }
 }

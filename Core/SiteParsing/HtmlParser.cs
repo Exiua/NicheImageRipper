@@ -6,12 +6,12 @@ using System.Text.RegularExpressions;
 using Common.ExtensionMethods;
 using Core.Configuration;
 using Core.DataStructures;
-using Core.DataStructures.VideoCapturers;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using Core.SiteParsing.HtmlParsers;
+using Core.SiteParsing.VideoCapturers;
 using Core.Utility;
 using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
@@ -305,6 +305,7 @@ public abstract partial class HtmlParser : IDisposable
             "meirentu" => new MeirentuParser(webDriver, requestHeaders, filenameScheme),
             "8se" => new EightSeParser(webDriver, requestHeaders, filenameScheme),
             "51cg1" => new Five1Cg1Parser(webDriver, requestHeaders, filenameScheme),
+            "tubeasiancams" => new TubeAsianCamsParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
