@@ -306,6 +306,7 @@ public abstract partial class HtmlParser : IDisposable
             "8se" => new EightSeParser(webDriver, requestHeaders, filenameScheme),
             "51cg1" => new Five1Cg1Parser(webDriver, requestHeaders, filenameScheme),
             "tubeasiancams" => new TubeAsianCamsParser(webDriver, requestHeaders, filenameScheme),
+            "koreanbj" => new KoreanBjParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
@@ -590,6 +591,10 @@ public abstract partial class HtmlParser : IDisposable
         return true;
     }
 
+    /// <summary>
+    ///     Close all tabs that do not contain the specified URL match.
+    /// </summary>
+    /// <param name="urlMatch">The substring that should be present in the URL of the tabs to keep open.</param>
     protected void CleanTabs(string urlMatch)
     {
         var windowHandles = Driver.WindowHandles;

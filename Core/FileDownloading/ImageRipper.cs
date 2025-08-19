@@ -384,16 +384,24 @@ public partial class ImageRipper : IDisposable
         return (FfmpegStatusCode)exitCode;
     }
 
-    private static async Task<bool> RunYtDlp(string url, string path, string startMessage, string endMessage)
+    private static async Task<bool> RunYtDlp(ImageLink link, string path, string startMessage, string endMessage)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
         {
             throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
         }
-        
+
+        var url = link.Url;
         var parent = Directory.GetParent(path)!.FullName;
         var filename = Path.GetFileName(path);
-        string[] cmd = 
+        string[] cmd = link.Referer != "" ?
+            [
+                "--force-overwrites",
+                "-P", $"\"{parent}\"", 
+                "-o", $"\"{filename}\"",
+                "--add-headers", $"\"Referer:{link.Referer}\"",
+                $"\"{url}\"",
+            ] :
             [
                 "--force-overwrites",
                 "-P", $"\"{parent}\"", 
@@ -720,7 +728,7 @@ public partial class ImageRipper : IDisposable
 
     private static Task<bool> DownloadM3U8YtDlp(string path, ImageLink imageLink)
     {
-        return RunYtDlp(imageLink.Url, path, startMessage: "Starting yt-dlp download",
+        return RunYtDlp(imageLink, path, startMessage: "Starting yt-dlp download",
             endMessage: "yt-dlp download finished");
     }
     
@@ -876,7 +884,7 @@ public partial class ImageRipper : IDisposable
 
     private static Task<bool> DownloadYoutubeFile(string path, ImageLink imageLink)
     {
-        return RunYtDlp(imageLink.Url, path, startMessage: "Starting youtube-dl download",
+        return RunYtDlp(imageLink, path, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
     }
 

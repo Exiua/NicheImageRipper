@@ -1,4 +1,5 @@
 using OpenQA.Selenium.BiDi.Modules.Network;
+using Serilog;
 
 namespace Core.SiteParsing.VideoCapturers;
 
@@ -9,7 +10,7 @@ public abstract class PlaylistCapturer
     
     public void CaptureHook(ResponseCompletedEventArgs e)
     {
-        //Log.Debug("New network response received: {url}", url);
+        //Log.Debug("New network response received: {url}", e.Response.Url);
         if (!ResponseIsInteresting(e))
         {
             return;
