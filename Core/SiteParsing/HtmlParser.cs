@@ -307,6 +307,7 @@ public abstract partial class HtmlParser : IDisposable
             "51cg1" => new Five1Cg1Parser(webDriver, requestHeaders, filenameScheme),
             "tubeasiancams" => new TubeAsianCamsParser(webDriver, requestHeaders, filenameScheme),
             "koreanbj" => new KoreanBjParser(webDriver, requestHeaders, filenameScheme),
+            "kbjfan" => new KbjFanParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }

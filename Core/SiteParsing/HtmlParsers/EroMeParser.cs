@@ -23,10 +23,10 @@ public class EroMeParser : HtmlParser
             Increment = 1250,
             ScrollBy = true
         });
-        var dirName = soup.SelectSingleNode("//h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var posts = soup
-                    .SelectNodes("//div[@class='col-sm-12 page-content']")[1]
-                    .SelectNodes("./div");
+                    .SelectNodesOrThrow("//div[@class='col-sm-12 page-content']")[1]
+                    .SelectNodesOrThrow("./div");
         var images = new List<StringImageLinkWrapper>();
         foreach (var post in posts)
         {
@@ -41,7 +41,7 @@ public class EroMeParser : HtmlParser
             var vid = post.SelectSingleNode(".//video");
             if (vid is not null)
             {
-                var url = vid.SelectSingleNode(".//source").GetSrc();
+                var url = vid.SelectSingleNodeOrThrow(".//source").GetSrc();
                 images.Add(url);
             }
         }

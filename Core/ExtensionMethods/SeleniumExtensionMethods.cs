@@ -1,5 +1,4 @@
 ﻿using OpenQA.Selenium;
-using OpenQA.Selenium.Support.UI;
 
 namespace Core.ExtensionMethods;
 
@@ -29,14 +28,32 @@ public static class SeleniumExtensionMethods
         }
     }
     
-    public static void Refresh(this IWebDriver driver)
+    /// <summary>
+    ///     Alias for <see cref="IWebDriver.Navigate().Refresh()"/>.
+    ///     This method refreshes the current page in the browser.
+    /// </summary>
+    /// <param name="driver">WebDriver instance</param>
+    /// <param name="hardRefresh">Whether to perform a hard refresh (only works on Firefox)</param>
+    public static void Refresh(this IWebDriver driver, bool hardRefresh = false)
     {
-        driver.Navigate().Refresh();
+        if (hardRefresh)
+        {
+            ((WebDriver) driver).ExecuteScript("location.reload(true);");
+        }
+        else
+        {
+            driver.Navigate().Refresh();
+        }
     }
     
     public static ICookieJar GetCookieJar(this IWebDriver driver)
     {
         return driver.Manage().Cookies;
+    }
+    
+    public static void ClearCookies(this IWebDriver driver)
+    {
+        driver.GetCookieJar().DeleteAllCookies();
     }
 
     /// <summary>
