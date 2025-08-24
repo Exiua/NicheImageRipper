@@ -12,6 +12,7 @@ using Core.FileDownloading;
 using Core.History;
 using Core.Managers;
 using Core.Utility;
+using OpenQA.Selenium;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -270,6 +271,11 @@ public partial class NicheImageRipper : IDisposable
                 Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
                 //OnUrlRipComplete?.Invoke();
                 break;
+            }
+            catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver", "timed out") && retry < MaxRetries - 1)
+            {
+                Log.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
+                await Task.Delay(10000);
             }
             catch (Exception e)
             {

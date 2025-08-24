@@ -1369,7 +1369,7 @@ public partial class ImageRipper : IDisposable
                 new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None);
             var buffer = new byte[4096]; // 4KB buffer
             int bytesRead;
-            var totalSize = 0;
+            var totalSize = 0L;
             var lastActivity = DateTime.UtcNow;
 
             while ((bytesRead = await stream.ReadAsync(buffer)) > 0)

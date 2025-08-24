@@ -179,4 +179,9 @@ public static class ExtensionMethods
     {
         return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
     }
+
+    public static bool Contains(this string s, params string[] substrings)
+    {
+        return substrings.All(s.Contains);
+    }
 }
