@@ -3,6 +3,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
 using Core.SiteParsing.VideoCapturers;
+using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -22,8 +23,9 @@ public class SexBjCamParser : HtmlParser
         var soup = await SolveParseAddCookies(regenerateSessionOnFailure: true);
         //Driver.TakeDebugScreenshot();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
-        var iframe = soup.SelectSingleNodeOrThrow("//iframe");
+        var iframe = soup.SelectSingleNodeOrThrow("//iframe[@allowfullscreen]");
         var iframeUrl = iframe.GetSrc();
+        Log.Debug("Navigating to iframe URL: {IframeUrl}", iframeUrl);
         var (capturer, b) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
         await using var bidi = b;
         CurrentUrl = iframeUrl;
@@ -39,7 +41,8 @@ public class SexBjCamParser : HtmlParser
     
             playlist = new ImageLink(links[0], FilenameScheme, 0)
             {
-                Referer = referer
+                Referer = referer,
+                LinkInfo = LinkInfo.M3U8YtDlp
             };
             break;
         }

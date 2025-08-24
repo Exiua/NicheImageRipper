@@ -12,6 +12,6 @@ public class SexBjCamVideoCapturer : PlaylistCapturer
 
     protected override string GetId(string url)
     {
-        return UrlUtility.GetUrlParameterValue(url, "t");
+        return url.Split("/")[4];
     }
 }
