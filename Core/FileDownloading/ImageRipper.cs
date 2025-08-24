@@ -236,11 +236,11 @@ public partial class ImageRipper : IDisposable
             {
                 try
                 {
+                    OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
                     var fullFilename = $"{index}{ext}";
                     var imagePath = Path.Combine(fullPath, fullFilename);
                     await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
                     await PostProcess(imagePath, filesHashes, downloadStats);
-                    OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
                     break;
                 }
                 catch // TODO: Narrow down exceptions
@@ -273,6 +273,7 @@ public partial class ImageRipper : IDisposable
                         foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                         {
                             var index = start + i;
+                            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls);
                             CurrentIndex = index;
                             while (Paused)
                             {
@@ -305,8 +306,6 @@ public partial class ImageRipper : IDisposable
                                 await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
                                 throw;
                             }
-                            
-                            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls);
                         }
 
                         break;
