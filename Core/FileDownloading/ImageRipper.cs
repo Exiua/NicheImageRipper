@@ -206,6 +206,7 @@ public partial class ImageRipper : IDisposable
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
         Log.Information(downloadResults); // This is done to avoid the enclosing quotes around the string
         Log.Information("Download Complete");
+        OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
     }
     
     private static Task Sleep(int milliseconds)
@@ -273,7 +274,7 @@ public partial class ImageRipper : IDisposable
                         foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                         {
                             var index = start + i;
-                            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls);
+                            OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
                             CurrentIndex = index;
                             while (Paused)
                             {

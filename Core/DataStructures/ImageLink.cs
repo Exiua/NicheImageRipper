@@ -272,12 +272,7 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
-        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8"))
-        {
-            fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
-            LinkInfo = LinkInfo.M3U8YtDlp;
-        }
-        else if (url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
+        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8") || url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
         {
             fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
             LinkInfo = LinkInfo.M3U8YtDlp;
@@ -299,6 +294,10 @@ public partial class ImageLink
         else if (url.Contains("fcww0.com"))
         {
             fileName = url.Split("/")[^2];
+        }
+        else if (url.Contains("shameless.com"))
+        {
+            fileName = url.Split("/")[8];
         }
         else
         {
