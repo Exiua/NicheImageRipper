@@ -1,11 +1,6 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;

@@ -231,7 +231,7 @@ public partial class NicheImageRipper : IDisposable
     public async Task Rip()
     {
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
-        Ripper.OnProgressChanged += OnProgressChanged;
+        Ripper.OnProgressChanged += OnProgressChangedHandler;
         Log.Debug("Ripper created");
         Log.Debug("Starting rip");
         while (UrlQueue.Count != 0)

@@ -66,7 +66,8 @@ public partial class ImageRipper : IDisposable
     private static TokenManager TokenManager => TokenManager.Instance;
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
     
-    public event Action<int, int>? OnProgressChanged;
+    public delegate void ProgressChangedHandler(int current, int total);
+    public event ProgressChangedHandler? OnProgressChanged;
 
     public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
                        UnzipProtocol unzipProtocol = UnzipProtocol.None, PostDownloadAction postDownloadAction = PostDownloadAction.None)
@@ -204,7 +205,7 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
-        Log.Information(downloadResults); // This is done to avoid the enclosing quotes around the string
+        Log.Information("{Results:L}", downloadResults);
         Log.Information("Download Complete");
         OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
     }
@@ -227,6 +228,7 @@ public partial class ImageRipper : IDisposable
         for (var index = start; index < FolderInfo.NumUrls + 1; index++)
         {
             CurrentIndex = index;
+            OnProgressChanged?.Invoke(index, FolderInfo.NumUrls + 1);
 
             while (Paused)
             {
@@ -237,7 +239,6 @@ public partial class ImageRipper : IDisposable
             {
                 try
                 {
-                    OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
                     var fullFilename = $"{index}{ext}";
                     var imagePath = Path.Combine(fullPath, fullFilename);
                     await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
@@ -274,7 +275,8 @@ public partial class ImageRipper : IDisposable
                         foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                         {
                             var index = start + i;
-                            OnProgressChanged?.Invoke(index, FolderInfo.NumUrls);
+                            Log.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
+                            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls + 1);
                             CurrentIndex = index;
                             while (Paused)
                             {
