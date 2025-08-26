@@ -76,7 +76,7 @@ public class KoreanBjParser : HtmlParser
             var filename = video.Split("/")[3] + ".mp4";
             var imageLink = new ImageLink(videos[0], FilenameScheme, 0, filename: filename)
             {
-                LinkInfo = LinkInfo.M3U8YtDlp,
+                LinkInfo = LinkInfo.ObfuscatedM3U8,
                 Referer = "https://ww1.koreanbj.club/"
             };
             

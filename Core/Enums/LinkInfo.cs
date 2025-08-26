@@ -15,5 +15,6 @@ public enum LinkInfo
     ResolveImage,   // Requires the image link to be resolved to the download link in the ImageRipper
     M3U8YtDlp,      // Requires yt-dlp to download m3u8 files
     SeleniumImage,  // Requires Selenium to download the image
-    Base64,         // Base64 encoded image
+    Base64,         // Base64 encoded image,
+    ObfuscatedM3U8, // Requires deobfuscation of each segment before concatenation with ffmpeg
 }

@@ -424,6 +424,7 @@ Workspace/
 .idea/
 scripts/
 TwiApi/
+Test/
 
 # Custom files
 *.json

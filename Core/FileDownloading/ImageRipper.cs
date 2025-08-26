@@ -205,7 +205,7 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
-        Log.Information("{Results:L}", downloadResults);
+        Log.Information("{Results:l}", downloadResults);
         Log.Information("Download Complete");
         OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
     }
@@ -359,7 +359,7 @@ public partial class ImageRipper : IDisposable
         return exitCode == 0;
     }
     
-    private static async Task<FfmpegStatusCode> RunFfmpeg(string[] cmd, string startMessage, string endMessage,
+    internal static async Task<FfmpegStatusCode> RunFfmpeg(string[] cmd, string startMessage = "Starting ffmpeg download", string endMessage = "Ffmpeg download finished",
         bool displayOutput = false)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
@@ -580,6 +580,9 @@ public partial class ImageRipper : IDisposable
             case LinkInfo.Base64:
                 success = await DownloadBase64Image(imagePath, imageLink);
                 break;
+            case LinkInfo.ObfuscatedM3U8:
+                success = await DownloadObfuscatedM3U8(imagePath, imageLink);
+                break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
                 success = await DownloadFile(imagePath, imageLink, false);
@@ -723,7 +726,7 @@ public partial class ImageRipper : IDisposable
             ];
         }
         
-        var result = await RunFfmpeg(cmd, "Starting ffmpeg download", "ffmpeg download finished");
+        var result = await RunFfmpeg(cmd);
         Log.Debug("Ffmpeg result: {Result}", result.GetShortErrorMessage());
         return result.IsSuccess();
     }
@@ -917,6 +920,20 @@ public partial class ImageRipper : IDisposable
         catch (FormatException e)
         {
             Log.Error(e, "Failed to decode base64 image");
+            return false;
+        }
+    }
+
+    private static async Task<bool> DownloadObfuscatedM3U8(string path, ImageLink imageLink)
+    {
+        try
+        {
+            await M3U8Downloader.DownloadObfuscatedM3U8(imageLink.Url, path);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to download obfuscated M3U8");
             return false;
         }
     }

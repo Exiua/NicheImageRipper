@@ -1,8 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using System.Web;
-using Core.DataStructures;
+﻿using Core.DataStructures;
 using Core.SiteParsing;
-using OpenQA.Selenium;
 
 namespace Core.ExtensionMethods;
 
@@ -30,19 +27,6 @@ public static class ExtensionMethods
         }
     }
 
-    public static IEnumerable<(int i, char)> Enumerate(this string s, int start = 0)
-    {
-        for(var i = start; i < s.Length; i++)
-        {
-            yield return (i, s[i]);
-        }
-    }
-
-    public static string ToTitle(this string src)
-    {
-        return src[0].ToString().ToUpper() + src[1..];
-    }
-
     public static HttpRequestMessage ToRequest(this Dictionary<string, string> headers, HttpMethod method, string url)
     {
         var request = new HttpRequestMessage(method, url);
@@ -52,23 +36,6 @@ public static class ExtensionMethods
         }
         
         return request;
-    }
-    
-    public static string ToQueryString(this string url, Dictionary<string, string> dict)
-    {
-        var uriBuilder = new UriBuilder(url);
-        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-        foreach (var (key, value) in dict)
-        {
-            query[key] = value;
-        }
-        uriBuilder.Query = query.ToString();
-        return uriBuilder.ToString();
-    }
-    
-    public static List<StringImageLinkWrapper> IntoStringImageLinkWrapperList(this string src)
-    {
-        return [new StringImageLinkWrapper(src)];
     }
     
     public static string HexDigest(this byte[] bytes)
@@ -104,11 +71,6 @@ public static class ExtensionMethods
             yield return list.GetRange(i, Math.Min(size, list.Count - i));
         }
     }
-
-    public static string Join(this string separator, IEnumerable<string> values)
-    {
-        return string.Join(separator, values);
-    }
     
     public static string Join(this IEnumerable<string> values, string separator)
     {
@@ -118,11 +80,6 @@ public static class ExtensionMethods
     public static string Join(this IEnumerable<string> values, char separator)
     {
         return string.Join(separator, values);
-    }
-    
-    public static string Remove(this string src, string toRemove)
-    {
-        return src.Replace(toRemove, string.Empty);
     }
 
     public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
@@ -138,21 +95,6 @@ public static class ExtensionMethods
     public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
     {
         return src.Select(url => new StringImageLinkWrapper(url)).ToList();
-    }
-
-    public static int ToInt(this string s)
-    {
-        return int.Parse(s);
-    }
-
-    /// <summary>
-    ///     Remove HTML artifacts from a url string (such as &amp;) and replace them with their proper characters
-    /// </summary>
-    /// <param name="s">URL string to clean</param>
-    /// <returns>Cleaned URL string</returns>
-    public static string DecodeUrl(this string s)
-    {
-        return s.Replace("&amp;", "&");
     }
 
     public static T[] Pop<T>(this T[] src, int index)
@@ -179,9 +121,26 @@ public static class ExtensionMethods
     {
         return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
     }
-
-    public static bool Contains(this string s, params string[] substrings)
+    
+    public static IEnumerable<Memory<T>> Chunks<T>(this Memory<T> source, int chunkSize)
     {
-        return substrings.All(s.Contains);
+        for (var i = 0; i < source.Length; i += chunkSize)
+        {
+            yield return source.Slice(i, Math.Min(chunkSize, source.Length - i));
+        }
+    }
+
+    public static int IndexOf<T>(this Memory<T> source, T val)
+    {
+        var span = source.Span;
+        for (var i = 0; i < span.Length; i++)
+        {
+            if (span[i]?.Equals(val) == true)
+            {
+                return i;
+            }
+        }
+        
+        return -1;
     }
 }

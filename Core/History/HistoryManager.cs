@@ -176,7 +176,7 @@ public class HistoryManager : IDisposable
 
     public List<HistoryEntry> GetHistory(int page, int offset, HistoryFilter? filter = null)
     {
-        if (filter is null)
+        if (filter is null || InvalidFilter(filter))
         {
             return GetUnfilteredHistory(page, offset);
         }
@@ -187,6 +187,22 @@ public class HistoryManager : IDisposable
             HistoryUrlFilter urlFilter => GetHistoryByUrlFilter(urlFilter, page, offset),
             HistoryDateFilter dateFilter => GetHistoryByDateFilter(dateFilter, page, offset),
             _ => throw new ArgumentException("Unsupported filter type.", nameof(filter))
+        };
+    }
+
+    private static bool InvalidFilter(HistoryFilter? filter)
+    {
+        if (filter is null)
+        {
+            return true;
+        }
+        
+        return filter switch
+        {
+            HistoryNameFilter nameFilter => string.IsNullOrWhiteSpace(nameFilter.Name) || nameFilter.Name.Length <= 5, // requires more than "name:"
+            HistoryUrlFilter urlFilter => string.IsNullOrWhiteSpace(urlFilter.Url) || urlFilter.Url.Length <= 4, // requires more than "url:"
+            HistoryDateFilter dateFilter => dateFilter.Date == default,
+            _ => true
         };
     }
     
