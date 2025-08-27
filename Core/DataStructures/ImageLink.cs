@@ -163,6 +163,7 @@ public partial class ImageLink
                 case LinkInfo.ResolveImage:
                 case LinkInfo.M3U8YtDlp:
                 case LinkInfo.SeleniumImage:
+                case LinkInfo.ObfuscatedM3U8:
                 default:
                     filename = ExtractFilename(url);
                     break;

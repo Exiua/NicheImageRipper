@@ -6,14 +6,19 @@ namespace Core.FileDownloading;
 
 public static class M3U8Downloader
 {
-    public static async Task DownloadObfuscatedM3U8(string url, string savePath)
+    public static async Task DownloadObfuscatedM3U8(string url, string savePath, string outputName, string? referer = null)
     {
-        const string outputName = "output.mp4";
         var path = Path.GetFullPath(savePath);
         var temp = Path.Combine(path, "temp");
         Directory.CreateDirectory(temp);
         
         var client = new HttpClient();
+        if (referer is not null)
+        {
+            client.DefaultRequestHeaders.Add("Referer", referer);
+            var origin = referer.EndsWith('/') ? referer[..^1] : referer;
+            client.DefaultRequestHeaders.Add("Origin", origin);
+        }
         Log.Debug("Downloading M3U8 playlist from: {Url}", url);
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -23,12 +28,13 @@ public static class M3U8Downloader
         {
             throw new RipperException("No segment found");
         }
-        
-        var baseUrl = url[..(url.LastIndexOf('/') + 1)];
+
+        var shortBaseUrl = url.Split("/").Take(3).Join("/");
+        var longBaseUrl = url[..(url.LastIndexOf('/') + 1)];
         if (!segment.StartsWith("http"))
         {
             
-            segment = baseUrl + segment;
+            segment = longBaseUrl + segment;
         }
         
         Log.Debug("{Segment}", segment);
@@ -49,11 +55,25 @@ public static class M3U8Downloader
                 var segmentUrl = line.Trim();
                 if (!segmentUrl.StartsWith("http"))
                 {
-                    segmentUrl = baseUrl + segmentUrl;
+                    if (segmentUrl.Contains('/'))
+                    {
+                        segmentUrl = shortBaseUrl + segmentUrl;
+                        Log.Debug("Using short base URL for segment: {SegmentUrl}", segmentUrl);
+                    }
+                    else
+                    {
+                        segmentUrl = longBaseUrl + segmentUrl;
+                        Log.Debug("Using long base URL for segment: {SegmentUrl}", segmentUrl);
+                    }
                 }
                 Log.Debug("Downloading segment: {SegmentUrl}", segmentUrl);
                 var res = await client.GetAsync(segmentUrl);
-                res.EnsureSuccessStatusCode();
+                if (!res.IsSuccessStatusCode)
+                {
+                    Log.Warning("Failed to download segment: {SegmentUrl} with status code {StatusCode}", segmentUrl, res.StatusCode);
+                    continue;
+                }
+                
                 var data = await res.Content.ReadAsByteArrayAsync();
                 byte[] segmentData;
                 try
@@ -95,7 +115,7 @@ public static class M3U8Downloader
             $"\"{outputPath}\""
             
         };
-        await ImageRipper.RunFfmpeg(cmd);
+        await ImageRipper.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation", endMessage: "Finished ffmpeg concatenation");
 
         Log.Debug("Output saved to: {OutputPath}", outputPath);
         

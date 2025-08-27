@@ -12,7 +12,9 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class KoreanBjParser : HtmlParser
 {
+    private const string WaitForElementXPath = "//div[@id='responsive-player']/iframe|//video[@id='player']";
     private const string IframeXPath = "//div[@id='responsive-player']/iframe";
+    private const string VideoXPath = "//video[@id='player']";
     
     public KoreanBjParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
@@ -38,22 +40,32 @@ public class KoreanBjParser : HtmlParser
         }
         else
         {
-            var responsivePlayer = Driver.TryFindElement(By.XPath("//div[@id='responsive-player']"));
-            if (responsivePlayer is null)
+            var player = Driver.TryFindElement(By.XPath(VideoXPath));
+            if (player is not null)
             {
-                responsivePlayer = Driver.TryFindElement(By.XPath("//div[@class='responsive-player']"));
-                if (responsivePlayer is not null)
-                {
-                    await ExtractPlaylist(images, capturer);
-                }
-                else
-                {
-                    throw new RipperException("Could not find responsive player div");
-                }
+                var source = player.FindElement(By.XPath("./source"));
+                var url = source.GetSrc();
+                images.Add(url);
             }
             else
             {
-                await ExtractPlaylistFromIframe(images, capturer);
+                var responsivePlayer = Driver.TryFindElement(By.XPath("//div[@id='responsive-player']"));
+                if (responsivePlayer is null)
+                {
+                    responsivePlayer = Driver.TryFindElement(By.XPath("//div[@class='responsive-player']"));
+                    if (responsivePlayer is not null)
+                    {
+                        await ExtractPlaylist(images, capturer);
+                    }
+                    else
+                    {
+                        throw new RipperException("Could not find responsive player div");
+                    }
+                }
+                else
+                {
+                    await ExtractPlaylistFromIframe(images, capturer);
+                }
             }
         }
 
@@ -76,7 +88,7 @@ public class KoreanBjParser : HtmlParser
             var filename = video.Split("/")[3] + ".mp4";
             var imageLink = new ImageLink(videos[0], FilenameScheme, 0, filename: filename)
             {
-                LinkInfo = LinkInfo.ObfuscatedM3U8,
+                LinkInfo = LinkInfo.M3U8YtDlp,
                 Referer = "https://ww1.koreanbj.club/"
             };
             

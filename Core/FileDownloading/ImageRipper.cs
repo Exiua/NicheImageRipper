@@ -543,9 +543,20 @@ public partial class ImageRipper : IDisposable
         {
             case LinkInfo.M3U8Ffmpeg:
                 success = await DownloadM3U8ToMp4(imagePath, imageLink);
+                if (!success)
+                {
+                    success = await DownloadObfuscatedM3U8(imagePath, imageLink);
+                }
                 break;
             case LinkInfo.M3U8YtDlp:
                 success = await DownloadM3U8YtDlp(imagePath, imageLink);
+                if (!success)
+                {
+                    success = await DownloadObfuscatedM3U8(imagePath, imageLink);
+                }
+                break;
+            case LinkInfo.ObfuscatedM3U8:
+                success = await DownloadObfuscatedM3U8(imagePath, imageLink);
                 break;
             case LinkInfo.GDrive:
                 success = await DownloadGDriveFile(imagePath, imageLink);
@@ -579,9 +590,6 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.Base64:
                 success = await DownloadBase64Image(imagePath, imageLink);
-                break;
-            case LinkInfo.ObfuscatedM3U8:
-                success = await DownloadObfuscatedM3U8(imagePath, imageLink);
                 break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
@@ -928,7 +936,9 @@ public partial class ImageRipper : IDisposable
     {
         try
         {
-            await M3U8Downloader.DownloadObfuscatedM3U8(imageLink.Url, path);
+            var parent = Directory.GetParent(path)!.FullName;
+            var referer = imageLink.Referer == "" ? null : imageLink.Referer;
+            await M3U8Downloader.DownloadObfuscatedM3U8(imageLink.Url, parent, imageLink.Filename, referer);
             return true;
         }
         catch (Exception e)

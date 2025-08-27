@@ -42,7 +42,7 @@ public class SexBjCamParser : HtmlParser
             playlist = new ImageLink(links[0], FilenameScheme, 0)
             {
                 Referer = referer,
-                LinkInfo = LinkInfo.M3U8YtDlp
+                LinkInfo = LinkInfo.ObfuscatedM3U8
             };
             break;
         }
