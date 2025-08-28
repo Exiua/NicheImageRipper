@@ -112,8 +112,8 @@ public abstract partial class HtmlParser : IDisposable
         {
             Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
             #if DEBUG
-            Driver.TakeDebugScreenshot();
             await File.WriteAllTextAsync("test.html", Driver.PageSource);
+            Driver.TakeDebugScreenshot();
             #endif
             throw;
         }
@@ -571,11 +571,12 @@ public abstract partial class HtmlParser : IDisposable
     /// <param name="delay">Delay between each check</param>
     /// <param name="timeout">Timeout for the wait (-1 for no timeout)</param>
     /// <returns>True if the element exists, false if the timeout is reached</returns>
-    protected async Task<bool> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
+    protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
         var startTime = DateTime.Now;
-        while (Driver.FindElements(By.XPath(xpath)).Count == 0)
+        var found = Driver.FindElements(By.XPath(xpath));
+        while (found.Count == 0)
         {
             await Task.Delay((int)(delay * 1000));
             var currTime = DateTime.Now;
@@ -587,11 +588,12 @@ public abstract partial class HtmlParser : IDisposable
             
             if (currTime - startTime >= timeoutSpan)
             {
-                return false;
+                return null;
             }
         }
 
-        return true;
+        var foundElement = found[0];
+        return foundElement.TagName;
     }
 
     /// <summary>

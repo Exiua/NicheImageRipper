@@ -32,22 +32,27 @@ public class KoreanBjParser : HtmlParser
         await using var bidi = b;
         Driver.Refresh();
         var dirName = Driver.FindElement(By.XPath("//h2[@class='entry-title']")).Text;
-        var iframeLoaded = await WaitForElement(IframeXPath);
+        var waitedElement = await WaitForElement(WaitForElementXPath);
         var images = new List<StringImageLinkWrapper>();
-        if (iframeLoaded) // if the iframe is loaded, we can immediately extract the video source as it's not a blob
+        switch (waitedElement)
         {
-            await ExtractVideoFromIframe(images, capturer);
-        }
-        else
-        {
-            var player = Driver.TryFindElement(By.XPath(VideoXPath));
-            if (player is not null)
+            // if the iframe is loaded, we can immediately extract the video source as it's not a blob
+            case "iframe":
+                Log.Debug("Extracting video from iframe");
+                await ExtractVideoFromIframe(images, capturer);
+                break;
+            // if the video tag is loaded, we can extract the source directly
+            case "video":
             {
+                Log.Debug("Extracting video from video tag");
+                var player = Driver.FindElement(By.XPath(VideoXPath));
                 var source = player.FindElement(By.XPath("./source"));
                 var url = source.GetSrc();
                 images.Add(url);
+                break;
             }
-            else
+            // if neither is loaded, we have to capture the playlist over network
+            default:
             {
                 var responsivePlayer = Driver.TryFindElement(By.XPath("//div[@id='responsive-player']"));
                 if (responsivePlayer is null)
@@ -55,6 +60,7 @@ public class KoreanBjParser : HtmlParser
                     responsivePlayer = Driver.TryFindElement(By.XPath("//div[@class='responsive-player']"));
                     if (responsivePlayer is not null)
                     {
+                        Log.Debug("Extracting playlist from responsive player div");
                         await ExtractPlaylist(images, capturer);
                     }
                     else
@@ -64,8 +70,11 @@ public class KoreanBjParser : HtmlParser
                 }
                 else
                 {
+                    Log.Debug("Extracting playlist from iframe");
                     await ExtractPlaylistFromIframe(images, capturer);
                 }
+
+                break;
             }
         }
 
@@ -74,12 +83,20 @@ public class KoreanBjParser : HtmlParser
 
     private async Task ExtractPlaylist(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer)
     {
+        var i = 0;
         while (true)
         {
             var videos = capturer.GetNewVideoLinks();
             if (videos.Count == 0)
             {
+                i++;
                 await Sleep(250);
+                if(i % 4 == 0)
+                {
+                    Log.Debug("Refreshing page to find video link");
+                    Driver.Refresh();
+                }
+                
                 continue;
             }
 
@@ -145,13 +162,21 @@ public class KoreanBjParser : HtmlParser
             
             await Sleep(500);
         }
-        
+
+        var i = 0;
         while (true)
         {
+            i++;
             var videos = capturer.GetNewVideoLinks();
             if (videos.Count == 0)
             {
                 await Sleep(250);
+                if (i % 4 == 0)
+                {
+                    Log.Debug("Refreshing page to find video link");
+                    Driver.Refresh();
+                }
+                
                 continue;
             }
 
@@ -189,12 +214,20 @@ public class KoreanBjParser : HtmlParser
         var videoSrc = videoElement.GetAttribute("src")!;
         if (videoSrc.StartsWith("blob:"))
         {
+            var i = 0;
             while (true)
             {
+                i++;
                 var videos = capturer.GetNewVideoLinks();
                 if (videos.Count == 0)
                 {
                     await Sleep(250);
+                    if (i % 4 == 0)
+                    {
+                        Log.Debug("Refreshing page to find video link");
+                        Driver.Refresh();
+                    }
+                    
                     continue;
                 }
 

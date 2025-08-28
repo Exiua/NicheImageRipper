@@ -117,7 +117,7 @@ public class PixivParser : HtmlParser
             }
 
             var found = await WaitForElement(xpathToFindDescription);
-            if (!found)
+            if (found is not null)
             {
                 Log.Debug("Description not found for post {Post}", post);
             }

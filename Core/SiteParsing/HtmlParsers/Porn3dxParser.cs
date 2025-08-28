@@ -33,12 +33,13 @@ public class Porn3dxParser : HtmlParser
             ScrollPauseTime = 1000
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
-        var dirName = soup.SelectSingleNode("//div[@class='items-center self-center text-sm font-bold leading-none text-white ']")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='items-center self-center text-sm font-bold leading-none text-white ']")
                             .InnerText;
         var origUrl = CurrentUrl;
         var posts = new List<string>();
         var id = 0;
-        if (!await WaitForElement("//a[@id='gallery-0']", timeout: 50))
+        var waitedElement = await WaitForElement("//a[@id='gallery-0']", timeout: 50);
+        if (waitedElement is not null)
         {
             throw new RipperException("Element could not be found");
         }

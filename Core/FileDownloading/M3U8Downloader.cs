@@ -30,14 +30,16 @@ public static class M3U8Downloader
         }
 
         var shortBaseUrl = url.Split("/").Take(3).Join("/");
-        var longBaseUrl = url[..(url.LastIndexOf('/') + 1)];
+        var qs = url.IndexOf('?');
+        var queryStart = qs == -1 ? url.Length : qs;
+        var longBaseUrl = url[..(url.LastIndexOf('/', queryStart) + 1)];
         if (!segment.StartsWith("http"))
         {
             
             segment = longBaseUrl + segment;
         }
         
-        Log.Debug("{Segment}", segment);
+        Log.Debug("Highest Quality Segment: {Segment}", segment);
         response = await client.GetAsync(segment);
         response.EnsureSuccessStatusCode();
         content = await response.Content.ReadAsStringAsync();
@@ -55,7 +57,9 @@ public static class M3U8Downloader
                 var segmentUrl = line.Trim();
                 if (!segmentUrl.StartsWith("http"))
                 {
-                    if (segmentUrl.Contains('/'))
+                    qs = segmentUrl.IndexOf('?');
+                    queryStart = qs == -1 ? segmentUrl.Length : qs;
+                    if (segmentUrl.IndexOf('/', 0, queryStart) != -1)
                     {
                         segmentUrl = shortBaseUrl + segmentUrl;
                         Log.Debug("Using short base URL for segment: {SegmentUrl}", segmentUrl);

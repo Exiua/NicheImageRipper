@@ -26,12 +26,12 @@ public class XasiatParser : HtmlParser
             ScrollBy = true,
             Increment = 1250,
         });
-        var dirName = soup.SelectSingleNode("//div[@class='headline']/h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("/albums/"))
         {
-            images = soup.SelectSingleNode("//div[@class='images']")
-                            .SelectNodes("./a")
+            images = soup.SelectSingleNodeOrThrow("//div[@class='images']")
+                            .SelectNodesOrThrow("./a")
                             .Select(a => a.GetHref())
                             .ToStringImageLinkWrapperList();
         }
@@ -40,8 +40,8 @@ public class XasiatParser : HtmlParser
             var playButton = Driver.FindElement(By.XPath("//a[@class='fp-play']"));
             Driver.ScrollElementIntoView(playButton);
             Driver.Click(playButton);
-            var exists = await WaitForElement("//video");
-            if (!exists)
+            var waitedElement = await WaitForElement("//video");
+            if (waitedElement is not null)
             {
                 throw new RipperException("Video not found");
             }
