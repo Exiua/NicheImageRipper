@@ -310,6 +310,7 @@ public abstract partial class HtmlParser : IDisposable
             "kbjfan" => new KbjFanParser(webDriver, requestHeaders, filenameScheme),
             "shameless" => new ShamelessParser(webDriver, requestHeaders, filenameScheme),
             "pussyspace" => new PussySpaceParser(webDriver, requestHeaders, filenameScheme),
+            "videomonstr" => new VideoMonstrParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
