@@ -185,8 +185,10 @@ public class KoreanBjParser : HtmlParser
             string url;
             if (video.Contains("%3F") || video.Contains("%3f"))
             {
+                Log.Debug("Detected encoded URL, decoding");
                 var encodedUrl = UrlUtility.GetUrlParameterValue(videos[0], "mu");
                 url = Uri.UnescapeDataString(encodedUrl);
+                Log.Debug("Decoded URL: {url}", url);
             }
             else
             {
@@ -194,7 +196,7 @@ public class KoreanBjParser : HtmlParser
             }
             
             var filename = UrlUtility.GetUrlParameterValue(url, "t") + ".mp4";
-            var imageLink = new ImageLink(videos[0], FilenameScheme, 0, filename: filename)
+            var imageLink = new ImageLink(url, FilenameScheme, 0, filename: filename)
             {
                 LinkInfo = LinkInfo.M3U8YtDlp,
                 Referer = "https://jilliandescribecompany.com/"

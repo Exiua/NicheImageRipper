@@ -440,7 +440,7 @@ public class MainWindowViewModel : ViewModelBase
     public void LoadHistory(HistoryFilter? filter = null)
     {
         var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage - 1, PageSize, filter);
-        Log.Debug("History[{Count}]: {@History}", history.Count, history[0]);
+        Log.Debug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
         History.Update(history);
     }
 
