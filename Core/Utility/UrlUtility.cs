@@ -88,7 +88,7 @@ public static partial class UrlUtility
         "https://www.pixiv.net/", "https://fcww0.com/", "https://www.xsnvshen.com/", "https://www.06se.com/",
         "https://meirentu.cc/", "https://tw.8se.me/", "https://51cg1.com/", "https://tubeasiancams.com/",
         "https://ww1.koreanbj.club/", "https://www.kbjfan.com/", "https://shameless.com/", "https://www.pussyspace.com/",
-        "https://videomonstr.com/", "https://www.pornoxo.com/"
+        "https://videomonstr.com/", "https://www.pornoxo.com/", "https://www.porndr.com/"
     }.ToFrozenSet();
 
     /// <summary>

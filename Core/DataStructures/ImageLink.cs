@@ -300,6 +300,10 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[8];
         }
+        else if (url.Contains("porndr.com"))
+        {
+            fileName = url.Split("/")[^2];
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
