@@ -1,7 +1,4 @@
-﻿using System.Net.Http.Json;
-using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using Common.ExtensionMethods;
 using Core.Configuration;
@@ -28,7 +25,7 @@ public abstract partial class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
 
-    protected static readonly string[] ExternalSites =
+    protected static readonly string[] EXTERNAL_SITES =
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
     
     protected static GeneralConfig Config => Configuration.Config.Instance;
@@ -162,8 +159,7 @@ public abstract partial class HtmlParser : IDisposable
             "decorativemodels" => new DecorativeModelsParser(webDriver, requestHeaders, filenameScheme),
             //DeviantArt
             "dirtyyoungbitches" => new DirtyYoungBitchesParser(webDriver, requestHeaders, filenameScheme),
-            "e-hentai" => new EHentaiParser(webDriver, requestHeaders, filenameScheme),
-            "exhentai" => new EHentaiParser(webDriver, requestHeaders, filenameScheme),
+            "e-hentai" or "exhentai" => new EHentaiParser(webDriver, requestHeaders, filenameScheme),
             "eahentai" => new EahentaiParser(webDriver, requestHeaders, filenameScheme),
             "8boobs" => new EightBoobsParser(webDriver, requestHeaders, filenameScheme),
             "8muses" => new EightMusesParser(webDriver, requestHeaders, filenameScheme),
@@ -244,8 +240,7 @@ public abstract partial class HtmlParser : IDisposable
             "titsintops" => new TitsInTopsParser(webDriver, requestHeaders, filenameScheme),
             "toonily" => new ToonilyParser(webDriver, requestHeaders, filenameScheme),
             "tsumino" => new TsuminoParser(webDriver, requestHeaders, filenameScheme),
-            "twitter" => new TwitterParser(webDriver, requestHeaders, filenameScheme),
-            "x" => new TwitterParser(webDriver, requestHeaders, filenameScheme),
+            "twitter" or "x" => new TwitterParser(webDriver, requestHeaders, filenameScheme),
             "xcancel" => new XCancelParser(webDriver, requestHeaders, filenameScheme),
             "wantedbabes" => new WantedBabesParser(webDriver, requestHeaders, filenameScheme),
             "xarthunter" => new XArtHunterParser(webDriver, requestHeaders, filenameScheme),
@@ -311,6 +306,7 @@ public abstract partial class HtmlParser : IDisposable
             "shameless" => new ShamelessParser(webDriver, requestHeaders, filenameScheme),
             "pussyspace" => new PussySpaceParser(webDriver, requestHeaders, filenameScheme),
             "videomonstr" => new VideoMonstrParser(webDriver, requestHeaders, filenameScheme),
+            "pornoxo" => new PornOxoParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
@@ -715,7 +711,7 @@ public abstract partial class HtmlParser : IDisposable
     protected static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
         var externalLinks = new Dictionary<string, List<string>>();
-        foreach (var site in ExternalSites)
+        foreach (var site in EXTERNAL_SITES)
         {
             externalLinks[site] = [];
         }
@@ -755,7 +751,7 @@ public abstract partial class HtmlParser : IDisposable
 
     protected static bool UrlCanBeParsed(string url)
     {
-        return !string.IsNullOrEmpty(url) && ExternalSites.Any(url.Contains);
+        return !string.IsNullOrEmpty(url) && EXTERNAL_SITES.Any(url.Contains);
     }
 
     /// <summary>
@@ -849,6 +845,28 @@ public abstract partial class HtmlParser : IDisposable
     protected void ScrollToTop()
     {
         Driver.ExecuteScript("window.scrollTo(0, 0);");
+    }
+
+    protected void WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback)
+    {
+        var i = 0;
+        while (true)
+        {
+            var links = capturer.GetNewVideoLinks();
+            if (links.Count == 0)
+            {
+                i++;
+                if (i % 4 == 3)
+                {
+                    Driver.Refresh();
+                }
+
+                continue;
+            }
+    
+            callback(links);
+            break;
+        }
     }
 
     protected static void LogFailedUrl(string url)

@@ -6,7 +6,8 @@ namespace Core.FileDownloading;
 
 public static class M3U8Downloader
 {
-    public static async Task DownloadObfuscatedM3U8(string url, string savePath, string outputName, string? referer = null)
+    public static async Task DownloadObfuscatedM3U8(string url, string savePath, string outputName,
+                                                    string? referer = null, bool isIndex = false)
     {
         var path = Path.GetFullPath(savePath);
         var temp = Path.Combine(path, "temp");
@@ -19,26 +20,38 @@ public static class M3U8Downloader
             var origin = referer.EndsWith('/') ? referer[..^1] : referer;
             client.DefaultRequestHeaders.Add("Origin", origin);
         }
-        Log.Debug("Downloading M3U8 playlist from: {Url}", url);
-        var response = await client.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
-        var segment = GetHighestQualitySegment(content);
-        if (segment == null)
-        {
-            throw new RipperException("No segment found");
-        }
 
         var shortBaseUrl = url.Split("/").Take(3).Join("/");
         var qs = url.IndexOf('?');
-        var queryStart = qs == -1 ? url.Length : qs;
+        var queryStart = qs == -1 ? url.Length - 1 : qs;
+        Log.Debug("QueryStart: {QueryStart}, Length: {Length}", queryStart, url.Length);
         var longBaseUrl = url[..(url.LastIndexOf('/', queryStart) + 1)];
-        if (!segment.StartsWith("http"))
+        HttpResponseMessage response;
+        string content;
+        string? segment;
+        if (!isIndex)
         {
+            Log.Debug("Downloading M3U8 playlist from: {Url}", url);
+            response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            content = await response.Content.ReadAsStringAsync();
+            segment = GetHighestQualitySegment(content);
+            if (segment == null)
+            {
+                throw new RipperException("No segment found");
+            }
             
-            segment = longBaseUrl + segment;
+            if (!segment.StartsWith("http"))
+            {
+
+                segment = longBaseUrl + segment;
+            }
         }
-        
+        else
+        {
+            segment = url;
+        }
+
         Log.Debug("Highest Quality Segment: {Segment}", segment);
         response = await client.GetAsync(segment);
         response.EnsureSuccessStatusCode();
@@ -58,7 +71,7 @@ public static class M3U8Downloader
                 if (!segmentUrl.StartsWith("http"))
                 {
                     qs = segmentUrl.IndexOf('?');
-                    queryStart = qs == -1 ? segmentUrl.Length : qs;
+                    queryStart = qs == -1 ? segmentUrl.Length - 1 : qs;
                     if (segmentUrl.IndexOf('/', 0, queryStart) != -1)
                     {
                         segmentUrl = shortBaseUrl + segmentUrl;

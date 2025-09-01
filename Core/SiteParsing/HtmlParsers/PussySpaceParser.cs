@@ -35,28 +35,14 @@ public class PussySpaceParser : HtmlParser
                         .Where(t => !string.IsNullOrEmpty(t))
                         .Join(" ") + $"({id})";
         var images = new List<StringImageLinkWrapper>();
-        var i = 0;
-        while (true)
+        WaitForPlaylist(capturer, links =>
         {
-            var links = capturer.GetNewVideoLinks();
-            if (links.Count == 0)
-            {
-                i++;
-                if (i % 4 == 3)
-                {
-                    Driver.Refresh();
-                }
-
-                continue;
-            }
-    
             var playlist = new ImageLink(links[0], FilenameScheme, 0)
             {
                 LinkInfo = LinkInfo.M3U8YtDlp
             };
             images.Add(playlist);
-            break;
-        }
+        });
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

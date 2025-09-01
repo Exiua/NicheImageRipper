@@ -170,7 +170,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
         #endregion
 
-        foreach (var site in ExternalSites)
+        foreach (var site in EXTERNAL_SITES)
         {
             externalLinks[site] = externalLinks[site].RemoveDuplicates();
         }
