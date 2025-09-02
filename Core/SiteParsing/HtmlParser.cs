@@ -309,6 +309,7 @@ public abstract partial class HtmlParser : IDisposable
             "pornoxo" => new PornOxoParser(webDriver, requestHeaders, filenameScheme),
             "porndr" => new PornDrParser(webDriver, requestHeaders, filenameScheme),
             "xhamster" => new XHamsterParser(webDriver, requestHeaders, filenameScheme),
+            "abxxx" => new AbxxxParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }

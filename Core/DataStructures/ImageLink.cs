@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
 using Core.Enums;
 using Core.Exceptions;
 using JetBrains.Annotations;
@@ -68,6 +69,8 @@ public partial class ImageLink
     
     private string GenerateUrl(string url)
     {
+        url = HttpUtility.HtmlDecode(url);
+        
         if (url.StartsWith("text:"))
         {
             LinkInfo = LinkInfo.Text;
@@ -301,6 +304,10 @@ public partial class ImageLink
             fileName = url.Split("/")[8];
         }
         else if (url.Contains("porndr.com"))
+        {
+            fileName = url.Split("/")[^2];
+        }
+        else if (url.Contains("abxxx.com"))
         {
             fileName = url.Split("/")[^2];
         }
