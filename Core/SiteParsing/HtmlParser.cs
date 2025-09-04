@@ -313,6 +313,7 @@ public abstract partial class HtmlParser : IDisposable
             //"love4porn" => new Love4PornParser(webDriver, requestHeaders, filenameScheme),
             "xvideos" => new XVideosParser(webDriver, requestHeaders, filenameScheme),
             "asianviralhub" => new AsianViralHubParser(webDriver, requestHeaders, filenameScheme),
+            "hdzog" => new HdzogParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
