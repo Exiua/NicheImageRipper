@@ -41,7 +41,7 @@ public class XasiatParser : HtmlParser
             Driver.ScrollElementIntoView(playButton);
             Driver.Click(playButton);
             var waitedElement = await WaitForElement("//video");
-            if (waitedElement is not null)
+            if (waitedElement is null)
             {
                 throw new RipperException("Video not found");
             }
