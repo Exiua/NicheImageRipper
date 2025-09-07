@@ -107,6 +107,7 @@ public abstract partial class HtmlParser : IDisposable
         }
         catch (Exception e)
         {
+            Driver.SwitchTo().DefaultContent();
             Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
             #if DEBUG
             await File.WriteAllTextAsync("test.html", Driver.PageSource);

@@ -537,6 +537,10 @@ public partial class ImageRipper : IDisposable
         {
             RequestHeaders[RequestHeaderKeys.Referer] = imageLink.Referer;
         }
+        else if (imageLink.Referer is null)
+        {
+            RequestHeaders[RequestHeaderKeys.Referer] = "";
+        }
 
         bool success;
         switch (imageLink.LinkInfo)

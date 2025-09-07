@@ -39,7 +39,7 @@ public class RipInfo
     private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
                     FilenameScheme filenameScheme = FilenameScheme.Original,
                     bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
-                    string referer = "")
+                    string? referer = "")
     {
         // SaveRawUrls(urls);
         FilenameScheme = filenameScheme;
@@ -80,7 +80,7 @@ public class RipInfo
     }
 
     public static RipInfo FromUrlList(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
-                                      bool nameReuse = false, string referer = "")
+                                      bool nameReuse = false, string? referer = "")
     {
         // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
         return nameReuse
@@ -91,7 +91,7 @@ public class RipInfo
     }
 
     public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName,
-                                                   FilenameScheme filenameScheme, List<string> filenames, string referer = "")
+                                                   FilenameScheme filenameScheme, List<string> filenames, string? referer = "")
     {
         return new RipInfo(urls, dirName, filenameScheme, filenames: filenames, referer: referer);
     }
@@ -103,7 +103,7 @@ public class RipInfo
     }
 
     private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob,
-                                                               List<string>? filenames = null, string referer = "")
+                                                               List<string>? filenames = null, string? referer = "")
     {
         var imageLinks = new List<ImageLink>();
         var linkCounter = 0; // Current index of image_links (used for naming image_links when generating numeric names)

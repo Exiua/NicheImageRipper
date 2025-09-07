@@ -25,12 +25,14 @@ public class PornzogParser : HtmlParser
         var id = CurrentUrl.Split("/")[4];
         var dirName = Driver.FindElement(By.XPath("//h2[@class='title video-title']")).Text + $" ({id})";
         var iframe = Driver.FindElement(By.XPath("//iframe[@allowfullscreen]"));
+        var iframeSrc = iframe.GetAttribute("src")!;
+        var baseUrl = iframeSrc.Split("/").Take(3).Join("/");
         Driver.SwitchTo().Frame(iframe);
         var soup = await Soupify();
         var images = new List<StringImageLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']").GetSrc();
-        images.Add("https://pornzog.com" + url);
+        images.Add(baseUrl + url);
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null);
     }
 }

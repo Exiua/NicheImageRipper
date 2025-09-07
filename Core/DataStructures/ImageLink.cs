@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -12,18 +13,20 @@ namespace Core.DataStructures;
 
 public partial class ImageLink
 {
-    public string Referer { get; set; } = null!;
+    public string? Referer { get; set; }
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
     public string Url { get; set; } = null!;
     public string Filename { get; set; } = null!;
     
     public bool IsBlob => Url.StartsWith("blob:");
     public bool IsInvalid => Url == "";
+    
+    [MemberNotNullWhen(true, nameof(Referer))]
     public bool HasReferer => !string.IsNullOrEmpty(Referer);
     
     public static ImageLink Invalid => new()
     {
-        Referer = "",
+        Referer = null,
         LinkInfo = LinkInfo.None,
         Url = "",
         Filename = "",
@@ -37,7 +40,7 @@ public partial class ImageLink
     }
     
     public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", 
-                     LinkInfo linkInfo = LinkInfo.None, string referer = "")
+                     LinkInfo linkInfo = LinkInfo.None, string? referer = "")
     {
         Referer = referer;
         LinkInfo = linkInfo;
@@ -323,7 +326,7 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
-        else if(url.Contains("pornzog.com"))
+        else if(url.Contains("privatehomeclips.com"))
         {
             fileName = url.Split("/")[^2];
         }
