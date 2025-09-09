@@ -28,13 +28,13 @@ public class XxxTubeParser : HtmlParser
         var category = parts[3];
         var id = parts[4];
         string dirName;
-        var soup = await Soupify();
         var images = new List<StringImageLinkWrapper>();
         switch (category)
         {
             case "videos":
             {
-                dirName = soup.SelectSingleNodeOrThrow("//h1[@class='video-title']").InnerText + $" ({id})";
+                var soup = await Soupify();
+                dirName = soup.SelectSingleNodeOrThrow("//h1[@class='video-title']").InnerText.Split(",")[0].Trim() + $" ({id})";
                 await WaitForElement("//div[@class='fp-ui']", timeout: 30);
                 while (true)
                 {
@@ -77,7 +77,15 @@ public class XxxTubeParser : HtmlParser
             }
             case "albums":
             {
-                dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText + $" ({id})";
+                await WaitForElement("//div[@id='albumGallery']//a", timeout: 100000);
+                var lazyLoadArgs = new LazyLoadArgs()
+                {
+                    ScrollBy = true,
+                    Increment = 1250,
+                    ScrollPauseTime = 500
+                };
+                var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+                dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText.Split(",")[0].Trim() + $" ({id})";
                 var list = soup.SelectSingleNodeOrThrow("//div[@class='holder']/div[@class='list']");
                 var listItems = list.SelectNodesOrThrow("./div[@class='list-item']");
                 var imageCount = listItems[3].InnerText.Trim().ToInt();
