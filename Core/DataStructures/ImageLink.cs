@@ -330,6 +330,10 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
+        else if(url.Contains("x-x-x.tube"))
+        {
+            fileName = url.Split("/")[^2];
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);

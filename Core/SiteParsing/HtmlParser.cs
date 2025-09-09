@@ -316,6 +316,7 @@ public abstract partial class HtmlParser : IDisposable
             "asianviralhub" => new AsianViralHubParser(webDriver, requestHeaders, filenameScheme),
             "hdzog" => new HdzogParser(webDriver, requestHeaders, filenameScheme),
             "pornzog" => new PornzogParser(webDriver, requestHeaders, filenameScheme),
+            "x-x-x" => new XxxTubeParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
@@ -575,7 +576,7 @@ public abstract partial class HtmlParser : IDisposable
     /// </summary>
     /// <param name="xpath">XPath of the element to wait for</param>
     /// <param name="delay">Delay between each check</param>
-    /// <param name="timeout">Timeout for the wait (-1 for no timeout)</param>
+    /// <param name="timeout">Timeout (in seconds) for the wait (-1 for no timeout)</param>
     /// <returns>True if the element exists, false if the timeout is reached</returns>
     protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
     {
@@ -889,6 +890,12 @@ public abstract partial class HtmlParser : IDisposable
     {
         try
         {
+            OpenQA.Selenium.Internal.Logging.Log.SetLevel(
+                typeof(OpenQA.Selenium.Remote.RemoteWebDriver), 
+                OpenQA.Selenium.Internal.Logging.LogEventLevel.Trace);
+            OpenQA.Selenium.Internal.Logging.Log.SetLevel(
+                typeof(SeleniumManager), 
+                OpenQA.Selenium.Internal.Logging.LogEventLevel.Trace);
             /*var options = InitializeOptions(debug);
             Driver = new FirefoxDriver(options);*/
             CurrentUrl = givenUrl.Replace("members.", "www.");
@@ -934,7 +941,6 @@ public abstract partial class HtmlParser : IDisposable
             }
 
             //await FlareSolverrManager.DeleteSession();
-            Driver.Quit();
         }
     }
 
@@ -965,6 +971,11 @@ public abstract partial class HtmlParser : IDisposable
         if (siteName == "x")
         {
             return "twitter";
+        }
+        
+        if (siteName == "x-x-x")
+        {
+            return "xxxtube";
         }
 
         if (siteName.Contains("bunkrrr"))

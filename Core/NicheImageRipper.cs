@@ -256,7 +256,7 @@ public partial class NicheImageRipper : IDisposable
         }
 
         var url = UrlQueue[0];
-        Log.Information(url); // This is done to output the URL without the enclosing quotes
+        Log.Information("{Url:l}", url);
         Interrupted = true;
 
         for (var retry = 0; retry < MaxRetries; retry++)
