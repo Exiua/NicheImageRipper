@@ -323,7 +323,7 @@ public class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            var tags = parts[1];
+            var tags = string.Join("+", parts[1..]);
             var url = "https://booru.com/post?tags=" + tags;
             rejectedUrls = _ripper.QueueUrls(url);
         }
