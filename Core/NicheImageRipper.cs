@@ -238,7 +238,7 @@ public partial class NicheImageRipper : IDisposable
         {
             Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
             var url = await RipUrl();
-            Log.Debug("Ripped URL: {Url}", url);
+            Log.Debug("Ripped URL: {Url:l}", url);
             if (url != "")
             {
                 // If empty url is returned Ripper is also null
@@ -268,7 +268,7 @@ public partial class NicheImageRipper : IDisposable
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted =
                     $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
-                Log.Information("Ripped {Url} in {Elapsed}", url, elapsedFormatted);
+                Log.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
                 //OnUrlRipComplete?.Invoke();
                 break;
             }
