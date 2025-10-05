@@ -22,6 +22,7 @@ public abstract class BooruParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected async Task<RipInfo> BooruParse(Booru site, string? tags = null)
     {
+        Log.Debug("Parsing {SiteName} with tags: {Tags}", site, tags);
         var metadata = site.GetMetadata();
         var siteName = metadata.SiteName;
         var baseUrl = metadata.GetFullBaseUrl();

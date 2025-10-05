@@ -56,9 +56,12 @@ public class BooruMetadata
             }
             case Booru.Rule34:
             {
-                var (username, password) = Config.Logins.Rule34;
-                // TODO: Find out how to authenticate with Rule34 if it's possible
-                return BaseUrl;
+                var (username, password) = Config.Logins.Rule34;if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                {
+                    return $"{BaseUrl}api_key={password}&user_id={username}&";
+                }
+                
+                throw new ApiKeyRequired("Rule34");
             }
             case Booru.Yandere:
             {
