@@ -710,6 +710,30 @@ public abstract partial class HtmlParser : IDisposable
         return Task.Delay(milliseconds);
     }
 
+    protected static async Task<T> RetryUntil<T>(Func<Task<T>> func, Func<T, bool> successCondition, string errorMessage, int delay = 250)
+    {
+        const int maxAttempts = 4;
+        T value = default!;
+        for (var i = 0; i < maxAttempts; i++)
+        {
+            value = await func();
+            if (!successCondition(value))
+            {
+                if (i == maxAttempts - 1)
+                {
+                    throw new RipperException(errorMessage);
+                }
+
+                await Sleep(delay);
+                continue;
+            }
+            
+            break;
+        }
+
+        return value;
+    }
+
     protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();
