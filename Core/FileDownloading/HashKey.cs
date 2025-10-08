@@ -2,7 +2,7 @@ namespace Core.FileDownloading;
 
 public class HashKey(byte[] hash)
 {
-    private readonly byte[] _hash = hash;
+    internal byte[] Hash { get; } = hash;
     
     public static implicit operator HashKey(byte[] hash)
     {
@@ -11,12 +11,12 @@ public class HashKey(byte[] hash)
 
     public static bool operator ==(HashKey a, HashKey b)
     {
-        if (a._hash.Length != b._hash.Length)
+        if (a.Hash.Length != b.Hash.Length)
         {
             return false;
         }
 
-        return !a._hash.Where((t, i) => t != b._hash[i]).Any();
+        return !a.Hash.Where((t, i) => t != b.Hash[i]).Any();
     }
 
     public static bool operator !=(HashKey a, HashKey b)
@@ -33,7 +33,7 @@ public class HashKey(byte[] hash)
     {
         unchecked
         {
-            return _hash.Aggregate(0, (current, b) => (current * 31) ^ b);
+            return Hash.Aggregate(0, (current, b) => (current * 31) ^ b);
         }
     }
 }
