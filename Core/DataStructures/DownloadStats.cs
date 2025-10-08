@@ -2,20 +2,24 @@
 
 public class DownloadStats
 {
-    public int FailedDownloads { get; set; }
+    public List<string> FailedDownloads { get; set; } = [];
     public int ArchivesExtracted { get; set; }
+    public int ArchivesExtractionFailed { get; set; }
     public int NumDuplicates { get; set; }
+    
+    public int FailedDownloadsCount => FailedDownloads.Count;
     
     public string GetStats(int total)
     {
-        var success = total - FailedDownloads - NumDuplicates;
+        var success = total - FailedDownloadsCount - NumDuplicates;
         return $"""
                 Results:
                     Total: {total}
                     Unique Downloads: {success}
                     Duplicates: {NumDuplicates}
-                	Failed Downloads: {FailedDownloads}
+                	Failed Downloads: {FailedDownloadsCount}
                 	Archives Extracted: {ArchivesExtracted}
+                	Failed Extractions: {ArchivesExtractionFailed}
                 """;
     }
 }
