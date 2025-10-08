@@ -1,7 +1,5 @@
-using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
-using Core.ExtensionMethods;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -23,6 +21,6 @@ public class KemonoParser : DotPartyParser
             CurrentUrl = url;
         }
         
-        return await DotPartyParse("https://kemono.su");
+        return await DotPartyParse("https://kemono.cr");
     }
 }
