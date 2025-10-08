@@ -324,7 +324,7 @@ public partial class NicheImageRipper : IDisposable
 
     public static void ClearCache()
     {
-        SilentlyRemoveFiles(".ripIndex", "partial.json");
+        SilentlyRemoveFiles(".ripIndex", "partial.json", "ripState.json");
     }
 
     private static void SilentlyRemoveFiles(params string[] filepaths)

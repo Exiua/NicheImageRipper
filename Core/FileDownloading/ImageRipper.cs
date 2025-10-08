@@ -30,7 +30,8 @@ namespace Core.FileDownloading;
 
 public partial class ImageRipper : IDisposable
 {
-    private const string RipIndex = ".ripIndex";
+    private const string RipIndexPath = ".ripIndex";
+    private const string RipStatePath = "ripState.json";
     private const int RetryCount = 4;
     private const int MillisecondsInSecond = 1000;
 
@@ -141,11 +142,12 @@ public partial class ImageRipper : IDisposable
     private async Task<int> GetStartIndex()
     {
         int start;
-        if (File.Exists(RipIndex))
+        if (File.Exists(RipIndexPath))
         {
-            var index = await File.ReadAllTextAsync(RipIndex);
+            var index = await File.ReadAllTextAsync(RipIndexPath);
             start = int.Parse(index);
-            File.Delete(RipIndex);
+            Log.Information("Resuming from index {StartIndex}", start);
+            File.Delete(RipIndexPath);
         }
         else
         {
@@ -174,21 +176,52 @@ public partial class ImageRipper : IDisposable
         Directory.CreateDirectory(fullPath);
 
         var start = await GetStartIndex();
-        var downloadStats = new DownloadStats();
-        var filesHashes = new HashSet<HashKey>();
-        // Can get the image through numerically ascending url for imhentai and hentairox
-        //   (hard to account for gifs and other extensions otherwise)
-        if (FolderInfo.MustGenerateManually)
+        DownloadStats downloadStats;
+        HashSet<HashKey> filesHashes;
+        if (!File.Exists(RipStatePath))
         {
-            await HandleGeneratingManually(start, fullPath, filesHashes, downloadStats);
+            downloadStats = new DownloadStats();
+            filesHashes = [];
         }
-        // Easier to put all image url in a list and then download for these sites
         else
         {
-            await HandleDownloadingFromList(start, fullPath, filesHashes, downloadStats);
+            var state = JsonUtility.Deserialize<RipState>(RipStatePath);
+            if (state is null)
+            {
+                throw new RipperException("Failed to load rip state");
+            }
+            
+            downloadStats = state.DownloadStats;
+            filesHashes = DeserializeHashKeyHashSet(state.FilesHashes);
         }
         
-        if(((double)downloadStats.FailedDownloads) / FolderInfo.NumUrls > FailureThreshold)
+        try
+        {
+            // Can get the image through numerically ascending url for imhentai and hentairox
+            //   (hard to account for gifs and other extensions otherwise)
+            if (FolderInfo.MustGenerateManually)
+            {
+                await HandleGeneratingManually(start, fullPath, filesHashes, downloadStats);
+            }
+            // Easier to put all image url in a list and then download for these sites
+            else
+            {
+                await HandleDownloadingFromList(start, fullPath, filesHashes, downloadStats);
+            }
+        }
+        catch
+        {
+            var state = new RipState
+            {
+                DownloadStats = downloadStats,
+                FilesHashes = SerializeHashKeyHashSet(filesHashes)
+            };
+            
+            JsonUtility.Serialize(RipStatePath, state);
+            throw;
+        }
+        
+        if(((double)downloadStats.FailedDownloadsCount) / FolderInfo.NumUrls > FailureThreshold)
         {
             var e = new RipperException("More than 50% of the images failed to download");
             Log.Error(e, "More than 50% of the images failed to download");
@@ -206,8 +239,20 @@ public partial class ImageRipper : IDisposable
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
         Log.Information("{Results:l}", downloadResults);
+        File.Delete(RipIndexPath);
+        File.Delete(RipStatePath); // Existence of rip state file indicates incomplete rip
         Log.Information("Download Complete");
         OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
+    }
+
+    private static List<string> SerializeHashKeyHashSet(HashSet<HashKey> hashKeys)
+    {
+        return hashKeys.Select(hashKey => Convert.ToHexString(hashKey.Hash)).ToList();
+    }
+
+    private static HashSet<HashKey> DeserializeHashKeyHashSet(List<string> hashKeys)
+    {
+        return hashKeys.Select(hashKey => new HashKey(Convert.FromHexString(hashKey))).ToHashSet();
     }
     
     private static Task Sleep(int milliseconds)
@@ -249,7 +294,7 @@ public partial class ImageRipper : IDisposable
                 {
                     if (i == 3)
                     {
-                        downloadStats.FailedDownloads++;
+                        downloadStats.FailedDownloads.Add($"{imageLink.Url}{index}.{ext}]");
                         Log.Warning("Image not found");
                     }
                 }
@@ -268,12 +313,14 @@ public partial class ImageRipper : IDisposable
             // Probably need to extract parts into separate methods
             default:
             {
+                // Loop needed to retry current index after refreshing EHentai links once they expire
                 while (true)
                 {
                     try
                     {
                         foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                         {
+                            // Compute the absolute index (i is the relative index after start)
                             var index = start + i;
                             Log.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
                             OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls + 1);
@@ -293,19 +340,22 @@ public partial class ImageRipper : IDisposable
                             }
                             catch (FileNotFoundException)
                             {
+                                Log.Warning("File not found: {Url}", link.Url);
                                 if (link.LinkInfo == LinkInfo.IframeMedia)
                                 {
-                                    downloadStats.FailedDownloads++;
+                                    downloadStats.FailedDownloads.Add(link.Url);
                                     await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
                                 }
                             }
                             catch (EHentaiUrlExpiredException e)
                             {
+                                Log.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
                                 e.ResumeIndex = index;
                                 throw;
                             }
                             catch
                             {
+                                Log.Debug("Caught exception, saving progress");
                                 await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
                                 throw;
                             }
@@ -315,6 +365,7 @@ public partial class ImageRipper : IDisposable
                     }
                     catch (EHentaiUrlExpiredException e)
                     {
+                        Log.Information("Refreshing EHentai links");
                         var parser = new EHentaiParser(WebDriver, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
                         var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
@@ -505,7 +556,7 @@ public partial class ImageRipper : IDisposable
         var fullFilename = $"{filename}{ext}";
         var ripUrl = $"{url}{fullFilename}";
         var numProgress = $"({filename}/{numFiles})";
-        Log.Information($"{ripUrl}    {numProgress}");
+        Log.Information("{RipUrl:l}    {NumProgress:l}", ripUrl, numProgress);
         imageLink.Url = ripUrl;
         try
         {
@@ -607,7 +658,7 @@ public partial class ImageRipper : IDisposable
 
         if (!success)
         {
-            downloadStats.FailedDownloads++;
+            downloadStats.FailedDownloads.Add(ripUrl);
         }
 
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
@@ -776,7 +827,7 @@ public partial class ImageRipper : IDisposable
             {
                 var video = new BunnyVideoDrm(
                     referer: imageLink.Url,
-                    embedUrl: imageLink.Referer,
+                    embedUrl: imageLink.Referer!,
                     name: Path.GetFileName(folderPath).Split('.')[0],
                     path: parentPath
                 );
@@ -1086,6 +1137,7 @@ public partial class ImageRipper : IDisposable
                     }
                     return false;
                 case HttpStatusCode.BadGateway:
+                case HttpStatusCode.InternalServerError:
                     return false;
                 
                 #region Unused Status Codes
@@ -1137,7 +1189,6 @@ public partial class ImageRipper : IDisposable
                 case HttpStatusCode.TooManyRequests:
                 case HttpStatusCode.RequestHeaderFieldsTooLarge:
                 case HttpStatusCode.UnavailableForLegalReasons:
-                case HttpStatusCode.InternalServerError:
                 case HttpStatusCode.NotImplemented:
                 case HttpStatusCode.ServiceUnavailable:
                 case HttpStatusCode.GatewayTimeout:
@@ -1477,7 +1528,7 @@ public partial class ImageRipper : IDisposable
         error += intermediateError;
         
         downloadStats.ArchivesExtracted += count;
-        downloadStats.FailedDownloads += error;
+        downloadStats.ArchivesExtractionFailed += error;
     }
 
     private static (int, int) UncompressAndGetResults(string[] files, Action<string> uncompressAction)
