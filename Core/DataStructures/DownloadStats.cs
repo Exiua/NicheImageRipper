@@ -12,6 +12,12 @@ public class DownloadStats
     public string GetStats(int total)
     {
         var success = total - FailedDownloadsCount - NumDuplicates;
+        var failed = "";
+        if (FailedDownloadsCount > 0)
+        {
+            failed = "\nFailed Links:\n    " + string.Join("\n    ", FailedDownloads);
+        }
+        
         return $"""
                 Results:
                     Total: {total}
@@ -19,7 +25,7 @@ public class DownloadStats
                     Duplicates: {NumDuplicates}
                 	Failed Downloads: {FailedDownloadsCount}
                 	Archives Extracted: {ArchivesExtracted}
-                	Failed Extractions: {ArchivesExtractionFailed}
+                	Failed Extractions: {ArchivesExtractionFailed}{failed}
                 """;
     }
 }

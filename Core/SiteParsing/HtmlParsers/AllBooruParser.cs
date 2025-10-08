@@ -24,6 +24,7 @@ public class AllBooruParser : BooruParser
             var metadata = booru.GetMetadata();
             var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
             var posts = await BooruParse(booru, tags);
+            Log.Information("Found {NumUrls} images on {Booru}", posts.NumUrls, booru);
             var urls = posts.Urls.Select(u =>
             {
                 u.Referer = referer;
