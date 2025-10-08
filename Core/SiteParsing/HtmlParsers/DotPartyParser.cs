@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -21,33 +22,60 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     }
     
     /// <summary>
-    ///     Parses the html for kemono.su and coomer.su and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <param name="domainUrl">The domain url of the site</param>
     /// <returns></returns>
     protected async Task<RipInfo> DotPartyParse(string domainUrl)
     {
+        const int pageSize = 50;
         var baseUrl = CurrentUrl;
         var urlSplit = baseUrl.Split("/");
         var sourceSite = urlSplit[3];
         baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
         baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
+        Log.Debug("Base URL: {BaseUrl}", baseUrl);
 
-        using var client = new HttpClient();
-        var response = await client.GetAsync($"{baseUrl}/profile");
-        if (!response.IsSuccessStatusCode)
+        var handler = new HttpClientHandler
         {
-            throw new RipperException("Failed to get profile page");
-        }
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        };
+        using var client = new HttpClient(handler);
+        client.DefaultRequestHeaders.Add("Accept", "text/css"); // Needed due to DDG issues according to kemono themselves
+        var profileUrl = $"{baseUrl}/profile";
+        Log.Debug("Profile URL: {ProfileUrl}", profileUrl);
+        var response = await RetryUntil(async () =>
+            {
+                var r = await client.GetAsync(profileUrl);
+                Log.Debug("Profile page response: {StatusCode}", r.StatusCode);
+                return r;
+            }, 
+            (response) => response.IsSuccessStatusCode,
+            "Failed to get profile page", 
+            delay: 5000);
+        // for (var i = 0; i < 4; i++)
+        // {
+        //     response = await client.GetAsync(profileUrl);
+        //     if (!response.IsSuccessStatusCode)
+        //     {
+        //         if (i == 3)
+        //         {
+        //             throw new RipperException("Failed to get profile page");
+        //         }
+        //
+        //         await Sleep(5000);
+        //         continue;
+        //     }
+        //     
+        //     break;
+        // }
 
+        // var responseString = await response.Content.ReadAsByteArrayAsync();
+        // await File.WriteAllBytesAsync("response.bin", responseString);
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
-
-        // await WaitForElement("//h1[@id='user-header__info-top']");
-        // var soup = await SolveParseAddCookies();
-        // var dirName = soup.SelectSingleNode("//h1[@id='user-header__info-top']")
-        //                   .SelectSingleNode(".//span[@itemprop='name']").InnerText;
         dirName = $"{dirName} - ({sourceSite})";
+        Log.Information("Parsed profile page: {DirName}", dirName);
 
         #region Get All Posts
 
@@ -55,18 +83,48 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var page = 0;
         while (true)
         {
-            response = await client.GetAsync($"{baseUrl}?o={page * 50}");
+            response = await RetryUntil(
+                async () =>
+                {
+                    var r = await client.GetAsync($"{baseUrl}/posts?o={page * pageSize}");
+                    Log.Debug("Page response: {StatusCode}", r.StatusCode);
+                    return r;
+                },
+                (r) => r.IsSuccessStatusCode,
+                $"Failed to get page {page + 1}",
+                delay: 5000);
             page++;
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new RipperException($"Failed to get page {page}");
-            }
+            Log.Debug("Retrieving page {PageNum} of size {PageSize}", page, pageSize);
 
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             var jsonPosts = json!.AsArray();
-            posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
-            if (jsonPosts.Count < 50)
+            var ids = jsonPosts.Select(post => post!.AsObject()["id"].Deserialize<string>()!);
+            // Need to pull each post individually to get the html content body of the post
+            foreach (var (i, id) in ids.Enumerate())
             {
+                Log.Debug("Retrieving post {PostId}", id);
+                response = await RetryUntil(
+                    async () =>
+                    {
+                        var r = await client.GetAsync($"{baseUrl}/post/{id}");
+                        Log.Debug("Post response: {StatusCode}", r.StatusCode);
+                        return r;
+                    },
+                    (r) => r.IsSuccessStatusCode, 
+                    $"Failed to get post {id}", 
+                    delay: 15000);
+                
+                var postJson = await response.Content.ReadFromJsonAsync<JsonNode>();
+                posts.Add(postJson!.AsObject());
+                if ((i + 1) % 50 == 0)
+                {
+                    await Sleep(1000);
+                }
+            }
+            //posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
+            if (jsonPosts.Count < pageSize)
+            {
+                Log.Debug("Reached end of posts");
                 break;
             }
 
@@ -83,9 +141,10 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         string[] attachmentExtensions =
             [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
 
-        foreach (var (i, post) in posts.Enumerate())
+        foreach (var (i, postObject) in posts.Enumerate())
         {
             Log.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
+            var post = postObject["post"]!.AsObject();
             var id = post["id"]!.Deserialize<string>()!;
             Log.Debug("Post ID: {PostId}", id);
             var content = post["content"]!.Deserialize<string>()!;
@@ -118,7 +177,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
 
             var file = post["file"]!.AsObject();
-            var name = file["name"]!.Deserialize<string>()!;
+            var name = file["name"]?.Deserialize<string>();
             var path = file["path"]?.Deserialize<string>();
             if (path is not null)
             {
@@ -127,7 +186,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                     path = domainUrl + path;
                 }
 
-                var imageLink = new ImageLink(path, FilenameScheme, 0, filename: name);
+                // if path is not null, name should also not be null
+                var imageLink = new ImageLink(path, FilenameScheme, 0, filename: name!);
                 images.Add(imageLink);
             }
 
@@ -156,16 +216,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             {
                 images.AddRange(externalLinks[site].ToStringImageLinkWrapperList());
             }
-
-            // var imageListContainer = soup.SelectSingleNode("//div[@class='post__files']");
-            // if (imageListContainer is null)
-            // {
-            //     continue;
-            // }
-            //
-            // var imageList = imageListContainer.SelectNodes("//a[@class='fileThumb image-link']");
-            // var imageListLinks = imageList.GetHrefs();
-            // images.AddRange(imageListLinks);
         }
 
         #endregion
@@ -176,7 +226,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         }
 
         SaveExternalLinks(externalLinks);
-        //images = images.RemoveDuplicates(); // Handled in RipInfo.ConvertUrlsToImageLink
         var stringLinks = new List<StringImageLinkWrapper>();
         foreach (var link in images)
         {
