@@ -311,13 +311,48 @@ public class MainWindowViewModel : ViewModelBase
         Task.Run(() => QueueUrls(input));
     }
 
+    /// <summary>
+    ///     Split input by spaces, but multiple spaces are treated as one
+    /// </summary>
+    /// <param name="input">String to split</param>
+    /// <returns>List of split strings</returns>
+    private static List<string> SplitInput(string input)
+    {
+        var parts = new List<string>();
+        var currentPart = "";
+        foreach (var c in input)
+        {
+            if (char.IsWhiteSpace(c))
+            {
+                if (currentPart == "")
+                {
+                    continue;
+                }
+
+                parts.Add(currentPart);
+                currentPart = "";
+            }
+            else
+            {
+                currentPart += c;
+            }
+        }
+        
+        if (currentPart != "")
+        {
+            parts.Add(currentPart);
+        }
+        
+        return parts;
+    }
+
     private async Task QueueUrls(string input)
     {
-        var parts = input.Split(" ");
+        var parts = SplitInput(input);
         RejectedUrlsInfo rejectedUrls;
         if (parts[0] == "booru")
         {
-            if (parts.Length < 2)
+            if (parts.Count < 2)
             {
                 Log.Warning("Missing argument: <tags>");
                 return;

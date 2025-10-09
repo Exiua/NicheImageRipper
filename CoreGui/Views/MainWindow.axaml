@@ -20,7 +20,7 @@
         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
             <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput"/>
-            <Button Command="{Binding RipCommand}">Rip</Button>
+            <Button IsDefault="True" Command="{Binding RipCommand}">Rip</Button>
         </StackPanel>
         <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
             <TabItem Header="Logs">
