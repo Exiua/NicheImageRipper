@@ -45,6 +45,10 @@ public static class StringExtensionMethods
         return src.Replace(toRemove, string.Empty);
     }
 
+    public static bool IsNullOrEmpty(this string? s)
+    {
+        return string.IsNullOrEmpty(s);
+    }
 
     public static int ToInt(this string s)
     {
