@@ -108,8 +108,25 @@ public class FileUtility
     public static async Task<byte[]> GetFileHash(string filepath)
     {
         var sha256 = SHA256.Create();
-        await using var stream = File.Open(filepath, FileMode.Open);
+        await using var stream = await TryOpenFile(filepath);
         return await sha256.ComputeHashAsync(stream);
+    }
+
+    private static async Task<FileStream> TryOpenFile(string filepath, int maxAttempts = 3, int delayMs = 250)
+    {
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            try
+            {
+                return File.Open(filepath, FileMode.Open);
+            }
+            catch (IOException)
+            {
+                await Task.Delay(delayMs);
+            }
+        }
+        
+        throw new IOException($"Failed to open file {filepath} after {maxAttempts} attempts.");
     }
     
     public static bool IsValidAndEnsureDirectory(string path)
