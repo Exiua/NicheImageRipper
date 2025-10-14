@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
-using System.Text.RegularExpressions;
 using Common.ExtensionMethods;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.FileDownloading;
 using Core.Managers;
 using Core.SiteParsing.HtmlParsers;
 using Core.SiteParsing.VideoCapturers;
@@ -86,6 +86,10 @@ public abstract partial class HtmlParser : IDisposable
                 Interrupted = true;
                 return value.RipInfo;
             }
+        }
+        else
+        {
+            File.Delete(ImageRipper.RipIndexPath); // Not valid when no partial save
         }
         
         Log.Debug("No partial save found for site; Parsing site");
@@ -996,6 +1000,11 @@ public abstract partial class HtmlParser : IDisposable
         {
             return "twitter";
         }
+
+        if (siteName == "booru")
+        {
+            return "allbooru";
+        }
         
         if (siteName == "x-x-x")
         {
@@ -1080,7 +1089,4 @@ public abstract partial class HtmlParser : IDisposable
 
         GC.SuppressFinalize(this);
     }
-
-    [GeneratedRegex("(tags=[^&]+)")]
-    protected static partial Regex BooruRegex();
 }

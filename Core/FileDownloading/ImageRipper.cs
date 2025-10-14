@@ -30,7 +30,8 @@ namespace Core.FileDownloading;
 
 public partial class ImageRipper : IDisposable
 {
-    private const string RipIndexPath = ".ripIndex";
+    internal const string RipIndexPath = ".ripIndex";
+    
     private const string RipStatePath = "ripState.json";
     private const int RetryCount = 4;
     private const int MillisecondsInSecond = 1000;
