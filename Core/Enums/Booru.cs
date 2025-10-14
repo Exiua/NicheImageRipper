@@ -132,7 +132,11 @@ public static class BooruExtensionMethods
                 BaseUrl = "https://yande.re/post.json?",
                 PageParameterName = "page",
                 StartingPageIndex = 1,
-                Limit = 100
+                Limit = 100,
+                Headers = new Dictionary<string, string>
+                {
+                    {"User-Agent", Config.Instance.UserAgent}
+                }
             },
             Booru.E621 => new BooruMetadata
             {

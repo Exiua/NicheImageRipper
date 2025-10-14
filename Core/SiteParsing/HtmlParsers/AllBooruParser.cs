@@ -15,12 +15,13 @@ public class AllBooruParser : BooruParser
 
     public override async Task<RipInfo> Parse()
     {
-        var tags = BooruRegex().Match(GivenUrl).Groups[1].Value;
+        var tags = ExtractTagsFromUrl(GivenUrl);
+        Log.Debug("Parsing all boorus with tags: {Tags}", tags);
         var boorus = Enum.GetValues<Booru>();
         var images = new List<StringImageLinkWrapper>();
         foreach (var booru in boorus)
         {
-            Log.Debug("Parsing {Booru}", booru);
+            //Log.Debug("Parsing {Booru}", booru);
             var metadata = booru.GetMetadata();
             var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
             var posts = await BooruParse(booru, tags);
@@ -32,6 +33,7 @@ public class AllBooruParser : BooruParser
             });
             images.AddRange(urls);
         }
+        
         var tagTitle = tags.Remove("+").Remove("tags=");
         tagTitle = Uri.UnescapeDataString(tagTitle);
         var dirName = $"[Booru] {tagTitle}";

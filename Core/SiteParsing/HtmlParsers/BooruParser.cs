@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
@@ -10,7 +11,7 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public abstract class BooruParser : HtmlParser
+public abstract partial class BooruParser : HtmlParser
 {
     protected BooruParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
     {
@@ -22,7 +23,15 @@ public abstract class BooruParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected async Task<RipInfo> BooruParse(Booru site, string? tags = null)
     {
-        Log.Debug("Parsing {SiteName} with tags: {Tags}", site, tags);
+        if (tags is null)
+        {
+            Log.Debug("Parsing {SiteName}", site);
+        }
+        else
+        {
+            Log.Debug("Parsing {SiteName} with tags: {Tags}", site, tags);
+        }
+        
         var metadata = site.GetMetadata();
         var siteName = metadata.SiteName;
         var baseUrl = metadata.GetFullBaseUrl();
@@ -34,7 +43,7 @@ public abstract class BooruParser : HtmlParser
         var arrayMayNotExist = metadata.ArrayMayNotExist;
         var jsonObjectNavigationToUrl = metadata.JsonObjectNavigationToUrl;
         var delay = metadata.Delay;
-        tags ??= BooruRegex().Match(CurrentUrl).Groups[1].Value;
+        tags ??= ExtractTagsFromUrl(CurrentUrl);
         tags = Uri.UnescapeDataString(tags);
         var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
         var session = new HttpClient();
@@ -92,7 +101,8 @@ public abstract class BooruParser : HtmlParser
         var pid = startingPageIndex + 1;
         while (true)
         {
-            Log.Debug("Fetching page {PageNumber}", pid);
+            // Extract URLs from the last page
+            Log.Debug("Parsing page {PageNumber}", pid);
             var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl))
                            .OfType<string>()
                            .ToStringImageLinks();
@@ -102,8 +112,13 @@ public abstract class BooruParser : HtmlParser
                 break;
             }
 
-            response = await session.GetAsync(
-                $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}");
+            // Fetch the next page
+            var pageUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}";
+            Log.Debug("Fetching next page: {PageUrl}", pageUrl);
+            response = await session.GetAsync(pageUrl);
+            #if DEBUG
+            var responseText = await response.Content.ReadAsStringAsync();
+            #endif
             json = await response.Content.ReadFromJsonAsync<JsonNode>();
             if (jsonObjectNavigationToArray is not null)
             {
@@ -149,4 +164,18 @@ public abstract class BooruParser : HtmlParser
 
         return json;
     }
+    
+    /// <summary>
+    ///     Extracts tags from a booru-like URL. Tags will have the format "tags=tag1+tag2+tag3"
+    /// </summary>
+    /// <param name="url">The URL to extract tags from</param>
+    /// <returns>A string containing the tags</returns>
+    public static string ExtractTagsFromUrl(string url)
+    {
+        var tags = BooruRegex().Match(url).Groups[1].Value;
+        return tags.IsNullOrEmpty() ? throw new RipperException("Failed to extract tags from URL") : tags;
+    }
+
+    [GeneratedRegex("(tags=[^&]+)")]
+    private static partial Regex BooruRegex();
 }
