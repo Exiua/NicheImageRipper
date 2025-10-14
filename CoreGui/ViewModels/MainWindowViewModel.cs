@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -9,6 +10,7 @@ using Core;
 using Core.DataStructures;
 using Core.Enums;
 using Core.History;
+using Core.SiteParsing.HtmlParsers;
 using CoreGui.Models;
 using CoreGui.Utility;
 using CoreGui.Views;
@@ -348,60 +350,112 @@ public class MainWindowViewModel : ViewModelBase
 
     private async Task QueueUrls(string input)
     {
-        var parts = SplitInput(input);
-        RejectedUrlsInfo rejectedUrls;
-        if (parts[0] == "booru")
+        if (!string.IsNullOrWhiteSpace(input))
         {
-            if (parts.Count < 2)
+            var parts = SplitInput(input);
+            RejectedUrlsInfo rejectedUrls;
+            if (parts[0] == "booru")
             {
-                Log.Warning("Missing argument: <tags>");
-                return;
-            }
-
-            var tags = string.Join("+", parts[1..]);
-            var url = "https://booru.com/post?tags=" + tags;
-            rejectedUrls = _ripper.QueueUrls(url);
-        }
-        else
-        {
-            rejectedUrls = _ripper.QueueUrls(input);
-        }
-        
-        if (rejectedUrls.Count != 0)
-        {
-            var urlsToRequeue = new List<RejectedUrlInfo>(rejectedUrls.Count);
-            foreach (var failedUrl in rejectedUrls.Urls)
-            {
-                switch (failedUrl.Reason)
+                if (parts.Count < 2)
                 {
-                    case QueueFailureReason.None:
-                        break;
-                    case QueueFailureReason.AlreadyQueued:
-                        Log.Information("URL already queued: {Url}", failedUrl.Url);
-                        break;
-                    case QueueFailureReason.NotSupported:
-                        Log.Warning("URL not supported: {Url}", failedUrl.Url);
-                        break;
-                    case QueueFailureReason.PreviouslyProcessed:
-                        Log.Information("Re-rip url? {Url}", failedUrl.Url);
-                        var response = await ConfirmReripUrl(failedUrl.Url);
-                        if (response)
+                    Log.Warning("Missing argument: <tags>");
+                    return;
+                }
+
+                // This is prob unintuitive
+                // Basically, any booru-like URL (i.e. starts with https:// and contains tags=) is converted to the global booru URL
+                //      such that the ripper will pull from all supported boorus
+                // Any other parts are treated as tags for a single booru search, but if a url is encountered, the tags
+                //      are queued first, then the url is queued, and subsequent tags are treated as a different search
+                // This process repeats until all input is consumed
+                // Example input:
+                // booru cute tall https://example.booru.com/post?tags=cat+animal funny
+                // Results in three searches:
+                // 1. cute, tall
+                // 2. cat, animal
+                // 3. funny
+                var urls = new List<string>();
+                var tags = new List<string>();
+                foreach (var part in parts.Skip(1))
+                {
+                    if (part.StartsWith("https://"))
+                    {
+                        if (tags.Count > 0)
                         {
-                            Log.Debug("Re-ripping URL: {Url}", failedUrl.Url);
-                            urlsToRequeue.Add(failedUrl);
-                        }
-                        else
-                        {
-                            Log.Debug("Skipping re-rip for URL: {Url}", failedUrl.Url);
+                            var tagsString = string.Join("+", tags);
+                            var url = "https://booru.com/post?tags=" + tagsString;
+                            urls.Add(url);
+                            tags.Clear();
                         }
 
-                        break;
-                    default:
-                        throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
+                        {
+                            // May throw an exception, if the input is not a booru-like URL
+                            var tagsString = BooruParser.ExtractTagsFromUrl(part);
+                            if (tagsString.EndsWith('+'))
+                            {
+                                tagsString = tagsString[..^1]; // Remove trailing +
+                            }
+
+                            var url = "https://booru.com/post?" + tagsString;
+                            urls.Add(url);
+                        }
+                    }
+                    else
+                    {
+                        tags.Add(part);
+                    }
                 }
+
+                if (tags.Count > 0)
+                {
+                    var tagsString = string.Join("+", tags);
+                    var url = "https://booru.com/post?tags=" + tagsString;
+                    urls.Add(url);
+                }
+
+                rejectedUrls = _ripper.QueueUrls(string.Join("", urls));
+            }
+            else
+            {
+                rejectedUrls = _ripper.QueueUrls(input);
             }
 
-            _ripper.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
+            if (rejectedUrls.Count != 0)
+            {
+                var urlsToRequeue = new List<RejectedUrlInfo>(rejectedUrls.Count);
+                foreach (var failedUrl in rejectedUrls.Urls)
+                {
+                    switch (failedUrl.Reason)
+                    {
+                        case QueueFailureReason.None:
+                            break;
+                        case QueueFailureReason.AlreadyQueued:
+                            Log.Information("URL already queued: {Url}", failedUrl.Url);
+                            break;
+                        case QueueFailureReason.NotSupported:
+                            Log.Warning("URL not supported: {Url}", failedUrl.Url);
+                            break;
+                        case QueueFailureReason.PreviouslyProcessed:
+                            Log.Information("Re-rip url? {Url}", failedUrl.Url);
+                            var response = await ConfirmReripUrl(failedUrl.Url);
+                            if (response)
+                            {
+                                Log.Debug("Re-ripping URL: {Url}", failedUrl.Url);
+                                urlsToRequeue.Add(failedUrl);
+                            }
+                            else
+                            {
+                                Log.Debug("Skipping re-rip for URL: {Url}", failedUrl.Url);
+                            }
+
+                            break;
+                        default:
+                            throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
+                    }
+                }
+
+                _ripper.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
+            }
         }
 
         Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
