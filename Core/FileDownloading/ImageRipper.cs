@@ -222,10 +222,13 @@ public partial class ImageRipper : IDisposable
             throw;
         }
         
+        File.Delete(RipIndexPath);
+        File.Delete(RipStatePath); // Existence of rip state file indicates incomplete rip
         if(((double)downloadStats.FailedDownloadsCount) / FolderInfo.NumUrls > FailureThreshold)
         {
-            var e = new RipperException("More than 50% of the images failed to download");
-            Log.Error(e, "More than 50% of the images failed to download");
+            var msg = $"More than {FailureThreshold*100}% of the images failed to download";
+            var e = new RipperException(msg);
+            Log.Error(e, "{msg:l}", msg);
             if (SiteName == "sexbjcam")
             {
                 File.Delete("partial.json");
@@ -240,8 +243,6 @@ public partial class ImageRipper : IDisposable
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
         Log.Information("{Results:l}", downloadResults);
-        File.Delete(RipIndexPath);
-        File.Delete(RipStatePath); // Existence of rip state file indicates incomplete rip
         Log.Information("Download Complete");
         OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
     }

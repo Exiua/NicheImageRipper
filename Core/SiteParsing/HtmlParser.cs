@@ -321,6 +321,7 @@ public abstract partial class HtmlParser : IDisposable
             "hdzog" => new HdzogParser(webDriver, requestHeaders, filenameScheme),
             "pornzog" => new PornzogParser(webDriver, requestHeaders, filenameScheme),
             "x-x-x" => new XxxTubeParser(webDriver, requestHeaders, filenameScheme),
+            "privatehomeclips" => new PrivateHomeClipsParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }

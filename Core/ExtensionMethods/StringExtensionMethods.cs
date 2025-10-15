@@ -50,6 +50,11 @@ public static class StringExtensionMethods
         return string.IsNullOrEmpty(s);
     }
 
+    public static string JoinWith(this IEnumerable<string> values, string separator)
+    {
+        return string.Join(separator, values);
+    }
+
     public static int ToInt(this string s)
     {
         return int.Parse(s);

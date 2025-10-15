@@ -1,4 +1,4 @@
-using OpenQA.Selenium.BiDi.Modules.Network;
+using OpenQA.Selenium.BiDi.Network;
 using Serilog;
 
 namespace Core.SiteParsing.VideoCapturers;

@@ -2,7 +2,7 @@
 
 public class DownloadStats
 {
-    public List<string> FailedDownloads { get; set; } = [];
+    public HashSet<string> FailedDownloads { get; set; } = [];
     public int ArchivesExtracted { get; set; }
     public int ArchivesExtractionFailed { get; set; }
     public int NumDuplicates { get; set; }

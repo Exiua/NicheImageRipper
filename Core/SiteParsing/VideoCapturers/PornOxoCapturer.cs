@@ -1,4 +1,4 @@
-using OpenQA.Selenium.BiDi.Modules.Network;
+using OpenQA.Selenium.BiDi.Network;
 
 namespace Core.SiteParsing.VideoCapturers;
 

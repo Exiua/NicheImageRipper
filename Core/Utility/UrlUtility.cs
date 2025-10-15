@@ -90,7 +90,7 @@ public static partial class UrlUtility
         "https://ww1.koreanbj.club/", "https://www.kbjfan.com/", "https://shameless.com/", "https://www.pussyspace.com/",
         "https://videomonstr.com/", "https://www.pornoxo.com/", "https://www.porndr.com/", "https://xhamster.com/",
         "https://abxxx.com/", /*"https://love4porn.com/",*/ "https://www.xvideos.com/", "https://asianviralhub.com/",
-        "https://hdzog.com/", "https://pornzog.com/", "https://x-x-x.tube/"
+        "https://hdzog.com/", "https://pornzog.com/", "https://x-x-x.tube/", "https://privatehomeclips.com/"
     }.ToFrozenSet();
 
     /// <summary>
