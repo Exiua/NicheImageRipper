@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Core;
 using Core.ArgParse;
+using Core.Configuration;
 using Core.Driver;
 using Core.History;
 using Core.SiteParsing;
@@ -31,7 +32,7 @@ switch (arguments.RunMode)
     {
         var requestHeaders = new Dictionary<string, string>
         {
-            {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"},
+            {"User-Agent", Config.Instance.UserAgent},
             {"referer", "https://imhentai.xxx/"},
             {"cookie", ""}
         };

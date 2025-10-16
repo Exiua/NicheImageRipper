@@ -322,6 +322,7 @@ public abstract partial class HtmlParser : IDisposable
             "pornzog" => new PornzogParser(webDriver, requestHeaders, filenameScheme),
             "x-x-x" => new XxxTubeParser(webDriver, requestHeaders, filenameScheme),
             "privatehomeclips" => new PrivateHomeClipsParser(webDriver, requestHeaders, filenameScheme),
+            "archivebate" => new ArchivebateParser(webDriver, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
@@ -739,6 +740,29 @@ public abstract partial class HtmlParser : IDisposable
         return value;
     }
 
+    protected static async Task<T> DeserializeCache<T>(string cachePath, Func<Task<T>> fetchFunc) where T : class
+    {
+        T data;
+        if (File.Exists(cachePath))
+        {
+            var temp = JsonUtility.Deserialize<T>(cachePath);
+            if (temp is null)
+            {
+                data = await fetchFunc();
+            }
+            else
+            {
+                data = temp;
+            }
+        }
+        else
+        {
+            data = await fetchFunc();
+        }
+
+        return data;
+    }
+    
     protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();

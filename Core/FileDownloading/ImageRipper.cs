@@ -931,8 +931,7 @@ public partial class ImageRipper : IDisposable
         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
         var headers = new Dictionary<string, string>
         {
-            [RequestHeaderKeys.UserAgent] =
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+            [RequestHeaderKeys.UserAgent] = Config.UserAgent,
             [RequestHeaderKeys.Authorization] = $"Basic {base64Auth}"
         };
         using var client = new HttpClient();
