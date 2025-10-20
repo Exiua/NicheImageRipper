@@ -34,24 +34,33 @@ public partial class ArchivebateParser : HtmlParser
         var images = new List<StringImageLinkWrapper>();
         if (CurrentUrl.Contains("/profile/"))
         {
+            var profileName = CurrentUrl.Split("/")[4];
+            soup = await Soupify(xpath: "//p[@class='mt-3 text-white mb-0']");
             dirName = soup.SelectSingleNodeOrThrow("//p[@class='mt-3 text-white mb-0']").InnerText;
             List<string> posts;
             if (File.Exists(CachePath))
             {
                 Log.Information("Using cached post URLs from {CachePath}", CachePath);
-                var temp = JsonUtility.Deserialize<List<string>>(CachePath);
+                var temp = JsonUtility.Deserialize<Dictionary<string, List<string>>>(CachePath);
                 if (temp is null)
                 {
-                    posts = await GetPageUrls(soup);
+                    posts = await GetPageUrls(soup, profileName);
                 }
                 else
                 {
-                    posts = temp;
+                    if(temp.TryGetValue(profileName, out var p))
+                    {
+                        posts = p;
+                    }
+                    else
+                    {
+                        posts = await GetPageUrls(soup, profileName);
+                    }
                 }
             }
             else
             {
-                posts = await GetPageUrls(soup);
+                posts = await GetPageUrls(soup, profileName);
             }
 
             foreach (var (i, post) in posts.Enumerate())
@@ -86,7 +95,7 @@ public partial class ArchivebateParser : HtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null);
     }
 
-    private async Task<List<string>> GetPageUrls(HtmlNode soup)
+    private async Task<List<string>> GetPageUrls(HtmlNode soup, string profileName)
     {
         Log.Information("Getting all post URLs");
         var posts = new List<string>();
@@ -115,8 +124,12 @@ public partial class ArchivebateParser : HtmlParser
             var nextLink = nextButton.SelectSingleNodeOrThrow("./a").GetHref();
             soup = await Soupify(nextLink, xpath: "//div[@class='ab_grid']/section//a");
         }
-        
-        JsonUtility.Serialize(CachePath, posts);
+
+        var cache = new Dictionary<string, List<string>>
+        {
+            [profileName] = posts
+        };
+        JsonUtility.Serialize(CachePath, cache);
 
         return posts;
     }
@@ -138,31 +151,91 @@ public partial class ArchivebateParser : HtmlParser
         }
         
         Driver.SwitchTo().Frame(iframe);
-        var overlays = Driver.FindElements(By.XPath("//div[not(@class) and @style and not(@id)]"));
-        foreach(var overlay in overlays)
+        while(true)
         {
-            Driver.RemoveElement(overlay);
+            try
+            {
+                var overlays = Driver.FindElements(By.XPath("//div[not(@class) and @style and not(@id)]"));
+                foreach (var overlay in overlays)
+                {
+                    Driver.RemoveElement(overlay);
+                }
+
+                break;
+            }
+            catch (StaleElementReferenceException)
+            {
+                await Sleep(250);
+            }
         }
             
+        const int maxAttempts = 4;
         await Task.Delay(250);
-        var playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
-        if (playButton is null)
+        IWebElement? video = null;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var h2 = Driver.TryFindElement(By.XPath("//h2"));
-            if (h2?.Text.Contains("WE ARE SORRY") ?? false)
+            
+            var playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
+            if (playButton is null)
             {
-                Log.Information("Video is unavailable");
-                return "";
+                var h2 = Driver.TryFindElement(By.XPath("//h2"));
+                if (h2?.Text.Contains("WE ARE SORRY") ?? false)
+                {
+                    Log.Information("Video is unavailable");
+                    return "";
+                }
+                
+                var videoJs = Driver.TryFindElement(By.XPath("//div[@id='videojs']"));
+                if (videoJs is null)
+                {
+                    if (attempt == maxAttempts - 1)
+                    {
+                        Log.Warning("VideoJS container not found, video probably unavailable");
+                        return "";
+                    }
+                    
+                    await Sleep(1000);
+                    continue;
+                }
+                
+                var classes = videoJs.GetAttribute("class")!;
+                if (!classes.Contains("vjs-playing"))
+                {
+                    if (attempt == maxAttempts - 1)
+                    {
+                        Log.Warning("Play button not found, video probably unavailable");
+                        return "";
+                    }
+
+                    await Sleep(1000);
+                    continue;
+                }
+                
+                // Video is already playing
+            }
+            else
+            {
+                playButton.Click();
+            }
+        
+            await Task.Delay(250);
+            video = Driver.TryFindElement(By.XPath("//video[@src]"));
+            if (video is not null)
+            {
+                break;
             }
             
-            Log.Warning("Play button not found, video probably unavailable");
-            return "";
+            if (attempt == maxAttempts - 1)
+            {
+                Log.Warning("Video element not found, video probably unavailable");
+                return "";
+            }
+
+            await Sleep(1000);
         }
         
-        playButton.Click();
-        await Task.Delay(250);
-        var video = Driver.FindElement(By.XPath("//video[@src]"));
-        var url = video.GetAttribute("src")!;
+        var url = video!.GetAttribute("src")!;
+        
         Driver.SwitchTo().DefaultContent();
 
         return url;

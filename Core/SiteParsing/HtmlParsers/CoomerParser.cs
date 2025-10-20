@@ -21,6 +21,6 @@ public class CoomerParser : DotPartyParser
             CurrentUrl = url;
         }
         
-        return await DotPartyParse("https://coomer.cr");
+        return await DotPartyParse("https://coomer.st");
     }
 }

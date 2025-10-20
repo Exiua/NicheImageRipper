@@ -315,51 +315,65 @@ public partial class ImageRipper : IDisposable
             // Probably need to extract parts into separate methods
             default:
             {
+                var completed = new bool[FolderInfo.NumUrls];
                 // Loop needed to retry current index after refreshing EHentai links once they expire
                 while (true)
                 {
                     try
                     {
-                        foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
+                        if (SiteName == "archivebate")
                         {
-                            // Compute the absolute index (i is the relative index after start)
-                            var index = start + i;
-                            Log.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
-                            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls + 1);
-                            CurrentIndex = index;
-                            while (Paused)
+                            var total = FolderInfo.NumUrls;
+                            var complete = 0;
+                            OnProgressChanged?.Invoke(complete + 1, total + 1);
+                            const int maxAttempts = 4;
+                            const int maxConcurrentConnections = 30;
+                            var semaphore = new SemaphoreSlim(maxConcurrentConnections, maxConcurrentConnections);
+                            var tasks = FolderInfo.Urls.Select(async (link, i) =>
                             {
-                                await Sleep(1000);
-                            }
-
-                            await Task.Delay((int)SleepTime * MillisecondsInSecond);
-                            try
-                            {
-                                var filename = link.Filename;
-                                var imagePath = Path.Combine(fullPath, filename);
-                                await DownloadFromList(link, imagePath, index, downloadStats);
-                                await PostProcess(imagePath, filesHashes, downloadStats);
-                            }
-                            catch (FileNotFoundException)
-                            {
-                                Log.Warning("File not found: {Url}", link.Url);
-                                if (link.LinkInfo == LinkInfo.IframeMedia)
+                                await semaphore.WaitAsync();
+                                if (completed[i])
                                 {
-                                    downloadStats.FailedDownloads.Add(link.Url);
-                                    await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
+                                    return;
                                 }
-                            }
-                            catch (EHentaiUrlExpiredException e)
+                                
+                                for (var attempt = 0; attempt < maxAttempts; attempt++)
+                                {
+                                    try
+                                    {
+                                        await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats);
+                                        Interlocked.Increment(ref complete);
+                                        completed[i] = true;
+                                        Log.Information("Finished downloading {Index}, {Total} remaining", i + 1, total - complete);
+                                        OnProgressChanged?.Invoke(complete + 1, total + 1);
+                                        break;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        if (attempt == maxAttempts - 1)
+                                        {
+                                            Log.Error(e, "Error downloading {Index}, {Total} remaining: {Url}", i + 1, total - complete, link.Url);
+                                        }
+                                        else
+                                        {
+                                            Log.Warning("Error downloading {Index}, {Total} remaining: {Url}, retrying... ({Attempt}/{MaxAttempts})", i + 1, total - complete, link.Url, attempt + 1, maxAttempts);
+                                            await Sleep(1000);
+                                        }
+                                    }
+                                }
+                                
+                                semaphore.Release();
+                            });
+                            
+                            await Task.WhenAll(tasks);
+                        }
+                        else
+                        {
+                            foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                             {
-                                Log.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
-                                e.ResumeIndex = index;
-                                throw;
-                            }
-                            catch
-                            {
-                                Log.Debug("Caught exception, saving progress");
-                                await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
-                                throw;
+                                // Compute the absolute index (i is the relative index after start)
+                                var index = start + i;
+                                await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true);
                             }
                         }
 
@@ -378,6 +392,56 @@ public partial class ImageRipper : IDisposable
                 break;
             }
         }
+    }
+
+    // TODO: Pull inner foreach loop logic into separate method to be able to spawn multiple tasks and await in parallel
+    //  (need to be careful with rate limiting and site bans though)
+    //  (also need to figure out how to handle e-hentai url refreshing in that case)
+    //      [Could fix this by always downloading sequentially for e-hentai]
+    private async Task DownloadSingleFromList(int index, ImageLink link, string fullPath, HashSet<HashKey> filesHashes,
+                                              DownloadStats downloadStats, bool updateProgress = false)
+    {
+        Log.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
+        if (updateProgress)
+        {
+            OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls + 1);
+        }
+        
+        CurrentIndex = index;
+        while (Paused)
+        {
+            await Sleep(1000);
+        }
+
+        await Task.Delay((int)SleepTime * MillisecondsInSecond);
+        try
+        {
+            var filename = link.Filename;
+            var imagePath = Path.Combine(fullPath, filename);
+            await DownloadFromList(link, imagePath, index, downloadStats);
+            await PostProcess(imagePath, filesHashes, downloadStats);
+        }
+        catch (FileNotFoundException)
+        {
+            Log.Warning("File not found: {Url}", link.Url);
+            if (link.LinkInfo == LinkInfo.IframeMedia)
+            {
+                downloadStats.FailedDownloads.Add(link.Url);
+                await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n");
+            }
+        }
+        catch (EHentaiUrlExpiredException e)
+        {
+            Log.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
+            e.ResumeIndex = index;
+            throw;
+        }
+        catch
+        {
+            Log.Debug("Caught exception, saving progress");
+            await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
+            throw;
+        } 
     }
 
     private async Task PostProcess(string imagePath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
@@ -1043,7 +1107,7 @@ public partial class ImageRipper : IDisposable
         if (Path.GetExtension(imagePath) == "")
         {
             var extension = FileUtility.GetCorrectExtension(imagePath);
-            RenameFile(imagePath, imagePath + extension);
+            await RenameFile(imagePath, imagePath + extension);
         }
         
         return true;
@@ -1306,7 +1370,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private static void RenameFile(string src, string dst)
+    private static async Task RenameFile(string src, string dst)
     {
         if (!File.Exists(dst))
         {
@@ -1314,8 +1378,8 @@ public partial class ImageRipper : IDisposable
             return;
         }
         
-        var srcHash = HashFile(src);
-        var dstHash = HashFile(dst);
+        var srcHash = await FileUtility.GetFileHash(src);
+        var dstHash = await FileUtility.GetFileHash(dst);
         if (srcHash.SequenceEqual(dstHash))
         {
             Log.Information("File already exists and is same, deleting src...");
@@ -1332,16 +1396,9 @@ public partial class ImageRipper : IDisposable
         }
     }
     
-    private static byte[] HashFile(string path)
-    {
-        using var sha256 = SHA256.Create();
-        using var stream = File.OpenRead(path);
-        var hash = sha256.ComputeHash(stream);
-        return hash;
-    }
-    
     private async Task DotPartySubdomainHandler(string url, string imagePath)
     {
+        // TODO: Check if this is still needed as urls now come from the API and should be valid by default
         var subdomainSearch = DotPartySubdomainRegex().Match(url);
         if (!subdomainSearch.Success)
         {
@@ -1374,7 +1431,7 @@ public partial class ImageRipper : IDisposable
             }
         }
         
-        Log.Information(url);
+        Log.Information("{Url:l}", url);
     }
 
     private async Task DownloadPartyFile(string imagePath, string ripUrl)
@@ -1425,7 +1482,7 @@ public partial class ImageRipper : IDisposable
                     LogFailedUrl(ripUrl);
                     goto BreakLoop;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new EnumOutOfRangeException(result, typeof(DownloadStatus));
             }
         }
         
@@ -1473,12 +1530,7 @@ public partial class ImageRipper : IDisposable
             if (totalSize < minimumFileSize)
             {
                 Log.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
-                if (SiteName == "e-hentai")
-                {
-                    throw new EHentaiUrlExpiredException();
-                }
-
-                return DownloadStatus.Failed;
+                return SiteName == "e-hentai" ? throw new EHentaiUrlExpiredException() : DownloadStatus.Failed;
             }
             
             return DownloadStatus.Ok; // Success
@@ -1489,10 +1541,10 @@ public partial class ImageRipper : IDisposable
             await Sleep(1000); // Wait for 1 second before retrying
             return DownloadStatus.ConnectionReset;
         }
-        catch (IOException)
+        catch (IOException e)
         {
-            Log.Error("Failed to open file: {savePath}", savePath);
-            return DownloadStatus.Failed; // No retry on file operation errors
+            Log.Error("Failed to open file: {savePath} - Reason: {Reason}", savePath, e.Message);
+            return DownloadStatus.Failed;
         }
     }
 

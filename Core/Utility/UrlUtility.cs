@@ -50,7 +50,7 @@ public static partial class UrlUtility
         "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
         "https://www.redgifs.com/", "https://www.sankakucomplex.com/",
         "https://kemono.party/", "https://kemono.su/", "https://kemono.cr/",
-        "https://coomer.party/", "https://coomer.su/", "https://coomer.cr/",
+        "https://coomer.party/", "https://coomer.su/", "https://coomer.st/",
         "https://www.luscious.net/", "https://sxchinesegirlz.one/",
         "https://www.v2ph.com/",
         "https://nudebird.biz/", "https://bestprettygirl.com/",
