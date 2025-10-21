@@ -215,7 +215,21 @@ public partial class ArchivebateParser : HtmlParser
             }
             else
             {
-                playButton.Click();
+                try
+                {
+                    playButton.Click();
+                }
+                catch (ElementNotInteractableException)
+                {
+                    if (attempt == maxAttempts - 1)
+                    {
+                        throw;
+                    }
+
+                    Driver.ScrollElementIntoView(playButton);
+                    await Sleep(5000);
+                    continue;
+                }
             }
         
             await Task.Delay(250);
