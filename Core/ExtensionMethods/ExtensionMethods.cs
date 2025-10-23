@@ -26,17 +26,6 @@ public static class ExtensionMethods
             yield return (i++, item);
         }
     }
-
-    public static HttpRequestMessage ToRequest(this Dictionary<string, string> headers, HttpMethod method, string url)
-    {
-        var request = new HttpRequestMessage(method, url);
-        foreach (var (key, value) in headers)
-        {
-            request.Headers.TryAddWithoutValidation(key, value);
-        }
-        
-        return request;
-    }
     
     public static string HexDigest(this byte[] bytes)
     {

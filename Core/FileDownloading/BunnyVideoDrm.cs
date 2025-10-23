@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using Common.ExtensionMethods;
 using Core.ExtensionMethods;
 
 namespace Core.FileDownloading;
