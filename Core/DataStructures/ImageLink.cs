@@ -306,31 +306,9 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[8];
         }
-        else if (url.Contains("porndr.com"))
-        {
-            fileName = url.Split("/")[^2];
-        }
-        else if (url.Contains("abxxx.com"))
-        {
-            fileName = url.Split("/")[^2];
-        }
-        else if (url.Contains("love4porn.com"))
-        {
-            fileName = url.Split("/")[^2];
-        }
-        else if(url.Contains("asianviralhub.com"))
-        {
-            fileName = url.Split("/")[^2];
-        }
-        else if(url.Contains("hdzog.com"))
-        {
-            fileName = url.Split("/")[^2];
-        }
-        else if(url.Contains("privatehomeclips.com"))
-        {
-            fileName = url.Split("/")[^2];
-        }
-        else if(url.Contains("x-x-x.tube"))
+        else if (url.Contains("porndr.com") || url.Contains("abxxx.com") || url.Contains("love4porn.com") 
+                 || url.Contains("asianviralhub.com") || url.Contains("hdzog.com") 
+                 || url.Contains("privatehomeclips.com") || url.Contains("x-x-x.tube"))
         {
             fileName = url.Split("/")[^2];
         }
@@ -351,7 +329,7 @@ public partial class ImageLink
     {
         var linkInfo = Enum.GetName(LinkInfo);
         var url = LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(Url) : Url;
-        return Referer != "" ? $"({url}, {Filename}, {Referer}, {linkInfo})" : $"({url}, {Filename}, {linkInfo})";
+        return !Referer.IsNullOrEmpty() ? $"({url}, {Filename}, {Referer}, {linkInfo})" : $"({url}, {Filename}, {linkInfo})";
     }
     
     private static string BytesToString(byte[] bytes)

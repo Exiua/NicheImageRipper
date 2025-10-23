@@ -17,4 +17,5 @@ public enum LinkInfo
     SeleniumImage,  // Requires Selenium to download the image
     Base64,         // Base64 encoded image,
     ObfuscatedM3U8, // Requires deobfuscation of each segment before concatenation with ffmpeg
+    PixivUgoira,    // Requires downloading the Ugoira zip and converting to gif or mp4
 }

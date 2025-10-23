@@ -51,13 +51,12 @@ public class PixivParser : HtmlParser
         {
             Log.Information("Parsing page {Page}", page);
             page++;
-            var p = soup.SelectSingleNodeOrThrow("//ul[@class='sc-bf8cea3f-1 bCxfvI']")
-                           .SelectNodesOrThrow("./li")
+            var p = soup.SelectNodesOrThrow("//ul/li[@size]")
                            .Select(li => li.SelectSingleNodeOrThrow(".//a").GetHref())
                            .Select(href => $"https://www.pixiv.net{href}");
             posts.AddRange(p);
 
-            var lastNavButton = soup.SelectSingleNodeOrThrow("//nav[@class='sc-27a0ff07-0 bbkQMy']")
+            var lastNavButton = soup.SelectSingleNodeOrThrow("//nav[button]")
                                     .SelectNodesOrThrow("./a")
                                     .Last();
             var icon = lastNavButton.SelectSingleNode("./svg");
@@ -100,20 +99,28 @@ public class PixivParser : HtmlParser
                 await Sleep(60000);
                 Driver.Refresh();
             }
-            
+
             var buttonClicked = false;
-            var showButton = Driver.TryFindElement(By.XPath("//div[@class='sc-9222a8f6-2 eVaEhv']"));
-            if (showButton is not null)
+            var canvas = Driver.TryFindElement(By.TagName("canvas"));
+            if (canvas is not null)
             {
-                var buttonText = showButton.Text;
-                if (buttonText == "Reading works")
+                viewType = ViewType.Ugoira;
+            }
+            else
+            {
+                var showButton = Driver.TryFindElement(By.XPath("//div[@class='sc-9222a8f6-2 eVaEhv']"));
+                if (showButton is not null)
                 {
-                    viewType = ViewType.Webtoon;
-                }
+                    var buttonText = showButton.Text;
+                    if (buttonText == "Reading works")
+                    {
+                        viewType = ViewType.Webtoon;
+                    }
                 
-                showButton.Click();
-                buttonClicked = true;
-                await Sleep(delay);
+                    showButton.Click();
+                    buttonClicked = true;
+                    await Sleep(delay);
+                }
             }
 
             var found = await WaitForElement(xpathToFindDescription);
@@ -145,6 +152,12 @@ public class PixivParser : HtmlParser
                     images.AddRange(imgs);
                     break;
                 }
+                case ViewType.Ugoira:
+                    var illustId = post.Split('/')[5];
+                    var filename = $"{illustId}.webp";
+                    var img = new ImageLink(post, FilenameScheme, 0, linkInfo: LinkInfo.PixivUgoira, filename: filename);
+                    images.Add(img);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -177,7 +190,7 @@ public class PixivParser : HtmlParser
     private enum ViewType
     {
         Normal,
-        Webtoon
-        
+        Webtoon,
+        Ugoira,
     }
 }

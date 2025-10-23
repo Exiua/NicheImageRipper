@@ -1,10 +1,14 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Common.ExtensionMethods;
 using Core.Configuration;
 using Core.DataStructures;
 using Core.Driver;
@@ -17,6 +21,7 @@ using Core.SiteParsing.HtmlParsers;
 using Core.Utility;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using ImageMagick;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 using Serilog;
@@ -712,6 +717,9 @@ public partial class ImageRipper : IDisposable
             case LinkInfo.Base64:
                 success = await DownloadBase64Image(imagePath, imageLink);
                 break;
+            case LinkInfo.PixivUgoira:
+                success = await DownloadPixivUgoira(imagePath, imageLink);
+                 break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
                 success = await DownloadFile(imagePath, imageLink, false);
@@ -1068,6 +1076,120 @@ public partial class ImageRipper : IDisposable
         }
     }
     
+    private async Task<bool> DownloadPixivUgoira(string path, ImageLink imageLink)
+    {
+        var illustId = imageLink.Url.Split("/")[5];
+        var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
+        // var response = await Session.GetAsync(metadataUrl);
+        HttpResponseMessage response = null!;
+        // if (!response.IsSuccessStatusCode)
+        // {
+        //     throw new RipperException("Failed to get Pixiv Ugoira metadata");
+        // }
+        //
+        // var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var sessionId = Config.Cookies.Pixiv; // Should contain PHPSESSID (checked in PixivParser)
+        Driver.Url = "https://www.pixiv.net/";
+        Driver.SetCookie("PHPSESSID", sessionId);
+        Driver.Url = metadataUrl;
+        var rawView = Driver.FindElement(By.Id("rawdata-tab"));
+        rawView.Click();
+        var jsonPre = Driver.FindElement(By.XPath("//pre[@class='data']"));
+        var rawJson = jsonPre.Text;
+        var json = JsonNode.Parse(rawJson);
+        if (json is null)
+        {
+            throw new RipperException("Failed to parse Pixiv Ugoira metadata");
+        }
+
+        json = json.AsObject();
+        if (json["error"].Deserialize<bool>())
+        {
+            throw new RipperException("Received error while fetching Pixiv Ugoira metadata");
+        }
+
+        var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
+        RequestHeaders[RequestHeaderKeys.Referer] = $"https://www.pixiv.net/artworks/{illustId}";
+        var body = json["body"]!.AsObject();
+        var keys = new[] { "originalSrc", "src" };
+        List<(string, int)> framesMetadata = null!;
+        foreach (var (i, key) in keys.Enumerate())
+        {
+            var src = body[key]?.GetValue<string>();
+            if (src is null)
+            {
+                Log.Warning("Pixiv Ugoira source not found for key: {Key}", key);
+                if (i == keys.Length - 1)
+                {
+                    RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
+                    throw new RipperException("Pixiv Ugoira source not found");
+                }
+                
+                continue;
+            }
+
+            var request = RequestHeaders.ToRequest(HttpMethod.Head, src);
+            response = await Session.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Warning("Failed to access Pixiv Ugoira source: {Src}", src);
+                if (i == keys.Length - 1)
+                {
+                    RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
+                    throw new RipperException("Unable to access Pixiv Ugoira source");
+                }
+
+                continue;
+            }
+            
+            request = RequestHeaders.ToRequest(HttpMethod.Get, src);
+            response = await Session.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Warning("Failed to download Pixiv Ugoira: {Src}", src);
+                if (i == keys.Length - 1)
+                {
+                    RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
+                    throw new RipperException("Unable to download Pixiv Ugoira");
+                }
+                
+                continue;
+            }
+
+            framesMetadata = body["frames"]!
+                            .AsArray()
+                            .Select(f => (f!["file"]!.GetValue<string>(), f["delay"]!.GetValue<int>()))
+                            .OrderBy(f => f.Item1)
+                            .ToList();
+        }
+
+        await using var zipStream = await response.Content.ReadAsStreamAsync();
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        using var animation = new MagickImageCollection();
+        foreach (var (fileName, delay) in framesMetadata)
+        {
+            var entry = archive.GetEntry(fileName);
+            if (entry is null)
+            {
+                Log.Warning("Warning: {FileName} not found in ZIP", fileName);
+                continue;
+            }
+
+            await using var entryStream = entry.Open();
+            var img = new MagickImage(entryStream)
+            {
+                AnimationDelay = (uint)(delay / 10) // Convert milliseconds to centiseconds
+            };
+            animation.Add(img);
+        }
+
+        animation[0].AnimationIterations = 0;
+        //animation.OptimizeTransparency();
+        await animation.WriteAsync(path);
+        RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
+        return true;
+    }
+
     private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, bool generatingManually)
     {
         if(imagePath[^1] == '/')
