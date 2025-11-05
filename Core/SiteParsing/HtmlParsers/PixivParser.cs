@@ -24,13 +24,14 @@ public class PixivParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         const int delay = 500;
-        var sessionId = Config.Cookies.Pixiv;
-        if (string.IsNullOrEmpty(sessionId))
+        if (Config.Cookies.Pixiv.Length == 0)
         {
             Log.Error("Pixiv session ID is not set. Please log in to Pixiv to continue.");
             return RipInfo.Empty;
         }
         
+        // Todo: Add cookie rotation for multiple accounts
+        var sessionId = TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv);
         Driver.SetCookie("PHPSESSID", sessionId);
         if (!CurrentUrl.EndsWith("/artworks"))
         {
@@ -184,6 +185,7 @@ public class PixivParser : HtmlParser
             }
         }
 
+        TokenManager.UpdateTokenRotation(RotationKey.Pixiv);
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 

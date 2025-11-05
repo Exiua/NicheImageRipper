@@ -29,6 +29,7 @@ public abstract partial class HtmlParser : IDisposable
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
     
     protected static GeneralConfig Config => Configuration.Config.Instance;
+    protected static TokenManager TokenManager => TokenManager.Instance;
 
     //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
 
@@ -37,6 +38,7 @@ public abstract partial class HtmlParser : IDisposable
     private string SiteName { get; set; }
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
+    public int RetryCount { get; set; } = 4;
     protected string GivenUrl { get; private set; }
     protected FilenameScheme FilenameScheme { get; }
     protected Dictionary<string, string> RequestHeaders { get; }
@@ -100,25 +102,48 @@ public abstract partial class HtmlParser : IDisposable
 
         // Log.Debug("Getting parser for {SiteName}", SiteName);
         // var siteParser = GetParser(SiteName);
-        try
+        for (var attempt = 0; attempt < RetryCount; attempt++)
         {
-            Log.Debug("Executing parser for {SiteName}", SiteName);
-            var siteInfo = await Parse();
-            Log.Debug("Saving partial save for {Url}", url);
-            WritePartialSave(siteInfo, url);
-            //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
-            return siteInfo;
+            try
+            {
+                Log.Debug("Executing parser for {SiteName}", SiteName);
+                var siteInfo = await Parse();
+                Log.Debug("Saving partial save for {Url}", url);
+                WritePartialSave(siteInfo, url);
+                //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
+                return siteInfo;
+            }
+            catch (WebDriverException e)
+            {
+                if (attempt < RetryCount - 1)
+                {
+                    Log.Warning(e, "Attempt {Attempt} failed due to WebDriver, retrying...", attempt + 1);
+                    await Sleep(250);
+                    continue;
+                }
+
+                await CleanupWhenFailed(e);
+                throw;
+            }
+            catch (Exception e)
+            {
+                await CleanupWhenFailed(e);
+                throw;
+            }        
         }
-        catch (Exception e)
-        {
-            Driver.SwitchTo().DefaultContent();
-            Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
-            #if DEBUG
-            await File.WriteAllTextAsync("test.html", Driver.PageSource);
-            Driver.TakeDebugScreenshot();
-            #endif
-            throw;
-        }
+        
+        // Can only reach here if RetryCount is less than 1 as the loop would have returned or thrown
+        throw new RipperException("Retry count cannot be less than 1");
+    }
+
+    private async Task CleanupWhenFailed(Exception e)
+    {
+        Driver.SwitchTo().DefaultContent();
+        Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
+        #if DEBUG
+        await File.WriteAllTextAsync("test.html", Driver.PageSource);
+        Driver.TakeDebugScreenshot();
+        #endif
     }
 
     public static HtmlParser GetParser(string siteName, WebDriver webDriver, Dictionary<string, string> requestHeaders,

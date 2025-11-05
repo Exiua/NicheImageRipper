@@ -1080,15 +1080,8 @@ public partial class ImageRipper : IDisposable
     {
         var illustId = imageLink.Url.Split("/")[5];
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
-        // var response = await Session.GetAsync(metadataUrl);
-        HttpResponseMessage response = null!;
-        // if (!response.IsSuccessStatusCode)
-        // {
-        //     throw new RipperException("Failed to get Pixiv Ugoira metadata");
-        // }
-        //
-        // var json = await response.Content.ReadFromJsonAsync<JsonNode>();
-        var sessionId = Config.Cookies.Pixiv; // Should contain PHPSESSID (checked in PixivParser)
+        // Should contain PHPSESSID (checked in PixivParser)
+        var sessionId = TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv); 
         Driver.Url = "https://www.pixiv.net/";
         Driver.SetCookie("PHPSESSID", sessionId);
         Driver.Url = metadataUrl;
@@ -1112,6 +1105,7 @@ public partial class ImageRipper : IDisposable
         RequestHeaders[RequestHeaderKeys.Referer] = $"https://www.pixiv.net/artworks/{illustId}";
         var body = json["body"]!.AsObject();
         var keys = new[] { "originalSrc", "src" };
+        HttpResponseMessage response = null!;       // Must be assigned before exiting loop
         List<(string, int)> framesMetadata = null!;
         foreach (var (i, key) in keys.Enumerate())
         {
@@ -1143,7 +1137,7 @@ public partial class ImageRipper : IDisposable
             }
             
             request = RequestHeaders.ToRequest(HttpMethod.Get, src);
-            response = await Session.SendAsync(request);
+            response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             if (!response.IsSuccessStatusCode)
             {
                 Log.Warning("Failed to download Pixiv Ugoira: {Src}", src);
@@ -1161,6 +1155,7 @@ public partial class ImageRipper : IDisposable
                             .Select(f => (f!["file"]!.GetValue<string>(), f["delay"]!.GetValue<int>()))
                             .OrderBy(f => f.Item1)
                             .ToList();
+            break;
         }
 
         await using var zipStream = await response.Content.ReadAsStreamAsync();
@@ -1187,6 +1182,7 @@ public partial class ImageRipper : IDisposable
         //animation.OptimizeTransparency();
         await animation.WriteAsync(path);
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
+        TokenManager.UpdateTokenRotation(RotationKey.Pixiv);
         return true;
     }
 
@@ -1257,7 +1253,7 @@ public partial class ImageRipper : IDisposable
         if (url.Contains("redgifs"))
         {
             modifiedHeader = ModifiedHeader.Authorization;
-            var token = await TokenManager.GetToken("redgifs");
+            var token = await TokenManager.GetToken(TokenKey.Redgifs);
             RequestHeaders[RequestHeaderKeys.Authorization] = $"Bearer {token.Value}";
         }
         else if (imageLink.LinkInfo == LinkInfo.GoFile)

@@ -104,6 +104,25 @@ public partial class NicheImageRipper : IDisposable
         OnUrlQueueUpdated?.Invoke();
     }
 
+    public void QueueUrlsFromEmptyDirectories()
+    {
+        var directories = Directory.GetDirectories(SavePath, "*", SearchOption.TopDirectoryOnly);
+        foreach (var dir in directories)
+        {
+            if (Directory.GetFiles(dir).Length != 0)
+            {
+                continue;
+            }
+
+            var dirName = new DirectoryInfo(dir).Name;
+            var historyEntry = HistoryDb.GetHistoryEntryByDirectoryName(dirName);
+            if (historyEntry is not null)
+            {
+                AddToUrlQueue(historyEntry.Url, noCheck: true);
+            }
+        }
+    }
+
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
     {
         return HistoryDb.GetHistory(start, offset, filter);

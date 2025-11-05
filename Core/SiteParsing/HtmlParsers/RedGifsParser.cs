@@ -6,6 +6,7 @@ using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -26,13 +27,13 @@ public class RedGifsParser : HtmlParser
         const string baseRequest = "https://api.redgifs.com/v2/gifs?ids=";
         await LazyLoad(scrollBy: true, increment: 1250);
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='userName']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='userName']").InnerText;
         var images = new List<StringImageLinkWrapper>();
-        var posts = soup.SelectSingleNode("//div[@class='tileFeed']").SelectNodes("./a[@href]").GetHrefs();
+        var posts = soup.SelectSingleNodeOrThrow("//div[@class='tileFeed']").SelectNodesOrThrow("./a[@href]").GetHrefs();
         var ids = posts.Select(post => post.Split("/")[^1].Split("#")[0]).ToList();
         var idChunks = ids.Chunk(100);
         var session = new HttpClient();
-        var token = await TokenManager.Instance.GetToken("redgifs");
+        var token = await TokenManager.Instance.GetToken(TokenKey.Redgifs);
         RequestHeaders["Authorization"] = $"Bearer {token.Value}";
         foreach (var chunk in idChunks)
         {

@@ -1,4 +1,4 @@
-﻿namespace Core.Configuration;
+﻿namespace Core.DataStructures;
 
 public class Token(string value, DateTime expiration)
 {

@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using Core.JsonConverters;
+
 namespace Core.Configuration;
 
 public class CookieConfig
@@ -9,7 +12,8 @@ public class CookieConfig
     public required string Thothub { get; set; }
     public required string Kemono { get; set; }
     public required string SimpCity { get; set; }
-    public required string Pixiv { get; set; }
+    [JsonConverter(typeof(StringOrArrayConverter))]
+    public required string[] Pixiv { get; set; }
     
     public static CookieConfig New()
     {
@@ -22,7 +26,7 @@ public class CookieConfig
             Thothub = "",
             Kemono = "",
             SimpCity = "",
-            Pixiv = ""
+            Pixiv = []
         };
     }
 }
