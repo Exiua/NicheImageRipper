@@ -6,7 +6,8 @@ using JetBrains.Annotations;
 
 namespace Core.Configuration;
 
-public class GeneralConfig
+public class 
+    GeneralConfig
 {
     public string UserAgent { get; set; } = null!;
     public string SavePath { get; set; } = null!;
@@ -24,7 +25,7 @@ public class GeneralConfig
     public LoginConfig Logins { get; set; } = null!;
     public KeyConfig Keys { get; set; } = null!;
     public CookieConfig Cookies { get; set; } = null!;
-    public Dictionary<string, Dictionary<string, string>> Custom { get; set; } = null!;
+    public CustomConfig Custom { get; set; } = null!;
     
     [JsonExtensionData]
     public Dictionary<string, JsonElement> ExtraData { get; set; } = null!;
@@ -54,6 +55,7 @@ public class GeneralConfig
         Logins = LoginConfig.New();
         Keys = KeyConfig.New();
         Cookies = CookieConfig.New();
+        Custom = CustomConfig.New();
         ExtraData = new Dictionary<string, JsonElement>();
     }
     

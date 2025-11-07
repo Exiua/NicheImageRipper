@@ -11,22 +11,6 @@ public class Config
     private static T CreateTemplateConfig<T>() where T : GeneralConfig
     {
         var config = (T)Activator.CreateInstance(typeof(T), [ true ])!;
-
-        config.Custom = new Dictionary<string, Dictionary<string, string>>
-        {
-            [ConfigKeys.CustomKeys.V2PH] = new()
-            {
-                ["frontend"] = "",
-                ["frontend-rmt"] = "",
-                ["cf_clearance"] = ""
-            },
-            [ConfigKeys.CustomKeys.GoFile] = new()
-            {
-                ["accountToken"] = "",
-                ["loginLink"] = ""
-            }
-        };
-
         return config;
     }
 
