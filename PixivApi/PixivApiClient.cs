@@ -336,7 +336,23 @@ public class PixivApiClient
     
     // illust_follow
     
-    // illust_detail
+    public async Task<IllustrationInfo> IllustDetail(string illustId, bool reqAuth = true)
+    {
+        var url = $"{Hosts}/v1/illust/detail";
+        var parameters = new Dictionary<string, string>
+        {
+            ["illust_id"] = illustId,
+        };
+        
+        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth);
+        var illustDetail = await response.Content.ReadFromJsonAsync<IllustrationInfo>();
+        if (illustDetail is null)
+        {
+            throw new PixivApiException("Failed to deserialize IllustrationDetail");
+        }
+        
+        return illustDetail;
+    }
     
     // illust_comments
     

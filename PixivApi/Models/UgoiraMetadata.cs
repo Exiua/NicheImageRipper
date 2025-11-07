@@ -10,6 +10,16 @@ public class UgoiraMetadata : PixivModel
     public string Message { get; set; } = string.Empty;
     [JsonPropertyName("body")]
     public UgoiraMetadataBody? Body { get; set; }
+    [JsonPropertyName("ugoira_metadata")]
+    public UgoiraMetadataBodyReal? BodyReal { get; set; }
+    
+    public class UgoiraMetadataBodyReal
+    {
+        [JsonPropertyName("zip_urls")]
+        public Dictionary<string, string> ZipUrls { get; set; } = new();
+        [JsonPropertyName("frames")]
+        public List<UgoiraFrame> Frames { get; set; } = [];
+    }
     
     public class UgoiraMetadataBody
     {
