@@ -2,7 +2,8 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
-using Core.Utility;
+using Core.Managers;
+using Core.Managers;
 using OpenQA.Selenium;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -11,9 +12,9 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class PixivParser : HtmlParser
 {
-    public PixivParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        filenameScheme)
+    public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
 
@@ -21,17 +22,23 @@ public class PixivParser : HtmlParser
     ///     Parses the html for pixiv.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    public override Task<RipInfo> Parse()
+    {
+        return Parse2();
+    }
+    
+    private async Task<RipInfo> Parse1()
     {
         const int delay = 500;
         if (Config.Cookies.Pixiv.Length == 0)
         {
-            Log.Error("Pixiv session ID is not set. Please log in to Pixiv to continue.");
+            Log.Error("Pixiv session ID is not set. Please add your Pixiv PHPSESSID token to the config file.");
             return RipInfo.Empty;
         }
-        
+
         // Todo: Add cookie rotation for multiple accounts
-        var sessionId = TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv);
+        var sessionId =
+            TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv);
         Driver.SetCookie("PHPSESSID", sessionId);
         if (!CurrentUrl.EndsWith("/artworks"))
         {
@@ -53,8 +60,8 @@ public class PixivParser : HtmlParser
             Log.Information("Parsing page {Page}", page);
             page++;
             var p = soup.SelectNodesOrThrow("//ul/li[@size]")
-                           .Select(li => li.SelectSingleNodeOrThrow(".//a").GetHref())
-                           .Select(href => $"https://www.pixiv.net{href}");
+                        .Select(li => li.SelectSingleNodeOrThrow(".//a").GetHref())
+                        .Select(href => $"https://www.pixiv.net{href}");
             posts.AddRange(p);
 
             var lastNavButton = soup.SelectSingleNodeOrThrow("//nav[button]")
@@ -70,12 +77,12 @@ public class PixivParser : HtmlParser
             var nextPageUrl = "https://www.pixiv.net" + lastNavButton.GetHref();
             soup = await Soupify(nextPageUrl, delay: delay, xpath: xpathToFind);
         }
-        
+
         const string xpathToFindImages = "//div[@role='presentation']";
         const string xpathToFindDescription = "//p[starts-with(@id, 'expandable-paragraph-')]";
         //const string xpathToFindDescription = "//div[@class='sc-9f87882a-14 fZWCmd']";
         var images = new List<StringImageLinkWrapper>();
-        foreach(var post in posts)
+        foreach (var post in posts)
         {
             Log.Information("Parsing post {Post}", post);
             ViewType viewType;
@@ -89,7 +96,7 @@ public class PixivParser : HtmlParser
                 {
                     break;
                 }
-                
+
                 var errorText = errorH1.Text;
                 if (!errorText.StartsWith("An error"))
                 {
@@ -117,7 +124,7 @@ public class PixivParser : HtmlParser
                     {
                         viewType = ViewType.Webtoon;
                     }
-                
+
                     showButton.Click();
                     buttonClicked = true;
                     await Sleep(delay);
@@ -129,7 +136,7 @@ public class PixivParser : HtmlParser
             {
                 Log.Debug("Description not found for post {Post}", post);
             }
-            
+
             //DebugUtility.Pause();
             soup = await Soupify(xpath: xpathToFindImages);
             var currentCount = images.Count;
@@ -156,7 +163,8 @@ public class PixivParser : HtmlParser
                 case ViewType.Ugoira:
                     var illustId = post.Split('/')[5];
                     var filename = $"{illustId}.webp";
-                    var img = new ImageLink(post, FilenameScheme, 0, linkInfo: LinkInfo.PixivUgoira, filename: filename);
+                    var img = new ImageLink(post, FilenameScheme, 0, linkInfo: LinkInfo.PixivUgoira,
+                        filename: filename);
                     images.Add(img);
                     break;
                 default:
@@ -186,6 +194,99 @@ public class PixivParser : HtmlParser
         }
 
         TokenManager.UpdateTokenRotation(RotationKey.Pixiv);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+
+    private async Task<RipInfo> Parse2()
+    {
+        const int delay = 500;
+        const int illustsPerPage = 30;
+        
+        if (Config.Cookies.Pixiv.Length == 0)
+        {
+            Log.Error("Pixiv session ID is not set. Please add your Pixiv PHPSESSID token to the config file.");
+            return RipInfo.Empty;
+        }
+
+        if (Config.Keys.Pixiv == "")
+        {
+            Log.Error("Pixiv refresh token is not set. Please add your Pixiv refresh token to the config file.");
+            return RipInfo.Empty;
+        }
+
+        var refreshToken = Config.Keys.Pixiv;
+        var client = ApiClientManager.PixivClient;
+        var test = await client.Auth(refreshToken);
+        var artistId = CurrentUrl.Split("/")[5];
+        var userIllusts = await client.UserIllusts(artistId);
+        var dirName = userIllusts.User.Name;
+        var images = new List<StringImageLinkWrapper>();
+        var page = 0;
+        while(true)
+        {
+            page++;
+            Log.Information("Parsing page {Page}", page);
+            foreach (var illust in userIllusts.Illusts)
+            {
+                switch (illust.Type)
+                {
+                    case "illust":
+                    {
+                        if (illust.PageCount == 1)
+                        {
+                            var url = illust.MetaSinglePage.OriginalImageUrl!;
+                            images.Add(url);
+                        }
+                        else
+                        {
+                            for (var i = 0; i < illust.PageCount; i++)
+                            {
+                                var url = illust.MetaPages[i].ImageUrls.Large.ToOriginalUrl();
+                                images.Add(url);
+                            }
+                        }
+
+                        break;
+                    }
+                    case "ugoira":
+                    {
+                        var illustId = illust.Id;
+                        var filename = $"{illustId}.webp";
+                        var url = $"https://www.pixiv.net/artworks/{illustId}";
+                        var img = new ImageLink(url, FilenameScheme, 0, linkInfo: LinkInfo.PixivUgoira,
+                            filename: filename);
+                        images.Add(img);
+
+                        break;
+                    }
+                    default:
+                        Log.Warning("Unknown/unsupported illustration type: {Type}", illust.Type);
+                        break;
+                }
+
+                var description = illust.Caption;
+                if (!string.IsNullOrWhiteSpace(description))
+                {
+                    var descHtml = $"<div>{description}</div>";
+                    var soup = await Soupify(descHtml, urlString: false);
+                    var links = soup.SelectNodesSafe("./a")
+                                    .Select(a => a.GetHref())
+                                    .Select(href => href.Remove("/jump.php?"))
+                                    .Select(Uri.UnescapeDataString)
+                                    .Where(UrlCanBeParsed)
+                                    .ToStringImageLinks();
+                    images.AddRange(links);
+                }
+            }
+
+            if (userIllusts.Illusts.Count < illustsPerPage)
+            {
+                break;
+            }
+            
+            userIllusts = await client.UserIllusts(artistId, offset: page * illustsPerPage);
+            await Sleep(delay);
+        }
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
