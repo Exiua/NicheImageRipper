@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Common.ExtensionMethods;
 using Core.ExtensionMethods;
+using Core.Managers;
 
 namespace Core.FileDownloading;
 

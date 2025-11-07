@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using OpenQA.Selenium;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -9,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class V2phParser : HtmlParser
 {
-    public V2phParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public V2phParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -21,10 +22,10 @@ public class V2phParser : HtmlParser
     {
         // TODO: Work on bypassing cloudflare
         // The parser works, but when changing pages, the cf_clearance cookie gets refreshed in a way that causes issues
-        var cookies = Config.Custom["V2PH"];
-        var frontendCookie = cookies["frontend"];
-        var frontendRmtCookie = cookies["frontend-rmt"];
-        var cfClearanceCookie = cookies["cf_clearance"];
+        var cookies = Config.Custom.V2PH;
+        var frontendCookie = cookies.Frontend;
+        var frontendRmtCookie = cookies.FrontendRmt;
+        var cfClearanceCookie = cookies.CfClearance;
         var cookieJar = Driver.GetCookieJar();
         cookieJar.SetCookie("cf_clearance", cfClearanceCookie);
         Driver.Refresh();
@@ -38,11 +39,11 @@ public class V2phParser : HtmlParser
             ScrollPauseTime = 750
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
-        var dirName = soup.SelectSingleNode("//h1[@class='h5 text-center mb-3']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='h5 text-center mb-3']")
                             .InnerText;
-        var numPages = int.Parse(soup.SelectSingleNode("//dl[@class='row mb-0']")
-                                    .SelectNodes(".//dd")[^1]
-                                    .InnerText) / 10 + 1;
+        var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//dl[@class='row mb-0']")
+                                     .SelectNodesOrThrow(".//dd")[^1]
+                                     .InnerText) / 10 + 1;
         var baseLink = CurrentUrl.Split("?")[0];
         var images = new List<StringImageLinkWrapper>();
         var parseComplete = false;
@@ -65,9 +66,9 @@ public class V2phParser : HtmlParser
             List<StringImageLinkWrapper> imageList;
             while (true)
             {
-                imageList = soup.SelectSingleNode("//div[@class='photos-list text-center']")
-                                .SelectNodes(".//div[@class='album-photo my-2']")
-                                .Select(img => img.SelectSingleNode(".//img").GetSrc())
+                imageList = soup.SelectSingleNodeOrThrow("//div[@class='photos-list text-center']")
+                                .SelectNodesSafe(".//div[@class='album-photo my-2']")
+                                .Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc())
                                 .ToStringImageLinkWrapperList();
                 if (imageList.Count == 0)
                 {

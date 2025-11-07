@@ -2,13 +2,15 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
+using Core.Managers;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
 public class ImhentaiParser : HtmlParser
 {
-    public ImhentaiParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public ImhentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -25,11 +27,11 @@ public class ImhentaiParser : HtmlParser
         }
     
         var soup = await Soupify();
-        var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNode("//img[@class='lazy entered loaded']");
+        var imageContainer = soup.SelectSingleNodeOrThrow("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNode("//img[@class='lazy entered loaded']");
 
         var images = imageContainer.GetAttributeValue("data-src");
-        var numPages = int.Parse(soup.SelectSingleNode("//li[@class='pages']").InnerText.Split()[1]);
-        var dirName = soup.SelectSingleNode("//h1").InnerText;
+        var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[1]);
+        var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
     
         return RipInfo.FromGenerateInfo(images, dirName, numPages);
     }

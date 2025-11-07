@@ -3,6 +3,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -13,7 +14,7 @@ public class CyberDropParser : ParameterizedHtmlParser
 {
     private const int ParseDelay = 500;
     
-    public CyberDropParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public CyberDropParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

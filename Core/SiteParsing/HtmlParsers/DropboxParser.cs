@@ -3,6 +3,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using HtmlAgilityPack;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -11,7 +12,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class DropboxParser : HtmlParser
 {
-    public DropboxParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

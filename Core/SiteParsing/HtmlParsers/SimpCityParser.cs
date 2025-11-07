@@ -4,6 +4,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
@@ -16,8 +17,8 @@ public class SimpCityParser : HtmlParser
 {
     private const string CacheFile = "simpcitycache.json";
 
-    public SimpCityParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -242,19 +243,19 @@ public class SimpCityParser : HtmlParser
 
     private Dictionary<string, ParameterizedHtmlParser> CreateResolveMap()
     {
-        var bunkr = new BunkrParser(WebDriver, RequestHeaders);
-        var jpg5 = new Jpg5Parser(WebDriver, RequestHeaders);
+        var bunkr = new BunkrParser(WebDriver, ApiClientManager, RequestHeaders);
+        var jpg5 = new Jpg5Parser(WebDriver, ApiClientManager, RequestHeaders);
         var resolvableMap = new Dictionary<string, ParameterizedHtmlParser>
         {
             ["bunkrrr.org"] = bunkr,
             ["bunkr."] = bunkr,
-            ["gofile.io"] = new GoFileParser(WebDriver, RequestHeaders),
-            ["pixeldrain.com"] = new PixelDrainParser(WebDriver, RequestHeaders),
-            ["cyberdrop.me"] = new CyberDropParser(WebDriver, RequestHeaders),
+            ["gofile.io"] = new GoFileParser(WebDriver, ApiClientManager, RequestHeaders),
+            ["pixeldrain.com"] = new PixelDrainParser(WebDriver, ApiClientManager, RequestHeaders),
+            ["cyberdrop.me"] = new CyberDropParser(WebDriver, ApiClientManager, RequestHeaders),
             ["jpg4.su"] = jpg5,
             ["jpg5.su"] = jpg5,
-            ["coomer.party"] = new CoomerParser(WebDriver, RequestHeaders),
-            ["saint2.cr"] = new Saint2Parser(WebDriver, RequestHeaders),
+            ["coomer.party"] = new CoomerParser(WebDriver, ApiClientManager, RequestHeaders),
+            ["saint2.cr"] = new Saint2Parser(WebDriver, ApiClientManager, RequestHeaders),
         };
 
         return resolvableMap;

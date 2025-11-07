@@ -3,13 +3,14 @@ using System.Text.RegularExpressions;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
 public partial class HentaiCosplaysParser : HtmlParser
 {
-    public HentaiCosplaysParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public HentaiCosplaysParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -22,7 +23,7 @@ public partial class HentaiCosplaysParser : HtmlParser
         if (CurrentUrl.Contains("/video/"))
         {
             CurrentUrl = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
-            var parser = new PornVideoXXXParser(WebDriver, RequestHeaders, FilenameScheme);
+            var parser = new PornVideoXXXParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
             return await parser.Parse();
         }
         
@@ -30,21 +31,21 @@ public partial class HentaiCosplaysParser : HtmlParser
         {
             ScrollBy = true
         });
-        var dirName = soup.SelectSingleNode("//div[@id='main_contents']//h2").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='main_contents']//h2").InnerText;
         var images = new List<StringImageLinkWrapper>();
         while (true)
         {
             var imageList = soup
-                            .SelectSingleNode("//div[@id='display_image_detail']")
-                            .SelectNodes(".//img")
+                            .SelectSingleNodeOrThrow("//div[@id='display_image_detail']")
+                            .SelectNodesSafe(".//img")
                             .Select(img => img.GetSrc())
                             .Select(img => HentaiCosplayRegex().Replace(img, ""))
                             .Select(dummy => (StringImageLinkWrapper)dummy)
                             .ToList();
             images.AddRange(imageList);
             var nextPage = soup
-                            .SelectSingleNode("//div[@id='paginator']")
-                            .SelectNodes(".//span")[^2]
+                            .SelectSingleNodeOrThrow("//div[@id='paginator']")
+                            .SelectNodesOrThrow(".//span")[^2]
                             .SelectSingleNode(".//a");
             if (nextPage is null)
             {

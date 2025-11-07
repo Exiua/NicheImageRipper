@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -9,9 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Love4PornParser : HtmlParser
 {
-    public Love4PornParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        filenameScheme)
+    public Love4PornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

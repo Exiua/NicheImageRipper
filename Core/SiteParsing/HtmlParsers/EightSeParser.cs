@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
 using OpenQA.Selenium;
 using Serilog;
@@ -13,9 +14,7 @@ public class EightSeParser : HtmlParser
 {
     private const string CachePath = "eightsecache.json";
 
-    public EightSeParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        filenameScheme)
+    public EightSeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

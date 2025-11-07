@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -9,8 +10,8 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class BaobuaParser : HtmlParser
 {
-    public BaobuaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+    public BaobuaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
         filenameScheme)
     {
     }
@@ -22,15 +23,15 @@ public class BaobuaParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//span[@itemprop='name']").InnerText.Split("|")[0].Trim();
+        var dirName = soup.SelectSingleNodeOrThrow("//span[@itemprop='name']").InnerText.Split("|")[0].Trim();
         var images = new List<StringImageLinkWrapper>();
         var pageCount = soup.SelectSingleNode("//div[@class='nav-links']")?.LastChild.InnerText.ToInt() ?? 1;
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {
-            var imgs = soup.SelectSingleNode("//div[@class='entry-content read-details']")
-                           .SelectNodes("./figure")
-                           .Select(figure => figure.SelectSingleNode("./a").GetHref())
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='entry-content read-details']")
+                           .SelectNodesOrThrow("./figure")
+                           .Select(figure => figure.SelectSingleNodeOrThrow("./a").GetHref())
                            .ToStringImageLinks();
             images.AddRange(imgs);
             if (i != pageCount - 1)

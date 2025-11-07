@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Managers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -11,7 +12,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class ArtstationParser : HtmlParser
 {
-    public ArtstationParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public ArtstationParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
     

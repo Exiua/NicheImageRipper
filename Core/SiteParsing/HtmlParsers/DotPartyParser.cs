@@ -7,6 +7,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -17,7 +18,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 {
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
     
-    protected DotPartyParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    protected DotPartyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
     
@@ -235,7 +236,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
             else
             {
-                var dropboxParser = new DropboxParser(WebDriver, RequestHeaders, FilenameScheme);
+                var dropboxParser = new DropboxParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
                 var ripInfo = await dropboxParser.Parse(link);
                 stringLinks.AddRange(ripInfo.Urls.ToStringImageLinks());
             }

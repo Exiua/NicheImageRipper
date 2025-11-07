@@ -3,6 +3,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -10,7 +11,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class JRantsParser : HtmlParser
 {
-    public JRantsParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public JRantsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

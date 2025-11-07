@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
-using System.Net.Http.Json;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -15,6 +13,7 @@ using Core.Driver;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Managers;
 using Core.SiteParsing;
 using Core.SiteParsing.HtmlParsers;
@@ -63,6 +62,7 @@ public partial class ImageRipper : IDisposable
     private double FailureThreshold { get; set; } = 0.5;
     private WebDriverPool DriverPool { get; }
     private WebDriver WebDriver { get; set; }
+    private ApiClientManager ClientManager { get; }
     public bool Paused { get; set; }
     
     private bool _disposed;
@@ -93,6 +93,7 @@ public partial class ImageRipper : IDisposable
         CurrentIndex = 0;
         DriverPool = driverPool;
         WebDriver = driverPool.AcquireDriver(true);
+        ClientManager = new ApiClientManager();
     }
 
     public async Task Rip(string url)
@@ -167,7 +168,7 @@ public partial class ImageRipper : IDisposable
     {
         LoadCorrectWebDriver();
         
-        var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
+        var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
         Log.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
         //Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
@@ -387,7 +388,7 @@ public partial class ImageRipper : IDisposable
                     catch (EHentaiUrlExpiredException e)
                     {
                         Log.Information("Refreshing EHentai links");
-                        var parser = new EHentaiParser(WebDriver, RequestHeaders, FilenameScheme);
+                        var parser = new EHentaiParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
                         var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
                         FolderInfo.Urls = updatedLinks;
@@ -1078,8 +1079,9 @@ public partial class ImageRipper : IDisposable
     
     private async Task<bool> DownloadPixivUgoira(string path, ImageLink imageLink)
     {
-        var illustId = imageLink.Url.Split("/")[5];
+        var illustId = imageLink.Url.Split("/")[4];
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
+        Log.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
         // Should contain PHPSESSID (checked in PixivParser)
         var sessionId = TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv); 
         Driver.Url = "https://www.pixiv.net/";
@@ -1259,7 +1261,7 @@ public partial class ImageRipper : IDisposable
         else if (imageLink.LinkInfo == LinkInfo.GoFile)
         {
             modifiedHeader = ModifiedHeader.Cookie;
-            var cookieValue = Config.Custom[ConfigKeys.CustomKeys.GoFile]["accountToken"];
+            var cookieValue = Config.Custom.GoFile.AccountToken;
             var cookie = $"accountToken={cookieValue}";
             oldCookies = RequestHeaders[RequestHeaderKeys.Cookie];
             RequestHeaders[RequestHeaderKeys.Cookie] = cookie;
@@ -1298,12 +1300,28 @@ public partial class ImageRipper : IDisposable
                 case HttpStatusCode.NotFound:
                 {
                     LogFailedUrl(url);
-                    if (!generatingManually)
+                    if (generatingManually)
+                    {
+                        throw new WrongExtensionException();
+                    }
+
+                    if (SiteName != "pixiv")
                     {
                         return false;
                     }
 
-                    throw new WrongExtensionException();
+                    // TODO: Improve this
+                    // Api seems to always return .jpg even if the file is a .png
+                    var parts = imageLink.Url.Split(".");
+                    var ext = parts[^1];
+                    if (ext == "jpg")
+                    {
+                        parts[^1] = "png";
+                        imageLink.Url = string.Join(".", parts);
+                        Log.Information("Trying again with .png extension...");
+                    }
+
+                    return false;
                 }
                 case HttpStatusCode.Unauthorized:
                     return false;
@@ -1465,7 +1483,7 @@ public partial class ImageRipper : IDisposable
     private async Task<bool> GoFileLogin()
     {
         var origUrl = Driver.Url;
-        var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
+        var loginLink = Config.Custom.GoFile.LoginLink;
         Driver.Url = loginLink;
         await Sleep(10000);
         for (var i = 0; i < 4; i++)

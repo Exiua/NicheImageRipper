@@ -1,4 +1,5 @@
 using Core.ExtensionMethods;
+using Core.Managers;
 using OpenQA.Selenium.BiDi.Network;
 
 namespace Core.SiteParsing.VideoCapturers;

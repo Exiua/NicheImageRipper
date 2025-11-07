@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using HtmlAgilityPack;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -9,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class SfmCompileParser : HtmlParser
 {
-    public SfmCompileParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public SfmCompileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

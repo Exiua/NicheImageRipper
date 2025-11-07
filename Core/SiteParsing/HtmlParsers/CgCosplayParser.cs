@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.SiteParsing.VideoCapturers;
 using Core.Utility;
 using OpenQA.Selenium;
@@ -12,7 +13,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class CgCosplayParser : HtmlParser
 {
-    public CgCosplayParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public CgCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

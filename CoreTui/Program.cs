@@ -4,6 +4,7 @@ using Core.ArgParse;
 using Core.Configuration;
 using Core.Driver;
 using Core.History;
+using Core.Managers;
 using Core.SiteParsing;
 using Core.Utility;
 using CoreTui;
@@ -39,7 +40,8 @@ switch (arguments.RunMode)
 
         using var pool = new WebDriverPool(1);
         var driver = pool.AcquireDriver(!arguments.Debug); // if debug, headless = false
-        var parser = HtmlParser.GetParser("imhentai", driver, requestHeaders);
+        var clientManager = new ApiClientManager();
+        var parser = HtmlParser.GetParser("imhentai", driver, clientManager, requestHeaders);
         // Null check performed in ArgumentParser.Parse
         var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
         pool.ReleaseDriver(driver);

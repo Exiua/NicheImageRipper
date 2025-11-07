@@ -2,6 +2,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.SiteParsing.VideoCapturers;
 using Core.Utility;
 using OpenQA.Selenium;
@@ -16,9 +17,7 @@ public class KoreanBjParser : HtmlParser
     private const string IframeXPath = "//div[@id='responsive-player']/iframe";
     private const string VideoXPath = "//video[@id='player']";
     
-    public KoreanBjParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                              FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        filenameScheme)
+    public KoreanBjParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

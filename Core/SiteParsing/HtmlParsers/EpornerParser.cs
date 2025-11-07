@@ -3,6 +3,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.SiteParsing.HtmlParserEnums;
 using HtmlAgilityPack;
 using Serilog;
@@ -12,7 +13,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class EpornerParser : HtmlParser
 {
-    public EpornerParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public EpornerParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

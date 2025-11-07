@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.SiteParsing.VideoCapturers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -10,7 +11,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Cosplay69Parser : HtmlParser
 {
-    public Cosplay69Parser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public Cosplay69Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

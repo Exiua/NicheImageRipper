@@ -5,6 +5,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using Serilog;
@@ -14,7 +15,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class PornhubParser : HtmlParser
 {
-    public PornhubParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

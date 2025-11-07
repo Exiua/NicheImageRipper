@@ -1,9 +1,9 @@
 using Common.ExtensionMethods;
-using Core.Configuration;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using OpenQA.Selenium;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -12,7 +12,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class GoFileParser : ParameterizedHtmlParser
 {
-    public GoFileParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -151,7 +151,7 @@ public class GoFileParser : ParameterizedHtmlParser
     protected override async Task<bool> SiteLoginHelper()
     {
         var origUrl = CurrentUrl;
-        var loginLink = Config.Custom[ConfigKeys.CustomKeys.GoFile]["loginLink"];
+        var loginLink = Config.Custom.GoFile.LoginLink;
         CurrentUrl = loginLink;
         await Sleep(10000);
         for (var i = 0; i < 4; i++)

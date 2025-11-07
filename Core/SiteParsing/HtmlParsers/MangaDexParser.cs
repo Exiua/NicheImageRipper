@@ -4,6 +4,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using MangaDexLibrary;
 using MangaDexLibrary.Responses;
 using Serilog;
@@ -13,7 +14,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public partial class MangaDexParser : HtmlParser
 {
-    public MangaDexParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public MangaDexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using WebDriver = Core.Driver.WebDriver;
@@ -10,7 +11,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class XChinaParser : HtmlParser
 {
-    public XChinaParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public XChinaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

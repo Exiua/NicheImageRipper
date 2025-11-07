@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -9,8 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class ApComicsParser : HtmlParser
 {
-    public ApComicsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public ApComicsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -21,12 +21,12 @@ public class ApComicsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='post-title']/h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='post-title']/h1").InnerText;
         var images = new List<StringImageLinkWrapper>();
-        var chapters = soup.SelectSingleNode("//ul[@class='main version-chap no-volumn']")
-                            .SelectNodes("./li")
-                            .Select(li => li.SelectSingleNode("./a").GetHref())
-                            .Reverse();
+        var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']")
+                           .SelectNodesOrThrow("./li")
+                           .Select(li => li.SelectSingleNodeOrThrow("./a").GetHref())
+                           .Reverse();
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true
@@ -35,9 +35,9 @@ public class ApComicsParser : HtmlParser
         {
             Log.Debug("Parsing chapter {Chapter}", chapter);
             soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs);
-            var imgs = soup.SelectSingleNode("//div[@class='reading-content']")
-                           .SelectNodes("./div")
-                           .Select(div => div.SelectSingleNode("./img").GetSrc().Trim())
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']")
+                           .SelectNodesOrThrow("./div")
+                           .Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim())
                            .ToStringImageLinks();
             images.AddRange(imgs);
         }

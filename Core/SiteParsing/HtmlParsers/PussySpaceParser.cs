@@ -2,6 +2,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.SiteParsing.VideoCapturers;
 using HtmlAgilityPack;
 using Serilog;
@@ -11,9 +12,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class PussySpaceParser : HtmlParser
 {
-    public PussySpaceParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        filenameScheme)
+    public PussySpaceParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 

@@ -3,6 +3,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using Serilog;
@@ -14,7 +15,9 @@ public class BunkrParser : ParameterizedHtmlParser
 {
     private const int ParseDelay = 500;
 
-    public BunkrParser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, filenameScheme)
+    public BunkrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
 

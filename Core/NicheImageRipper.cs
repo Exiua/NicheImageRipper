@@ -8,6 +8,7 @@ using Core.Driver;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.FileDownloading;
 using Core.History;
 using Core.Managers;

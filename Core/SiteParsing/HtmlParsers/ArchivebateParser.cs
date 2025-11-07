@@ -3,6 +3,7 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
@@ -15,9 +16,7 @@ public partial class ArchivebateParser : HtmlParser
 {
     private const string CachePath = "archivebateCache.json";
     
-    public ArchivebateParser(WebDriver driver, Dictionary<string, string> requestHeaders,
-                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
-        filenameScheme)
+    public ArchivebateParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
