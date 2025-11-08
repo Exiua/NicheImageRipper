@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -13,7 +14,6 @@ using Core.Driver;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
-using Core.Managers;
 using Core.Managers;
 using Core.SiteParsing;
 using Core.SiteParsing.HtmlParsers;
@@ -39,6 +39,7 @@ public partial class ImageRipper : IDisposable
     private const string RipStatePath = "ripState.json";
     private const int RetryCount = 4;
     private const int MillisecondsInSecond = 1000;
+    private const int MinimumFileSize = 1024; // 1KB minimum file size
 
     private Dictionary<string, string> RequestHeaders { get; } = new()
     {
@@ -1195,32 +1196,19 @@ public partial class ImageRipper : IDisposable
             imagePath = imagePath[..^1];
         }
 
-        try
+        var success = false;
+        for (var attempt = 0; attempt < RetryCount; attempt++)
         {
-            var successful = false;
-            for (var _ = 0; _ < RetryCount; _++)
+            success = await DownloadFileHelper(imageLink, imagePath, generatingManually);
+            if (success)
             {
-                var success = await DownloadFileHelper(imageLink, imagePath, generatingManually);
-                if (success)
-                {
-                    successful = true;
-                    break;
-                }
-            }
-
-            if (!successful)
-            {
-                return false; // Failed to download file
+                break;
             }
         }
-        // If unable to download file due to multiple subdomains (e.g. data1, data2, etc.)
-        // Context:
-        //   https://c1.kemono.party/data/95/47/95477512bd8e042c01d63f5774cafd2690c29e5db71e5b2ea83881c5a8ff67ad.gif]
-        //   will fail, however, changing the subdomain to c5 will allow requests to download the file
-        //   given that there are correct cookies in place
-        catch (BadSubdomainException)
+
+        if (!success)
         {
-            await DotPartySubdomainHandler(imageLink.Url, imagePath);
+            return false; // Failed to download file
         }
         
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
@@ -1250,6 +1238,99 @@ public partial class ImageRipper : IDisposable
         
         var url = imageLink.Url;
         await Task.Delay((int)(SleepTime * MillisecondsInSecond));
+        var (modifiedHeader, oldCookies) = await ModifyHeaders(url, imageLink);
+
+        Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
+        var resumeFrom = 0L;
+        while (true)
+        {
+            HttpResponseMessage response;
+            try
+            {
+                using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
+                if (resumeFrom > 0)
+                {
+                    request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
+                    Log.Information("Resuming download from byte {Offset}", resumeFrom);
+                }
+                
+                response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            }
+            catch (HttpRequestException e) when (e.InnerException is InvalidOperationException)
+            {
+                Log.Error("Unable to establish a connection to {Url}", url);
+                return false;
+            }
+            catch (HttpRequestException e) when (e.InnerException is SocketException)
+            {
+                Log.Error("Unable to establish a connection to {Url}", url);
+                return false;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return await HandleUnsuccessfulStatusCode(response, url, imageLink, generatingManually);
+            }
+
+            DownloadStatus result;
+            try
+            {
+                result = await WriteToFile(response, imagePath, resumeFrom);
+            }
+            catch (DownloadTimeoutException e)
+            {
+                if (e.DownloadedBytesCount == resumeFrom)
+                {
+                    Log.Warning("No progress made during download, aborting...");
+                    throw;
+                }
+                
+                resumeFrom += e.DownloadedBytesCount;
+                continue;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+            
+            switch (result)
+            {
+                case DownloadStatus.None:
+                    // Should not occur
+                    break;
+                case DownloadStatus.Ok:
+                    break;
+                case DownloadStatus.ConnectionReset:
+                    return false;
+                case DownloadStatus.Failed:
+                    LogFailedUrl(url);
+                    return false;
+                default:
+                    throw new ArgumentOutOfRangeException($"Enum value not handled: {result}");
+            }
+
+            RestoreHeaders(modifiedHeader, oldCookies);
+
+            if (imageLink.LinkInfo == LinkInfo.GoFile)
+            {
+                var ext = FileUtility.GetCorrectExtension(imagePath);
+                if (ext != ".html")
+                {
+                    return true;
+                }
+
+                Log.Warning("GoFile download failed, trying again...");
+                await AssociateGoFileCookies(imageLink.Url);
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    private async Task<(ModifiedHeader modifiedHeader, string oldCookies)> ModifyHeaders(string url, ImageLink imageLink)
+    {
         var modifiedHeader = ModifiedHeader.None;
         var oldCookies = "";
         if (url.Contains("redgifs"))
@@ -1272,157 +1353,11 @@ public partial class ImageRipper : IDisposable
             RequestHeaders[RequestHeaderKeys.UserAgent] = "NicheImageRipper";
         }
 
-        Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
-        HttpResponseMessage response;
-        try
-        {
-            using var request = RequestHeaders.ToRequest(HttpMethod.Get, url);
-            response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-        }
-        catch (HttpRequestException e) when (e.InnerException is InvalidOperationException)
-        {
-            Log.Error("Unable to establish a connection to {Url}", url);
-            return false;
-        }
-        catch (HttpRequestException e) when (e.InnerException is SocketException)
-        {
-            Log.Error("Unable to establish a connection to {Url}", url);
-            return false;
-        }
+        return (modifiedHeader, oldCookies);
+    }
 
-        if (!response.IsSuccessStatusCode)
-        {
-            Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
-            await Sleep(500);
-            
-            switch (response.StatusCode)
-            {
-                case HttpStatusCode.NotFound:
-                {
-                    LogFailedUrl(url);
-                    if (generatingManually)
-                    {
-                        throw new WrongExtensionException();
-                    }
-
-                    if (SiteName != "pixiv")
-                    {
-                        return false;
-                    }
-
-                    // TODO: Improve this
-                    // Api seems to always return .jpg even if the file is a .png
-                    var parts = imageLink.Url.Split(".");
-                    var ext = parts[^1];
-                    if (ext == "jpg")
-                    {
-                        parts[^1] = "png";
-                        imageLink.Url = string.Join(".", parts);
-                        Log.Information("Trying again with .png extension...");
-                    }
-
-                    return false;
-                }
-                case HttpStatusCode.Unauthorized:
-                    return false;
-                case HttpStatusCode.Forbidden:
-                    switch (SiteName)
-                    {
-                        case "kemono" when !url.Contains(".psd"):
-                            Log.Information("Wrong subdomain, trying again...");
-                            throw new BadSubdomainException();
-                        case "e-hentai":
-                            Log.Information("E-Hentai URL expired, trying to update links...");
-                            await Task.Delay(10 * MillisecondsInSecond); // Wait for 10 seconds before retrying
-                            throw new EHentaiUrlExpiredException();
-                    }
-                    return false;
-                case HttpStatusCode.BadGateway:
-                case HttpStatusCode.InternalServerError:
-                    return false;
-                
-                #region Unused Status Codes
-                
-                case HttpStatusCode.Continue:
-                case HttpStatusCode.SwitchingProtocols:
-                case HttpStatusCode.Processing:
-                case HttpStatusCode.EarlyHints:
-                case HttpStatusCode.OK:
-                case HttpStatusCode.Created:
-                case HttpStatusCode.Accepted:
-                case HttpStatusCode.NonAuthoritativeInformation:
-                case HttpStatusCode.NoContent:
-                case HttpStatusCode.ResetContent:
-                case HttpStatusCode.PartialContent:
-                case HttpStatusCode.MultiStatus:
-                case HttpStatusCode.AlreadyReported:
-                case HttpStatusCode.IMUsed:
-                case HttpStatusCode.Ambiguous:
-                case HttpStatusCode.Moved:
-                case HttpStatusCode.Found:
-                case HttpStatusCode.RedirectMethod:
-                case HttpStatusCode.NotModified:
-                case HttpStatusCode.UseProxy:
-                case HttpStatusCode.Unused:
-                case HttpStatusCode.RedirectKeepVerb:
-                case HttpStatusCode.PermanentRedirect:
-                case HttpStatusCode.BadRequest:
-                case HttpStatusCode.PaymentRequired:
-                case HttpStatusCode.MethodNotAllowed:
-                case HttpStatusCode.NotAcceptable:
-                case HttpStatusCode.ProxyAuthenticationRequired:
-                case HttpStatusCode.RequestTimeout:
-                case HttpStatusCode.Conflict:
-                case HttpStatusCode.Gone:
-                case HttpStatusCode.LengthRequired:
-                case HttpStatusCode.PreconditionFailed:
-                case HttpStatusCode.RequestEntityTooLarge:
-                case HttpStatusCode.RequestUriTooLong:
-                case HttpStatusCode.UnsupportedMediaType:
-                case HttpStatusCode.RequestedRangeNotSatisfiable:
-                case HttpStatusCode.ExpectationFailed:
-                case HttpStatusCode.MisdirectedRequest:
-                case HttpStatusCode.UnprocessableEntity:
-                case HttpStatusCode.Locked:
-                case HttpStatusCode.FailedDependency:
-                case HttpStatusCode.UpgradeRequired:
-                case HttpStatusCode.PreconditionRequired:
-                case HttpStatusCode.TooManyRequests:
-                case HttpStatusCode.RequestHeaderFieldsTooLarge:
-                case HttpStatusCode.UnavailableForLegalReasons:
-                case HttpStatusCode.NotImplemented:
-                case HttpStatusCode.ServiceUnavailable:
-                case HttpStatusCode.GatewayTimeout:
-                case HttpStatusCode.HttpVersionNotSupported:
-                case HttpStatusCode.VariantAlsoNegotiates:
-                case HttpStatusCode.InsufficientStorage:
-                case HttpStatusCode.LoopDetected:
-                case HttpStatusCode.NotExtended:
-                case HttpStatusCode.NetworkAuthenticationRequired:
-                default:
-                    break;
-                
-                #endregion
-            }
-        }
-
-        var result = await WriteToFile(response, imagePath);
-        switch (result)
-        {
-            case DownloadStatus.None:
-                // Should not occur
-                break;
-            case DownloadStatus.Ok:
-                break;
-            case DownloadStatus.ConnectionReset:
-                return false;
-            case DownloadStatus.Failed:
-                LogFailedUrl(url);
-                return false;
-            default:
-                throw new ArgumentOutOfRangeException($"Enum value not handled: {result}");
-        }
-
+    private void RestoreHeaders(ModifiedHeader modifiedHeader, string oldCookies)
+    {
         if (modifiedHeader.HasFlag(ModifiedHeader.Authorization))
         {
             RequestHeaders.Remove(RequestHeaderKeys.Authorization);
@@ -1430,28 +1365,129 @@ public partial class ImageRipper : IDisposable
         else if (modifiedHeader.HasFlag(ModifiedHeader.Cookie))
         {
             // Add more logic here if other sites require cookies when downloading files
-            //RequestHeaders[RequestHeaderKeys.Cookie] = GoFileAccountTokenCookieRegex().Replace(RequestHeaders[RequestHeaderKeys.Cookie], "");
             RequestHeaders[RequestHeaderKeys.Cookie] = oldCookies;
         }
         else if (modifiedHeader.HasFlag(ModifiedHeader.UserAgent))
         {
             RequestHeaders[RequestHeaderKeys.UserAgent] = Config.UserAgent;
         }
+    }
 
-        if (imageLink.LinkInfo == LinkInfo.GoFile)
+    private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink, bool generatingManually)
+    {
+        Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
+        await Sleep(500);
+        
+        switch (response.StatusCode)
         {
-            var ext = FileUtility.GetCorrectExtension(imagePath);
-            if (ext != ".html")
+            case HttpStatusCode.NotFound:
             {
-                return true;
+                LogFailedUrl(url);
+                if (generatingManually)
+                {
+                    throw new WrongExtensionException();
+                }
+
+                if (SiteName != "pixiv")
+                {
+                    return false;
+                }
+
+                // TODO: Improve this
+                // Api seems to always return .jpg even if the file is a .png
+                var parts = imageLink.Url.Split(".");
+                var ext = parts[^1];
+                if (ext == "jpg")
+                {
+                    parts[^1] = "png";
+                    imageLink.Url = string.Join(".", parts);
+                    Log.Information("Trying again with .png extension...");
+                }
+
+                return false;
             }
-
-            Log.Warning("GoFile download failed, trying again...");
-            await AssociateGoFileCookies(imageLink.Url);
-            return false;
+            case HttpStatusCode.Unauthorized:
+                return false;
+            case HttpStatusCode.Forbidden:
+                switch (SiteName)
+                {
+                    case "kemono" when !url.Contains(".psd"):
+                        Log.Information("Wrong subdomain, trying again...");
+                        throw new BadSubdomainException();
+                    case "e-hentai":
+                        Log.Information("E-Hentai URL expired, trying to update links...");
+                        await Task.Delay(10 * MillisecondsInSecond); // Wait for 10 seconds before retrying
+                        throw new EHentaiUrlExpiredException();
+                }
+                return false;
+            case HttpStatusCode.BadGateway:
+            case HttpStatusCode.InternalServerError:
+                return false;
+            
+            #region Unused Status Codes
+            
+            case HttpStatusCode.Continue:
+            case HttpStatusCode.SwitchingProtocols:
+            case HttpStatusCode.Processing:
+            case HttpStatusCode.EarlyHints:
+            case HttpStatusCode.OK:
+            case HttpStatusCode.Created:
+            case HttpStatusCode.Accepted:
+            case HttpStatusCode.NonAuthoritativeInformation:
+            case HttpStatusCode.NoContent:
+            case HttpStatusCode.ResetContent:
+            case HttpStatusCode.PartialContent:
+            case HttpStatusCode.MultiStatus:
+            case HttpStatusCode.AlreadyReported:
+            case HttpStatusCode.IMUsed:
+            case HttpStatusCode.Ambiguous:
+            case HttpStatusCode.Moved:
+            case HttpStatusCode.Found:
+            case HttpStatusCode.RedirectMethod:
+            case HttpStatusCode.NotModified:
+            case HttpStatusCode.UseProxy:
+            case HttpStatusCode.Unused:
+            case HttpStatusCode.RedirectKeepVerb:
+            case HttpStatusCode.PermanentRedirect:
+            case HttpStatusCode.BadRequest:
+            case HttpStatusCode.PaymentRequired:
+            case HttpStatusCode.MethodNotAllowed:
+            case HttpStatusCode.NotAcceptable:
+            case HttpStatusCode.ProxyAuthenticationRequired:
+            case HttpStatusCode.RequestTimeout:
+            case HttpStatusCode.Conflict:
+            case HttpStatusCode.Gone:
+            case HttpStatusCode.LengthRequired:
+            case HttpStatusCode.PreconditionFailed:
+            case HttpStatusCode.RequestEntityTooLarge:
+            case HttpStatusCode.RequestUriTooLong:
+            case HttpStatusCode.UnsupportedMediaType:
+            case HttpStatusCode.RequestedRangeNotSatisfiable:
+            case HttpStatusCode.ExpectationFailed:
+            case HttpStatusCode.MisdirectedRequest:
+            case HttpStatusCode.UnprocessableEntity:
+            case HttpStatusCode.Locked:
+            case HttpStatusCode.FailedDependency:
+            case HttpStatusCode.UpgradeRequired:
+            case HttpStatusCode.PreconditionRequired:
+            case HttpStatusCode.TooManyRequests:
+            case HttpStatusCode.RequestHeaderFieldsTooLarge:
+            case HttpStatusCode.UnavailableForLegalReasons:
+            case HttpStatusCode.NotImplemented:
+            case HttpStatusCode.ServiceUnavailable:
+            case HttpStatusCode.GatewayTimeout:
+            case HttpStatusCode.HttpVersionNotSupported:
+            case HttpStatusCode.VariantAlsoNegotiates:
+            case HttpStatusCode.InsufficientStorage:
+            case HttpStatusCode.LoopDetected:
+            case HttpStatusCode.NotExtended:
+            case HttpStatusCode.NetworkAuthenticationRequired:
+            default:
+                Log.Warning("Unhandled status code: {ResponseStatusCode}", response.StatusCode);
+                return false;
+            
+            #endregion
         }
-
-        return true;
     }
     
     private async Task AssociateGoFileCookies(string url)
@@ -1486,7 +1522,7 @@ public partial class ImageRipper : IDisposable
         var loginLink = Config.Custom.GoFile.LoginLink;
         Driver.Url = loginLink;
         await Sleep(10000);
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < RetryCount; i++)
         {
             await Sleep(2500);
             if (Driver.Url == "https://gofile.io/myProfile")
@@ -1498,7 +1534,9 @@ public partial class ImageRipper : IDisposable
             if (i == 3)
             {
                 Log.Warning("Failed to login to GoFile: {CurrentUrl}", Driver.Url);
-                Driver.GetScreenshot().SaveAsFile("test2.png");
+                #if DEBUG
+                Driver.TakeDebugScreenshot("gofile.png");
+                #endif
             }
         }
         
@@ -1531,107 +1569,15 @@ public partial class ImageRipper : IDisposable
             Log.Information("File already exists but is different, renaming src...");
         }
     }
-    
-    private async Task DotPartySubdomainHandler(string url, string imagePath)
-    {
-        // TODO: Check if this is still needed as urls now come from the API and should be valid by default
-        var subdomainSearch = DotPartySubdomainRegex().Match(url);
-        if (!subdomainSearch.Success)
-        {
-            PrintDebugInfo("bad_subdomain", url);
-            throw new ImproperlyFormattedSubdomainException();
-        }
-        
-        var subdomainNum = int.Parse(subdomainSearch.Groups[1].Value);
-        for (var i = 0; i < 100; i++)
-        {
-            if (i == subdomainNum)
-            {
-                continue;
-            }
-            
-            var ripUrl = DotPartyReplacementRegex().Replace(url, $"//c{i}");
-            
-            try
-            {
-                await DownloadPartyFile(imagePath, ripUrl);
-            }
-            catch (BadSubdomainException)
-            {
-                Log.Information("Trying subdomain c{SubdomainIndex}...", i);
-                if (i == 99)
-                {
-                    LogFailedUrl(DotPartyReplacementRegex().Replace(url, $"//c{subdomainNum}"));
-                    return;
-                }
-            }
-        }
-        
-        Log.Information("{Url:l}", url);
-    }
 
-    private async Task DownloadPartyFile(string imagePath, string ripUrl)
-    {
-        await Task.Delay((int)(SleepTime * MillisecondsInSecond));
-
-        for(var _ = 0; _ < RetryCount; _++)
-        {
-            HttpResponseMessage response;
-            try
-            {
-                using var request = RequestHeaders.ToRequest(HttpMethod.Get, ripUrl);
-                response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            }
-            catch (HttpRequestException)
-            {
-                Log.Error("Unable to establish connection to {url}", ripUrl);
-                return;
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == HttpStatusCode.Forbidden && !ripUrl.Contains(".psd"))
-                {
-                    throw new BadSubdomainException();
-                }
-
-                Log.Warning("<Response {statusCode}>", response.StatusCode);
-
-                if (response.StatusCode == HttpStatusCode.NotFound)
-                {
-                    LogFailedUrl(ripUrl);
-                    throw new FileNotFoundAtUrlException(ripUrl);
-                }
-            }
-
-            var result = await WriteToFile(response, imagePath);
-            switch (result)
-            {
-                case DownloadStatus.None:
-                    // Should not occur
-                    break;
-                case DownloadStatus.Ok:
-                    goto BreakLoop;
-                case DownloadStatus.ConnectionReset:
-                    continue;
-                case DownloadStatus.Failed:
-                    LogFailedUrl(ripUrl);
-                    goto BreakLoop;
-                default:
-                    throw new EnumOutOfRangeException(result, typeof(DownloadStatus));
-            }
-        }
-        
-        BreakLoop: ;
-    }
-    
     /// <summary>
     ///     Write response data to file
     /// </summary>
     /// <param name="response">Response to write to file</param>
     /// <param name="path">Filepath to write to</param>
+    /// <param name="resumeFrom">Byte offset to resume from</param>
     /// <returns>Boolean based on successfulness</returns>
-    private async Task<DownloadStatus> WriteToFile(HttpResponseMessage response, string path)
+    private async Task<DownloadStatus> WriteToFile(HttpResponseMessage response, string path, long resumeFrom)
     {
         var expandedFilePath = path.StartsWith('~')
             ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..])
@@ -1639,37 +1585,9 @@ public partial class ImageRipper : IDisposable
 
         var idleTimeout = TimeSpan.FromSeconds(30); // 30 seconds idle timeout
         var savePath = Path.GetFullPath(expandedFilePath);
-        const int minimumFileSize = 1024; // 1KB minimum file size
         try
         {
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream =
-                new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            var buffer = new byte[4096]; // 4KB buffer
-            int bytesRead;
-            var totalSize = 0L;
-            var lastActivity = DateTime.UtcNow;
-
-            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
-            {
-                totalSize += bytesRead;
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-
-                if (DateTime.UtcNow - lastActivity > idleTimeout)
-                {
-                    throw new TimeoutException("No data received for too long.");
-                }
-                
-                lastActivity = DateTime.UtcNow;
-            }
-            
-            if (totalSize < minimumFileSize)
-            {
-                Log.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
-                return SiteName == "e-hentai" ? throw new EHentaiUrlExpiredException() : DownloadStatus.Failed;
-            }
-            
-            return DownloadStatus.Ok; // Success
+            return await BufferedWrite(response, savePath, idleTimeout, resumeFrom);
         }
         catch (HttpRequestException)
         {
@@ -1677,11 +1595,57 @@ public partial class ImageRipper : IDisposable
             await Sleep(1000); // Wait for 1 second before retrying
             return DownloadStatus.ConnectionReset;
         }
+    }
+
+    private async Task<DownloadStatus> BufferedWrite(HttpResponseMessage response, string savePath, TimeSpan idleTimeout, long resumFrom)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        await using var fileStream =
+            new FileStream(savePath, 
+                resumFrom > 0 ? FileMode.Append : FileMode.Create,
+                FileAccess.Write, 
+                FileShare.None);
+        var buffer = new byte[4096]; // 4KB buffer
+        var totalSize = 0L;
+        var lastActivity = DateTime.UtcNow;
+
+        try
+        {
+            int bytesRead;
+            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+            {
+                totalSize += bytesRead;
+                //Log.Debug("Downloaded {TotalSize} bytes...", totalSize);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+
+                if (DateTime.UtcNow - lastActivity > idleTimeout)
+                {
+                    Log.Warning("Download timed out due to inactivity.");
+                    throw new DownloadTimeoutException(totalSize, "No data received for too long.");
+                }
+                
+                lastActivity = DateTime.UtcNow;
+            }
+        }
         catch (IOException e)
         {
-            Log.Error("Failed to open file: {savePath} - Reason: {Reason}", savePath, e.Message);
+            if (e.Message.StartsWith("The response ended prematurely"))
+            {
+                Log.Warning("Download response ended prematurely.");
+                throw new DownloadTimeoutException(totalSize, e.Message, e);
+            }
+            
+            Log.Error("An IO error occured: {savePath} - Reason: {Reason}", savePath, e.Message);
             return DownloadStatus.Failed;
         }
+            
+        if (totalSize < MinimumFileSize)
+        {
+            Log.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
+            return SiteName == "e-hentai" ? throw new EHentaiUrlExpiredException() : DownloadStatus.Failed;
+        }
+            
+        return DownloadStatus.Ok; // Success
     }
 
     /// <summary>

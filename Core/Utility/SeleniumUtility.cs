@@ -6,9 +6,9 @@ namespace Core.Utility;
 public static class SeleniumUtility
 {
     [Conditional("DEBUG")]
-    public static void TakeDebugScreenshot(this IWebDriver driver)
+    public static void TakeDebugScreenshot(this IWebDriver driver, string filename = "test.png")
     {
-        ((ITakesScreenshot)driver).GetScreenshot().SaveAsFile("test.png");
+        ((ITakesScreenshot)driver).GetScreenshot().SaveAsFile(filename);
     }
     
     [Conditional("DEBUG")]
