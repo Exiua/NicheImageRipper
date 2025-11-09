@@ -8,6 +8,7 @@ public class DownloadStats
     public int NumDuplicates { get; set; }
     
     public int FailedDownloadsCount => FailedDownloads.Count;
+    public bool HasFailedDownloads => FailedDownloadsCount > 0;
     
     public string GetStats(int total)
     {

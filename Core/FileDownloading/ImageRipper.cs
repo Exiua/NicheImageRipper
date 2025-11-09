@@ -240,12 +240,20 @@ public partial class ImageRipper : IDisposable
             {
                 File.Delete("partial.json");
             }
+            
             throw e;
         }
         
         if(UnzipProtocol != UnzipProtocol.None)
         {
             UnzipFiles(fullPath, downloadStats);
+        }
+
+        if (downloadStats.HasFailedDownloads)
+        {
+            var failedDownloads = downloadStats.FailedDownloads.Join("\n");
+            var failedPath = Path.Combine(fullPath, "failedDownloads.txt");
+            await File.WriteAllTextAsync(failedPath, failedDownloads);
         }
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
