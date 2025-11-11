@@ -200,6 +200,11 @@ public partial class NicheImageRipper : IDisposable
         {
             return NormalizeBooruUrl(url, Booru.Rule34);
         }
+        
+        if (host.Contains("e621.net"))
+        {
+            return NormalizeBooruUrl(url, Booru.E621);
+        }
 
         if (host.Contains("booru.com"))
         {
@@ -239,11 +244,8 @@ public partial class NicheImageRipper : IDisposable
 
         return booru switch
         {
-            Booru.Danbooru => $"{baseUrl}?{tags}",
-            Booru.Gelbooru => $"{baseUrl}?page=post&s=list&{tags}",
-            Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
-            Booru.Yandere => $"{baseUrl}?{tags}",
-            Booru.E621 => throw new NotImplementedException(),
+            Booru.Danbooru or Booru.Yandere or Booru.E621  => $"{baseUrl}?{tags}",
+            Booru.Gelbooru or Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
             _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
         };
     }

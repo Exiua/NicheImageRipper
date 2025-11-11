@@ -351,6 +351,7 @@ public abstract partial class HtmlParser : IDisposable
             "x-x-x" => new XxxTubeParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "privatehomeclips" => new PrivateHomeClipsParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "archivebate" => new ArchivebateParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "e621" => new E621Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
