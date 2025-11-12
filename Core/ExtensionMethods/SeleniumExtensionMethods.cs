@@ -1,4 +1,5 @@
 ﻿using OpenQA.Selenium;
+using Serilog;
 
 namespace Core.ExtensionMethods;
 
@@ -108,7 +109,12 @@ public static class SeleniumExtensionMethods
         var existingCookie = cookieJar.GetCookieNamed(cookie.Name);
         if (existingCookie is not null)
         {
+            Log.Debug("Replacing existing cookie: {CookieName}", cookie.Name);
             cookieJar.DeleteCookie(existingCookie);
+        }
+        else
+        {
+            Log.Debug("Adding new cookie: {CookieName}", cookie.Name);
         }
         
         cookieJar.AddCookie(cookie);
@@ -168,5 +174,18 @@ public static class SeleniumExtensionMethods
         var seleniumCookie = new Cookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path, expiration, cookie.Secure, 
             cookie.HttpOnly, cookie.SameSite);
         return seleniumCookie;
+    }
+    
+    public static bool DoElementsOverlap(this IWebDriver driver, IWebElement element1, IWebElement element2)
+    {
+        var rect1 = element1.Location;
+        var size1 = element1.Size;
+        var rect2 = element2.Location;
+        var size2 = element2.Size;
+
+        return !(rect1.X > rect2.X + size2.Width ||
+                 rect1.X + size1.Width < rect2.X ||
+                 rect1.Y > rect2.Y + size2.Height ||
+                 rect1.Y + size1.Height < rect2.Y);
     }
 }

@@ -91,7 +91,8 @@ public static partial class UrlUtility
         "https://videomonstr.com/", "https://www.pornoxo.com/", "https://www.porndr.com/", "https://xhamster.com/",
         "https://abxxx.com/", /*"https://love4porn.com/",*/ "https://www.xvideos.com/", "https://asianviralhub.com/",
         "https://hdzog.com/", "https://pornzog.com/", "https://x-x-x.tube/", "https://privatehomeclips.com/",
-        "https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/", "https://e621.net/"
+        "https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/", "https://e621.net/",
+        "https://missav123.com/"
     }.ToFrozenSet();
 
     /// <summary>

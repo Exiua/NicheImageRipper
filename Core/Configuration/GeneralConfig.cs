@@ -22,6 +22,7 @@ public class
     public int RetryDelay { get; set; }
     public string FlareSolverrUri { get; set; } = null!;
     public bool CloseFlareSolverrSession { get; set; }
+    public string CSWebDriverUri { get; set; } = null!;
     public LoginConfig Logins { get; set; } = null!;
     public KeyConfig Keys { get; set; } = null!;
     public CookieConfig Cookies { get; set; } = null!;
@@ -52,6 +53,8 @@ public class
         MaxRetries = 4;
         RetryDelay = 1000;
         FlareSolverrUri = "";
+        CloseFlareSolverrSession = true;
+        CSWebDriverUri = "";
         Logins = LoginConfig.New();
         Keys = KeyConfig.New();
         Cookies = CookieConfig.New();

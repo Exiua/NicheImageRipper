@@ -31,7 +31,8 @@ public class WebDriver : IDisposable
     /// <summary>
     ///     Regenerate the WebDriver instance. This is useful when the WebDriver is no longer responsive.
     /// </summary>
-    public void RegenerateDriver()
+    /// <param name="userAgent">Optional user agent string to override the default.</param>
+    public void RegenerateDriver(string? userAgent = null)
     {
         try
         {
@@ -42,16 +43,17 @@ public class WebDriver : IDisposable
             Log.Error(e, "Failed to quit the WebDriver.");
         }
         
-        Driver = CreateFirefoxDriver(IsHeadless);
+        Driver = CreateFirefoxDriver(IsHeadless, userAgent);
         SiteLoginStatus.Clear();
     }
-    
+
     /// <summary>
     ///     Create a new FirefoxDriver instance with the specified options.
     /// </summary>
     /// <param name="headless">Whether to run the WebDriver in headless mode. Mainly for debugging purposes.</param>
+    /// <param name="userAgent">Optional user agent string to override the default.</param>
     /// <returns>A new FirefoxDriver instance.</returns>
-    private static FirefoxDriver CreateFirefoxDriver(bool headless)
+    private static FirefoxDriver CreateFirefoxDriver(bool headless, string? userAgent = null)
     {
         const int maxRetry = 4;
         var options = InitializeOptions(headless);
@@ -79,15 +81,16 @@ public class WebDriver : IDisposable
         driver.ExecuteScript("Object.defineProperty(navigator, 'webdriver', {get: () => false});");
         return driver;
     }
-    
+
     /// <summary>
     ///     Initialize the FirefoxOptions for the WebDriver. Enables headless mode if debug is false. Enables web socket
     ///     URL to allow for BiDi communication. Sets the user agent to the one specified in the configuration file.
     ///     Disables audio by setting the volume scale to 0.0.
     /// </summary>
     /// <param name="headless">Whether to run the WebDriver in headless mode. Mainly for debugging purposes.</param>
+    /// <param name="userAgent">Optional user agent string to override the default.</param>
     /// <returns>The initialized FirefoxOptions instance.</returns>
-    private static FirefoxOptions InitializeOptions(bool headless)
+    private static FirefoxOptions InitializeOptions(bool headless, string? userAgent = null)
     {
         var options = new FirefoxOptions
         {
@@ -106,7 +109,7 @@ public class WebDriver : IDisposable
         options.SetPreference("layers.acceleration.disabled", false);
         options.SetPreference("dom.serviceWorkers.enabled", true);
         options.SetPreference("dom.indexedDB.enabled", true);
-        options.SetPreference("general.useragent.override", UserAgent);
+        options.SetPreference("general.useragent.override", userAgent ?? UserAgent);
         options.SetPreference("media.volume_scale", "0.0");
         
         return options;

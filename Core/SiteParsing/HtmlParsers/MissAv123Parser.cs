@@ -1,7 +1,10 @@
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.Managers;
+using CSWebDriverClient.Models.Responses;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -17,15 +20,39 @@ public class MissAv123Parser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for missav123.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
-        var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var soup = await SolveParse();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='mt-4']/h1").InnerText;
+        var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
+        var urls = await client.GetNetworkUrls(CurrentUrl);
+        if (urls is ErrorResponse errorResponse)
+        {
+            Log.Error("Failed to get network URLs: {Error}", errorResponse.Error);
+            throw new RipperException($"Failed to get network URLs: {errorResponse.Error}");
+        }
+        
+        var successResponse = (GetNetworkUrlResponse) urls;
+        var playlist = successResponse.Urls.FirstOrDefault(url => url.Contains("playlist.m3u8"));
+        if (playlist.IsNullOrEmpty())
+        {
+            Log.Error("No playlist URL found in network URLs.");
+            throw new RipperException("No playlist URL found in network URLs.");
+        }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        var parts = playlist.Split("/");
+        var id = parts[3];
+        var filename = id + ".mp4";
+        var image = new ImageLink(playlist, FilenameScheme, 0)
+        {
+            LinkInfo = LinkInfo.M3U8YtDlp,
+            Filename = filename,
+            Referer = CurrentUrl
+        };
+
+        return RipInfo.FromUrlList([image], dirName, FilenameScheme);
     }
 }

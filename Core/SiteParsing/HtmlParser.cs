@@ -352,6 +352,7 @@ public abstract partial class HtmlParser : IDisposable
             "privatehomeclips" => new PrivateHomeClipsParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "archivebate" => new ArchivebateParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "e621" => new E621Parser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "missav123" => new MissAv123Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
@@ -695,6 +696,8 @@ public abstract partial class HtmlParser : IDisposable
     /// <param name="cookies">
     ///     Optional. A list of cookie dictionaries to include in the session when solving the CAPTCHA.
     /// </param>
+    /// <param name="cookieWhitelist">List of cookie names to retain from the existing session.</param>
+    /// <param name="replaceUserAgent">Whether to replace the User-Agent header with the one provided by FlareSolverr.</param>
     /// <returns>
     ///     The parsed HTML document as an <see cref="HtmlNode"/>.
     /// </returns>
@@ -705,11 +708,19 @@ public abstract partial class HtmlParser : IDisposable
     ///     Thrown if CAPTCHA solving fails and session regeneration is disabled.
     /// </exception>
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
-                                                        List<Dictionary<string, string>>? cookies = null)
+                                                        List<Dictionary<string, string>>? cookies = null, List<string>? cookieWhitelist = null, bool replaceUserAgent = false)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies);
+        if (replaceUserAgent)
+        {
+            Log.Debug("Replacing User-Agent with FlareSolverr provided User-Agent: {UserAgent}", solution.UserAgent);
+            var currentUrl = CurrentUrl;
+            WebDriver.RegenerateDriver(solution.UserAgent);
+            CurrentUrl = currentUrl;
+        }
+        
         var cookieJar = Driver.GetCookieJar();
-        foreach (var cookie in solution.Cookies)
+        foreach (var cookie in solution.Cookies.Where(cookie => cookieWhitelist is null || cookieWhitelist.Contains(cookie.Name)))
         {
             Log.Debug("Adding cookie: {@Cookie}", cookie);
             var seleniumCookie = cookie.ToSeleniumCookie();
@@ -723,10 +734,6 @@ public abstract partial class HtmlParser : IDisposable
                                               List<Dictionary<string, string>>? cookies = null)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies);
-        #if DEBUG
-        await File.WriteAllTextAsync("test-solver.html", solution.Response);
-        Log.Debug("User-Agent: {UserAgent}", solution.UserAgent);
-        #endif
         return await Soupify(solution);
     }
 
@@ -759,6 +766,11 @@ public abstract partial class HtmlParser : IDisposable
                 Log.Warning("Failed to get site solution for {CurrentUrl}, retrying...", CurrentUrl);
             }
         }
+        
+        #if DEBUG
+        await File.WriteAllTextAsync("test-solver.html", solution.Response);
+        Log.Debug("User-Agent: {UserAgent}", solution.UserAgent);
+        #endif
         
         return solution;
     }
