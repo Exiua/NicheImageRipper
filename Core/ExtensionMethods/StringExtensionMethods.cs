@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Web;
 using Core.SiteParsing;
 
@@ -45,7 +46,7 @@ public static class StringExtensionMethods
         return src.Replace(toRemove, string.Empty);
     }
 
-    public static bool IsNullOrEmpty(this string? s)
+    public static bool IsNullOrEmpty([NotNullWhen(false)]this string? s)
     {
         return string.IsNullOrEmpty(s);
     }
