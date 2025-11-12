@@ -12,6 +12,8 @@ namespace Core.DataStructures;
 
 public class RipInfo
 {
+    private const int MaxDirectoryNameLength = 130; // Half of typical max path length to allow for subdirectories and filenames
+    
     private string _directoryName = null!; // Initialized through the property setter
 
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
@@ -216,7 +218,17 @@ public class RipInfo
 
     private static string CleanDirectoryName(string directoryName)
     {
-        return string.IsNullOrWhiteSpace(directoryName) ? "" : FilesystemUtility.CleanPathStem(directoryName);
+        var name = string.IsNullOrWhiteSpace(directoryName) ? "" : FilesystemUtility.CleanPathStem(directoryName);
+        if (name.Length <= MaxDirectoryNameLength)
+        {
+            return name;
+        }
+
+        Log.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
+            name.Length, MaxDirectoryNameLength);
+        name = name[..MaxDirectoryNameLength];
+
+        return name;
     }
 
     private static void SaveRawUrls(List<StringImageLinkWrapper> urls)

@@ -26,7 +26,9 @@ public class MissAv123Parser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await SolveParse();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='mt-4']/h1").InnerText;
+        var dirNameRaw = soup.SelectSingleNodeOrThrow("//div[@class='mt-4']/h1").InnerText;
+        var dirName = dirNameRaw.Contains(',') ? dirNameRaw.Split(',')[0] : dirNameRaw;
+        
         var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
         var urls = await client.GetNetworkUrls(CurrentUrl);
         if (urls is ErrorResponse errorResponse)
