@@ -353,6 +353,7 @@ public abstract partial class HtmlParser : IDisposable
             "archivebate" => new ArchivebateParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "e621" => new E621Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             "missav123" => new MissAv123Parser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "porncomics18" => new PornComics18Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
