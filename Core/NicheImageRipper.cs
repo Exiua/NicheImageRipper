@@ -605,6 +605,7 @@ public partial class NicheImageRipper : IDisposable
         support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : ExternalFeatureSupport.None;
         support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : ExternalFeatureSupport.None;
         support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : ExternalFeatureSupport.None;
+        support |= CheckForCSWebDriver() ? ExternalFeatureSupport.CSWebDriver : ExternalFeatureSupport.None;
         return support;
     }
 
@@ -626,6 +627,11 @@ public partial class NicheImageRipper : IDisposable
     private static bool CheckForFlareSolverr()
     {
         return Config.FlareSolverrUri != "";
+    }
+
+    private static bool CheckForCSWebDriver()
+    {
+        return Config.CSWebDriverUri != "";
     }
 
     private static bool CheckForProcess(string filename, string arguments)

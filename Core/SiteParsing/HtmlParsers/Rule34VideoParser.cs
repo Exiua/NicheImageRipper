@@ -44,13 +44,13 @@ public class Rule34VideoParser : HtmlParser
         }
 
         var soup = await SolveParseAddCookies();
-        var dirName = soup.SelectSingleNode("//div[@class='title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText;
         var videoPosts = new List<string>();
         while (true)
         {
             Log.Debug("Searching for videos");
-            var videos = soup.SelectSingleNode("//div[@id='custom_list_videos_common_videos_items']")
-                                .SelectNodes("./div")
+            var videos = soup.SelectSingleNodeOrThrow("//div[@id='custom_list_videos_common_videos_items']")
+                                .SelectNodesOrThrow("./div")
                                 .Select(div => div.SelectSingleNode("./a[@class='th js-open-popup']")?
                                                         .GetHref()
                                                         .DecodeUrl())
@@ -85,12 +85,12 @@ public class Rule34VideoParser : HtmlParser
             Log.Debug("Parsing post: {Post}", post);
             soup = await Soupify(post, delay: 500);
             Log.Debug("Searching for video info");
-            var videoInfo = soup.SelectSingleNode("//div[@id='tab_video_info']");
+            var videoInfo = soup.SelectSingleNodeOrThrow("//div[@id='tab_video_info']");
             Log.Debug("Searching for downloads");
-            var downloads = videoInfo.SelectNodes("./div")[^1];
+            var downloads = videoInfo.SelectNodesOrThrow("./div")[^1];
             Log.Debug("Grabbing download link");
             // First link is the highest quality
-            var downloadLink = downloads.SelectSingleNode(".//a").GetHref().DecodeUrl();
+            var downloadLink = downloads.SelectSingleNodeOrThrow(".//a").GetHref().DecodeUrl();
             images.Add(downloadLink);
         }
 

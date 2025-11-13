@@ -25,6 +25,12 @@ public class MissAv123Parser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse()
     {
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
+        {
+            Log.Error("CSWebDriver URI is not configured. Cannot parse missav123.com without CSWebDriver.");
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);
+        }
+        
         var soup = await SolveParse();
         var dirNameRaw = soup.SelectSingleNodeOrThrow("//div[@class='mt-4']/h1").InnerText;
         var dirName = dirNameRaw.Contains(',') ? dirNameRaw.Split(',')[0] : dirNameRaw;

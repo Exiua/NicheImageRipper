@@ -21,11 +21,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing;
 
-public abstract partial class HtmlParser : IDisposable
+public abstract class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
 
-    protected static readonly string[] EXTERNAL_SITES =
+    protected static readonly string[] ExternalSites =
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
     
     protected static GeneralConfig Config => Configuration.Config.Instance;
@@ -844,7 +844,7 @@ public abstract partial class HtmlParser : IDisposable
     protected static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
         var externalLinks = new Dictionary<string, List<string>>();
-        foreach (var site in EXTERNAL_SITES)
+        foreach (var site in ExternalSites)
         {
             externalLinks[site] = [];
         }
@@ -884,7 +884,7 @@ public abstract partial class HtmlParser : IDisposable
 
     protected static bool UrlCanBeParsed(string url)
     {
-        return !string.IsNullOrEmpty(url) && EXTERNAL_SITES.Any(url.Contains);
+        return !string.IsNullOrEmpty(url) && ExternalSites.Any(url.Contains);
     }
 
     /// <summary>

@@ -7,5 +7,6 @@ public enum ExternalFeatureSupport
     Ffmpeg          = 1 << 0,
     YtDlp           = 1 << 1,
     MegaCmd         = 1 << 2,
-    FlareSolverr    = 1 << 3
+    FlareSolverr    = 1 << 3,
+    CSWebDriver     = 1 << 4,
 }
