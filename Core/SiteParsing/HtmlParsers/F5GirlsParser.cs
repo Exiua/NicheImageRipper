@@ -1,7 +1,6 @@
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
-using Core.ExtensionMethods;
 using Core.Managers;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -20,17 +19,17 @@ public class F5GirlsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNodes("//div[@class='container']")[2]
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectNodesOrThrow("//div[@class='container']")[2]
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
         var images = new List<StringImageLinkWrapper>();
         var currUrl = CurrentUrl.Replace("?page=1", "");
-        var pages = soup.SelectSingleNode("//ul[@class='pagination']")
-                        .SelectNodes(".//li")
+        var pages = soup.SelectSingleNodeOrThrow("//ul[@class='pagination']")
+                        .SelectNodesOrThrow(".//li")
                         .Count - 1;
         for (var i = 0; i < pages; i++)
         {
-            var imageList = soup.SelectNodes("//img[@class='album-image lazy']")
+            var imageList = soup.SelectNodesOrThrow("//img[@class='album-image lazy']")
                                 .Select(img => img.GetSrc())
                                 .Select(dummy => (StringImageLinkWrapper)dummy)
                                 .ToList();

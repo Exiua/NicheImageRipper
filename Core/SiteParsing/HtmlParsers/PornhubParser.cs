@@ -36,7 +36,7 @@ public class PornhubParser : HtmlParser
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("/model/") || CurrentUrl.Contains("/pornstar/"))
         {
-            dirName = soup.SelectSingleNode("//h1[@itemprop='name']").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@itemprop='name']").InnerText;
             List<string> posts = [];
             var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
             soup = await Soupify($"{baseUrl}/photos/public");
@@ -75,7 +75,7 @@ public class PornhubParser : HtmlParser
                     break;
                 }
                 
-                var nextPageUrl = nextPage.SelectSingleNode("./a").GetHref();
+                var nextPageUrl = nextPage.SelectSingleNodeOrThrow("./a").GetHref();
                 soup = await Soupify($"https://www.pornhub.com{nextPageUrl}");
             }
             
@@ -108,8 +108,8 @@ public class PornhubParser : HtmlParser
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("view_video"))
         {
-            dirName = soup.SelectSingleNode("//h1[@class='title']").SelectSingleNode(".//span").InnerText;
-            var player = soup.SelectSingleNode("//div[@id='player']").SelectSingleNode(".//script");
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").SelectSingleNodeOrThrow(".//span").InnerText;
+            var player = soup.SelectSingleNodeOrThrow("//div[@id='player']").SelectSingleNodeOrThrow(".//script");
             var js = player.InnerText;
             js = js.Split("var ")[1];
             var start = js.IndexOf('{');
@@ -140,9 +140,9 @@ public class PornhubParser : HtmlParser
         {
             await LazyLoad(scrollBy: true);
             soup = await Soupify();
-            dirName = soup.SelectSingleNode("//h1[@class='photoAlbumTitleV2']").InnerText.Trim();
-            var posts = soup.SelectSingleNode("//ul[@class='photosAlbumsListing albumViews preloadImage']")
-                            .SelectNodes(".//a")
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='photoAlbumTitleV2']").InnerText.Trim();
+            var posts = soup.SelectSingleNodeOrThrow("//ul[@class='photosAlbumsListing albumViews preloadImage']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(a => "https://www.pornhub.com" + a.GetHref());
             images = [];
             foreach (var post in posts)
@@ -153,7 +153,7 @@ public class PornhubParser : HtmlParser
                 var imageNode = soup.SelectSingleNode("//div[@id='photoImageSection']//img");
                 var url = imageNode is not null 
                     ? imageNode.GetSrc() 
-                    : soup.SelectSingleNode("//video[@class='centerImageVid']/source").GetSrc();
+                    : soup.SelectSingleNodeOrThrow("//video[@class='centerImageVid']/source").GetSrc();
                 images.Add(url);
             }
         }
@@ -167,7 +167,7 @@ public class PornhubParser : HtmlParser
             }
             await WaitForElement("//video[@id='gifWebmPlayer']/source", timeout: -1);
             soup = await Soupify();
-            var url = soup.SelectSingleNode("//video[@id='gifWebmPlayer']/source").GetSrc();
+            var url = soup.SelectSingleNodeOrThrow("//video[@id='gifWebmPlayer']/source").GetSrc();
             images = [url];
         }
         else

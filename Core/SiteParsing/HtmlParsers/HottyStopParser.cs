@@ -20,19 +20,11 @@ public class HottyStopParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var boxLargeContent = soup.SelectSingleNode("//div[@class='content-center content-center-2']");
-        string dirName;
-        try
-        {
-            dirName = boxLargeContent.SelectSingleNode(".//h1").InnerText;
-        }
-        catch (NullReferenceException)
-        {
-            dirName = boxLargeContent.SelectSingleNode(".//u").InnerText;
-        }
-    
-        var images = soup.SelectSingleNode("//ul[@class='gallery']")
-                            .SelectNodes(".//a")
+        var boxLargeContent = soup.SelectSingleNodeOrThrow("//div[@class='content-center content-center-2']");
+        var titleNode = boxLargeContent.SelectSingleNode(".//h1") ?? boxLargeContent.SelectSingleNodeOrThrow(".//u");
+        var dirName = titleNode.InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gallery']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(a => a.GetHref())
                             .ToStringImageLinkWrapperList();
     

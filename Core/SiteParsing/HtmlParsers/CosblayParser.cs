@@ -28,13 +28,13 @@ public class CosblayParser : HtmlParser
             Increment = 1250,
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 250);
-        var dirName = soup.SelectSingleNode("//h1[@class='entry-title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var images = new List<StringImageLinkWrapper>();
         var pageCount = 1;
         while (true)
         {
             Log.Information("Page {PageCount}", pageCount++);
-            var imageContainers = soup.SelectSingleNode("//div[@class='entry-content']/p")
+            var imageContainers = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p")
                                 .SelectNodes(".//img");
             if (imageContainers is null)
             {
@@ -69,7 +69,7 @@ public class CosblayParser : HtmlParser
         HtmlNode? GetNextButton(HtmlNode soup)
         {
             var pager = soup.SelectSingleNode("//div[@class='pgntn-page-pagination-block']");
-            var nextButton = pager?.SelectNodes("./a").FirstOrDefault(a => a.InnerText.StartsWith("Next"));
+            var nextButton = pager?.SelectNodesOrThrow("./a").FirstOrDefault(a => a.InnerText.StartsWith("Next"));
             return nextButton;
         }
     }

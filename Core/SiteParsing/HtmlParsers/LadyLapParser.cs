@@ -25,17 +25,17 @@ public class LadyLapParser : HtmlParser
         const int delay = 1000;
     
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//strong").InnerText;
-        var numPages = soup.SelectSingleNode("//ul[@class='pagination pagination']")
-                            .SelectNodes("./li")
+        var dirName = soup.SelectSingleNodeOrThrow("//strong").InnerText;
+        var numPages = soup.SelectSingleNodeOrThrow("//ul[@class='pagination pagination']")
+                            .SelectNodesOrThrow("./li")
                             .Count;
         var baseUrl = CurrentUrl;
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < numPages; i++)
         {
             Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
-            var posts = soup.SelectNodes("//div[@class='col-md-12 col-lg-12']")[2]
-                            .SelectNodes(".//a")
+            var posts = soup.SelectNodesOrThrow("//div[@class='col-md-12 col-lg-12']")[2]
+                            .SelectNodesOrThrow(".//a")
                             .Select(a => domain + a.GetHref())
                             .ToStringImageLinks();
             images.AddRange(posts);

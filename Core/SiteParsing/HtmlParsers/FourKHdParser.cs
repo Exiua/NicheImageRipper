@@ -10,7 +10,7 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class FourKHdParser : HtmlParser
+public partial class FourKHdParser : HtmlParser
 {
     public FourKHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
@@ -28,9 +28,9 @@ public class FourKHdParser : HtmlParser
         });
         
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h3").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h3").InnerText;
         var numPages = soup.SelectSingleNode("//ul[@class='page-links']")?
-                            .SelectNodes("./li")
+                            .SelectNodes("./li")?
                             .Count ?? 1;
     
         var baseUrl = CurrentUrl;
@@ -38,12 +38,12 @@ public class FourKHdParser : HtmlParser
         for (var page = 1; page <= numPages; page++)
         {
             Log.Information("Parsing page {page} of {numPages}", page, numPages);
-            var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ?? soup.SelectSingleNode("//div[@id='basicE']");
-            var imgs = baseElement.SelectNodes("./a")
+            var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ?? soup.SelectSingleNodeOrThrow("//div[@id='basicE']");
+            var imgs = baseElement.SelectNodesOrThrow("./a")
                                     .Select(a => a.GetHref().Split("?")[0])
                                     .ToStringImageLinks();
             images.AddRange(imgs);
-            // // The first page is already loaded
+            // The first page is already loaded
             soup = await Soupify($"{baseUrl}/{page + 1}", lazyLoadArgs: new LazyLoadArgs
             {
                 StopElement = By.XPath("//ul[@class='page-links']")
@@ -51,10 +51,13 @@ public class FourKHdParser : HtmlParser
         }
     
         var baseName = images[0].Split("/")[^1];
-        var match = Regex.Match(baseName, @"([a-zA-Z0-9-]+)");
+        var match = FourKHdRegex().Match(baseName);
         baseName = match.Groups[1].Value;
         images = images.Where(img => img.Contains(baseName)).ToList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
+
+    [GeneratedRegex(@"([a-zA-Z0-9-]+)")]
+    private static partial Regex FourKHdRegex();
 }

@@ -21,11 +21,11 @@ public class ManganatoParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='story-info-right']")
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='story-info-right']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        var nextChapter = soup.SelectSingleNode("//ul[@class='row-content-chapter']")
-                            .SelectNodes("./li")[^1]
+        var nextChapter = soup.SelectSingleNodeOrThrow("//ul[@class='row-content-chapter']")
+                            .SelectNodesOrThrow("./li")[^1]
                             .SelectSingleNode(".//a");
         var images = new List<StringImageLinkWrapper>();
         var counter = 1;
@@ -34,8 +34,8 @@ public class ManganatoParser : HtmlParser
             Log.Information($"Parsing Chapter {counter}");
             counter += 1;
             soup = await Soupify(nextChapter.GetHref());
-            var chapterImages = soup.SelectSingleNode("//div[@class='container-chapter-reader']")
-                                    .SelectNodes(".//img");
+            var chapterImages = soup.SelectSingleNodeOrThrow("//div[@class='container-chapter-reader']")
+                                    .SelectNodesOrThrow(".//img");
             images.AddRange(chapterImages.Select(img => (StringImageLinkWrapper)img.GetSrc()));
             nextChapter = soup.SelectSingleNode("//a[@class='navi-change-chapter-btn-next a-h']");
         }

@@ -20,13 +20,13 @@ public class EightBoobsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@id='content']")
-                            .SelectNodes(".//div[@class='title']")[1]
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='content']")
+                            .SelectNodesOrThrow(".//div[@class='title']")[1]
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='gallery clear']")
-                            .SelectNodes("./a")
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery clear']")
+                            .SelectNodesOrThrow("./a")
                             .Select(img => Protocol + img
-                                        .SelectSingleNode(".//img")
+                                        .SelectSingleNodeOrThrow(".//img")
                                         .GetSrc()
                                         .Remove("tn_"))
                             .ToStringImageLinkWrapperList();

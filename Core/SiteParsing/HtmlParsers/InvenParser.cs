@@ -20,10 +20,10 @@ public class InvenParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='subject ']//span[@class='middle']")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='subject ']//span[@class='middle']")
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@id='powerbbsContent']")
-                            .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='powerbbsContent']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc().Split("?")[0])
                             .ToStringImageLinkWrapperList();
         

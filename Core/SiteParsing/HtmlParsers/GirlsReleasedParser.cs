@@ -20,14 +20,14 @@ public class GirlsReleasedParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify(delay: 5000);
-        var metadata = soup.SelectNodes("//a[@class='separate']");
+        var metadata = soup.SelectNodesOrThrow("//a[@class='separate']");
         var siteName = metadata[0].InnerText.Split(".")[0].ToTitle();
         var modelName = metadata[1].InnerText;
         var setName = metadata[2].InnerText;
         var dirName = $"{{{siteName}}} {setName} [{modelName}]";
         var images = soup
-                        .SelectSingleNode("//div[@class='images']")
-                        .SelectNodes(".//img")
+                        .SelectSingleNodeOrThrow("//div[@class='images']")
+                        .SelectNodesOrThrow(".//img")
                         .Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx"))
                         .Select(dummy => (StringImageLinkWrapper)dummy)
                         .ToList();

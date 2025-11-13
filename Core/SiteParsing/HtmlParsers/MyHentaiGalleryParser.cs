@@ -20,12 +20,12 @@ public class MyHentaiGalleryParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='comic-description']")
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='comic-description']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        var images = soup.SelectSingleNode("//ul[@class='comics-grid clear']")
-                            .SelectNodes("./li")
-                            .Select(img => img.SelectSingleNode(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='comics-grid clear']")
+                            .SelectNodesOrThrow("./li")
+                            .Select(img => img.SelectSingleNodeOrThrow(".//img")
                                                 .GetSrc()
                                                 .Replace("/thumbnail/", "/original/"))
                             .ToStringImageLinkWrapperList();

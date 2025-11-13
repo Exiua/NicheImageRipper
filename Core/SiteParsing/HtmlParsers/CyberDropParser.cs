@@ -2,7 +2,6 @@ using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
-using Core.ExtensionMethods;
 using Core.Managers;
 using Core.Utility;
 using Serilog;
@@ -36,9 +35,9 @@ public class CyberDropParser : ParameterizedHtmlParser
         var images = new List<StringImageLinkWrapper>();
         if (CurrentUrl.Contains("/a/"))
         {
-            var imageList = soup.SelectNodes("//div[@class='image-container column']")
+            var imageList = soup.SelectNodesOrThrow("//div[@class='image-container column']")
                                 .Select(image => image
-                                                .SelectSingleNode(".//a[@class='image']")
+                                                .SelectSingleNodeOrThrow(".//a[@class='image']")
                                                 .GetHref())
                                 .Select(href => $"https://cyberdrop.me{href}");
             foreach (var image in imageList)
@@ -59,7 +58,7 @@ public class CyberDropParser : ParameterizedHtmlParser
             {
                 await Task.Delay(ParseDelay);
                 soup = await Soupify(delay: ParseDelay, xpath: "//video[@id='player']");
-                video = soup.SelectSingleNode("//video[@id='player']");
+                video = soup.SelectSingleNodeOrThrow("//video[@id='player']");
             }
             
             var link = video.GetVideoSrc();
@@ -86,7 +85,7 @@ public class CyberDropParser : ParameterizedHtmlParser
                 Driver.TakeDebugScreenshot();
                 Log.Debug("Current url: {CurrentUrl}", Driver.Url);
                 #endif
-                var link = soup.SelectSingleNode("//a[@id='downloadBtn']")
+                var link = soup.SelectSingleNodeOrThrow("//a[@id='downloadBtn']")
                                .GetHref();
         
                 return link;

@@ -25,7 +25,7 @@ public class EroHiveParser : HtmlParser
         await WaitForPostLoad();
         var soup = await Soupify();
         var dirName = soup
-                        .SelectSingleNode("//h1[@class='title']")
+                        .SelectSingleNodeOrThrow("//h1[@class='title']")
                         .InnerText
                         .Split(" ")
                         .SkipLast(3)
@@ -43,7 +43,7 @@ public class EroHiveParser : HtmlParser
             }
     
             page += 1;
-            var links = soup.SelectNodes("//a[@class='image-thumb']")
+            var links = soup.SelectNodesOrThrow("//a[@class='image-thumb']")
                             .Select(link => link.GetHref()).ToList();
             if (links.Count == 0)
             {
@@ -61,8 +61,8 @@ public class EroHiveParser : HtmlParser
             CurrentUrl = post;
             await WaitForPostLoad();
             soup = await Soupify();
-            var img = soup.SelectSingleNode("//div[@class='img']")
-                            .SelectSingleNode(".//img")
+            var img = soup.SelectSingleNodeOrThrow("//div[@class='img']")
+                            .SelectSingleNodeOrThrow(".//img")
                             .GetSrc();
             images.Add(img);
         }
@@ -73,7 +73,7 @@ public class EroHiveParser : HtmlParser
         {
             while (true)
             {
-                var elm = Driver.FindElement(By.Id("has_no_img"));
+                var elm = Driver.TryFindElement(By.Id("has_no_img"));
                 if (elm is not null && elm.GetDomAttribute("class") != "")
                 {
                     await Sleep(100);

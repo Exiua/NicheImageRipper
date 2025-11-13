@@ -20,8 +20,8 @@ public class BestPrettyGirlParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='elementor-heading-title elementor-size-large']").InnerText;
-        var images = soup.SelectNodes("//img[@class='aligncenter size-full']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='elementor-heading-title elementor-size-large']").InnerText;
+        var images = soup.SelectNodesOrThrow("//img[@class='aligncenter size-full']")
                          .Select(img => img.GetSrc())
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();

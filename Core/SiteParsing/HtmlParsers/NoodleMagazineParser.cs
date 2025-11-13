@@ -26,7 +26,7 @@ public class NoodleMagazineParser : HtmlParser
         string dirName;
         if (CurrentUrl.Contains("/watch/"))
         {
-            dirName = soup.SelectSingleNode("//div[@class='l_info']/h1").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//div[@class='l_info']/h1").InnerText;
             var src = await GetVideoUrl();
             if (src is null)
             {
@@ -38,10 +38,10 @@ public class NoodleMagazineParser : HtmlParser
         }
         else
         {
-            dirName = soup.SelectSingleNode("//h1[@class='c_title']").InnerText;
-            var videos = soup.SelectSingleNode("//div[@id='list_videos']")
-                             .SelectNodes("./div")
-                             .Select(div => div.SelectSingleNode("./a").GetHref());
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='c_title']").InnerText;
+            var videos = soup.SelectSingleNodeOrThrow("//div[@id='list_videos']")
+                             .SelectNodesOrThrow("./div")
+                             .Select(div => div.SelectSingleNodeOrThrow("./a").GetHref());
             foreach (var video in videos)
             {
                 var url = $"https://noodlemagazine.com{video}";
@@ -128,7 +128,7 @@ public class NoodleMagazineParser : HtmlParser
         }
 
         var soup = await Soupify();
-        var vid = soup.SelectSingleNode("//video[@class='jw-video jw-reset']");
+        var vid = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']");
         var src = vid.GetSrc().DecodeUrl();
         if (!src.Contains("rs=") && !src.Contains("url="))
         {

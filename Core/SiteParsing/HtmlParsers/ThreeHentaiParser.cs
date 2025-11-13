@@ -26,10 +26,10 @@ public class ThreeHentaiParser : HtmlParser
             Increment = 1250,
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
-        var dirName = soup.SelectSingleNode("//h1[@class='text-left font-weight-bold']").InnerText;
-        var images = soup.SelectSingleNode("//div[@id='thumbnail-gallery']")
-                         .SelectNodes("./div")
-                         .Select(div => div.SelectSingleNode(".//img").GetSrc())
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='text-left font-weight-bold']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='thumbnail-gallery']")
+                         .SelectNodesOrThrow("./div")
+                         .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())
                          .Select(src => src.Replace("t.", "."))
                          .ToStringImageLinkWrapperList();
 

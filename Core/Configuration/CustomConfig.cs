@@ -4,11 +4,6 @@ public class CustomConfig
 {
     public V2PHConfig V2PH { get; set; } = null!;
     public GoFileConfig GoFile { get; set; } = null!;
-
-    private CustomConfig()
-    {
-        
-    }
     
     public static CustomConfig New()
     {

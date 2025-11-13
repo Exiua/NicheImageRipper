@@ -29,8 +29,8 @@ public class MicMicDollParser : HtmlParser
             // ignored
         }
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h3[@class='post-title entry-title']").InnerText;
-        var images = soup.SelectNodes("//div[@class='post-body entry-content']//a")
+        var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='post-title entry-title']").InnerText;
+        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a")
                             .Select(a => a.GetNullableHref())
                             .Where(item => item is not null)
                             .Select(item => item!)

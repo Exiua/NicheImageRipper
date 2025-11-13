@@ -40,8 +40,8 @@ public class EpornerParser : HtmlParser
         if (CurrentUrl.Contains("/profile/"))
         {
             var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
-            dirName = soup.SelectSingleNode("//div[@id='pprofiletopinfo']//h1").InnerText;
-            var headers = soup.SelectSingleNode("//div[@id='pnavtop']").SelectNodes("./a");
+            dirName = soup.SelectSingleNodeOrThrow("//div[@id='pprofiletopinfo']//h1").InnerText;
+            var headers = soup.SelectSingleNodeOrThrow("//div[@id='pnavtop']").SelectNodesOrThrow("./a");
             var profileSections = EpornerProfileSections.None;
             foreach (var header in headers)
             {
@@ -93,9 +93,9 @@ public class EpornerParser : HtmlParser
                 {
                     Log.Information("Parsing gallery: {post}", post);
                     soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
-                    var postImages = soup.SelectSingleNode("//div[@class='photosgrid gallerygrid']")
-                                            .SelectNodes("./div")
-                                            .Select(div => div.SelectSingleNode(".//img").GetSrc())
+                    var postImages = soup.SelectSingleNodeOrThrow("//div[@class='photosgrid gallerygrid']")
+                                            .SelectNodesOrThrow("./div")
+                                            .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())
                                             .Select(ExtractFullImageLink)
                                             .ToStringImageLinks();
                     images.AddRange(postImages);
@@ -107,7 +107,7 @@ public class EpornerParser : HtmlParser
         }
         else if (CurrentUrl.Contains("/video-") || CurrentUrl.Contains("/hd-porn/"))
         {
-            dirName = soup.SelectSingleNode("//div[@id='video-info']/h1").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//div[@id='video-info']/h1").InnerText;
             var downloadLink = ExtractVideoDownloadLink(soup);
             images.Add(downloadLink);
         }
@@ -123,26 +123,26 @@ public class EpornerParser : HtmlParser
         // ReSharper disable once VariableHidesOuterVariable
         string ExtractVideoDownloadLink(HtmlNode soup)
         {
-            var downloads = soup.SelectSingleNode("//div[@id='hd-porn-dload']")
-                                .SelectNodes(".//span");
+            var downloads = soup.SelectSingleNodeOrThrow("//div[@id='hd-porn-dload']")
+                                .SelectNodesOrThrow(".//span");
             string downloadLink;
             if (downloads.Count > 1)
             {
                 var secondLast = downloads[^2];
                 if (secondLast.GetAttributeValue("class") == "download-av1")
                 {
-                    downloadLink = secondLast.SelectSingleNode("./a").GetHref();
+                    downloadLink = secondLast.SelectSingleNodeOrThrow("./a").GetHref();
                 }
                 else
                 {
                     var last = downloads[^1];
-                    downloadLink = last.SelectSingleNode("./a").GetHref();
+                    downloadLink = last.SelectSingleNodeOrThrow("./a").GetHref();
                 }
             }
             else
             {
                 var last = downloads[^1];
-                downloadLink = last.SelectSingleNode("./a").GetHref();
+                downloadLink = last.SelectSingleNodeOrThrow("./a").GetHref();
             }
             
             return $"https://www.eporner.com{downloadLink}";
@@ -165,9 +165,9 @@ public class EpornerParser : HtmlParser
             var soup = await Soupify($"{baseUrl}/{section}/", lazyLoadArgs: lazyLoadArgs);
             while(true)
             {
-                var links = soup.SelectSingleNode($"//div[@class='{divClass}']")
-                                .SelectNodes("./div[contains(@class, 'mb')]")
-                                .Select(div => domainUrl + div.SelectSingleNode(".//a").GetHref());
+                var links = soup.SelectSingleNodeOrThrow($"//div[@class='{divClass}']")
+                                .SelectNodesOrThrow("./div[contains(@class, 'mb')]")
+                                .Select(div => domainUrl + div.SelectSingleNodeOrThrow(".//a").GetHref());
                 posts.AddRange(links);
                 var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
                 if (nextPage is null)

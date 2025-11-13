@@ -30,21 +30,21 @@ public class MangaParkParser : HtmlParser
         ];
         var soup = await SolveParseAddCookies(cookies: cookies);
         Driver.SetCookie("nsfw", "2");;
-        var dirName = soup.SelectSingleNode("//h3[@class='text-lg md:text-2xl font-bold']/a").InnerText;
-        var chapterList = soup.SelectSingleNode("//div[@data-name='chapter-list']")
-                              .SelectNodes("./div")[1]
-                              .SelectSingleNode("./div/div")
-                              .SelectNodes("./div")
-                              .Select(div => div.SelectSingleNode(".//a").GetHref())
+        var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='text-lg md:text-2xl font-bold']/a").InnerText;
+        var chapterList = soup.SelectSingleNodeOrThrow("//div[@data-name='chapter-list']")
+                              .SelectNodesOrThrow("./div")[1]
+                              .SelectSingleNodeOrThrow("./div/div")
+                              .SelectNodesOrThrow("./div")
+                              .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
                               .Reverse();
         var images = new List<StringImageLinkWrapper>();
         foreach (var chapter in chapterList)
         {
             var chapterUrl = $"https://mangapark.net{chapter}";
-            Log.Debug($"Parsing chapter {chapterUrl}");
+            Log.Debug("Parsing chapter {ChapterUrl}", chapterUrl);
             soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']");
-            var pages = soup.SelectNodes("//div[@data-name='image-item']")
-                            .Select(div => div.SelectSingleNode(".//img").GetSrc())
+            var pages = soup.SelectNodesOrThrow("//div[@data-name='image-item']")
+                            .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())
                             .ToStringImageLinks();
             images.AddRange(pages);
         }

@@ -50,7 +50,7 @@ public class GoFileParser : ParameterizedHtmlParser
             return RipInfo.Empty.WithDirectoryName("Folder Not Found");
         }
         
-        var dirName = soup.SelectSingleNode("//span[@id='filesContentFolderName']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//span[@id='filesContentFolderName']").InnerText;
         var images = await GoFileParserHelper("", true);
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -89,7 +89,7 @@ public class GoFileParser : ParameterizedHtmlParser
             // ReSharper disable once VariableHidesOuterVariable
             var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]");
             var links = new List<StringImageLinkWrapper>();
-            var entries = soup.SelectNodes("//div[@id='filesContentTableContent']/div");
+            var entries = soup.SelectNodesOrThrow("//div[@id='filesContentTableContent']/div");
             foreach (var entry in entries)
             {
                 var id = entry.GetNullableAttributeValue("id");
@@ -100,7 +100,7 @@ public class GoFileParser : ParameterizedHtmlParser
                     throw new RipperException("Entry has no id");
                 }
                 
-                var anchor = entry.SelectSingleNode(".//a");
+                var anchor = entry.SelectSingleNodeOrThrow(".//a");
                 var href = anchor.GetHref();
                 if (href.Contains("/d/"))
                 {
@@ -112,7 +112,7 @@ public class GoFileParser : ParameterizedHtmlParser
                     var elm = soup.SelectSingleNode($"//*[@id='elem-{id}']");
                     if (elm is null)
                     {
-                        var span = anchor.SelectSingleNode("./span");
+                        var span = anchor.SelectSingleNodeOrThrow("./span");
                         var filename = span.InnerText;
                         links.Add($"https://cold8.gofile.io/download/web/{id}/{filename}");
                     }
@@ -128,7 +128,7 @@ public class GoFileParser : ParameterizedHtmlParser
                             }
                             case "video":
                             {
-                                var source = elm.SelectSingleNode("./source");
+                                var source = elm.SelectSingleNodeOrThrow("./source");
                                 var src = source.GetSrc();
                                 links.Add(src);
                                 break;

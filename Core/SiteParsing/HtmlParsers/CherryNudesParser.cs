@@ -20,13 +20,13 @@ public class CherryNudesParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//title")
+        var dirName = soup.SelectSingleNodeOrThrow("//title")
                             .InnerText
                             .Split("-")[0]
                             .Trim();
         var contentUrl = CurrentUrl.Replace("www", "cdn");
-        var images = soup.SelectSingleNode("//div[@class='article__gallery-images']")
-                            .SelectNodes(".//a")
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(img => img.GetHref())
                             .ToStringImageLinkWrapperList();
     

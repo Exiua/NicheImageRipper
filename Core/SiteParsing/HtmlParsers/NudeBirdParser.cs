@@ -20,8 +20,8 @@ public class NudeBirdParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='title single-title entry-title']").InnerText;
-        var images = soup.SelectNodes("//a[@class='fancybox-thumb']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title single-title entry-title']").InnerText;
+        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']")
                             .Select(img => img.GetHref())
                             .ToStringImageLinkWrapperList();
     

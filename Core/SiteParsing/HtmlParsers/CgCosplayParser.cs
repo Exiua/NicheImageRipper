@@ -28,15 +28,15 @@ public class CgCosplayParser : HtmlParser
             ScrollBy = true,
             Increment = 1250
         });
-        var dirName = soup.SelectSingleNode("//h2[@class='elementor-heading-title elementor-size-xxl']").InnerText;
-        var images = soup.SelectSingleNode("//div[@id='gallery-1']")
-                            .SelectNodes("./figure")
-                            .Select(fig => fig.SelectSingleNode(".//img").GetSrc())
+        var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='elementor-heading-title elementor-size-xxl']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-1']")
+                            .SelectNodesOrThrow("./figure")
+                            .Select(fig => fig.SelectSingleNodeOrThrow(".//img").GetSrc())
                             .ToStringImageLinkWrapperList();
         var videos = soup.SelectSingleNode("//main[@id='main']");
         if (videos is not null)
         {
-            var videoRawLinks = videos.SelectNodes(".//*[self::iframe or self::video]")
+            var videoRawLinks = videos.SelectNodesOrThrow(".//*[self::iframe or self::video]")
                                         // .Select(div =>
                                         //      div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
                                         .Select(elm => elm.GetSrc());

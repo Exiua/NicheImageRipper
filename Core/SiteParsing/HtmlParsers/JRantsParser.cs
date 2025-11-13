@@ -28,7 +28,7 @@ public class JRantsParser : HtmlParser
         };
         
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
-        var dirName = soup.SelectSingleNode("//h1[@class='entry-title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var images = new List<StringImageLinkWrapper>();
         var pageCount = 1;
         var noImagesFound = false;

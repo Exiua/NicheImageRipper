@@ -46,7 +46,7 @@ public class BunkrParser : ParameterizedHtmlParser
             var dirNameNode = soup.SelectSingleNode("//h1[@class='text-[24px] font-bold text-dark dark:text-white']");
             if (dirNameNode is null)
             {
-                dirNameNode = soup.SelectSingleNode("//h1[@class='truncate']");
+                dirNameNode = soup.SelectSingleNodeOrThrow("//h1[@class='truncate']");
             }
 
             dirName = dirNameNode.InnerText;
@@ -66,11 +66,11 @@ public class BunkrParser : ParameterizedHtmlParser
                 goto GridInitializationEnd;
             }
 
-            grid = soup.SelectSingleNode(
+            grid = soup.SelectSingleNodeOrThrow(
                 "//div[@class='grid gap-4 grid-cols-repeat [--size:11rem] lg:[--size:14rem] grid-images']");
 
             GridInitializationEnd:
-            var imagePosts = grid.SelectNodes(".//a");
+            var imagePosts = grid.SelectNodesOrThrow(".//a");
             foreach (var (i, post) in imagePosts.Enumerate())
             {
                 var href = post.GetHref();
@@ -169,7 +169,7 @@ public class BunkrParser : ParameterizedHtmlParser
         else
         {
             videoDownload = soup
-                           .SelectSingleNode(
+                           .SelectSingleNodeOrThrow(
                                 "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold flex-1 ic-download-01 ic-before before:text-lg']")
                            .GetHref();
         }
@@ -177,7 +177,7 @@ public class BunkrParser : ParameterizedHtmlParser
         soup = await Soupify(videoDownload, xpath: "//main//video", delay: ParseDelay);
         var video = soup.SelectSingleNode("//main//video");
 
-        var downloadButton = soup.SelectSingleNode(
+        var downloadButton = soup.SelectSingleNodeOrThrow(
             "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']");
         var downloadUrl = downloadButton.GetHref();
         var filename = video is not null ? video.GetSrc().Split("/")[^1] : downloadUrl.Split("/")[^1];
@@ -186,9 +186,9 @@ public class BunkrParser : ParameterizedHtmlParser
         return videoLink;
     }
 
-    private string GetImageLink(HtmlNode soup)
+    private static string GetImageLink(HtmlNode soup)
     {
-        var img = soup.SelectSingleNode("//main//img");
+        var img = soup.SelectSingleNodeOrThrow("//main//img");
         return img.GetSrc();
     }
 
@@ -200,14 +200,14 @@ public class BunkrParser : ParameterizedHtmlParser
         if (downloadLinkNode is null)
         {
             downloadLinkNode =
-                soup.SelectSingleNode(
+                soup.SelectSingleNodeOrThrow(
                     "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg flex-1']");
         }
 
         var downloadLink = downloadLinkNode.GetHref();
         soup = await Soupify(downloadLink, delay: ParseDelay);
         var link = soup
-                  .SelectSingleNode(
+                  .SelectSingleNodeOrThrow(
                        "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']")
                   .GetHref();
 

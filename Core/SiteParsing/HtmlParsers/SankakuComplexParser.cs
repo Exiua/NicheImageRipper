@@ -20,8 +20,8 @@ public class SankakuComplexParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
-        var imagesBase = soup.SelectNodes("//a[@class='swipebox']").GetHrefs()[1..];
+        var dirName = soup.SelectSingleNodeOrThrow("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
+        var imagesBase = soup.SelectNodesOrThrow("//a[@class='swipebox']").GetHrefs()[1..];
         var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image)
                                 .Select(dummy => (StringImageLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

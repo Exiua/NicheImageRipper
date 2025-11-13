@@ -20,12 +20,12 @@ public class BabesAndBitchesParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@id='title']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='title']")
                           .InnerText
                           .Split("picture")[0]
                           .Trim();
-        var images = soup.SelectNodes("//a[@class='gallery-thumb']")
-                         .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+        var images = soup.SelectNodesOrThrow("//a[@class='gallery-thumb']")
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .ToStringImageLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

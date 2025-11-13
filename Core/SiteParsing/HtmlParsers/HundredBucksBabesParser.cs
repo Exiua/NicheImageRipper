@@ -20,11 +20,11 @@ public class HundredBucksBabesParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='main-col-2']")
-                            .SelectSingleNode(".//h2[@class='heading']")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']")
+                            .SelectSingleNodeOrThrow(".//h2[@class='heading']")
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='main-thumbs']")
-                            .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => Protocol + img.GetAttributeValue("data-url"))
                             .ToStringImageLinkWrapperList();
     

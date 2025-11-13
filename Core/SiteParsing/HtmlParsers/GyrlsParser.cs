@@ -20,12 +20,11 @@ public class GyrlsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='single_title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single_title']").InnerText;
         var images = soup
-                        .SelectNodes("//div[@id='gallery-1']//a")
-                        .Select(img => img.GetHref())
-                        .Select(dummy => (StringImageLinkWrapper)dummy)
-                        .ToList();
+                    .SelectNodesOrThrow("//div[@id='gallery-1']//a")
+                    .Select(img => img.GetHref())
+                    .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

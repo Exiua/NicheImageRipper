@@ -21,9 +21,9 @@ public class HentaiEraParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='row gallery_first']/h1").InnerText;
-        var pageCount = soup.SelectSingleNode("//button[@id='pages_btn']").InnerText.Trim().Split(' ')[0].ToInt();
-        var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNode("//img[@class='lazy entered loaded']");
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='row gallery_first']/h1").InnerText;
+        var pageCount = soup.SelectSingleNodeOrThrow("//button[@id='pages_btn']").InnerText.Trim().Split(' ')[0].ToInt();
+        var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
         var baseUrl = imageContainer.GetAttributeValue("data-src");
 
         return RipInfo.FromGenerateInfo(baseUrl, dirName, pageCount);

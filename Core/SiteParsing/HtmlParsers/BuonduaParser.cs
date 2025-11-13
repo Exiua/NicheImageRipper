@@ -23,8 +23,8 @@ public class BuonduaParser : HtmlParser
         {
             ScrollBy = true
         });
-        var dirName = soup.SelectSingleNode("//div[@class='article-header']")
-                          .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='article-header']")
+                          .SelectSingleNodeOrThrow(".//h1")
                           .InnerText;
         var dirNameSplit = dirName.Split("(");
         if (dirName.Contains("pictures") || dirName.Contains("photos"))
@@ -32,7 +32,7 @@ public class BuonduaParser : HtmlParser
             dirName = dirNameSplit[..^1].Join("(");
         }
         
-        var pages = soup.SelectSingleNode("//div[@class='pagination-list']")
+        var pages = soup.SelectSingleNodeOrThrow("//div[@class='pagination-list']")
                         .SelectNodesOrThrow(".//span")
                         .Count;
         var currUrl = CurrentUrl.Replace("?page=1", "");
@@ -40,7 +40,7 @@ public class BuonduaParser : HtmlParser
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < pages; i++)
         {
-            var imageList = soup.SelectSingleNode("//div[@class='article-fulltext']")
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='article-fulltext']")
                                 .SelectNodesOrThrow(".//img")
                                 .Select(img => img.GetSrc())
                                 .Select(dummy => (StringImageLinkWrapper)dummy)

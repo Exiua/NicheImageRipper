@@ -25,9 +25,9 @@ public class InfluencersGoneWildParser : HtmlParser
             Increment = 625,
             ScrollPauseTime = 1000
         });
-        var dirName = soup.SelectSingleNode("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
-        var posts = soup.SelectSingleNode("//div[@class='g1-content-narrow g1-typography-xl entry-content']")
-                        .SelectNodes(".//img|.//video");
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
+        var posts = soup.SelectSingleNodeOrThrow("//div[@class='g1-content-narrow g1-typography-xl entry-content']")
+                        .SelectNodesOrThrow(".//img|.//video");
         var images = new List<StringImageLinkWrapper>();
         foreach (var post in posts)
         {
@@ -39,7 +39,7 @@ public class InfluencersGoneWildParser : HtmlParser
                     images.Add(url);
                     break;
                 case "video":
-                    images.Add(post.SelectSingleNode(".//source").GetSrc()); // Unable to actually download videos
+                    images.Add(post.SelectSingleNodeOrThrow(".//source").GetSrc()); // Unable to actually download videos
                     break;
             }
         }

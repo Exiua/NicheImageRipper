@@ -20,18 +20,17 @@ public class FoxHqParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         if (string.IsNullOrEmpty(dirName))
         {
-            dirName = soup.SelectSingleNode("//h2").InnerText;
+            dirName = soup.SelectSingleNodeOrThrow("//h2").InnerText;
         }
     
         var url = CurrentUrl;
         var images = soup
-                    .SelectNodes("//div[@class='thumb simple']")
-                    .Select(img => img.SelectSingleNode(".//a").GetHref())
-                    .Select(dummy => (StringImageLinkWrapper)dummy)
-                    .ToList();
+                    .SelectNodesOrThrow("//div[@class='thumb simple']")
+                    .Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref())
+                    .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

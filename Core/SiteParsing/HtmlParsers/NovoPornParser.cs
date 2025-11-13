@@ -20,13 +20,13 @@ public class NovoPornParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//section[@class='outer-section']")
-                            .SelectSingleNode(".//h2")
+        var dirName = soup.SelectSingleNodeOrThrow("//section[@class='outer-section']")
+                            .SelectSingleNodeOrThrow(".//h2")
                             .InnerText
                             .Split("porn")[0]
                             .Trim();
-        var images = soup.SelectNodes("//div[@class='thumb grid-item']")
-                            .Select(img => img.SelectSingleNode(".//img").GetSrc().Replace("tn_", ""))
+        var images = soup.SelectNodesOrThrow("//div[@class='thumb grid-item']")
+                            .Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("tn_", ""))
                             .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

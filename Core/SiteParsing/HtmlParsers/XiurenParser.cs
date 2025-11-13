@@ -20,9 +20,9 @@ public class XiurenParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='jeg_post_title']").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='content-inner ']")
-                            .SelectNodes(".//a")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='jeg_post_title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(img => img.GetHref())
                             .ToStringImageLinkWrapperList();
     

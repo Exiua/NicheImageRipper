@@ -106,7 +106,7 @@ public class Porn3dxParser : HtmlParser
                                 continue;
                             }
                             var qualities = Driver.FindElements(By.XPath("//button[@data-plyr='quality']"));
-                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")))
+                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")!))
                                                     .Prepend(0)
                                                     .Max();
                             break;

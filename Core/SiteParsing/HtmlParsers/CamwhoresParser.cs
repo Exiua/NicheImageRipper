@@ -34,8 +34,8 @@ public class CamwhoresParser : HtmlParser
         }
         
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='headline']").SelectSingleNode(".//h1").InnerText;
-        var video = soup.SelectSingleNode(".//div[@class='fp-player']").SelectSingleNode(".//video");
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']").SelectSingleNodeOrThrow(".//h1").InnerText;
+        var video = soup.SelectSingleNodeOrThrow(".//div[@class='fp-player']").SelectSingleNodeOrThrow(".//video");
         var videoUrl = video.GetSrc();
         var images = new List<StringImageLinkWrapper> { videoUrl };
     

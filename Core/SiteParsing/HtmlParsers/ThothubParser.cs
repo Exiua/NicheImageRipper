@@ -36,18 +36,18 @@ public class ThothubParser : HtmlParser
             ScrollPauseTime = 1
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
-        var dirName = soup.SelectSingleNode("//div[@class='headline']")
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("/videos/"))
         {
-            var vid = soup.SelectSingleNode("//video[@class='fp-engine']")
+            var vid = soup.SelectSingleNodeOrThrow("//video[@class='fp-engine']")
                             .GetSrc();
             if (string.IsNullOrEmpty(vid))
             {
-                vid = soup.SelectSingleNode("//div[@class='no-player']")
-                            .SelectSingleNode(".//img")
+                vid = soup.SelectSingleNodeOrThrow("//div[@class='no-player']")
+                            .SelectSingleNodeOrThrow(".//img")
                             .GetSrc();
             }
     
@@ -57,8 +57,8 @@ public class ThothubParser : HtmlParser
         {
             while (true)
             {
-                var posts = soup.SelectSingleNode("//div[@class='images']")
-                                .SelectNodes(".//img")
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='images']")
+                                .SelectNodesOrThrow(".//img")
                                 .Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/"))
                                 .ToArray();
                 if(posts.Any(p => p.Contains("data:")))

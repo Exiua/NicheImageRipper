@@ -22,9 +22,9 @@ public class CatBoxParser : HtmlParser
     {
         Log.Warning("Catbox.moe support is experimental and may not work as expected");
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='title']/h1").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='imagecontainer']")
-                            .SelectNodes("./video")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']/h1").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='imagecontainer']")
+                            .SelectNodesOrThrow("./video")
                             .Select(vid => vid.GetSrc())
                             .ToStringImageLinkWrapperList();
     

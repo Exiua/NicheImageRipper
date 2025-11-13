@@ -20,12 +20,12 @@ public class TheOmegaProjectParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNodes("//h2[@class='section-title title']")[1].InnerText
+        var dirName = soup.SelectNodesOrThrow("//h2[@class='section-title title']")[1].InnerText
                             .Split("Porn")[0]
                             .Split("porn")[0]
                             .Trim();
-        var images = soup.SelectSingleNode("//div[@class='lightgallery thumbs quadruple fivefold']")
-                            .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='lightgallery thumbs quadruple fivefold']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc())
                             .ToStringImageLinkWrapperList();
         

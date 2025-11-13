@@ -23,8 +23,8 @@ public class TwitterParser : HtmlParser
     {
         # region Method-Global Variables
     
-        var trueBaseWaitTime = 2500;
-        var baseWaitTime = trueBaseWaitTime;
+        const int trueBaseWaitTime = 2500;
+        const int baseWaitTime = trueBaseWaitTime;
         const int maxWaitTime = 60000;
         var waitTime = baseWaitTime;
         const int maxRetries = 4;
@@ -48,12 +48,12 @@ public class TwitterParser : HtmlParser
         {
             newPosts = false;
             var soup = await Soupify();
-            var rows = soup.SelectSingleNode("//section")
-                            .SelectSingleNode(".//div")
-                            .SelectNodes("./div");
+            var rows = soup.SelectSingleNodeOrThrow("//section")
+                            .SelectSingleNodeOrThrow(".//div")
+                            .SelectNodesOrThrow("./div");
             foreach (var row in rows)
             {
-                var posts = row.SelectNodes(".//li");
+                var posts = row.SelectNodesOrThrow(".//li");
                 foreach (var post in posts)
                 {
                     var postLinkNode = post.SelectSingleNode(".//a");
@@ -77,7 +77,8 @@ public class TwitterParser : HtmlParser
             }
         }
     
-        var (capturer, bidi) = await ConfigureNetworkCapture<TwitterVideoCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<TwitterVideoCapturer>();
+        await using var bidi = b;
         // var capturer = new TwitterVideoCapturer();
         // var bidi = await Driver.AsBiDiAsync();
         // await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
@@ -125,6 +126,7 @@ public class TwitterParser : HtmlParser
         async Task<(List<string>, List<(int, string)>)> TwitterParserHelper(string postLink, bool logFailure)
         {
             var postImages = new List<string>();
+            // ReSharper disable once VariableHidesOuterVariable
             var failedUrls = new List<(int, string)>();
             var found = 0;
             for (var i = 0; i < maxRetries; i++)
@@ -133,20 +135,20 @@ public class TwitterParser : HtmlParser
                 try
                 {
                     var soup = await Soupify(postLink, delay: baseWaitTime, xpath: "//article");
-                    var articles = soup.SelectNodes("//article");
+                    var articles = soup.SelectNodesOrThrow("//article");
                     foreach (var article in articles)
                     {
-                        var content = article.SelectSingleNode("./div")
-                                            .SelectSingleNode("./div");
-                        var temp = content.SelectNodes("./div");
+                        var content = article.SelectSingleNodeOrThrow("./div")
+                                            .SelectSingleNodeOrThrow("./div");
+                        var temp = content.SelectNodesOrThrow("./div");
                         content = temp.Count > 2 ? temp[2] : temp[1];
-                        temp = content.SelectNodes("./div");
+                        temp = content.SelectNodesOrThrow("./div");
                         if (temp.Count <= 1)
                         {
                             continue; // Most likely comment section
                         }
                         
-                        content = content.SelectNodes("./div")[1];
+                        content = content.SelectNodesOrThrow("./div")[1];
                         var imgs = content.SelectNodesSafe(".//img");
                         foreach (var img in imgs)
                         {

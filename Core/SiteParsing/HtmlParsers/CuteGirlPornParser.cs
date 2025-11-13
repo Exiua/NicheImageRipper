@@ -20,12 +20,13 @@ public class CuteGirlPornParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='gal-title']").InnerText;
-        var images = soup.SelectSingleNode("//ul[@class='gal-thumbs']")
-                            .SelectNodes(".//li")
-                            .Select(img => "https://cutegirlporn.com" + img.SelectSingleNode(".//img").GetSrc().Replace("/t", "/"))
-                            .Select(dummy => (StringImageLinkWrapper)dummy)
-                            .ToList();
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='gal-title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gal-thumbs']")
+                         .SelectNodesOrThrow(".//li")
+                         .Select(img =>
+                              "https://cutegirlporn.com" +
+                              img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/"))
+                         .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

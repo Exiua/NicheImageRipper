@@ -34,9 +34,9 @@ public partial class NewgroundsParser : HtmlParser
         var baseUri = CurrentUrl.Split("/")[..3];
         var baseUriString = string.Join("/", baseUri);
         var soup = await Soupify(baseUriString);
-        var dirName = soup.SelectSingleNode("//a[@class='user-link']").InnerText.Trim();
-        var headerButtons = soup.SelectSingleNode("//div[@class='user-header-buttons']")
-                                    .SelectNodes(".//a");
+        var dirName = soup.SelectSingleNodeOrThrow("//a[@class='user-link']").InnerText.Trim();
+        var headerButtons = soup.SelectSingleNodeOrThrow("//div[@class='user-header-buttons']")
+                                    .SelectNodesOrThrow(".//a");
         var hasMovies = false;
         var hasArt = false;
         foreach (var button in headerButtons)
@@ -66,7 +66,7 @@ public partial class NewgroundsParser : HtmlParser
                 var artImages = soup.SelectSingleNode("//div[contains(@class, 'art-images')]");
                 if (artImages is not null)
                 {
-                    var links = artImages.SelectNodes(".//img")
+                    var links = artImages.SelectNodesOrThrow(".//img")
                                             .Select(img => (StringImageLinkWrapper)img.GetSrc());
                     images.AddRange(links);
                 }
@@ -78,10 +78,10 @@ public partial class NewgroundsParser : HtmlParser
                         var seen = new HashSet<string>();
                         while (true)
                         {
-                            artViewGallery = soup.SelectSingleNode("//div[@class='art-view-gallery']");
+                            artViewGallery = soup.SelectSingleNodeOrThrow("//div[@class='art-view-gallery']");
                             var container =
-                                artViewGallery.SelectSingleNode(".//div[@class='ng-img-container-sync relative']");
-                            var anchor = container.SelectSingleNode(".//a");
+                                artViewGallery.SelectSingleNodeOrThrow(".//div[@class='ng-img-container-sync relative']");
+                            var anchor = container.SelectSingleNodeOrThrow(".//a");
                             var link = anchor.GetHref();
                             if (!seen.Add(link))
                             {
@@ -107,8 +107,8 @@ public partial class NewgroundsParser : HtmlParser
                     }
                     else
                     {
-                        var img = soup.SelectSingleNode("//div[@class='image']")
-                                        .SelectSingleNode(".//img");
+                        var img = soup.SelectSingleNodeOrThrow("//div[@class='image']")
+                                        .SelectSingleNodeOrThrow(".//img");
                         images.Add(img.GetSrc());
                     }
                 }
@@ -145,21 +145,21 @@ public partial class NewgroundsParser : HtmlParser
                     var highestRes = Driver.TryFindElement(By.XPath("//div[@class='ng-option-select']/child::*[2]/child::*[1]"));
                     if (highestRes is not null)
                     {
-                        var classes = highestRes.GetDomAttribute("class");
+                        var classes = highestRes.GetDomAttribute("class")!;
                         if (!classes.Contains("selected"))
                         {
                             highestRes.Click();
                         }
                     }
                     soup = await Soupify();
-                    var video = soup.SelectSingleNode("//video");
-                    var videoUrl = video.SelectSingleNode(".//source").GetSrc();
+                    var video = soup.SelectSingleNodeOrThrow("//video");
+                    var videoUrl = video.SelectSingleNodeOrThrow(".//source").GetSrc();
                     while (videoUrl.StartsWith("data:"))
                     {
                         await Sleep(1000);
                         soup = await Soupify();
-                        video = soup.SelectSingleNode("//video");
-                        videoUrl = video.SelectSingleNode(".//source").GetSrc();
+                        video = soup.SelectSingleNodeOrThrow("//video");
+                        videoUrl = video.SelectSingleNodeOrThrow(".//source").GetSrc();
                     }
                     images.Add(videoUrl);
                 }
@@ -167,8 +167,8 @@ public partial class NewgroundsParser : HtmlParser
                 {
                     soup = await Soupify();
                     // Assumes the video is an emulated flash video
-                    var script = soup.SelectSingleNode("//div[@class='body-guts top']")
-                                        .SelectNodes(".//script")[1]
+                    var script = soup.SelectSingleNodeOrThrow("//div[@class='body-guts top']")
+                                        .SelectNodesOrThrow(".//script")[1]
                                         .InnerText;
                     var videoUrl = NewgroundsRegex().Match(script).Value;
                     images.Add(videoUrl);
@@ -182,15 +182,15 @@ public partial class NewgroundsParser : HtmlParser
         List<string> GetPosts(HtmlNode soup, bool movies)
         {
             var posts = new List<string>();
-            var postYears = soup.SelectSingleNode("//div[@class='userpage-browse-content']//div")
-                                .SelectNodes("./div");
+            var postYears = soup.SelectSingleNodeOrThrow("//div[@class='userpage-browse-content']//div")
+                                .SelectNodesOrThrow("./div");
             foreach (var postYear in postYears)
             {
-                var postLinks = postYear.SelectNodes(!movies 
+                var postLinks = postYear.SelectNodesOrThrow(!movies 
                     ? ".//div[@class='span-1 align-center']" 
                     : ".//div[@class='portalsubmission-cell']");
     
-                var postLinksList = postLinks.Select(post => post.SelectSingleNode(".//a").GetHref());
+                var postLinksList = postLinks.Select(post => post.SelectSingleNodeOrThrow(".//a").GetHref());
                 posts.AddRange(postLinksList);
             }
     

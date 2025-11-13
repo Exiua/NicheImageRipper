@@ -20,10 +20,10 @@ public class Cool18Parser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var showContent = soup.SelectSingleNode("//td[@class='show_content']");
-        var dirName = showContent.SelectSingleNode(".//b").InnerText;
-        var images = showContent.SelectSingleNode(".//pre")
-                                .SelectNodes(".//img")
+        var showContent = soup.SelectSingleNodeOrThrow("//td[@class='show_content']");
+        var dirName = showContent.SelectSingleNodeOrThrow(".//b").InnerText;
+        var images = showContent.SelectSingleNodeOrThrow(".//pre")
+                                .SelectNodesOrThrow(".//img")
                                 .Select(img => img.GetSrc())
                                 .Select(dummy => (StringImageLinkWrapper)dummy)
                                 .ToList();

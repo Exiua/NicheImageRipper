@@ -20,9 +20,9 @@ public class TsuminoParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='book-title']")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='book-title']")
                             .InnerText;
-        var numPages = int.Parse(soup.SelectSingleNode("//div[@id='Pages']")
+        var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//div[@id='Pages']")
                                     .InnerText
                                     .Trim());
         var pagerUrl = CurrentUrl.Replace("/entry/", "/Read/Index/") + "?page=";
@@ -30,7 +30,7 @@ public class TsuminoParser : HtmlParser
         for (var i = 1; i <= numPages; i++)
         {
             soup = await Soupify($"{pagerUrl}{i}", delay: 3000);
-            var src = soup.SelectSingleNode("//img[@class='img-responsive reader-img']")
+            var src = soup.SelectSingleNodeOrThrow("//img[@class='img-responsive reader-img']")
                             .GetSrc()
                             .Replace("&amp;", "&");
             images.Add(src);

@@ -52,20 +52,20 @@ public class QuatvnParser : HtmlParser
             
             Driver.Refresh();
         }
-        var dirName = soup.SelectSingleNode("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
         var images = new List<StringImageLinkWrapper>();
         var tablist = soup.SelectSingleNode("//ul[@role='tablist']");
         if (tablist is not null)
         {
             Log.Debug("Parsing tabbed content");
-            var tabs = tablist.SelectNodes("./li");
+            var tabs = tablist.SelectNodesOrThrow("./li");
             var numTabs = tabs.Count;
             var baseTabId = tablist.ParentNode.GetAttributeValue("id");
             Log.Debug("Found {NumTabs} tabs", numTabs);
             for (var i = 0; i < numTabs; i++)
             {
                 Log.Debug("Parsing tab {TabNum}", i);
-                var videoTab = soup.SelectSingleNode($"//div[@id='{baseTabId}-{i}']/div");
+                var videoTab = soup.SelectSingleNodeOrThrow($"//div[@id='{baseTabId}-{i}']/div");
                 var videoData = videoTab.GetAttributeValue("data-item");
                 videoData = WebUtility.HtmlDecode(videoData);
                 var videoList = JsonSerializer.Deserialize<JsonNode>(videoData)!.AsObject()["sources"]!.AsArray();
@@ -85,7 +85,7 @@ public class QuatvnParser : HtmlParser
         {
             Log.Debug("Parsing non-tabbed content");
             var container =
-                soup.SelectSingleNode(
+                soup.SelectSingleNodeOrThrow(
                     "//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']");
             var gallery = container.SelectSingleNode(".//figure[@class='mace-gallery-teaser']");
             if (gallery is not null)
@@ -102,7 +102,7 @@ public class QuatvnParser : HtmlParser
             if (videoPlaylist is not null)
             {
                 Log.Debug("Parsing video playlist");
-                var videos = videoPlaylist.SelectNodes("./a")
+                var videos = videoPlaylist.SelectNodesOrThrow("./a")
                                           .Select(a => a.GetHref())
                                           .ToStringImageLinks();
                 images.AddRange(videos);

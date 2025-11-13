@@ -24,9 +24,9 @@ public class FapelloParser : HtmlParser
             ScrollBy = true,
             Increment = 1250
         });
-        var dirName = soup.SelectSingleNode("//h2[@class='font-semibold lg:text-2xl text-lg mb-2 mt-4']").InnerText;
-        var images = soup.SelectSingleNode("//div[@id='content']")
-                            .SelectNodes(".//img")
+        var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='font-semibold lg:text-2xl text-lg mb-2 mt-4']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='content']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc().Replace("_300px", ""))
                             .Select(dummy => (StringImageLinkWrapper)dummy)
                             .ToList();

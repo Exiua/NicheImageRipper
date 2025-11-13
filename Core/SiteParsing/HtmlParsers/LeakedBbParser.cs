@@ -20,11 +20,11 @@ public class LeakedBbParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='flow-text left']")
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='flow-text left']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        var imageLinks = soup.SelectSingleNode("//div[@class='post_body scaleimages']")
-                            .SelectNodes("./img")
+        var imageLinks = soup.SelectSingleNodeOrThrow("//div[@class='post_body scaleimages']")
+                            .SelectNodesOrThrow("./img")
                             .Select(img => img.GetSrc())
                             .ToList();
         var images = new List<StringImageLinkWrapper>();
@@ -37,7 +37,7 @@ public class LeakedBbParser : HtmlParser
             }
     
             soup = await Soupify(link);
-            var img = soup.SelectSingleNode("//a[@id='download']").GetHref().Split("?")[0];
+            var img = soup.SelectSingleNodeOrThrow("//a[@id='download']").GetHref().Split("?")[0];
             images.Add(img);
         }
     

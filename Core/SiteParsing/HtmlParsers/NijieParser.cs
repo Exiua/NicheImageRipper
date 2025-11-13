@@ -29,16 +29,16 @@ public partial class NijieParser : HtmlParser
         await SiteLogin();
         var memberId = NijieRegex().Match(CurrentUrl).Groups[1].Value;
         var soup = await Soupify($"https://nijie.info/members_illust.php?id={memberId}", delay: delay);
-        var dirName = soup.SelectSingleNode("//a[@class='name']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//a[@class='name']").InnerText;
         var posts = new List<string>();
         var count = 1;
         while (true)
         {
             Log.Information("Parsing illustration posts page {count}", count);
             count++;
-            var postTags = soup.SelectSingleNode("//div[@class='mem-index clearboth']")
-                                .SelectNodes(".//p[@class='nijiedao']");
-            var postLinks = postTags.Select(link => link.SelectSingleNode(".//a").GetHref());
+            var postTags = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']")
+                                .SelectNodesOrThrow(".//p[@class='nijiedao']");
+            var postLinks = postTags.Select(link => link.SelectSingleNodeOrThrow(".//a").GetHref());
             posts.AddRange(postLinks);
             var nextPageBtn = soup.SelectSingleNode("//div[@class='right']");
             if (nextPageBtn is null)
@@ -49,7 +49,7 @@ public partial class NijieParser : HtmlParser
             nextPageBtn = nextPageBtn.SelectSingleNode(".//p[@class='page_button']");
             if (nextPageBtn is not null)
             {
-                var nextPage = nextPageBtn.SelectSingleNode(".//a").GetHref().Replace("&amp;", "&");
+                var nextPage = nextPageBtn.SelectSingleNodeOrThrow(".//a").GetHref().Replace("&amp;", "&");
                 soup = await Soupify($"https://nijie.info{nextPage}", delay: delay);
             }
             else
@@ -70,11 +70,11 @@ public partial class NijieParser : HtmlParser
             {
                 try
                 {
-                    var imageWindow = soup.SelectSingleNode("//div[@id='img_window']");
+                    var imageWindow = soup.SelectSingleNodeOrThrow("//div[@id='img_window']");
                     var imageNode = imageWindow.SelectNodes(".//a/img");
                     imgs = imageNode is not null 
                         ? imageNode.Select(img => (StringImageLinkWrapper)(Protocol + img.GetSrc())) 
-                        : [(StringImageLinkWrapper)(Protocol + imageWindow.SelectSingleNode(".//video").GetSrc())];
+                        : [(StringImageLinkWrapper)(Protocol + imageWindow.SelectSingleNodeOrThrow(".//video").GetSrc())];
                     break;
                 }
                 catch (NullReferenceException)
@@ -93,14 +93,14 @@ public partial class NijieParser : HtmlParser
         
         soup = await Soupify($"https://nijie.info/members_dojin.php?id={memberId}", delay: delay);
         posts = [];
-        var doujins = soup.SelectSingleNode("//div[@class='mem-index clearboth']")
+        var doujins = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']")
                             .SelectNodes("./div");
         if (doujins is null)
         {
             return RipInfo.FromUrlList(images, dirName, FilenameScheme);
         }
         
-        posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNode(".//a").GetHref()));
+        posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNodeOrThrow(".//a").GetHref()));
         foreach (var (i, post) in posts.Enumerate())
         {
             Log.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
@@ -111,8 +111,8 @@ public partial class NijieParser : HtmlParser
             {
                 try
                 {
-                    imgs = soup.SelectSingleNode("//div[@id='img_window']")
-                                .SelectNodes(".//a/img")
+                    imgs = soup.SelectSingleNodeOrThrow("//div[@id='img_window']")
+                                .SelectNodesOrThrow(".//a/img")
                                 .Select(img => (StringImageLinkWrapper)(Protocol + img.GetSrc()));
                     break;
                 }

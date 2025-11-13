@@ -20,8 +20,8 @@ public class PornVideoXXXParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='blog-info--title']").InnerText;
-        var images = soup.SelectNodes("//video/source")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='blog-info--title']").InnerText;
+        var images = soup.SelectNodesOrThrow("//video/source")
                             .Select(source => source.GetSrc())
                             .ToStringImageLinkWrapperList();
     

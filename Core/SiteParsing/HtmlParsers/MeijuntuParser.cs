@@ -21,16 +21,16 @@ public class MeijuntuParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='title']").InnerText;
-        var pageCount = soup.SelectSingleNode("//div[@id='pages']")
-                            .SelectNodes("./a")[^2]
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
+        var pageCount = soup.SelectSingleNodeOrThrow("//div[@id='pages']")
+                            .SelectNodesOrThrow("./a")[^2]
                             .InnerText
                             .ToInt();
         var baseUrl = CurrentUrl.Remove(".html");
         var images = new List<StringImageLinkWrapper>();
         for(var i = 0; i < pageCount; i++)
         {
-            var img = soup.SelectSingleNode("//div[@class='pictures']/img").GetSrc();
+            var img = soup.SelectSingleNodeOrThrow("//div[@class='pictures']/img").GetSrc();
             images.Add(img);
             if (i != pageCount - 1)
             {

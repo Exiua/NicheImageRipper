@@ -20,12 +20,12 @@ public class BabeUniversumParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='title']")
-                          .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']")
+                          .SelectSingleNodeOrThrow(".//h1")
                           .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='three-column']")
-                         .SelectNodes(".//div[@class='thumbnail']")
-                         .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='three-column']")
+                         .SelectNodesOrThrow(".//div[@class='thumbnail']")
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .Select(dummy => (StringImageLinkWrapper)dummy)
                          .ToList();
 

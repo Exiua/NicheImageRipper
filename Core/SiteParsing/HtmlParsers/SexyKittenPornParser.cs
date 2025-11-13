@@ -1,7 +1,6 @@
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
-using Core.ExtensionMethods;
 using Core.Managers;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -20,16 +19,16 @@ public class SexyKittenPornParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='blockheader']").InnerText;
-        var tagList = soup.SelectNodes("//div[@class='list gallery col3']")
-                            .SelectMany(tag => tag.SelectNodes(".//div[@class='item']"));
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader']").InnerText;
+        var tagList = soup.SelectNodesOrThrow("//div[@class='list gallery col3']")
+                            .SelectMany(tag => tag.SelectNodesOrThrow(".//div[@class='item']"));
         var imageLink = tagList.Select(image => 
-            $"https://www.sexykittenporn.com{image.SelectSingleNode(".//a").GetHref()}");
+            $"https://www.sexykittenporn.com{image.SelectSingleNodeOrThrow(".//a").GetHref()}");
         var images = new List<StringImageLinkWrapper>();
         foreach (var link in imageLink)
         {
             soup = await Soupify(link);
-            images.Add($"https:{soup.SelectSingleNode("//div[@class='image-wrapper']//img")
+            images.Add($"https:{soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img")
                                 .GetSrc()}");
         }
         

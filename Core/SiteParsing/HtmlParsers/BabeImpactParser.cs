@@ -21,27 +21,27 @@ public class BabeImpactParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var title = soup.SelectSingleNode("//h1[@class='blockheader pink center lowercase']").InnerText;
-        var sponsor = soup.SelectSingleNode("//div[@class='c']")
-                          .SelectNodes(".//a")[1]
+        var title = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader pink center lowercase']").InnerText;
+        var sponsor = soup.SelectSingleNodeOrThrow("//div[@class='c']")
+                          .SelectNodesOrThrow(".//a")[1]
                           .InnerText
                           .Trim();
         sponsor = $"({sponsor})";
         var dirName = $"{sponsor} {title}";
-        var tags = soup.SelectNodes("//div[@class='list gallery']");
+        var tags = soup.SelectNodesOrThrow("//div[@class='list gallery']");
         var tagList = new List<HtmlNode>();
         foreach (var tag in tags)
         {
-            tagList.AddRange(tag.SelectNodes(".//div[@class='item']"));
+            tagList.AddRange(tag.SelectNodesOrThrow(".//div[@class='item']"));
         }
 
         var images = new List<StringImageLinkWrapper>();
-        var imageList = tagList.Select(tag => tag.SelectSingleNode(".//a")).Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
+        var imageList = tagList.Select(tag => tag.SelectSingleNodeOrThrow(".//a")).Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
         foreach (var image in imageList)
         {
             soup = await Soupify(image);
-            var img = soup.SelectSingleNode("//div[@class='image-wrapper']")
-                          .SelectSingleNode(".//img")
+            var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']")
+                          .SelectSingleNodeOrThrow(".//img")
                           .GetSrc();
             images.Add((StringImageLinkWrapper)(Protocol + img));
         }

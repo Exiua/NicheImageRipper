@@ -24,18 +24,18 @@ public class OmegaScansParser : HtmlParser
         await Sleep(5000);
         var soup = await Soupify();
         var dirName = soup
-                        .SelectSingleNode(
+                        .SelectSingleNodeOrThrow(
                             "//h1[@class='text-xl md:text-3xl text-primary font-bold text-center lg:text-left']")
                         .InnerText;
-        var chapterCountStr = soup.SelectSingleNode("//div[@class='space-y-2 rounded p-5 bg-foreground']")
-                                    .SelectNodes("./div[@class='flex justify-between']")[3]
-                                    .SelectSingleNode(".//span[@class='text-secondary line-clamp-1']").InnerText;
+        var chapterCountStr = soup.SelectSingleNodeOrThrow("//div[@class='space-y-2 rounded p-5 bg-foreground']")
+                                    .SelectNodesOrThrow("./div[@class='flex justify-between']")[3]
+                                    .SelectSingleNodeOrThrow(".//span[@class='text-secondary line-clamp-1']").InnerText;
         var chapterCount = int.Parse(chapterCountStr.Trim().Split(' ')[0]);
         List<string> chapters = [];
         while (true)
         {
-            var links = soup.SelectSingleNode("//ul[@class='grid grid-cols-1 gap-y-8']")
-                            .SelectNodes("./a[@href]").GetHrefs().Select(link => $"https://omegascans.org{link}")
+            var links = soup.SelectSingleNodeOrThrow("//ul[@class='grid grid-cols-1 gap-y-8']")
+                            .SelectNodesOrThrow("./a[@href]").GetHrefs().Select(link => $"https://omegascans.org{link}")
                             .ToList();
             chapters.AddRange(links);
             if (chapters.Count == chapterCount)
@@ -63,7 +63,7 @@ public class OmegaScansParser : HtmlParser
                 continue;
             }
     
-            var imgs = post.SelectNodes("./img[@src]").GetSrcs();
+            var imgs = post.SelectNodesOrThrow("./img[@src]").GetSrcs();
             images.AddRange(imgs.Select(img => (StringImageLinkWrapper)img));
         }
     

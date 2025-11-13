@@ -20,7 +20,7 @@ public class BitchesGirlsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='album-name']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='album-name']").InnerText;
         var images = new List<StringImageLinkWrapper>();
         var baseUrl = CurrentUrl;
         if (baseUrl[^1] != '/')
@@ -36,8 +36,8 @@ public class BitchesGirlsParser : HtmlParser
                 soup = await Soupify($"{baseUrl}{page}");
             }
 
-            var posts = soup.SelectSingleNode("//div[@class='albumgrid']")
-                            .SelectNodes("./a[@class='post-container']")
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='albumgrid']")
+                            .SelectNodesOrThrow("./a[@class='post-container']")
                             .Select(post => post.GetHref())
                             .ToStringImageLinkWrapperList();
             images.AddRange(posts);

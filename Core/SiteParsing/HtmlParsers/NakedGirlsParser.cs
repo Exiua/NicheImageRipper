@@ -20,12 +20,12 @@ public class NakedGirlsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='content']")
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='content']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='content']")
-                            .SelectNodes(".//div[@class='thumb']")
-                            .Select(img => "https://www.nakedgirls.xxx" + img.SelectSingleNode(".//a").GetHref())
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content']")
+                            .SelectNodesOrThrow(".//div[@class='thumb']")
+                            .Select(img => "https://www.nakedgirls.xxx" + img.SelectSingleNodeOrThrow(".//a").GetHref())
                             .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

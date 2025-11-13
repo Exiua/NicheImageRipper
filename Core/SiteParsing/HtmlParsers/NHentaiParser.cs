@@ -35,9 +35,9 @@ public partial class NHentaiParser : HtmlParser
         }
         await LazyLoad(lazyLoadArgs);
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='title']").InnerText;
-        var thumbnails = soup.SelectSingleNode("//div[@class='thumbs']")
-                            .SelectNodes(".//img")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
+        var thumbnails = soup.SelectSingleNodeOrThrow("//div[@class='thumbs']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetNullableAttributeValue("data-src"))
                             .ToList();
         var images = thumbnails.Where(thumb => !string.IsNullOrEmpty(thumb)) // Remove nulls

@@ -22,15 +22,15 @@ public class XChinaParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var tabContents = soup.SelectSingleNode("//div[@class='tab-content video-info']");
+        var tabContents = soup.SelectSingleNodeOrThrow("//div[@class='tab-content video-info']");
         var publisherNode = tabContents.SelectSingleNode(".//i[@class='fa fa-video-camera']") 
-                            ?? tabContents.SelectSingleNode(".//i[@class='fa fa-user-circle']");
+                            ?? tabContents.SelectSingleNodeOrThrow(".//i[@class='fa fa-user-circle']");
     
-        var publisher = publisherNode.ParentNode.SelectSingleNode(".//a").InnerText;
+        var publisher = publisherNode.ParentNode.SelectSingleNodeOrThrow(".//a").InnerText;
         
         var series = tabContents.SelectSingleNode(".//i[@class='fa fa-file-o']");
         var id = series is not null ? series.ParentNode.InnerText : CurrentUrl.Split("id-")[^1].Split(".")[0];
-        var title = tabContents.SelectNodes(".//div")[0].InnerText;
+        var title = tabContents.SelectNodesOrThrow(".//div")[0].InnerText;
         var dirName = $"[{publisher}] {id} - {title}";
         var images = new List<StringImageLinkWrapper>();
         if (CurrentUrl.Contains("/video/"))
@@ -44,7 +44,7 @@ public class XChinaParser : HtmlParser
             var controls = soup.SelectSingleNode("//div[@class='controls']");
             if (controls is not null)
             {
-                var index = controls.SelectSingleNode(".//div[@class='index']")
+                var index = controls.SelectSingleNodeOrThrow(".//div[@class='index']")
                                     .InnerText
                                     .Split(" ")[^1];
                 numVids = int.Parse(index);
@@ -76,9 +76,9 @@ public class XChinaParser : HtmlParser
     
             while (true)
             {
-                var photos = soup.SelectSingleNode("//div[@class='photos']")
-                                    .SelectNodes("./a")
-                                    .SelectMany(a => a.SelectNodes(".//img"))
+                var photos = soup.SelectSingleNodeOrThrow("//div[@class='photos']")
+                                    .SelectNodesOrThrow("./a")
+                                    .SelectMany(a => a.SelectNodesOrThrow(".//img"))
                                     .Select(img => img.GetSrc().Split("_")[0] + ".jpg");
                 images.AddRange(photos.Select(photo => (StringImageLinkWrapper)photo));
     
@@ -105,14 +105,14 @@ public class XChinaParser : HtmlParser
     
     private static string GetVideoUrl(HtmlNode soup)
     {
-        var video = soup.SelectSingleNode("//video");
+        var video = soup.SelectSingleNodeOrThrow("//video");
         var videoSrc = video.GetSrc();
         if (!videoSrc.StartsWith("blob:"))
         {
             return videoSrc;
         }
     
-        var script = video.ParentNode.SelectNodes(".//script")[1].InnerText;
+        var script = video.ParentNode.SelectNodesOrThrow(".//script")[1].InnerText;
         var url = script.Split("hls.loadSource(\"")[1];
         url = url.Split("\");")[0];
         return url;

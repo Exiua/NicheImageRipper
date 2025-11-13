@@ -20,11 +20,11 @@ public class EahentaiParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify(delay: 1000, lazyLoadArgs: new LazyLoadArgs());
-        var dirName = soup.SelectSingleNode("//h2").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='gallery']")
-                            .SelectNodes(".//a")
+        var dirName = soup.SelectSingleNodeOrThrow("//h2").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(img => img
-                                        .SelectSingleNode(".//img")
+                                        .SelectSingleNodeOrThrow(".//img")
                                         .GetSrc()
                                         .Remove("/thumbnail")
                                         .Replace("t.", "."))

@@ -20,12 +20,12 @@ public class EightMusesParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify(xpath: "//div[@class='gallery']", lazyLoadArgs: new LazyLoadArgs());
-        var dirName = soup.SelectSingleNode("//div[@class='top-menu-breadcrumb']")
-                            .SelectNodes(".//a")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='top-menu-breadcrumb']")
+                            .SelectNodesOrThrow(".//a")
                             .Last()
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='gallery']")
-                            .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => "https://comics.8muses.com" + img.GetSrc().Replace("/th/", "/fm/"))
                             .ToStringImageLinkWrapperList();
     

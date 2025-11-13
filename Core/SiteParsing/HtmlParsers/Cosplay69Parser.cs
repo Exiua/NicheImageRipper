@@ -27,7 +27,7 @@ public class Cosplay69Parser : HtmlParser
             Increment = 1250
         });
     
-        var dirName = soup.SelectSingleNode("//h1[@class='post-title entry-title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
         List<StringImageLinkWrapper> images;
         var video = soup.SelectSingleNode("//iframe");
         if (video is not null)
@@ -50,8 +50,8 @@ public class Cosplay69Parser : HtmlParser
         }
         else
         {
-            images = soup.SelectSingleNode("//div[@class='entry-content gridnext-clearfix']")
-                            .SelectNodes(".//img")
+            images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridnext-clearfix']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc())
                             .ToStringImageLinkWrapperList();
         }

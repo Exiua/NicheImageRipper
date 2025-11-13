@@ -24,11 +24,11 @@ public class FaponicParser : HtmlParser
             ScrollBy = true,
             ScrollPauseTime = 1000
         });
-        var dirName = soup.SelectSingleNode("//div[@class='author-content']")
-                            .SelectSingleNode(".//a")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='author-content']")
+                            .SelectSingleNodeOrThrow(".//a")
                             .InnerText;
-        var posts = soup.SelectSingleNode("//div[@id='content']")
-                        .SelectNodes(".//div[@class='photo-item col-4-width']");
+        var posts = soup.SelectSingleNodeOrThrow("//div[@id='content']")
+                        .SelectNodesOrThrow(".//div[@class='photo-item col-4-width']");
         var images = new List<StringImageLinkWrapper>();
         foreach (var post in posts)
         {
@@ -39,7 +39,7 @@ public class FaponicParser : HtmlParser
             }
             else
             {
-                images.Add(post.SelectSingleNode(".//img").GetSrc());
+                images.Add(post.SelectSingleNodeOrThrow(".//img").GetSrc());
             }
         }
         
@@ -51,7 +51,7 @@ public class FaponicParser : HtmlParser
             }
     
             soup = await Soupify(((string)img).Remove("video:"));
-            var vid = soup.SelectSingleNode("//source").GetSrc();
+            var vid = soup.SelectSingleNodeOrThrow("//source").GetSrc();
             images[i] = vid;
         }
     

@@ -21,9 +21,9 @@ public partial class SxChineseGirlz01Parser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='post-title entry-title']").InnerText;
-        var numPages = soup.SelectSingleNode("//div[@class='page-links']")
-                            .SelectNodes("./a")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
+        var numPages = soup.SelectSingleNodeOrThrow("//div[@class='page-links']")
+                            .SelectNodesOrThrow("./a")
                             .Count + 1;
         var images = new List<StringImageLinkWrapper>();
         var baseUrl = CurrentUrl;
@@ -34,9 +34,9 @@ public partial class SxChineseGirlz01Parser : HtmlParser
                 soup = await Soupify($"{baseUrl}{i + 1}/");
             }
     
-            var imageList = soup.SelectSingleNode("//div[@class='entry-content gridlane-clearfix']")
-                                .SelectNodes("./figure[@class='wp-block-image size-large']")
-                                .Select(img => img.SelectSingleNode(".//img").GetSrc());
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridlane-clearfix']")
+                                .SelectNodesOrThrow("./figure[@class='wp-block-image size-large']")
+                                .Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc());
             images.AddRange(imageList.Select(img => SxChineseGirlzRegex().Replace(img, ""))
                                         .Select(imageUrl => (StringImageLinkWrapper)imageUrl));
         }

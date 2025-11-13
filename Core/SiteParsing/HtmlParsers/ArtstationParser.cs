@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Core.DataStructures;
 using Core.Enums;
+using Core.ExtensionMethods;
 using Core.Managers;
 using Serilog;
 using WebDriver = Core.Driver.WebDriver;
@@ -24,9 +25,9 @@ public class ArtstationParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='artist-name']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='artist-name']").InnerText;
         var username = CurrentUrl.Split("/")[3];
-        var cacheScript = soup.SelectSingleNode("//div[@class='wrapper-main']").SelectNodes(".//script")[1].InnerText;
+        var cacheScript = soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
         
         #region Id Extraction
         
@@ -97,7 +98,7 @@ public class ArtstationParser : HtmlParser
             var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
             var assets = responseData!["assets"]!.AsArray();
             var urls = assets.Select(asset => asset!["image_url"]!.Deserialize<string>()!.Replace("/large/", "/4k/"));
-            images.AddRange(urls.Select(url => (StringImageLinkWrapper)url));
+            images.AddRange(urls.ToStringImageLinks());
         }
         
         #endregion

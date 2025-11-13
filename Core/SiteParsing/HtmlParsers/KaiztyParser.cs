@@ -20,22 +20,22 @@ public class KaiztyParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='c-denomination s-denomination']//h2").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='c-denomination s-denomination']//h2").InnerText;
         var end = dirName.IndexOf(" |", StringComparison.Ordinal);
         const int start = 15; // Length of "Kaizty Photos: "
         dirName = end < 0 ? dirName[start..] : dirName[start..end];
         var images = new List<StringImageLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNode("//div[@class='contentme']")
-                            .SelectNodes(".//img")
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc().Split("?")[0])
                             .Where(link => link.StartsWith("https"))
                             .ToStringImageLinks();
             images.AddRange(imgs);
     
             var pagination = soup.SelectSingleNode("//ul[@class='pagination-site']");
-            var nextPage = pagination?.SelectNodes(".//a")
+            var nextPage = pagination?.SelectNodesOrThrow(".//a")
                                         .Where(a => a.InnerText.StartsWith("Next"))
                                         .Select(a => a.GetHref())
                                         .FirstOrDefault();

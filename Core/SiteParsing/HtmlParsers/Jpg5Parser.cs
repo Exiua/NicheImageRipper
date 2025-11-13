@@ -68,7 +68,7 @@ public class Jpg5Parser : ParameterizedHtmlParser
                 }
     
                 var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
-                                .SelectNodes("./div")
+                                .SelectNodesOrThrow("./div")
                                 .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc().Remove(".md"))
                                 .ToStringImageLinks();
                 images.AddRange(posts);

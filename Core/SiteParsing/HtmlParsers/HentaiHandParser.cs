@@ -3,7 +3,6 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.ExtensionMethods;
 using Core.Managers;
-using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
@@ -25,13 +24,13 @@ public class HentaiHandParser : HtmlParser
             ScrollBy = true
         };
         var soup = await Soupify(xpath: "//div[@class='gallery-image col-6 col-md-3 py-3']//img", lazyLoadArgs: lazyLoadArgs);
-        var dirName = soup.SelectSingleNode("//h5[@class='comic-title font-weight-bold mb-2']").InnerText;
-        var pageCount = soup.SelectSingleNode("//h6[@class='box-header mb-2']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h5[@class='comic-title font-weight-bold mb-2']").InnerText;
+        var pageCount = soup.SelectSingleNodeOrThrow("//h6[@class='box-header mb-2']")
                             .InnerText
                             .Split('(')[1]
                             .Split(')')[0]
                             .ToInt();
-        var baseUrl = soup.SelectSingleNode("//div[@class='gallery-image col-6 col-md-3 py-3']//img")
+        var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='gallery-image col-6 col-md-3 py-3']//img")
                           .GetSrc()
                           .Replace("/thumbnails/", "/images/");
 

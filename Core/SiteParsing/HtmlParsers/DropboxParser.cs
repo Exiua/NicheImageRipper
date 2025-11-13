@@ -19,7 +19,6 @@ public class DropboxParser : HtmlParser
     /// <summary>
     ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
-    /// <param name="dropboxUrl"></param>
     /// <returns></returns>
     public override async Task<RipInfo> Parse()
     {
@@ -52,7 +51,7 @@ public class DropboxParser : HtmlParser
         {
             try
             {
-                dirName = soup.SelectSingleNode("//span[@class='dig-Breadcrumb-link-text']").InnerText;
+                dirName = soup.SelectSingleNodeOrThrow("//span[@class='dig-Breadcrumb-link-text']").InnerText;
             }
             catch (NullReferenceException)
             {
@@ -120,7 +119,7 @@ public class DropboxParser : HtmlParser
                 var vid = soup.SelectSingleNode("//video");
                 if (vid is not null)
                 {
-                    var src = vid.SelectSingleNode("//source").GetSrc();
+                    var src = vid.SelectSingleNodeOrThrow("//source").GetSrc();
                     if (src != "")
                     {
                         images.Add(src);
@@ -129,8 +128,8 @@ public class DropboxParser : HtmlParser
                 else
                 {
                     var newPosts = soup
-                                  .SelectSingleNode("//ol[@class='_sl-grid-body_6yqpe_26']")
-                                  .SelectNodes("//a")
+                                  .SelectSingleNodeOrThrow("//ol[@class='_sl-grid-body_6yqpe_26']")
+                                  .SelectNodesOrThrow("//a")
                                   .GetHrefs()
                                   .RemoveDuplicates();
                     posts.AddRange(newPosts);

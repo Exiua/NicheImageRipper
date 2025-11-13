@@ -25,10 +25,10 @@ public class ThotsBayParser : HtmlParser
             Increment = 1250,
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
-        var dirName = soup.SelectSingleNode("//div[@class='actor-name']/h1").InnerText;
-        var container = soup.SelectSingleNode("//div[@id='media-items-all']");
-        var items = container.SelectNodes("./div")
-                                .Select(div => $"https://thotsbay.tv{div.SelectSingleNode(".//a").GetHref()}");
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='actor-name']/h1").InnerText;
+        var container = soup.SelectSingleNodeOrThrow("//div[@id='media-items-all']");
+        var items = container.SelectNodesOrThrow("./div")
+                                .Select(div => $"https://thotsbay.tv{div.SelectSingleNodeOrThrow(".//a").GetHref()}");
         var images = new List<StringImageLinkWrapper>();
         foreach (var item in items)
         {

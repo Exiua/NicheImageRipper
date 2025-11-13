@@ -31,9 +31,9 @@ public class Saint2Parser : ParameterizedHtmlParser
         if (CurrentUrl.Contains("/embed/"))
         {
             dirName = "Saint2 Video";
-            var downloadLink = soup.SelectSingleNode("//a[@class='plyr__controls__item plyr__control']").GetHref();
+            var downloadLink = soup.SelectSingleNodeOrThrow("//a[@class='plyr__controls__item plyr__control']").GetHref();
             soup = await Soupify(downloadLink);
-            var link = soup.SelectSingleNode("//a").GetHref();
+            var link = soup.SelectSingleNodeOrThrow("//a").GetHref();
             images.Add(link);
         }
         else

@@ -23,7 +23,7 @@ public class HustleBootyTempTatsParser : HtmlParser
         var pauseButton = Driver.TryFindElement(By.XPath("//div[@class='galleria-playback-button pause']"));
         pauseButton?.Click();
         var soup = await Soupify(delay: 1000);
-        var dirName = soup.SelectSingleNode("//h1[@class='zox-post-title left entry-title']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='zox-post-title left entry-title']").InnerText;
         var imagesNode = soup.SelectNodes("//div[@class='galleria-thumbnails']//img");
         List<StringImageLinkWrapper> images;
         if (imagesNode is not null)
@@ -61,7 +61,7 @@ public class HustleBootyTempTatsParser : HtmlParser
             }
             else
             {
-                var iframe = soup.SelectSingleNode("//iframe");
+                var iframe = soup.SelectSingleNodeOrThrow("//iframe");
                 var iframeUrl = iframe.GetSrc();
                 images = [ iframeUrl ]; // YouTube video (probably)
             }

@@ -21,12 +21,12 @@ public class PutMegaParser : HtmlParser
     {
         //const int maxRetries = 4;
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//a[@data-text='album-name']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//a[@data-text='album-name']").InnerText;
         var images = new List<StringImageLinkWrapper>();
         while (true)
         {
-            var imageList = soup.SelectSingleNode("//div[@class='pad-content-listing']")
-                                .SelectNodes(".//img")
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
+                                .SelectNodesOrThrow(".//img")
                                 .Select(img => (StringImageLinkWrapper)img.GetSrc().Remove(".md"));
             images.AddRange(imageList);
             var nextPage = soup.SelectSingleNode("//li[@class='pagination-next']");
@@ -35,7 +35,7 @@ public class PutMegaParser : HtmlParser
                 break;
             }
     
-            var nextPageUrl = nextPage.SelectSingleNode(".//a").GetNullableHref();
+            var nextPageUrl = nextPage.SelectSingleNodeOrThrow(".//a").GetNullableHref();
             if (string.IsNullOrEmpty(nextPageUrl))
             {
                 break;

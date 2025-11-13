@@ -20,13 +20,13 @@ public class BabeCentrumParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='pageHeading']")
-                          .SelectNodes(".//cufontext")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='pageHeading']")
+                          .SelectNodesOrThrow(".//cufontext")
                           .Select(w => w.InnerText)
                           .Join(" ")
                           .Trim();
-        var images = soup.SelectSingleNode("//table")
-                         .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//table")
+                         .SelectNodesOrThrow(".//img")
                          .Select(img => Protocol + img.GetAttributeValue("src", "").Remove("tn_"))
                          .Select(dummy => (StringImageLinkWrapper)dummy)   
                          .ToList();

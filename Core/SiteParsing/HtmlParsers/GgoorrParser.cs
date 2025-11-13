@@ -21,18 +21,18 @@ public class GgoorrParser : HtmlParser
     {
         const string schema = "https://cdn.ggoorr.net";
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1//a").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1//a").InnerText;
         var posts = soup
-                    .SelectSingleNode("//div[@id='article_1']")
-                    .SelectSingleNode(".//div")
-                    .SelectNodes(".//img|.//video");
+                    .SelectSingleNodeOrThrow("//div[@id='article_1']")
+                    .SelectSingleNodeOrThrow(".//div")
+                    .SelectNodesOrThrow(".//img|.//video");
         var images = new List<StringImageLinkWrapper>();
         foreach (var post in posts)
         {
             var link = post.GetNullableSrc();
             if (string.IsNullOrEmpty(link))
             {
-                link = post.SelectSingleNode(".//source").GetSrc();
+                link = post.SelectSingleNodeOrThrow(".//source").GetSrc();
             }
     
             if (!link.Contains("https://"))

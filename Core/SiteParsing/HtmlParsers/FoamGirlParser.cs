@@ -21,16 +21,16 @@ public class FoamGirlParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='item_title']/h1").InnerText.Split('(')[0];
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='item_title']/h1").InnerText.Split('(')[0];
         var images = new List<StringImageLinkWrapper>();
         var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") 
-                            ?? soup.SelectSingleNode("//div[@class='nav-links page_imges']").SelectNodes("./a")[^2];
+                            ?? soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']").SelectNodesOrThrow("./a")[^2];
         var pageCount = pageContainer.InnerText.ToInt();
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {
-            var imgs = soup.SelectSingleNode("//div[@id='image_div']/p")
-                           .SelectNodes("./a")
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='image_div']/p")
+                           .SelectNodesOrThrow("./a")
                            .Select(a => a.GetHref())
                            .ToStringImageLinks();
             images.AddRange(imgs);

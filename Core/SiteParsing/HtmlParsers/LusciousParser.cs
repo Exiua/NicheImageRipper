@@ -28,7 +28,7 @@ public class LusciousParser : HtmlParser
             CurrentUrl = CurrentUrl.Replace("members.", "www.");
         }
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='o-h1 album-heading']|//h1[@class='o-h1 video-heading o-padding-sides']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='o-h1 album-heading']|//h1[@class='o-h1 video-heading o-padding-sides']").InnerText;
         const string endpoint = "https://members.luscious.net/graphqli/?";
         var albumId = CurrentUrl.Split("/")[4].Split("_")[^1];
         var session = new HttpClient();

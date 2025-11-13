@@ -21,15 +21,15 @@ public class SfmCompileParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='g1-alpha g1-alpha-2nd page-title archive-title']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-alpha g1-alpha-2nd page-title archive-title']")
                             .InnerText
                             .Replace("\"", "");
         var elements = new List<HtmlNode>();
         var images = new List<StringImageLinkWrapper>();
         while (true)
         {
-            var items = soup.SelectSingleNode("//ul[@class='g1-collection-items']")
-                            .SelectNodes(".//li[@class='g1-collection-item']");
+            var items = soup.SelectSingleNodeOrThrow("//ul[@class='g1-collection-items']")
+                            .SelectNodesOrThrow(".//li[@class='g1-collection-item']");
             elements.AddRange(items);
             var nextPage = soup.SelectSingleNode("//a[@class='g1-link g1-link-m g1-link-right next']");
             if (nextPage is null)
@@ -47,15 +47,15 @@ public class SfmCompileParser : HtmlParser
             var media = element.SelectSingleNode(".//video");
             if (media is not null)
             {
-                videoSrc = media.SelectSingleNode(".//a").GetHref();
+                videoSrc = media.SelectSingleNodeOrThrow(".//a").GetHref();
                 images.Add(videoSrc);
             }
             else
             {
-                var videoLink = element.SelectSingleNode(".//a[@class='g1-frame']").GetHref();
+                var videoLink = element.SelectSingleNodeOrThrow(".//a[@class='g1-frame']").GetHref();
                 soup = await Soupify(videoLink);
-                videoSrc = soup.SelectSingleNode("//video")
-                                    .SelectSingleNode(".//source")
+                videoSrc = soup.SelectSingleNodeOrThrow("//video")
+                                    .SelectSingleNodeOrThrow(".//source")
                                     .GetSrc();
             }
             images.Add(videoSrc);

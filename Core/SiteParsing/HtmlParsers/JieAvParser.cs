@@ -21,8 +21,9 @@ public class JieAvParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@id='works']/h1").InnerText;
-        var (capturer, _) = await ConfigureNetworkCapture<JieAvCapturer>();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='works']/h1").InnerText;
+        var (capturer, b) = await ConfigureNetworkCapture<JieAvCapturer>();
+        await using var bidi = b;
         Driver.Refresh();
         var images = new List<StringImageLinkWrapper>();
         while (true)

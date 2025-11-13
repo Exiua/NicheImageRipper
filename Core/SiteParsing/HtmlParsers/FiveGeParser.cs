@@ -25,9 +25,9 @@ public class FiveGeParser : HtmlParser
             Increment = 1250,
             ScrollPauseTime = 1000
         });
-        var dirName = soup.SelectSingleNode("//h1[@class='joe_detail__title']").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='joe_gird']")
-                            .SelectNodes(".//img")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='joe_detail__title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='joe_gird']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc())
                             .ToStringImageLinkWrapperList();
     

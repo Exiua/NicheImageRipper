@@ -20,13 +20,13 @@ public class JapaneseAsmrParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='page-title']").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='fotorama__nav__shaft']")
-                            .SelectNodes(".//img")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='page-title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc())
                             .ToStringImageLinkWrapperList();
-        var megaLinks = soup.SelectSingleNode("//div[@class='download_links']")
-                            .SelectNodes(".//a")
+        var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(a => a.GetHref());
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var link in megaLinks)

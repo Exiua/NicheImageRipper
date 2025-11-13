@@ -20,11 +20,11 @@ public class BabesAndGirlsParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='title']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']")
                           .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='block-post album-item']")
-                         .SelectNodes(".//a[@class='item-post']")
-                         .Select(img => Protocol + img.SelectSingleNode(".//img").GetSrc().Remove("tn_"))
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='block-post album-item']")
+                         .SelectNodesOrThrow(".//a[@class='item-post']")
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .ToStringImageLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

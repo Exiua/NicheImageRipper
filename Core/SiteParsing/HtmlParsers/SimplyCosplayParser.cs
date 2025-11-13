@@ -24,18 +24,18 @@ public class SimplyCosplayParser : HtmlParser
         var viewButton = Driver.TryFindElement(By.XPath("//button[@class='btn btn-default']"));
         viewButton?.Click();
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='content-headline']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='content-headline']").InnerText;
         var imageList = soup.SelectSingleNode("//div[@class='swiper-wrapper']");
         List<StringImageLinkWrapper> images;
         if (imageList is null)
         {
-            images = [soup.SelectSingleNode("//div[@class='image-wrapper']//img")
+            images = [soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img")
                             .GetSrc()];
         }
         else
         {
-            images = soup.SelectSingleNode("//section/div[@class='row vertical-gutters']")
-                            .SelectNodes(".//img")
+            images = soup.SelectSingleNodeOrThrow("//section/div[@class='row vertical-gutters']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(url => url.GetAttributeValue("data-src").Remove("thumb_"))
                             .ToStringImageLinkWrapperList();
         }

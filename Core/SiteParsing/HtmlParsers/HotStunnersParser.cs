@@ -20,11 +20,11 @@ public class HotStunnersParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='title_content']")
-                            .SelectSingleNode(".//h2")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title_content']")
+                            .SelectSingleNodeOrThrow(".//h2")
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@class='gallery_janna2']")
-                            .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery_janna2']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => Protocol + img.GetSrc().Remove("tn_"))
                             .ToStringImageLinkWrapperList();
         

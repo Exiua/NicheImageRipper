@@ -26,7 +26,7 @@ public class FlickrParser : HtmlParser
         {
             ScrollBy = true
         });
-        var dirName = soup.SelectSingleNode("//h1").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var images = new List<StringImageLinkWrapper>();
         var imagePosts = new List<string>();
         var pageCount = 1;
@@ -35,9 +35,9 @@ public class FlickrParser : HtmlParser
             Log.Information("Parsing page {pageCount}", pageCount);
             pageCount += 1;
             var posts = soup
-                        .SelectSingleNode("//div[contains(@class, 'view') and contains(@class, 'photo-list-view') and contains(@class, 'photostream')]")
-                        .SelectNodes(".//div[contains(@class, 'view') and contains(@class, 'photo-list-photo-view') and contains(@class, 'photostream')]")
-                        .Select(post => post.SelectSingleNode(".//a[@class='overlay']").GetHref())
+                        .SelectSingleNodeOrThrow("//div[contains(@class, 'view') and contains(@class, 'photo-list-view') and contains(@class, 'photostream')]")
+                        .SelectNodesOrThrow(".//div[contains(@class, 'view') and contains(@class, 'photo-list-photo-view') and contains(@class, 'photostream')]")
+                        .Select(post => post.SelectSingleNodeOrThrow(".//a[@class='overlay']").GetHref())
                         .Select(dummy => $"https://www.flickr.com{dummy}")
                         .ToList();
             imagePosts.AddRange(posts);
@@ -61,7 +61,7 @@ public class FlickrParser : HtmlParser
             Log.Information("Parsing post {i}: {post}", i + 1, post);
             var delay = 100;
             soup = await Soupify(post, delay: delay);
-            var script = soup.SelectSingleNode("//script[@class='modelExport']").InnerText;
+            var script = soup.SelectSingleNodeOrThrow("//script[@class='modelExport']").InnerText;
             string paramValues;
             while (true)
             {
@@ -74,7 +74,7 @@ public class FlickrParser : HtmlParser
                 {
                     delay *= 2;
                     soup = await Soupify(post, delay: delay);
-                    script = soup.SelectSingleNode("//script[@class='modelExport']").InnerText;
+                    script = soup.SelectSingleNodeOrThrow("//script[@class='modelExport']").InnerText;
                 }
             }
     

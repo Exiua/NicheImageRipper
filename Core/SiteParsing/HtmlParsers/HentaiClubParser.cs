@@ -26,10 +26,10 @@ public class HentaiClubParser : HtmlParser
         });
         
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//span[@class='post-info-text']").InnerText;
-        var images = soup.SelectSingleNode("//div[@id='masonry']")
-                            .SelectNodes("./div")
-                            .Select(div => div.SelectSingleNode("./img").GetSrc())
+        var dirName = soup.SelectSingleNodeOrThrow("//span[@class='post-info-text']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='masonry']")
+                            .SelectNodesOrThrow("./div")
+                            .Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc())
                             .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

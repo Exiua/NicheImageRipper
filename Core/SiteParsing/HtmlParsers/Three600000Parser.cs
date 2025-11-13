@@ -21,9 +21,9 @@ public class Three600000Parser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='entry-title']").InnerText;
-        var images = soup.SelectSingleNode("//div[@class='entry-content']/p")
-                         .SelectNodes("./a")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p")
+                         .SelectNodesOrThrow("./a")
                          .Select(a => a.GetHref())
                          .ToStringImageLinkWrapperList();
 

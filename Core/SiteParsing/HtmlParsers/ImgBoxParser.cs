@@ -20,11 +20,11 @@ public class ImgBoxParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@id='gallery-view']")
-                            .SelectSingleNode(".//h1")
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']")
+                            .SelectSingleNodeOrThrow(".//h1")
                             .InnerText.Split(" - ")[0];
-        var images = soup.SelectSingleNode("//div[@id='gallery-view-content']")
-                            .SelectNodes(".//img")
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o"))
                             .ToStringImageLinkWrapperList();
     

@@ -25,17 +25,17 @@ public class NLegsParser : HtmlParser
         const int delay = 1000;
         
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//strong").InnerText;
-        var numPages = soup.SelectSingleNode("//ul[@class='pagination pagination']")
-                            .SelectNodes("./li")
+        var dirName = soup.SelectSingleNodeOrThrow("//strong").InnerText;
+        var numPages = soup.SelectSingleNodeOrThrow("//ul[@class='pagination pagination']")
+                            .SelectNodesOrThrow("./li")
                             .Count;
         var baseUrl = CurrentUrl.Split(".")[..^1].Join(".");
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < numPages; i++)
         {
             Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
-            var posts = soup.SelectSingleNode("//div[@class='col-md-12 col-xs-12 ']")
-                            .SelectNodes(".//a")
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='col-md-12 col-xs-12 ']")
+                            .SelectNodesOrThrow(".//a")
                             .Select(a => domain + a.GetHref())
                             .ToStringImageLinks();
             images.AddRange(posts);

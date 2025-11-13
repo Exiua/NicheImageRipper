@@ -23,10 +23,10 @@ public class EveriaParser : HtmlParser
         {
             ScrollBy = true
         });
-        var dirName = soup.SelectSingleNode("//h1[@class='single-post-title entry-title']").InnerText;
-        var images = soup.SelectSingleNode("//figure[@class='wp-block-gallery has-nested-images " +
-                                        "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']")
-                            .SelectNodes(".//img")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single-post-title entry-title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images " +
+                                                  "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']")
+                            .SelectNodesOrThrow(".//img")
                             .Select(img => img.GetSrc())
                             .Select(dummy => (StringImageLinkWrapper)dummy)
                             .ToList();

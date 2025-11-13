@@ -24,11 +24,11 @@ public class XMissyParser : HtmlParser
         loadButton?.Click();
         await Sleep(1000);
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@id='pagetitle']")
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='pagetitle']")
                             .InnerText;
-        var images = soup.SelectSingleNode("//div[@id='gallery']")
-                            .SelectNodes(".//div[@class='noclick-image']")
-                            .Select(img => img.SelectSingleNode(".//img").GetNullableSrc() ?? img.SelectSingleNode(".//img").GetSrc())
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery']")
+                            .SelectNodesOrThrow(".//div[@class='noclick-image']")
+                            .Select(img => img.SelectSingleNode(".//img")?.GetNullableSrc() ?? img.SelectSingleNodeOrThrow(".//img").GetSrc())
                             .ToStringImageLinkWrapperList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

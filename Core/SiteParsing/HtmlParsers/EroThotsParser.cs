@@ -24,23 +24,23 @@ public class EroThotsParser : HtmlParser
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("/gif/"))
         {
-            dirName = soup.SelectSingleNode("//h1[@class='mb-0 title']").InnerText;
-            var player = soup.SelectSingleNode("//div[@class='video-player gifs']/video/source");
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='mb-0 title']").InnerText;
+            var player = soup.SelectSingleNodeOrThrow("//div[@class='video-player gifs']/video/source");
             images = [player.GetSrc()];
         }
         else if (CurrentUrl.Contains("/video/"))
         {
-            dirName = soup.SelectSingleNode("//h1[@class='mb-0 title']").InnerText;
-            var player = soup.SelectSingleNode("//video[@class='v-player']/source");
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='mb-0 title']").InnerText;
+            var player = soup.SelectSingleNodeOrThrow("//video[@class='v-player']/source");
             images = [player.GetSrc()];
         }
         else /*if (CurrentUrl.Contains("/a/"))*/
         {
-            dirName = soup.SelectSingleNode("//div[@class='head-title']")
-                            .SelectSingleNode(".//span")
+            dirName = soup.SelectSingleNodeOrThrow("//div[@class='head-title']")
+                            .SelectSingleNodeOrThrow(".//span")
                             .InnerText;
-            images = soup.SelectSingleNode("//div[@class='album-gallery']")
-                            .SelectNodes("./a")
+            images = soup.SelectSingleNodeOrThrow("//div[@class='album-gallery']")
+                            .SelectNodesOrThrow("./a")
                             .Select(link => link.GetAttributeValue("data-src"))
                             .Select(dummy => (StringImageLinkWrapper)dummy)
                             .ToList();
