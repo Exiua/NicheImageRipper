@@ -1,17 +1,6 @@
 ﻿# NicheImageRipper
 [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Exiua/NicheImageRipper/blob/main/LICENSE) [![Release Version](https://img.shields.io/github/v/release/Exiua/NicheImageRipper)](https://github.com/Exiua/NicheImageRipper/releases) ![GitHub all releases](https://img.shields.io/github/downloads/Exiua/NicheImageRipper/total)
 
-## Table of Contents
-<!-- TOC -->
-* [NicheImageRipper](#nicheimageripper)
-  * [Table of Contents](#table-of-contents)
-  * [About](#about)
-  * [How To Use](#how-to-use)
-  * [Dependencies](#dependencies)
-    * [External Dependencies](#external-dependencies)
-  * [Sites Currently Supported:](#sites-currently-supported)
-<!-- TOC -->
-
 ## About
 
 NicheImageRipper is an image ripper written in C# to download albums from various sites.
@@ -25,7 +14,9 @@ and run `NicheImageRipper.exe`.
 
 ### External Dependencies
 
-The program also requires `ffmpeg` and `geckodriver` to be installed.
+The program also requires [ffmpeg](https://www.ffmpeg.org/) and [yt-dlp](https://github.com/yt-dlp/yt-dlp) to be installed.
+
+The program also (optionally) requires [MegaCMD](https://mega.io/cmd), [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr), and [CSWebDriver](https://github.com/Exiua/CSWebDriver)
 
 ## Sites Currently Supported:
 
