@@ -21,8 +21,8 @@ public partial class Av19aParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await SolveParseAddCookies();
-        var dirName = soup.SelectSingleNode("//header[@class='entry-header']").InnerText;
-        var player = soup.SelectSingleNode("//div[@id='player']").SelectSingleNode("./iframe");
+        var dirName = soup.SelectSingleNodeOrThrow("//header[@class='entry-header']").InnerText;
+        var player = soup.SelectSingleNodeOrThrow("//div[@id='player']").SelectSingleNodeOrThrow("./iframe");
         var src = player.GetSrc();
         var match = Av19APlaylistIdRegex().Match(src);
         var urlPath = match.Groups[1].Value;

@@ -11,7 +11,6 @@ using Core.ExtensionMethods;
 using Core.Managers;
 using Core.FileDownloading;
 using Core.History;
-using Core.Managers;
 using Core.Utility;
 using OpenQA.Selenium;
 using Serilog;
@@ -32,7 +31,7 @@ public partial class NicheImageRipper : IDisposable
 
     protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
 
-    public Version Version { get; } = new(3, 1, 0, 0);
+    public Version Version { get; } = new(4, 0, 0, 0);
 
     public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
 

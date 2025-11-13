@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Text;
-using Core.Enums;
+﻿using Core.Enums;
 using Core.FileDownloading;
 using Core.SiteParsing;
 using Core.Utility;
@@ -229,11 +227,6 @@ public class RipInfo
         name = name[..MaxDirectoryNameLength];
 
         return name;
-    }
-
-    private static void SaveRawUrls(List<StringImageLinkWrapper> urls)
-    {
-        JsonUtility.Serialize("raw_urls.json", urls);
     }
 
     public override string ToString()

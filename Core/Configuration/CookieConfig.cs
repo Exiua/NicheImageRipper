@@ -12,7 +12,7 @@ public class CookieConfig
     public required string Thothub { get; set; }
     public required string Kemono { get; set; }
     public required string SimpCity { get; set; }
-    [JsonConverter(typeof(StringOrArrayConverter))]
+    [JsonConverter(typeof(StringOrArrayConverter))] // required for backward compatibility
     public required string[] Pixiv { get; set; }
     
     public static CookieConfig New()

@@ -3,14 +3,14 @@ using Core.Managers;
 
 namespace Core.DataStructures;
 
-public class OrderedHashSet<T>
+internal class OrderedHashSet<T>
 {
     private readonly List<T> _list = [];
     private readonly HashSet<T> _set = [];
     
-    public int Count => _list.Count;
+    internal int Count => _list.Count;
     
-    public bool Add(T item)
+    internal bool Add(T item)
     {
         if (!_set.Add(item))
         {
@@ -22,7 +22,7 @@ public class OrderedHashSet<T>
 
     }
     
-    public IEnumerable<(int i, T)> Enumerate()
+    internal IEnumerable<(int i, T)> Enumerate()
     {
         return _list.Enumerate();
     }

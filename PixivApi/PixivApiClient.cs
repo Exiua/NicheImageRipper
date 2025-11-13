@@ -16,7 +16,7 @@ public class PixivApiClient
     private const string ClientSecret = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
     private const string HashSecret = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c";
 
-    private string UserId { get; set; }
+    private string UserId { get; set; } = "";
     private string? AccessToken { get; set; }
     private string? RefreshToken { get; set; }
     private string Hosts { get; set; } = "https://app-api.pixiv.net";

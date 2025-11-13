@@ -2,7 +2,7 @@
 
 namespace Core.Configuration;
 
-public class Config
+public static class Config
 {
     internal const string ConfigPath = "config.json";
 

@@ -6,8 +6,7 @@ using JetBrains.Annotations;
 
 namespace Core.Configuration;
 
-public class 
-    GeneralConfig
+public class GeneralConfig
 {
     public string UserAgent { get; set; } = null!;
     public string SavePath { get; set; } = null!;

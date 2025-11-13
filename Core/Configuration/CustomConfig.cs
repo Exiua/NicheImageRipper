@@ -2,9 +2,14 @@ namespace Core.Configuration;
 
 public class CustomConfig
 {
-    public V2PHConfig V2PH { get; set; }
-    public GoFileConfig GoFile { get; set; }
+    public V2PHConfig V2PH { get; set; } = null!;
+    public GoFileConfig GoFile { get; set; } = null!;
 
+    private CustomConfig()
+    {
+        
+    }
+    
     public static CustomConfig New()
     {
         return new CustomConfig

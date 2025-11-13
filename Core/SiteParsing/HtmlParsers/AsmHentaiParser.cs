@@ -21,9 +21,9 @@ public class AsmHentaiParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//div[@class='info']/h1").InnerText;
-        var pages = soup.SelectSingleNode("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ToInt();
-        var baseUrl = soup.SelectSingleNode("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1].Join("/");
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
+        var pages = soup.SelectSingleNodeOrThrow("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ToInt();
+        var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1].Join("/");
         var images = new List<StringImageLinkWrapper>();
         for(var i = 0; i < pages; i++)
         {

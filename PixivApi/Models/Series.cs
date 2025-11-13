@@ -7,5 +7,5 @@ public class Series : PixivModel
     [JsonPropertyName("id")]
     public int Id { get; set; }
     [JsonPropertyName("title")]
-    public string Title { get; set; }
+    public string Title { get; set; } = null!;
 }

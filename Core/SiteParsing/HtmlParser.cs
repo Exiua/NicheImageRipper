@@ -7,7 +7,6 @@ using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using Core.FileDownloading;
-using Core.Managers;
 using Core.SiteParsing.HtmlParsers;
 using Core.SiteParsing.VideoCapturers;
 using Core.Utility;

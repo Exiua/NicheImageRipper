@@ -21,12 +21,12 @@ public class AHottieParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNode("//h1[@class='text-xl font-bold pl-3 text-yellow-500']").InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='text-xl font-bold pl-3 text-yellow-500']").InnerText;
         var images = new List<StringImageLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNode("//div[@id='main']/div[@class='my-2']")
-                           .SelectNodes("./img")
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']")
+                           .SelectNodesOrThrow("./img")
                            .Select(img => img.GetSrc())
                            .ToStringImageLinks();
             images.AddRange(imgs);
@@ -37,7 +37,7 @@ public class AHottieParser : HtmlParser
                 break;
             }
             
-            var nextButton = selector.SelectNodes("./a")[^1];
+            var nextButton = selector.SelectNodesOrThrow("./a")[^1];
             if (!nextButton.GetAttributeValue("aria-label").StartsWith("Next"))
             {
                 break;

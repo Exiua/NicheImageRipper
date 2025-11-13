@@ -5,11 +5,6 @@ namespace Core.ArgParse;
 
 public static class ArgumentParser
 {
-    // public static T Parse<T>(string[] args)
-    // {
-    //     
-    // }
-    
     public static Arguments Parse(string[] args)
     {
         var arguments = new Arguments();
