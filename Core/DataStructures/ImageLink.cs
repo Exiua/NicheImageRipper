@@ -1,23 +1,37 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
 using Core.Enums;
 using Core.Exceptions;
 using JetBrains.Annotations;
 using Core.ExtensionMethods;
+using Core.Managers;
 using Core.Utility;
 
 namespace Core.DataStructures;
 
 public partial class ImageLink
 {
-    public string Referer { get; set; } = null!;
+    public string? Referer { get; set; }
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
     public string Url { get; set; } = null!;
     public string Filename { get; set; } = null!;
     
     public bool IsBlob => Url.StartsWith("blob:");
+    public bool IsInvalid => Url == "";
+    
+    [MemberNotNullWhen(true, nameof(Referer))]
     public bool HasReferer => !string.IsNullOrEmpty(Referer);
+    
+    public static ImageLink Invalid => new()
+    {
+        Referer = null,
+        LinkInfo = LinkInfo.None,
+        Url = "",
+        Filename = "",
+    };
 
     // Only used for (de)serialization
     [UsedImplicitly]
@@ -27,9 +41,9 @@ public partial class ImageLink
     }
     
     public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", 
-                     LinkInfo linkInfo = LinkInfo.None)
+                     LinkInfo linkInfo = LinkInfo.None, string? referer = "")
     {
-        Referer = "";
+        Referer = referer;
         LinkInfo = linkInfo;
         Url = GenerateUrl(url);
         Filename = GenerateFilename(url, filenameScheme, index, filename);
@@ -47,6 +61,11 @@ public partial class ImageLink
         Filename = newStem + ext;
     }
     
+    public void RegenerateFilename(FilenameScheme filenameScheme, int index)
+    {
+        Filename = GenerateFilename(Url, filenameScheme, index);
+    }
+    
     public bool Contains(string url)
     {
         return Url.Contains(url);
@@ -54,6 +73,8 @@ public partial class ImageLink
     
     private string GenerateUrl(string url)
     {
+        url = HttpUtility.HtmlDecode(url);
+        
         if (url.StartsWith("text:"))
         {
             LinkInfo = LinkInfo.Text;
@@ -113,6 +134,12 @@ public partial class ImageLink
             return match.Success ? $"https://www.youtube.com/watch?v={match.Groups[1].Value}" : url;
         }
         
+        if (url.StartsWith("data:image/") && url.Contains(";base64,"))
+        {
+            LinkInfo = LinkInfo.Base64;
+            return url;
+        }
+        
         return url.StartsWith("//") ? $"https:{url}" : url;
     }
 
@@ -120,12 +147,34 @@ public partial class ImageLink
     {
         if(filename == "")
         {
-            if (LinkInfo == LinkInfo.Text)
+            switch (LinkInfo)
             {
-                return "urls.txt";
+                case LinkInfo.Text:
+                    return "urls.txt";
+                case LinkInfo.Base64:
+                {
+                    var b64Ext = url.Split("image/")[1].Split(";")[0];
+                    var hash = BytesToString(MD5.HashData(Encoding.UTF8.GetBytes(url)));
+                    filename = $"{hash}.{b64Ext}";
+                    break;
+                }
+                case LinkInfo.None:
+                case LinkInfo.M3U8Ffmpeg:
+                case LinkInfo.GDrive:
+                case LinkInfo.IframeMedia:
+                case LinkInfo.Mega:
+                case LinkInfo.PixelDrain:
+                case LinkInfo.Youtube:
+                case LinkInfo.GoFile:
+                case LinkInfo.MpegDash:
+                case LinkInfo.ResolveImage:
+                case LinkInfo.M3U8YtDlp:
+                case LinkInfo.SeleniumImage:
+                case LinkInfo.ObfuscatedM3U8:
+                default:
+                    filename = ExtractFilename(url);
+                    break;
             }
-            
-            filename = ExtractFilename(url);
         }
         
         if(filenameScheme == FilenameScheme.Original)
@@ -142,7 +191,7 @@ public partial class ImageLink
         {
             case FilenameScheme.Hash:
             {
-                var hash5 = MD5.HashData(Encoding.UTF8.GetBytes(url)).ToString();
+                var hash5 = BytesToString(MD5.HashData(Encoding.UTF8.GetBytes(url)));
                 return hash5 + ext;
             }
             case FilenameScheme.Chronological:
@@ -231,12 +280,7 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
-        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8"))
-        {
-            fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
-            LinkInfo = LinkInfo.M3U8YtDlp;
-        }
-        else if (url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
+        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8") || url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
         {
             fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
             LinkInfo = LinkInfo.M3U8YtDlp;
@@ -255,6 +299,20 @@ public partial class ImageLink
             fileName = url.Split("/")[^2] + ".mp4";
             LinkInfo = LinkInfo.M3U8Ffmpeg;
         }
+        else if (url.Contains("fcww0.com"))
+        {
+            fileName = url.Split("/")[^2];
+        }
+        else if (url.Contains("shameless.com"))
+        {
+            fileName = url.Split("/")[8];
+        }
+        else if (url.Contains("porndr.com") || url.Contains("abxxx.com") || url.Contains("love4porn.com") 
+                 || url.Contains("asianviralhub.com") || url.Contains("hdzog.com") 
+                 || url.Contains("privatehomeclips.com") || url.Contains("x-x-x.tube"))
+        {
+            fileName = url.Split("/")[^2];
+        }
         else
         {
             fileName = Path.GetFileName(new Uri(url).LocalPath);
@@ -270,8 +328,19 @@ public partial class ImageLink
     
     public override string ToString()
     {
-        var linkInfo = Enum.GetName(typeof(LinkInfo), LinkInfo);
-        return Referer != "" ? $"({Url}, {Filename}, {Referer}, {linkInfo})" : $"({Url}, {Filename}, {linkInfo})";
+        var linkInfo = Enum.GetName(LinkInfo);
+        var url = LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(Url) : Url;
+        return !Referer.IsNullOrEmpty() ? $"({url}, {Filename}, {Referer}, {linkInfo})" : $"({url}, {Filename}, {linkInfo})";
+    }
+    
+    private static string BytesToString(byte[] bytes)
+    {
+        var sb = new StringBuilder(32);
+        foreach (var b in bytes)
+        {
+            sb.Append(b.ToString("X2"));
+        }
+        return sb.ToString();
     }
 
     [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]

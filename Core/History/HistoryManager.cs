@@ -1,6 +1,7 @@
 ﻿using System.Data.SQLite;
 using Core.DataStructures;
 using Core.ExtensionMethods;
+using Core.Managers;
 
 namespace Core.History;
 
@@ -174,7 +175,39 @@ public class HistoryManager : IDisposable
         return history;
     }
 
-    public List<HistoryEntry> GetHistory(int page, int offset)
+    public List<HistoryEntry> GetHistory(int page, int offset, HistoryFilter? filter = null)
+    {
+        if (filter is null || InvalidFilter(filter))
+        {
+            return GetUnfilteredHistory(page, offset);
+        }
+
+        return filter switch
+        {
+            HistoryNameFilter nameFilter => GetHistoryByNameFilter(nameFilter, page, offset),
+            HistoryUrlFilter urlFilter => GetHistoryByUrlFilter(urlFilter, page, offset),
+            HistoryDateFilter dateFilter => GetHistoryByDateFilter(dateFilter, page, offset),
+            _ => throw new ArgumentException("Unsupported filter type.", nameof(filter))
+        };
+    }
+
+    private static bool InvalidFilter(HistoryFilter? filter)
+    {
+        if (filter is null)
+        {
+            return true;
+        }
+        
+        return filter switch
+        {
+            HistoryNameFilter nameFilter => string.IsNullOrWhiteSpace(nameFilter.Name) || nameFilter.Name.Length <= 5, // requires more than "name:"
+            HistoryUrlFilter urlFilter => string.IsNullOrWhiteSpace(urlFilter.Url) || urlFilter.Url.Length <= 4, // requires more than "url:"
+            HistoryDateFilter dateFilter => dateFilter.Date == default,
+            _ => true
+        };
+    }
+    
+    private List<HistoryEntry> GetUnfilteredHistory(int page, int offset)
     {
         var pageId = page * offset;
         const string selectQuery = """
@@ -184,6 +217,101 @@ public class HistoryManager : IDisposable
                                    """;
         
         using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        selectCmd.Parameters.AddWithValue("@Offset", offset);
+        selectCmd.Parameters.AddWithValue("@Page", pageId);
+        using var reader = selectCmd.ExecuteReader();
+        
+        var history = new List<HistoryEntry>();
+        while (reader.Read())
+        {
+            var entry = ExtractHistoryEntry(reader);
+            history.Add(entry);
+        }
+        
+        return history;
+    }
+
+    private List<HistoryEntry> GetHistoryByNameFilter(HistoryNameFilter nameFilter, int page, int offset)
+    {
+        var pageId = page * offset;
+        const string selectQuery = """
+                                   SELECT * FROM history
+                                   WHERE DirectoryName LIKE @DirectoryName
+                                   ORDER BY Date DESC
+                                   LIMIT @Offset OFFSET @Page;
+                                   """;
+        
+        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        selectCmd.Parameters.AddWithValue("@DirectoryName", $"%{nameFilter.Name}%");
+        selectCmd.Parameters.AddWithValue("@Offset", offset);
+        selectCmd.Parameters.AddWithValue("@Page", pageId);
+        using var reader = selectCmd.ExecuteReader();
+        
+        var history = new List<HistoryEntry>();
+        while (reader.Read())
+        {
+            var entry = ExtractHistoryEntry(reader);
+            history.Add(entry);
+        }
+        
+        return history;
+    }
+
+    private List<HistoryEntry> GetHistoryByUrlFilter(HistoryUrlFilter urlFilter, int page, int offset)
+    {
+        var pageId = page * offset;
+        const string selectQuery = """
+                                   SELECT * FROM history
+                                   WHERE Url LIKE @Url
+                                   ORDER BY Date DESC
+                                   LIMIT @Offset OFFSET @Page;
+                                   """;
+        
+        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        selectCmd.Parameters.AddWithValue("@Url", $"%{urlFilter.Url}%");
+        selectCmd.Parameters.AddWithValue("@Offset", offset);
+        selectCmd.Parameters.AddWithValue("@Page", pageId);
+        using var reader = selectCmd.ExecuteReader();
+        
+        var history = new List<HistoryEntry>();
+        while (reader.Read())
+        {
+            var entry = ExtractHistoryEntry(reader);
+            history.Add(entry);
+        }
+        
+        return history;
+    }
+
+    private List<HistoryEntry> GetHistoryByDateFilter(HistoryDateFilter dateFilter, int page, int offset)
+    {
+        var pageId = page * offset;
+        const string selectQuery = """
+                                   SELECT * FROM history
+                                   WHERE Date BETWEEN @StartDate AND @EndDate
+                                   ORDER BY Date DESC
+                                   LIMIT @Offset OFFSET @Page;
+                                   """;
+
+        var startDate = DateTime.MinValue;
+        var endDate = DateTime.MaxValue;
+        switch (dateFilter.FilterType)
+        {
+            case HistoryFilterType.DateStart:
+                startDate = dateFilter.Date;
+                break;
+            case HistoryFilterType.DateEnd:
+                endDate = dateFilter.Date;
+                break;
+            case HistoryFilterType.Url:
+            case HistoryFilterType.DirectoryName:
+            default:
+                throw new InvalidOperationException();
+        }
+        
+        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+        selectCmd.Parameters.AddWithValue("@StartDate", startDate.ToSqliteString());
+        selectCmd.Parameters.AddWithValue("@EndDate", endDate.ToSqliteString());
         selectCmd.Parameters.AddWithValue("@Offset", offset);
         selectCmd.Parameters.AddWithValue("@Page", pageId);
         using var reader = selectCmd.ExecuteReader();

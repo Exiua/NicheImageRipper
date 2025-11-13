@@ -5,7 +5,7 @@ namespace Core.Utility;
 
 public static class FilesystemUtility
 {
-    private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+    private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*' , '\r', '\n'];
     
     public static string CleanPathStem(string pathStem)
     {

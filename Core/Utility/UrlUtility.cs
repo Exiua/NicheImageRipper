@@ -48,29 +48,31 @@ public static partial class UrlUtility
         "https://everia.club/",
         "https://imgbox.com/", "https://myhentaigallery.com/",
         "https://buondua.com/", "https://f5girls.com/", "https://hentairox.com/",
-        "https://www.redgifs.com/", "https://kemono.su/", "https://www.sankakucomplex.com/",
+        "https://www.redgifs.com/", "https://www.sankakucomplex.com/",
+        "https://kemono.party/", "https://kemono.su/", "https://kemono.cr/",
+        "https://coomer.party/", "https://coomer.su/", "https://coomer.st/",
         "https://www.luscious.net/", "https://sxchinesegirlz.one/",
         "https://www.v2ph.com/",
-        "https://nudebird.biz/", "https://bestprettygirl.com/", "https://coomer.su/",
+        "https://nudebird.biz/", "https://bestprettygirl.com/",
         "https://imgur.com/", "https://www.inven.co.kr/",
         "https://arca.live/",
         "https://www.cool18.com/", "https://putmega.com/",
         "https://comics.8muses.com/",
         "https://www.jkforum.net/",
-        "https://leakedbb.com/", "https://e-hentai.org/",
+        "https://leakedbb.com/", "https://e-hentai.org/", "https://exhentai.org/",
         "https://www.artstation.com/",
         "https://porn3dx.com/", "https://www.deviantart.com/", "https://readmanganato.com/",
         "https://manganato.com/",
         "https://sfmcompile.club/", "https://www.tsumino.com/", "https://danbooru.donmai.us/",
         "https://www.flickr.com/", "https://rule34.xxx/", "https://titsintops.com/",
-        "https://gelbooru.com/", "https://animeh.to/", "https://fapello.com/",
+        "https://gelbooru.com/", "https://fapello.com/",
         "https://nijie.info/", "https://faponic.com/", "https://erothots.co/",
         "https://bitchesgirls.com/", "https://thothub.lol/", "https://influencersgonewild.com/",
         "https://www.erome.com/", "https://ggoorr.net/", "https://drive.google.com/",
         "https://www.dropbox.com/", "https://simpcity.su/", "https://bunkr.si/",
-        "https://omegascans.org/", "https://toonily.me/", "https://www.pornhub.com/",
+        "https://omegascans.org/", "https://toonily.me/", "https://toonily.com/", "https://www.pornhub.com/",
         "https://www.wnacg.com/", "https://sex.micmicdoll.com/", "https://hentai-cosplays.com/",
-        "https://x.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
+        "https://x.com/", "https://xcancel.com/", "https://yande.re/", "https://cup2d.com/", "https://japaneseasmr.com/",
         "https://spacemiss.com/", "https://xiuren.biz/", "https://en.xchina.co/", "https://jpg5.su/",
         "https://www.simpcity.su/", "https://rule34video.com/", "https://av19a.com/", "https://www.eporner.com/",
         "https://cgcosplay.org/", "https://www.4khd.com/", "https://cosplay69.net/", "https://www.nlegs.com/",
@@ -78,7 +80,19 @@ public static partial class UrlUtility
         "https://sexbjcam.com/", "https://pornavhd.com/", "https://xx.knit.bid/", "https://www.69tang.org/",
         "https://www.jieav.com/", "https://www.hentaiclub.net/", "https://avav19.com/", 
         "https://booru.com/", // Fake site used as control signal to scrape from all supported boorus
-        "https://mangadex.org/", "https://cosblay.com/", "https://en.cosblay.com/", "https://www.kaizty.com/"
+        "https://mangadex.org/", "https://cosblay.com/", "https://en.cosblay.com/", "https://www.kaizty.com/",
+        "https://quatvn.love/", "https://mangapark.net/", "https://noodlemagazine.com/", "https://spankbang.com/",
+        "https://spankbang.party/", "https://apcomics.org/", "https://3hentai.net/", "https://3600000.xyz/",
+        "https://asmhentai.com/", "https://ahottie.net/", "https://www.baobua.net/", "https://foamgirl.net/",
+        "https://hentaiera.com/", "https://hentaifox.com/", "https://hentaihand.com/", "https://meijuntu.com/",
+        "https://www.pixiv.net/", "https://fcww0.com/", "https://www.xsnvshen.com/", "https://www.06se.com/",
+        "https://meirentu.cc/", "https://tw.8se.me/", "https://51cg1.com/", "https://tubeasiancams.com/",
+        "https://ww1.koreanbj.club/", "https://www.kbjfan.com/", "https://shameless.com/", "https://www.pussyspace.com/",
+        "https://videomonstr.com/", "https://www.pornoxo.com/", "https://www.porndr.com/", "https://xhamster.com/",
+        "https://abxxx.com/", /*"https://love4porn.com/",*/ "https://www.xvideos.com/", "https://asianviralhub.com/",
+        "https://hdzog.com/", "https://pornzog.com/", "https://x-x-x.tube/", "https://privatehomeclips.com/",
+        "https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/", "https://e621.net/",
+        "https://missav123.com/", "https://porncomics18.com/"
     }.ToFrozenSet();
 
     /// <summary>
@@ -122,9 +136,9 @@ public static partial class UrlUtility
         {
             requestHeaders["referer"] = "";
         }
-        else if (givenUrl.Contains("https://e-hentai.org/"))
+        else if (givenUrl.Contains("https://e-hentai.org/") || givenUrl.Contains("https://exhentai.org/"))
         {
-            return (domain, 5f);
+            return (domain, 2.5f);
         }
 
         return (domain, 0.2f);
@@ -238,6 +252,16 @@ public static partial class UrlUtility
         }
 
         return url.Length < end ? "" : url[start..end];
+    }
+    
+    public static string TruncateLongUrl(string url)
+    {
+        return string.Concat(url.AsSpan(0, 50), "...", url.AsSpan(url.Length - 49));
+    }
+    
+    public static string GetUrlParameterValue(string url, string parameter)
+    {
+        return url.Split($"{parameter}=")[1].Split("&")[0];
     }
 
     [GeneratedRegex(@"(\?usp=sharing|\?usp=share_link|\?id=)")]

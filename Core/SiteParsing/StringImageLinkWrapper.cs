@@ -1,4 +1,6 @@
-﻿using Core.DataStructures;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using Core.DataStructures;
 using Core.Exceptions;
 
 namespace Core.SiteParsing;
@@ -8,7 +10,16 @@ public struct StringImageLinkWrapper
     public string? Url { get; set; }
     public ImageLink? ImageLink { get; set; }
     
+    [MemberNotNullWhen(true, nameof(ImageLink))]
+    [MemberNotNullWhen(false, nameof(Url))]
+    [JsonIgnore]
     public bool IsImageLink => ImageLink is not null;
+
+    [JsonConstructor]
+    public StringImageLinkWrapper()
+    {
+        
+    }
     
     public StringImageLinkWrapper(string url)
     {
@@ -50,6 +61,12 @@ public struct StringImageLinkWrapper
     public override string ToString()
     {
         return Url ?? ImageLink?.Url ?? throw new RipperException("StringImageLinkWrapper is empty.");
+    }
+
+    // Debugging Use Only
+    private bool IsInvalid()
+    {
+        return Url is null && ImageLink is null;
     }
 
     public static implicit operator StringImageLinkWrapper(string url) => new(url);

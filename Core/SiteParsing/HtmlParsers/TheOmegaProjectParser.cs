@@ -1,0 +1,34 @@
+using Common.ExtensionMethods;
+using Core.DataStructures;
+using Core.Enums;
+using Core.ExtensionMethods;
+using Core.Managers;
+using WebDriver = Core.Driver.WebDriver;
+
+namespace Core.SiteParsing.HtmlParsers;
+
+public class TheOmegaProjectParser : HtmlParser
+{
+    public TheOmegaProjectParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for theomegaproject.org and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse()
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectNodesOrThrow("//h2[@class='section-title title']")[1].InnerText
+                            .Split("Porn")[0]
+                            .Split("porn")[0]
+                            .Trim();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='lightgallery thumbs quadruple fivefold']")
+                            .SelectNodesOrThrow(".//img")
+                            .Select(img => img.GetSrc())
+                            .ToStringImageLinkWrapperList();
+        
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

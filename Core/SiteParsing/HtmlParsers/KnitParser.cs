@@ -1,0 +1,103 @@
+using Common.ExtensionMethods;
+using Core.DataStructures;
+using Core.Enums;
+using Core.Exceptions;
+using Core.ExtensionMethods;
+using Core.Managers;
+using OpenQA.Selenium;
+using Serilog;
+using WebDriver = Core.Driver.WebDriver;
+
+namespace Core.SiteParsing.HtmlParsers;
+
+public class KnitParser : HtmlParser
+{
+    public KnitParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for xx.knit.bid and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse()
+    {
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 1250,
+            ScrollPauseTime = 2500
+        };
+        
+        var agreeButton = Driver.TryFindElement(By.XPath("//button[@id='agree-over18']"));
+        if (agreeButton is not null)
+        {
+            Driver.Click(agreeButton);
+        }
+        
+        var retry = 0;
+        while (true)
+        {
+            await LazyLoad(lazyLoadArgs);
+            var scrollHeight = Driver.GetScrollHeight();
+            if (scrollHeight <= 650)
+            {
+                Log.Debug("Page reset");
+                CleanTabs("xx.knit.bid");
+                retry++;
+                if (retry > 4)
+                {
+                    throw new RipperException("Page reset too many times");
+                }
+                continue;
+            }
+            
+            var loadMoreButton = Driver.TryFindElement(By.XPath("//div[@class='ias_trigger']"));
+            if (loadMoreButton is null)
+            {
+                Log.Debug("No more images to load");
+                break;
+            }
+            
+            loadMoreButton.Click();
+        }
+
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='focusbox-title']").InnerText;
+        var baseUrl = CurrentUrl.Split("/").Take(6).Join("/");
+        var images = new List<StringImageLinkWrapper>();
+        var page = 1;
+        while(true)
+        {
+            Log.Information("Parsing page {Page}", page);
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']")
+                             .SelectNodesOrThrow("./p")
+                             .Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc())
+                             .ToStringImageLinkWrapperList();
+            var imageGallery = soup.SelectSingleNode("//article[@id='image-gallery']");
+            if (imageGallery is not null)
+            {
+                var videos = imageGallery.SelectSingleNodeOrThrow(".//div[@class='wrapper']")
+                                         .SelectNodesSafe(".//source")
+                                         .Select(source => source.GetSrc())
+                                         .ToStringImageLinks();
+                imgs.AddRange(videos);
+            }
+            
+            images.AddRange(imgs);
+            page++;
+            
+            var nextPageButton = soup.SelectSingleNode("//li[@class='next-page']");
+            if (nextPageButton is not null)
+            {
+                soup = await Soupify($"{baseUrl}/page/{page}", lazyLoadArgs: lazyLoadArgs);
+            }
+            else
+            {
+                break;
+            }
+        }
+    
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

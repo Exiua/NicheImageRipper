@@ -1,0 +1,79 @@
+using Common.ExtensionMethods;
+using Core.DataStructures;
+using Core.Enums;
+using Core.ExtensionMethods;
+using Core.Managers;
+using OpenQA.Selenium;
+using WebDriver = Core.Driver.WebDriver;
+
+namespace Core.SiteParsing.HtmlParsers;
+
+public class ThothubParser : HtmlParser
+{
+    public ThothubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for thothub.lol and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse()
+    {
+        const string sessionCookieName = "PHPSESSID";
+        var cookieJar = Driver.GetCookieJar();
+        var cookie = cookieJar.GetCookieNamed(sessionCookieName);
+        if (cookie is not null)
+        {
+            cookieJar.DeleteCookie(cookie);
+        }
+        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies.Thothub));
+        Driver.Refresh();
+        var lazyLoadArgs = new LazyLoadArgs
+        {
+            ScrollBy = true,
+            Increment = 625,
+            ScrollPauseTime = 1
+        };
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']")
+                            .SelectSingleNodeOrThrow(".//h1")
+                            .InnerText;
+        List<StringImageLinkWrapper> images;
+        if (CurrentUrl.Contains("/videos/"))
+        {
+            var vid = soup.SelectSingleNodeOrThrow("//video[@class='fp-engine']")
+                            .GetSrc();
+            if (string.IsNullOrEmpty(vid))
+            {
+                vid = soup.SelectSingleNodeOrThrow("//div[@class='no-player']")
+                            .SelectSingleNodeOrThrow(".//img")
+                            .GetSrc();
+            }
+    
+            images = [vid];
+        }
+        else
+        {
+            while (true)
+            {
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='images']")
+                                .SelectNodesOrThrow(".//img")
+                                .Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/"))
+                                .ToArray();
+                if(posts.Any(p => p.Contains("data:")))
+                {
+                    await Sleep(1000);
+                    ScrollToTop();
+                    soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+                    continue;
+                }
+                
+                images = posts.ToStringImageLinkWrapperList();
+                break;
+            }
+        }
+    
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

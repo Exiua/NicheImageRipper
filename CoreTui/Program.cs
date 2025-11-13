@@ -1,7 +1,10 @@
 ﻿using System.Text;
 using Core;
 using Core.ArgParse;
+using Core.Configuration;
+using Core.Driver;
 using Core.History;
+using Core.Managers;
 using Core.SiteParsing;
 using Core.Utility;
 using CoreTui;
@@ -30,14 +33,15 @@ switch (arguments.RunMode)
     {
         var requestHeaders = new Dictionary<string, string>
         {
-            {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"},
+            {"User-Agent", Config.Instance.UserAgent},
             {"referer", "https://imhentai.xxx/"},
             {"cookie", ""}
         };
 
         using var pool = new WebDriverPool(1);
-        var driver = pool.AcquireDriver(arguments.Debug);
-        var parser = new HtmlParser(driver, requestHeaders);
+        var driver = pool.AcquireDriver(!arguments.Debug); // if debug, headless = false
+        var clientManager = new ApiClientManager();
+        var parser = HtmlParser.GetParser("imhentai", driver, clientManager, requestHeaders);
         // Null check performed in ArgumentParser.Parse
         var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
         pool.ReleaseDriver(driver);

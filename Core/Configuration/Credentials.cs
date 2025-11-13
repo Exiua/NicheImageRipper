@@ -10,4 +10,13 @@ public class Credentials
         username = Username;
         password = Password;
     }
+    
+    public static Credentials New()
+    {
+        return new Credentials
+        {
+            Username = "",
+            Password = ""
+        };
+    }
 }

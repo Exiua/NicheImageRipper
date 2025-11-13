@@ -2,6 +2,8 @@
 using Avalonia.ReactiveUI;
 using System;
 using System.Threading.Tasks;
+using Core.Configuration;
+using CoreGui.Models;
 using CoreGui.Utility;
 using Serilog;
 using Serilog.Events;
@@ -16,6 +18,9 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Important to call this as early as possible
+        Config.ReloadConfig<GuiConfig>();
+        
         #if DEBUG
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()

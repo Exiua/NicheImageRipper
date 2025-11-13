@@ -1,5 +1,5 @@
 ﻿using OpenQA.Selenium;
-using OpenQA.Selenium.Support.UI;
+using Serilog;
 
 namespace Core.ExtensionMethods;
 
@@ -17,14 +17,44 @@ public static class SeleniumExtensionMethods
         }
     }
     
-    public static void Refresh(this IWebDriver driver)
+    public static IWebElement? TryFindElement(this IWebElement webElement, By by)
     {
-        driver.Navigate().Refresh();
+        try
+        {
+            return webElement.FindElement(by);
+        }
+        catch (NoSuchElementException)
+        {
+            return null;
+        }
+    }
+    
+    /// <summary>
+    ///     Alias for <see cref="IWebDriver.Navigate().Refresh()"/>.
+    ///     This method refreshes the current page in the browser.
+    /// </summary>
+    /// <param name="driver">WebDriver instance</param>
+    /// <param name="hardRefresh">Whether to perform a hard refresh (only works on Firefox)</param>
+    public static void Refresh(this IWebDriver driver, bool hardRefresh = false)
+    {
+        if (hardRefresh)
+        {
+            ((WebDriver) driver).ExecuteScript("location.reload(true);");
+        }
+        else
+        {
+            driver.Navigate().Refresh();
+        }
     }
     
     public static ICookieJar GetCookieJar(this IWebDriver driver)
     {
         return driver.Manage().Cookies;
+    }
+    
+    public static void ClearCookies(this IWebDriver driver)
+    {
+        driver.GetCookieJar().DeleteAllCookies();
     }
 
     /// <summary>
@@ -55,6 +85,11 @@ public static class SeleniumExtensionMethods
         cookieJar.AddCookie(new Cookie(cookieName, cookieValue));
     }
 
+    public static void SetCookie(this IWebDriver driver, string cookieName, string cookieValue)
+    {
+        driver.GetCookieJar().SetCookie(cookieName, cookieValue);
+    }
+
     public static void SetCookie(this ICookieJar cookieJar, string cookieName, string newCookieValue)
     {
         var newCookie = new Cookie(cookieName, newCookieValue);
@@ -67,6 +102,22 @@ public static class SeleniumExtensionMethods
         }
         
         cookieJar.AddCookie(newCookie);
+    }
+    
+    public static void SetCookie(this ICookieJar cookieJar, Cookie cookie)
+    {
+        var existingCookie = cookieJar.GetCookieNamed(cookie.Name);
+        if (existingCookie is not null)
+        {
+            Log.Debug("Replacing existing cookie: {CookieName}", cookie.Name);
+            cookieJar.DeleteCookie(existingCookie);
+        }
+        else
+        {
+            Log.Debug("Adding new cookie: {CookieName}", cookie.Name);
+        }
+        
+        cookieJar.AddCookie(cookie);
     }
     
     public static string GetSrc(this IWebElement element)
@@ -123,5 +174,18 @@ public static class SeleniumExtensionMethods
         var seleniumCookie = new Cookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path, expiration, cookie.Secure, 
             cookie.HttpOnly, cookie.SameSite);
         return seleniumCookie;
+    }
+    
+    public static bool DoElementsOverlap(this IWebDriver driver, IWebElement element1, IWebElement element2)
+    {
+        var rect1 = element1.Location;
+        var size1 = element1.Size;
+        var rect2 = element2.Location;
+        var size2 = element2.Size;
+
+        return !(rect1.X > rect2.X + size2.Width ||
+                 rect1.X + size1.Width < rect2.X ||
+                 rect1.Y > rect2.Y + size2.Height ||
+                 rect1.Y + size1.Height < rect2.Y);
     }
 }
