@@ -20,7 +20,7 @@
         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
             <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput"/>
-            <Button IsDefault="True" Command="{Binding RipCommand}">Rip</Button>
+            <Button HotKey="Enter" Command="{Binding RipCommand}">Rip</Button>
         </StackPanel>
         <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
             <TabItem Header="Logs">
@@ -61,6 +61,7 @@
                     </Grid>
                     <DataGrid Margin="0, 10" ItemsSource="{Binding History}"
                               IsReadOnly="True"
+                              KeyUp="HistoryDataGrid_OnKeyUp"
                               CanUserReorderColumns="False"
                               CanUserResizeColumns="True"
                               CanUserSortColumns="False"
@@ -69,16 +70,29 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}" 
                                                 Width="{Binding NameWidth}" Tag="HistoryName"
-                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                                                PropertyChanged="OnHistoryColumnWidthChanged" />
                             <DataGridTextColumn Header="Url" Binding="{Binding Url}" 
                                                 Width="{Binding UrlWidth}" Tag="HistoryUrl"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
                             <DataGridTextColumn Header="Date" Binding="{Binding Date}" 
                                                 Width="{Binding DateWidth}" Tag="HistoryDate"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
-                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}" 
+                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}"
                                                 Width="{Binding CountWidth}" Tag="HistoryCount"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <!-- <DataGridTemplateColumn Header="#" Width="{Binding CountWidth}" Tag="HistoryCount"> -->
+                            <!--     <DataGridTemplateColumn.CellTemplate> -->
+                            <!--         <DataTemplate> -->
+                            <!--             <TextBlock Text="{Binding NumUrls}"> -->
+                            <!--                 <TextBlock.ContextMenu> -->
+                            <!--                     <ContextMenu> -->
+                            <!--                         <MenuItem Header="Copy"/> -->
+                            <!--                     </ContextMenu> -->
+                            <!--                 </TextBlock.ContextMenu> -->
+                            <!--             </TextBlock> -->
+                            <!--         </DataTemplate> -->
+                            <!--     </DataGridTemplateColumn.CellTemplate> -->
+                            <!-- </DataGridTemplateColumn> -->
                             <DataGridTemplateColumn Header="Action">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

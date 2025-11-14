@@ -1,13 +1,17 @@
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Core;
 using Core.Enums;
 using Core.History;
@@ -27,7 +31,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         MimeTypes = ["application/json"],
     };
 
-    //private MainWindowViewModel ViewModel => (MainWindowViewModel) DataContext!;
+    private Key _lastKeyPressed;
+    private bool _copyReady;
 
     public MainWindow()
     {
@@ -356,6 +361,46 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             default:
                 Log.Warning("Unknown column tag: {tag}", column.Tag);
                 break;
+        }
+    }
+    
+    private void HistoryDataGrid_OnKeyUp(object? sender, KeyEventArgs e)
+    {
+        Log.Debug("Key Up: {Key}", e.Key);
+        if (sender is not DataGrid dataGrid)
+        {
+            return;
+        }
+
+        _copyReady = _lastKeyPressed switch
+        {
+            Key.LeftCtrl or Key.RightCtrl => e.Key == Key.C,
+            Key.C => e.Key is Key.LeftCtrl or Key.RightCtrl,
+            _ => _copyReady
+        };
+
+        Log.Debug("Copy Ready: {CopyReady}", _copyReady);
+        _lastKeyPressed = e.Key;
+
+        if (_copyReady)
+        {
+            var descendants = dataGrid.GetVisualDescendants();
+            foreach (var cell in descendants.OfType<DataGridCell>())
+            {
+                if (!cell.Classes.Contains(":selected"))
+                {
+                    continue;
+                }
+                
+                var textBlock = cell.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault();
+                if (textBlock is not null)
+                {
+                    Log.Debug("Copy: {Text}", textBlock.Text);
+                    Clipboard?.SetTextAsync(textBlock.Text).Wait();
+                }
+            }
+            
+            _copyReady = false;
         }
     }
 

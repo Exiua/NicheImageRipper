@@ -190,7 +190,7 @@ public class MainWindowViewModel : ViewModelBase
         DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
         ReRipUrlCommand = ReactiveCommand.Create<string>(Rerip);
         UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);
-        var history = NicheImageRipper.GetHistoryPage(1, PageSize);
+        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage, PageSize);
         History = new ObservableCollection<HistoryEntry>(history);
 
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
