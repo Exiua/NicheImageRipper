@@ -1,6 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 using Core.Exceptions;
+using Serilog;
 
 namespace Core.Utility;
 
@@ -92,7 +93,7 @@ public static partial class UrlUtility
         "https://abxxx.com/", /*"https://love4porn.com/",*/ "https://www.xvideos.com/", "https://asianviralhub.com/",
         "https://hdzog.com/", "https://pornzog.com/", "https://x-x-x.tube/", "https://privatehomeclips.com/",
         "https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/", "https://e621.net/",
-        "https://missav123.com/", "https://porncomics18.com/"
+        "https://missav123.com/", "https://porncomics18.com/", "https://www.porncomic.io/"
     }.ToFrozenSet();
 
     /// <summary>
@@ -262,6 +263,19 @@ public static partial class UrlUtility
     public static string GetUrlParameterValue(string url, string parameter)
     {
         return url.Split($"{parameter}=")[1].Split("&")[0];
+    }
+    
+    /// <summary>
+    ///     Extracts the base URL by trimming everything after the last '/'
+    /// </summary>
+    /// <param name="url">The full URL to trim</param>
+    /// <returns>The base URL</returns>
+    public static string TrimUrl(string url)
+    {
+        var qs = url.IndexOf('?');
+        var queryStart = qs == -1 ? url.Length - 1 : qs;
+        Log.Debug("QueryStart: {QueryStart}, Length: {Length}", queryStart, url.Length);
+        return url[..(url.LastIndexOf('/', queryStart) + 1)];
     }
 
     [GeneratedRegex(@"(\?usp=sharing|\?usp=share_link|\?id=)")]
