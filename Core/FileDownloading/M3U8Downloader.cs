@@ -1,6 +1,7 @@
 using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
+using Core.Utility;
 using Serilog;
 
 namespace Core.FileDownloading;
@@ -25,7 +26,7 @@ public static class M3U8Downloader
         }
 
         var shortBaseUrl = url.Split("/").Take(3).Join("/");
-        var longBaseUrl = TrimUrl(url);
+        var longBaseUrl = UrlUtility.TrimUrl(url);
         var longBastUrl2 = longBaseUrl;
         HttpResponseMessage response;
         string content;
@@ -48,7 +49,7 @@ public static class M3U8Downloader
                 videoPlaylist = longBaseUrl + videoPlaylist;
             }
             
-            longBastUrl2 = TrimUrl(videoPlaylist);
+            longBastUrl2 = UrlUtility.TrimUrl(videoPlaylist);
         }
         else
         {
@@ -175,14 +176,6 @@ public static class M3U8Downloader
         }
 
         return segmentUrl;
-    }
-
-    private static string TrimUrl(string url)
-    {
-        var qs = url.IndexOf('?');
-        var queryStart = qs == -1 ? url.Length - 1 : qs;
-        Log.Debug("QueryStart: {QueryStart}, Length: {Length}", queryStart, url.Length);
-        return url[..(url.LastIndexOf('/', queryStart) + 1)];
     }
     
     private static string? GetHighestQualityVideoPlaylist(string playlist)
