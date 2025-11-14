@@ -43,7 +43,7 @@ public class MissAv123Parser : HtmlParser
             throw new RipperException($"Failed to get network URLs: {errorResponse.Error}");
         }
         
-        var successResponse = (GetNetworkUrlResponse) urls;
+        var successResponse = (GetNetworkUrlsResponse) urls;
         var playlist = successResponse.Urls.FirstOrDefault(url => url.Contains("playlist.m3u8"));
         if (playlist.IsNullOrEmpty())
         {

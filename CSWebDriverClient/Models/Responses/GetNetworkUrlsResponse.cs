@@ -5,7 +5,7 @@ namespace CSWebDriverClient.Models.Responses;
 /// <summary>
 ///     Response model containing network URLs retrieved during page load.
 /// </summary>
-public class GetNetworkUrlResponse : BaseResponse
+public class GetNetworkUrlsResponse : BaseResponse
 {
     /// <summary>
     ///     List of network URLs retrieved during the page load.
