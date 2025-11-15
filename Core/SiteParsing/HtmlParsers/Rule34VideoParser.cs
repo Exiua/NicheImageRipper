@@ -69,20 +69,23 @@ public class Rule34VideoParser : HtmlParser
 
         var pageResponse = (PageResponse)response;
         var soup = await Soupify(pageResponse.Content, urlString: false);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText;
+        string dirName;
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("/models/"))
         {
+            dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText;
             images = await GetVideoForModel(client, soup);
         }
         else if (CurrentUrl.Contains("/video/"))
         {
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title_video']").InnerText;
             images = [];
             var downloadLink = await GetVideoDownloadUrl(soup: soup);
             images.Add(downloadLink);
         }
         else if (CurrentUrl.Contains("/search/"))
         {
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").ChildNodes[0].InnerText;
             images = await GetVideoForSearch(client, soup);
         }
         else
