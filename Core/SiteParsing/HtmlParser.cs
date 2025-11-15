@@ -354,6 +354,7 @@ public abstract class HtmlParser : IDisposable
             "missav123" => new MissAv123Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             "porncomics18" => new PornComics18Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             "porncomic" => new PornComicParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "hmvmania" => new HmvManiaParser(webDriver, clientManager, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
