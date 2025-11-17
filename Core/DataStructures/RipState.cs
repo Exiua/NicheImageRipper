@@ -1,7 +1,7 @@
 namespace Core.DataStructures;
 
-internal class RipState
+public class RipState
 {
-    internal DownloadStats DownloadStats { get; set; } = null!;
-    internal List<string> FilesHashes { get; set; } = null!;
+    public DownloadStats DownloadStats { get; set; } = null!;
+    public List<string> FilesHashes { get; set; } = null!;
 }

@@ -196,6 +196,7 @@ public partial class ImageRipper : IDisposable
             var state = JsonUtility.Deserialize<RipState>(RipStatePath);
             if (state is null)
             {
+                Log.Error("Failed to load rip state");
                 throw new RipperException("Failed to load rip state");
             }
             
@@ -219,6 +220,7 @@ public partial class ImageRipper : IDisposable
         }
         catch
         {
+            Log.Debug("Saving rip state due to exception");
             var state = new RipState
             {
                 DownloadStats = downloadStats,
@@ -226,6 +228,7 @@ public partial class ImageRipper : IDisposable
             };
             
             JsonUtility.Serialize(RipStatePath, state);
+            Log.Debug("Saved rip state to {RipStatePath}", RipStatePath);
             throw;
         }
         
@@ -409,10 +412,6 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    // TODO: Pull inner foreach loop logic into separate method to be able to spawn multiple tasks and await in parallel
-    //  (need to be careful with rate limiting and site bans though)
-    //  (also need to figure out how to handle e-hentai url refreshing in that case)
-    //      [Could fix this by always downloading sequentially for e-hentai]
     private async Task DownloadSingleFromList(int index, ImageLink link, string fullPath, HashSet<HashKey> filesHashes,
                                               DownloadStats downloadStats, bool updateProgress = false)
     {
@@ -434,6 +433,7 @@ public partial class ImageRipper : IDisposable
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
             await DownloadFromList(link, imagePath, index, downloadStats);
+            imagePath = Path.Combine(fullPath, link.Filename); // DownloadFromList may modify filename (if it was missing extension)
             await PostProcess(imagePath, filesHashes, downloadStats);
         }
         catch (FileNotFoundException)
@@ -451,9 +451,9 @@ public partial class ImageRipper : IDisposable
             e.ResumeIndex = index;
             throw;
         }
-        catch
+        catch (Exception e)
         {
-            Log.Debug("Caught exception, saving progress");
+            Log.Debug("Caught exception, saving progress. Reason: {ErrorMessage}", e.Message);
             await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
             throw;
         } 
@@ -1222,8 +1222,13 @@ public partial class ImageRipper : IDisposable
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
         if (Path.GetExtension(imagePath) == "")
         {
+            Log.Debug("Finding correct extension for file: {ImagePath}", imagePath);
             var extension = FileUtility.GetCorrectExtension(imagePath);
             await RenameFile(imagePath, imagePath + extension);
+            var filename = Path.GetFileName(imagePath);
+            var newFilename = filename + extension;
+            Log.Debug("Renamed file {OldFilename} to {NewFilename}", filename, newFilename);
+            imageLink.Filename = newFilename;
         }
         
         return true;
