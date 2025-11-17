@@ -22,6 +22,6 @@ public class KemonoParser : DotPartyParser
             CurrentUrl = url;
         }
         
-        return await DotPartyParse("https://kemono.cr");
+        return await DotPartyParse("https://kemono.su");
     }
 }

@@ -1184,7 +1184,11 @@ public abstract class HtmlParser : IDisposable
         {
             FlareSolverrManager.DeleteSession().Wait();
         }
+        
+        DisposeInternal();
 
         GC.SuppressFinalize(this);
     }
+
+    protected virtual void DisposeInternal() {}
 }

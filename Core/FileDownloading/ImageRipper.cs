@@ -307,7 +307,7 @@ public partial class ImageRipper : IDisposable
                     var fullFilename = $"{index}{ext}";
                     var imagePath = Path.Combine(fullPath, fullFilename);
                     await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
-                    await PostProcess(imagePath, filesHashes, downloadStats);
+                    await PostProcess(imageLink, imagePath, filesHashes, downloadStats);
                     break;
                 }
                 catch // TODO: Narrow down exceptions
@@ -434,7 +434,7 @@ public partial class ImageRipper : IDisposable
             var imagePath = Path.Combine(fullPath, filename);
             await DownloadFromList(link, imagePath, index, downloadStats);
             imagePath = Path.Combine(fullPath, link.Filename); // DownloadFromList may modify filename (if it was missing extension)
-            await PostProcess(imagePath, filesHashes, downloadStats);
+            await PostProcess(link, imagePath, filesHashes, downloadStats);
         }
         catch (FileNotFoundException)
         {
@@ -459,12 +459,14 @@ public partial class ImageRipper : IDisposable
         } 
     }
 
-    private async Task PostProcess(string imagePath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
+    private async Task PostProcess(ImageLink link, string imagePath, HashSet<HashKey> filesHashes,
+                                   DownloadStats downloadStats)
     {
         if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
         {
             // Maybe handle directory downloads (e.g., Mega) in the future?
-            if (Directory.Exists(imagePath))
+            // Unable to determine filename before downloading files/directories from Mega.nz
+            if (Directory.Exists(imagePath) || link.LinkInfo == LinkInfo.Mega)
             {
                 return;
             }

@@ -16,12 +16,29 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public abstract class DotPartyParser : ParameterizedHtmlParser
 {
+    private const string CachePath = "dotpartyCache.json";
+    private const int PageSize = 50;
+    
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
+
+    private readonly HttpClient _httpClient;
     
     protected DotPartyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
+        var handler = new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        };
+        
+        _httpClient = new HttpClient(handler);
     }
-    
+
+    protected override void DisposeInternal()
+    {
+        _httpClient.Dispose();
+        _httpClient.DefaultRequestHeaders.Add("Accept", "text/css"); // Needed due to DDG issues according to kemono themselves
+    }
+
     /// <summary>
     ///     Parses the html for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -29,110 +46,26 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     /// <returns></returns>
     protected async Task<RipInfo> DotPartyParse(string domainUrl)
     {
-        const int pageSize = 50;
-        var baseUrl = CurrentUrl;
-        var urlSplit = baseUrl.Split("/");
-        var sourceSite = urlSplit[3];
-        baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
-        baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
-        Log.Debug("Base URL: {BaseUrl}", baseUrl);
-
-        var handler = new HttpClientHandler
+        string dirName;
+        List<JsonObject> posts;
+        if (File.Exists(CachePath))
         {
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-        };
-        using var client = new HttpClient(handler);
-        client.DefaultRequestHeaders.Add("Accept", "text/css"); // Needed due to DDG issues according to kemono themselves
-        var profileUrl = $"{baseUrl}/profile";
-        Log.Debug("Profile URL: {ProfileUrl}", profileUrl);
-        var response = await RetryUntil(async () =>
+            var cache = JsonUtility.Deserialize<Dictionary<string, DotPartyCache>>(CachePath);
+            if (cache is not null && cache.TryGetValue(CurrentUrl, out var siteCache))
             {
-                var r = await client.GetAsync(profileUrl);
-                Log.Debug("Profile page response: {StatusCode}", r.StatusCode);
-                return r;
-            }, 
-            (response) => response.IsSuccessStatusCode,
-            "Failed to get profile page", 
-            delay: 5000);
-        // for (var i = 0; i < 4; i++)
-        // {
-        //     response = await client.GetAsync(profileUrl);
-        //     if (!response.IsSuccessStatusCode)
-        //     {
-        //         if (i == 3)
-        //         {
-        //             throw new RipperException("Failed to get profile page");
-        //         }
-        //
-        //         await Sleep(5000);
-        //         continue;
-        //     }
-        //     
-        //     break;
-        // }
-
-        // var responseString = await response.Content.ReadAsByteArrayAsync();
-        // await File.WriteAllBytesAsync("response.bin", responseString);
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
-        var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
-        dirName = $"{dirName} - ({sourceSite})";
-        Log.Information("Parsed profile page: {DirName}", dirName);
-
-        #region Get All Posts
-
-        var posts = new List<JsonObject>();
-        var page = 0;
-        while (true)
-        {
-            response = await RetryUntil(
-                async () =>
-                {
-                    var r = await client.GetAsync($"{baseUrl}/posts?o={page * pageSize}");
-                    Log.Debug("Page response: {StatusCode}", r.StatusCode);
-                    return r;
-                },
-                (r) => r.IsSuccessStatusCode,
-                $"Failed to get page {page + 1}",
-                delay: 5000);
-            page++;
-            Log.Debug("Retrieving page {PageNum} of size {PageSize}", page, pageSize);
-
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
-            var jsonPosts = json!.AsArray();
-            var ids = jsonPosts.Select(post => post!.AsObject()["id"].Deserialize<string>()!);
-            // Need to pull each post individually to get the html content body of the post
-            foreach (var (i, id) in ids.Enumerate())
-            {
-                Log.Debug("Retrieving post {PostId}", id);
-                response = await RetryUntil(
-                    async () =>
-                    {
-                        var r = await client.GetAsync($"{baseUrl}/post/{id}");
-                        Log.Debug("Post response: {StatusCode}", r.StatusCode);
-                        return r;
-                    },
-                    (r) => r.IsSuccessStatusCode, 
-                    $"Failed to get post {id}", 
-                    delay: 15000);
-                
-                var postJson = await response.Content.ReadFromJsonAsync<JsonNode>();
-                posts.Add(postJson!.AsObject());
-                if ((i + 1) % 50 == 0)
-                {
-                    await Sleep(1000);
-                }
+                dirName = siteCache.DirName;
+                posts = siteCache.Posts;
+                Log.Information("Using cached data for {Url}", CurrentUrl);
             }
-            //posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
-            if (jsonPosts.Count < pageSize)
+            else
             {
-                Log.Debug("Reached end of posts");
-                break;
+                (dirName, posts) = await GetAndCachePosts(domainUrl);
             }
-
-            await Sleep(250);
         }
-
-        #endregion
+        else
+        {
+            (dirName, posts) = await GetAndCachePosts(domainUrl);
+        }
 
         #region Parse All Posts
 
@@ -202,8 +135,16 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                     attachmentPath = domainUrl + attachmentPath;
                 }
 
-                var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName);
-                images.Add(attachmentLink);
+                var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachmentName, attachmentPath);
+                if (specialCaseLinks is null)
+                {
+                    var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName);
+                    images.Add(attachmentLink);
+                }
+                else
+                {
+                    images.AddRange(specialCaseLinks.ToStringImageLinks());
+                }
             }
 
             var extractedAttachments = links
@@ -242,6 +183,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
         }
 
+        // This may be able to be removed as RipInfo.FromUrlList also removes duplicates
         // Remove duplicates
         var seen = new HashSet<string>();
         var unique = new List<StringImageLinkWrapper>();
@@ -261,7 +203,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 unique.Add(link);
             }
         }
-
+        
+        File.Delete(CachePath);
+        
         return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
     }
     
@@ -296,4 +240,134 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
         return externalLinks;
     }
+    
+    private async Task<(string, List<JsonObject>)> GetAndCachePosts(string domainUrl)
+    {
+        var (dirName, posts) = await GetPosts(domainUrl);
+        var siteCache = new DotPartyCache
+        {
+            DirName = dirName,
+            Posts = posts
+        };
+
+        var cache = new Dictionary<string, DotPartyCache>
+        {
+            [CurrentUrl] = siteCache
+        };
+            
+        JsonUtility.Serialize(CachePath, cache);
+        return (dirName, posts);
+    }
+
+    private async Task<(string, List<JsonObject>)> GetPosts(string domainUrl)
+    {
+        var baseUrl = CurrentUrl;
+        var urlSplit = baseUrl.Split("/");
+        var sourceSite = urlSplit[3];
+        baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
+        baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
+        Log.Debug("Base URL: {BaseUrl}", baseUrl);
+        var profileUrl = $"{baseUrl}/profile";
+        Log.Debug("Profile URL: {ProfileUrl}", profileUrl);
+        var response = await RetryUntil(async () =>
+            {
+                var r = await _httpClient.GetAsync(profileUrl);
+                Log.Debug("Profile page response: {StatusCode}", r.StatusCode);
+                return r;
+            }, 
+            (response) => response.IsSuccessStatusCode,
+            "Failed to get profile page", 
+            delay: 5000);
+
+        // var responseString = await response.Content.ReadAsByteArrayAsync();
+        // await File.WriteAllBytesAsync("response.bin", responseString);
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
+        dirName = $"{dirName} - ({sourceSite})";
+        Log.Information("Parsed profile page: {DirName}", dirName);
+        var posts = new List<JsonObject>();
+        var page = 0;
+        while (true)
+        {
+            response = await RetryUntil(
+                async () =>
+                {
+                    var r = await _httpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
+                    Log.Debug("Page response: {StatusCode}", r.StatusCode);
+                    return r;
+                },
+                (r) => r.IsSuccessStatusCode,
+                $"Failed to get page {page + 1}",
+                delay: 5000);
+            page++;
+            Log.Debug("Retrieving page {PageNum} of size {PageSize}", page, PageSize);
+
+            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var jsonPosts = json!.AsArray();
+            var ids = jsonPosts.Select(post => post!.AsObject()["id"].Deserialize<string>()!);
+            // Need to pull each post individually to get the html content body of the post
+            foreach (var (i, id) in ids.Enumerate())
+            {
+                Log.Debug("Retrieving post {PostId}", id);
+                response = await RetryUntil(
+                    async () =>
+                    {
+                        var r = await _httpClient.GetAsync($"{baseUrl}/post/{id}");
+                        Log.Debug("Post response: {StatusCode}", r.StatusCode);
+                        return r;
+                    },
+                    (r) => r.IsSuccessStatusCode, 
+                    $"Failed to get post {id}", 
+                    delay: 15000);
+                
+                var postJson = await response.Content.ReadFromJsonAsync<JsonNode>();
+                posts.Add(postJson!.AsObject());
+                if ((i + 1) % 50 == 0)
+                {
+                    await Sleep(1000);
+                }
+            }
+            //posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
+            if (jsonPosts.Count < PageSize)
+            {
+                Log.Debug("Reached end of posts");
+                break;
+            }
+
+            await Sleep(250);
+        }
+        
+        return (dirName, posts);
+    }
+    
+    private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string attachmentName, string attachmentPath)
+    {
+        var links = new List<string>();
+        // ReSharper disable once InvertIf
+        if (attachmentName.Contains("download", StringComparison.InvariantCultureIgnoreCase) &&
+            attachmentName.EndsWith(".txt")) // fanbox/user/4565149/
+        {
+            var attachmentUrl = attachmentPath.StartsWith("https://") ?  attachmentPath : domainUrl + attachmentPath;
+            Log.Debug("Fetching: {AttachmentUrl}", attachmentUrl);
+            var response = await _httpClient.GetAsync(attachmentUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Warning("Failed to retrieve special case attachment at {AttachmentUrl}", attachmentUrl);
+                return null;
+            }
+            
+            var content = await response.Content.ReadAsStringAsync();
+            var lines = content.Split('\n');
+            links.AddRange(lines.Where(line => line.StartsWith("https://mega.nz/"))
+                                .Select(line => line.Trim(' ', '\r', '\n', '\t')));
+        }
+        
+        return links;
+    }
+}
+
+public class DotPartyCache
+{
+    public string DirName { get; set; } = null!;
+    public List<JsonObject> Posts { get; set; } = null!;
 }
