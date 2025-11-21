@@ -12,6 +12,13 @@ public static class HtmlAgilityPackExtensionMethods
               .ToList();
     }
     
+    public static List<string?> GetNullableHrefs(this HtmlNodeCollection nodes)
+    {
+        return nodes
+              .Select(node => node.GetNullableHref())
+              .ToList();
+    }
+    
     public static List<string> GetSrcs(this HtmlNodeCollection nodes)
     {
         return nodes
