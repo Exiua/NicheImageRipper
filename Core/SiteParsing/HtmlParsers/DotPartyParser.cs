@@ -5,7 +5,6 @@ using System.Text.Json.Nodes;
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
-using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using Core.Utility;
@@ -19,6 +18,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     private const string CachePath = "dotpartyCache.json";
     private const int PageSize = 50;
     
+    private static readonly string[] AttachmentExtensions =
+        [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
+    
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
 
     private readonly HttpClient _httpClient;
@@ -31,12 +33,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         };
         
         _httpClient = new HttpClient(handler);
+        _httpClient.DefaultRequestHeaders.Add("Accept", "text/css"); // Needed due to DDG issues according to kemono themselves
     }
 
     protected override void DisposeInternal()
     {
         _httpClient.Dispose();
-        _httpClient.DefaultRequestHeaders.Add("Accept", "text/css"); // Needed due to DDG issues according to kemono themselves
     }
 
     /// <summary>
@@ -72,8 +74,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var images = new List<StringImageLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
         var numPosts = posts.Count;
-        string[] attachmentExtensions =
-            [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
 
         foreach (var (i, postObject) in posts.Enumerate())
         {
@@ -83,7 +83,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             Log.Debug("Post ID: {PostId}", id);
             var content = post["content"]!.Deserialize<string>()!;
             var soup = await Soupify(content, urlString: false);
-            var links = soup.SelectNodesSafe("//a").GetHrefs();
+            var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
             var possibleLinks = new List<string>();
             var possibleLinksP = soup.SelectNodes("//p");
             if (possibleLinksP is not null)
@@ -148,7 +148,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
 
             var extractedAttachments = links
-                                      .Where(l => attachmentExtensions.Any(l.Contains))
+                                      .Where(l => AttachmentExtensions.Any(l.Contains))
                                       .Select(l => (l.Contains(domainUrl) || l.Contains("http")) ? l : domainUrl + l)
                                       .ToList();
 
