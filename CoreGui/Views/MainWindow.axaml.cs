@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
@@ -402,6 +403,51 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             
             _copyReady = false;
         }
+    }
+
+    private bool _paused;
+    
+    private void PlayPauseButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        PlayPauseToggle();
+    }
+    
+    private void PlayPauseToggle()
+    {
+        if (_paused)
+        {
+            Play();
+            _paused = false;
+        }
+        else
+        {
+            Pause();
+            _paused = true;
+        }
+    }
+
+    private void Play()
+    {
+        var iconFound = this.TryGetResource("PauseButtonIcon", out var icon);
+        if (iconFound)
+        {
+            PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
+        }
+
+        var playing = ViewModel?.Play() ?? false;
+        _paused = !playing;
+    }
+
+    private void Pause()
+    {
+        var iconFound = this.TryGetResource("PlayButtonIcon", out var icon);
+        if (iconFound)
+        {
+            PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
+        }
+        
+        var paused = ViewModel?.Pause() ?? false;
+        _paused = paused;
     }
 
     [GeneratedRegex(@"^(?i)(name|url|date|before|after):(.+)", RegexOptions.None, "en-US")]

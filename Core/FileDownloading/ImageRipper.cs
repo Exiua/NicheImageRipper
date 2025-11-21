@@ -357,6 +357,11 @@ public partial class ImageRipper : IDisposable
                                 
                                 for (var attempt = 0; attempt < maxAttempts; attempt++)
                                 {
+                                    while (Paused)
+                                    {
+                                        await Sleep(1000);
+                                    }
+                                    
                                     try
                                     {
                                         await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats);
@@ -389,6 +394,11 @@ public partial class ImageRipper : IDisposable
                         {
                             foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
                             {
+                                while (Paused)
+                                {
+                                    await Sleep(1000);
+                                }
+                                
                                 // Compute the absolute index (i is the relative index after start)
                                 var index = start + i;
                                 await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true);

@@ -243,6 +243,16 @@ public class MainWindowViewModel : ViewModelBase
         NicheImageRipper.ClearCache();
     }
 
+    public bool Play()
+    {
+        return _ripper.Play();
+    }
+
+    public bool Pause()
+    {
+        return _ripper.Pause();
+    }
+
     private void OnUrlQueueUpdated()
     {
         Dispatcher.UIThread.Post(() =>

@@ -8,6 +8,11 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="CoreGui">
+    
+    <Window.Resources>
+        <StreamGeometry x:Key="PauseButtonIcon">M520-200v-560h240v560H520Zm-320 0v-560h240v560H200Zm400-80h80v-400h-80v400Zm-320 0h80v-400h-80v400Zm0-400v400-400Zm320 0v400-400Z</StreamGeometry>
+        <StreamGeometry x:Key="PlayButtonIcon">M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z</StreamGeometry>
+    </Window.Resources>
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -21,6 +26,7 @@
             <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
             <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput"/>
             <Button HotKey="Enter" Command="{Binding RipCommand}">Rip</Button>
+            <Button Click="PlayPauseButton_OnClick"><PathIcon x:Name="PlayPauseButtonIcon" Data="{StaticResource PauseButtonIcon}"></PathIcon></Button>
         </StackPanel>
         <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
             <TabItem Header="Logs">
@@ -80,19 +86,6 @@
                             <DataGridTextColumn Header="#" Binding="{Binding NumUrls}"
                                                 Width="{Binding CountWidth}" Tag="HistoryCount"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
-                            <!-- <DataGridTemplateColumn Header="#" Width="{Binding CountWidth}" Tag="HistoryCount"> -->
-                            <!--     <DataGridTemplateColumn.CellTemplate> -->
-                            <!--         <DataTemplate> -->
-                            <!--             <TextBlock Text="{Binding NumUrls}"> -->
-                            <!--                 <TextBlock.ContextMenu> -->
-                            <!--                     <ContextMenu> -->
-                            <!--                         <MenuItem Header="Copy"/> -->
-                            <!--                     </ContextMenu> -->
-                            <!--                 </TextBlock.ContextMenu> -->
-                            <!--             </TextBlock> -->
-                            <!--         </DataTemplate> -->
-                            <!--     </DataGridTemplateColumn.CellTemplate> -->
-                            <!-- </DataGridTemplateColumn> -->
                             <DataGridTemplateColumn Header="Action">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
