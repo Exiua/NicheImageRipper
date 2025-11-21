@@ -123,6 +123,28 @@ public partial class NicheImageRipper : IDisposable
         }
     }
 
+    public bool Play()
+    {
+        if (Ripper is null)
+        {
+            return false;
+        }
+
+        Ripper.Paused = false;
+        return true;
+    }
+    
+    public bool Pause()
+    {
+        if (Ripper is null)
+        {
+            return false;
+        }
+
+        Ripper.Paused = true;
+        return true;
+    }
+
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
     {
         return HistoryDb.GetHistory(start, offset, filter);
