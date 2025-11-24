@@ -10,7 +10,7 @@ namespace Core.DataStructures;
 
 public class RipInfo
 {
-    private const int MaxDirectoryNameLength = 130; // Half of typical max path length to allow for subdirectories and filenames
+    private const int MaxDirectoryNameLength = 200; 
     
     private string _directoryName = null!; // Initialized through the property setter
 
@@ -168,7 +168,12 @@ public class RipInfo
         var counter = index;
         foreach (var file in files)
         {
-            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.Name,
+            if (file.IsFolder)
+            {
+                continue;
+            }
+            
+            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.GetPath(),
                 linkInfo: LinkInfo.GDrive);
             imageLinks.Add(imgLink);
             counter++;
