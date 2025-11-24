@@ -75,10 +75,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     }
     
     private readonly ThreadSafeStringBuilder _logBuilder = new();
+    private readonly Mutex _logLock = new();
     private int _logCount;
     private const int MaxLogLines = 1000;
     private const int NumLogLinesToRemove = 50;
-    private readonly Mutex _logLock = new();
+    private bool _paused;
 
     public void OnLog(string message)
     {
@@ -404,8 +405,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             _copyReady = false;
         }
     }
-
-    private bool _paused;
     
     private void PlayPauseButton_OnClick(object? sender, RoutedEventArgs e)
     {
