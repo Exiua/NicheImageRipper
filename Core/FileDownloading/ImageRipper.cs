@@ -306,8 +306,12 @@ public partial class ImageRipper : IDisposable
                 {
                     var fullFilename = $"{index}{ext}";
                     var imagePath = Path.Combine(fullPath, fullFilename);
-                    await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
-                    await PostProcess(imageLink, imagePath, filesHashes, downloadStats);
+                    var success = await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
+                    if (success)
+                    {
+                        await PostProcess(imageLink, imagePath, filesHashes, downloadStats);
+                    }
+                    
                     break;
                 }
                 catch // TODO: Narrow down exceptions
@@ -442,9 +446,13 @@ public partial class ImageRipper : IDisposable
         {
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
-            await DownloadFromList(link, imagePath, index, downloadStats);
-            imagePath = Path.Combine(fullPath, link.Filename); // DownloadFromList may modify filename (if it was missing extension)
-            await PostProcess(link, imagePath, filesHashes, downloadStats);
+            var success = await DownloadFromList(link, imagePath, index, downloadStats);
+            if (success)
+            {
+                // DownloadFromList may modify filename (if it was missing extension)
+                imagePath = Path.Combine(fullPath, link.Filename); 
+                await PostProcess(link, imagePath, filesHashes, downloadStats);
+            }
         }
         catch (FileNotFoundException)
         {
@@ -641,7 +649,7 @@ public partial class ImageRipper : IDisposable
     /// <param name="filename">Name of the file to download</param>
     /// <param name="imagePath">Full path to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
-    private async Task DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext)
+    private async Task<bool> DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
@@ -651,15 +659,18 @@ public partial class ImageRipper : IDisposable
         var numProgress = $"({filename}/{numFiles})";
         Log.Information("{RipUrl:l}    {NumProgress:l}", ripUrl, numProgress);
         imageLink.Url = ripUrl;
+        bool success;
         try
         {
-            await DownloadFile(imagePath, imageLink, true);
+            success = await DownloadFile(imagePath, imageLink, true);
         }
         finally
         {
             imageLink.Url = url;
         }
+        
         await Sleep(50);
+        return success;
     }
 
     /// <summary>
@@ -669,8 +680,8 @@ public partial class ImageRipper : IDisposable
     /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    private async Task DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
-                                        DownloadStats downloadStats)
+    private async Task<bool> DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
+                                              DownloadStats downloadStats)
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
@@ -759,6 +770,8 @@ public partial class ImageRipper : IDisposable
 
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         await Sleep(50);
+
+        return success;
     }
 
     private async Task<bool> ResolveAndDownloadFile(string path, ImageLink imageLink)
@@ -899,7 +912,8 @@ public partial class ImageRipper : IDisposable
     private static async Task<bool> DownloadGDriveFile(string path, ImageLink imageLink)
     {
         var destinationPath = Path.Combine(path, imageLink.Filename);
-        Directory.CreateDirectory(path);
+        var parent = Directory.GetParent(destinationPath)!.FullName;
+        Directory.CreateDirectory(parent);
         var credentials = await TokenManager.GDriveAuthenticate();
         var service = new DriveService(new BaseClientService.Initializer
         {
@@ -989,10 +1003,11 @@ public partial class ImageRipper : IDisposable
 
         while (true)
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            // TODO: Need better way to check if megacmd has timeout or is just downloading large amounts of data
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
             try
             {
-                return await MegaApi.DownloadAsync(imageLink.Url, path, cts.Token);
+                return await MegaApi.DownloadAsync(imageLink.Url, path, CancellationToken.None);
             }
             catch (OperationCanceledException)
             {
@@ -1436,7 +1451,7 @@ public partial class ImageRipper : IDisposable
             case HttpStatusCode.Forbidden:
                 switch (SiteName)
                 {
-                    case "kemono" when !url.Contains(".psd"):
+                    case "kemono" when !url.Contains(".psd") && url.Contains("kemono"):
                         Log.Information("Wrong subdomain, trying again...");
                         throw new BadSubdomainException();
                     case "e-hentai":
