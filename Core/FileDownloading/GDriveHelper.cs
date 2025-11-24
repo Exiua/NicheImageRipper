@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Core.Configuration;
 using Core.Managers;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -56,6 +55,7 @@ public class GDriveItem
         {
             path.Append('/');
         }
+        
         return path.ToString();
     }
 
@@ -101,6 +101,7 @@ internal static class GDriveExtensionMethods
             parent = new GDriveItem(file);
             files.Add(parent);
         }
+        
         var children = await service.GetChildren(id);
         foreach (var gDriveItem in children.Select(child => new GDriveItem(child, parent)))
         {
