@@ -158,9 +158,10 @@ public partial class ImageLink
                     filename = $"{hash}.{b64Ext}";
                     break;
                 }
+                case LinkInfo.GDrive:
+                    break;
                 case LinkInfo.None:
                 case LinkInfo.M3U8Ffmpeg:
-                case LinkInfo.GDrive:
                 case LinkInfo.IframeMedia:
                 case LinkInfo.Mega:
                 case LinkInfo.PixelDrain:
@@ -183,6 +184,7 @@ public partial class ImageLink
             {
                 filename = Uri.UnescapeDataString(filename);
             }
+            
             return filename;
         }
 
