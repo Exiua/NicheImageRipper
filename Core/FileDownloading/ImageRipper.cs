@@ -731,8 +731,11 @@ public partial class ImageRipper : IDisposable
             case LinkInfo.PixelDrain:
                 success = await DownloadPixelDrainFiles(imagePath, imageLink);
                 break;
-            case LinkInfo.Youtube:
-                success = await DownloadYoutubeFile(imagePath, imageLink);
+            case LinkInfo.YoutubeVideo:
+                success = await DownloadYoutubeVideo(imagePath, imageLink);
+                break;
+            case LinkInfo.YoutubeChannel:
+                success = await DownloadYoutubeChannel(imagePath, imageLink);
                 break;
             case LinkInfo.Text:
                 await File.AppendAllTextAsync(imagePath, ripUrl + "\n");
@@ -842,33 +845,33 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private static async Task<bool> DownloadMpegDashFile(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadMpegDashFile(string filePath, ImageLink imageLink)
     {
-        var parent = Directory.GetParent(path)!.FullName;
-        var filename = Path.GetFileName(path);
+        var parent = Directory.GetParent(filePath)!.FullName;
+        var filename = Path.GetFileName(filePath);
         var cmd = new[] { "-P", $"\"{parent}\"", imageLink.Url, "-o", filename };
         var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
         return exitCode == 0;
     }
 
-    private static async Task<bool> DownloadM3U8ToMp4(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadM3U8ToMp4(string filePath, ImageLink imageLink)
     {
         var url = imageLink.Url;
         var referer = imageLink.Referer;
-        if (!path.Contains('.'))
+        if (!filePath.Contains('.'))
         {
             if (url.Contains(".mp4"))
             {
-                path += ".mp4";
+                filePath += ".mp4";
             }
             else if (url.Contains(".webm"))
             {
-                path += ".webm";
+                filePath += ".webm";
             }
             else
             {
-                path += ".ts";
+                filePath += ".ts";
             }
         }
 
@@ -884,7 +887,7 @@ public partial class ImageRipper : IDisposable
                 "-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
                 "-i", $"\"{url}\"",
                 "-c", "copy",
-                $"\"{path}\""
+                $"\"{filePath}\""
             ];
         }
         else
@@ -894,7 +897,7 @@ public partial class ImageRipper : IDisposable
                 "-protocol_whitelist", "file,http,https,tcp,tls,crypto", 
                 "-i", $"\"{url}\"",
                 "-c", "copy",
-                $"\"{path}\""
+                $"\"{filePath}\""
             ];
         }
         
@@ -903,15 +906,35 @@ public partial class ImageRipper : IDisposable
         return result.IsSuccess();
     }
 
-    private static Task<bool> DownloadM3U8YtDlp(string path, ImageLink imageLink)
+    private static Task<bool> DownloadM3U8YtDlp(string filePath, ImageLink imageLink)
     {
-        return RunYtDlp(imageLink, path, startMessage: "Starting yt-dlp download",
+        return RunYtDlp(imageLink, filePath, startMessage: "Starting yt-dlp download",
             endMessage: "yt-dlp download finished");
     }
-    
-    private static async Task<bool> DownloadGDriveFile(string path, ImageLink imageLink)
+
+    private static async Task<bool> DownloadYoutubeChannel(string filePath, ImageLink imageLink)
     {
-        var destinationPath = Path.Combine(path, imageLink.Filename);
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
+        {
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
+        }
+
+        var url = imageLink.Url;
+        var parent = Directory.GetParent(filePath)!.FullName;
+        string[] cmd = ["-P", $"\"{parent}\"", url];
+        var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
+            endMessage: "youtube-dl download finished");
+        if (exitCode != 0)
+        {
+            Log.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
+        }
+        
+        return exitCode == 0;
+    }
+    
+    private static async Task<bool> DownloadGDriveFile(string filePath, ImageLink imageLink)
+    {
+        var destinationPath = Path.Combine(filePath, imageLink.Filename);
         var parent = Directory.GetParent(destinationPath)!.FullName;
         Directory.CreateDirectory(parent);
         var credentials = await TokenManager.GDriveAuthenticate();
@@ -926,9 +949,9 @@ public partial class ImageRipper : IDisposable
         return true;
     }
     
-    private static async Task<bool> DownloadIframeMedia(string folderPath, ImageLink imageLink)
+    private static async Task<bool> DownloadIframeMedia(string filePath, ImageLink imageLink)
     {
-        var parentPathInfo = Directory.GetParent(folderPath)!;
+        var parentPathInfo = Directory.GetParent(filePath)!;
         var parentPath = parentPathInfo.FullName; 
         Directory.CreateDirectory(parentPath);
         for(var i = 0; i < RetryCount; i++)
@@ -938,7 +961,7 @@ public partial class ImageRipper : IDisposable
                 var video = new BunnyVideoDrm(
                     referer: imageLink.Url,
                     embedUrl: imageLink.Referer!,
-                    name: Path.GetFileName(folderPath).Split('.')[0],
+                    name: Path.GetFileName(filePath).Split('.')[0],
                     path: parentPath
                 );
                 await video.Download();
@@ -962,7 +985,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
     
-    private async Task<bool> DownloadMegaFiles(string path, ImageLink imageLink)
+    private async Task<bool> DownloadMegaFiles(string filePath, ImageLink imageLink)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
         {
@@ -993,12 +1016,12 @@ public partial class ImageRipper : IDisposable
         if (imageLink.Url.Contains("/file/"))
         {
             Log.Debug("Downloading file from Mega: {Url}", imageLink.Url);
-            path = Path.GetDirectoryName(path)!;
+            filePath = Path.GetDirectoryName(filePath)!;
         }
         else
         {
             Log.Debug("Downloading folder from Mega: {Url}", imageLink.Url);
-            Directory.CreateDirectory(path);
+            Directory.CreateDirectory(filePath);
         }
 
         while (true)
@@ -1007,7 +1030,7 @@ public partial class ImageRipper : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
             try
             {
-                return await MegaApi.DownloadAsync(imageLink.Url, path, CancellationToken.None);
+                return await MegaApi.DownloadAsync(imageLink.Url, filePath, CancellationToken.None);
             }
             catch (OperationCanceledException)
             {
@@ -1033,7 +1056,7 @@ public partial class ImageRipper : IDisposable
         }
     }
     
-    private static async Task<bool> DownloadPixelDrainFiles(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadPixelDrainFiles(string filePath, ImageLink imageLink)
     {
         var apiKey = Config.Keys.Pixeldrain;
         var authString = $":{apiKey}";
@@ -1055,23 +1078,23 @@ public partial class ImageRipper : IDisposable
             return false;
         }
         
-        await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
         await response.Content.CopyToAsync(fileStream);
         return true;
     }
 
-    private static Task<bool> DownloadYoutubeFile(string path, ImageLink imageLink)
+    private static Task<bool> DownloadYoutubeVideo(string filePath, ImageLink imageLink)
     {
-        return RunYtDlp(imageLink, path, startMessage: "Starting youtube-dl download",
+        return RunYtDlp(imageLink, filePath, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
     }
 
-    private async Task<bool> DownloadSeleniumImage(string path, ImageLink imageLink)
+    private async Task<bool> DownloadSeleniumImage(string filePath, ImageLink imageLink)
     {
         try
         {
             var imageData = GetImageViaSelenium(imageLink.Url);
-            await File.WriteAllBytesAsync(path, imageData);
+            await File.WriteAllBytesAsync(filePath, imageData);
             return true;
         }
         catch (Exception e)
@@ -1081,13 +1104,13 @@ public partial class ImageRipper : IDisposable
         }
     }
     
-    private static async Task<bool> DownloadBase64Image(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadBase64Image(string filePath, ImageLink imageLink)
     {
         try
         {
             var base64Data = imageLink.Url.Split(',')[1];
             var imageData = Convert.FromBase64String(base64Data);
-            await File.WriteAllBytesAsync(path, imageData);
+            await File.WriteAllBytesAsync(filePath, imageData);
             return true;
         }
         catch (FormatException e)
@@ -1097,11 +1120,11 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private static async Task<bool> DownloadObfuscatedM3U8(string path, ImageLink imageLink)
+    private static async Task<bool> DownloadObfuscatedM3U8(string filePath, ImageLink imageLink)
     {
         try
         {
-            var parent = Directory.GetParent(path)!.FullName;
+            var parent = Directory.GetParent(filePath)!.FullName;
             var referer = imageLink.Referer == "" ? null : imageLink.Referer;
             await M3U8Downloader.DownloadObfuscatedM3U8(imageLink.Url, parent, imageLink.Filename, referer);
             return true;
@@ -1113,7 +1136,7 @@ public partial class ImageRipper : IDisposable
         }
     }
     
-    private async Task<bool> DownloadPixivUgoira(string path, ImageLink imageLink)
+    private async Task<bool> DownloadPixivUgoira(string filePath, ImageLink imageLink)
     {
         var illustId = imageLink.Url.Split("/")[4];
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
@@ -1218,23 +1241,23 @@ public partial class ImageRipper : IDisposable
 
         animation[0].AnimationIterations = 0;
         //animation.OptimizeTransparency();
-        await animation.WriteAsync(path);
+        await animation.WriteAsync(filePath);
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         TokenManager.UpdateTokenRotation(RotationKey.Pixiv);
         return true;
     }
 
-    private async Task<bool> DownloadFile(string imagePath, ImageLink imageLink, bool generatingManually)
+    private async Task<bool> DownloadFile(string filePath, ImageLink imageLink, bool generatingManually)
     {
-        if(imagePath[^1] == '/')
+        if(filePath[^1] == '/')
         {
-            imagePath = imagePath[..^1];
+            filePath = filePath[..^1];
         }
 
         var success = false;
         for (var attempt = 0; attempt < RetryCount; attempt++)
         {
-            success = await DownloadFileHelper(imageLink, imagePath, generatingManually);
+            success = await DownloadFileHelper(imageLink, filePath, generatingManually);
             if (success)
             {
                 break;
@@ -1247,12 +1270,12 @@ public partial class ImageRipper : IDisposable
         }
         
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
-        if (Path.GetExtension(imagePath) == "")
+        if (Path.GetExtension(filePath) == "")
         {
-            Log.Debug("Finding correct extension for file: {ImagePath}", imagePath);
-            var extension = FileUtility.GetCorrectExtension(imagePath);
-            await RenameFile(imagePath, imagePath + extension);
-            var filename = Path.GetFileName(imagePath);
+            Log.Debug("Finding correct extension for file: {ImagePath}", filePath);
+            var extension = FileUtility.GetCorrectExtension(filePath);
+            await RenameFile(filePath, filePath + extension);
+            var filename = Path.GetFileName(filePath);
             var newFilename = filename + extension;
             Log.Debug("Renamed file {OldFilename} to {NewFilename}", filename, newFilename);
             imageLink.Filename = newFilename;

@@ -124,7 +124,7 @@ public partial class ImageLink
         
         if (url.Contains("youtube.com"))
         {
-            LinkInfo = LinkInfo.Youtube;
+            LinkInfo = LinkInfo.YoutubeVideo;
             if (!url.Contains("/embed/"))
             {
                 return url;
@@ -158,22 +158,25 @@ public partial class ImageLink
                     filename = $"{hash}.{b64Ext}";
                     break;
                 }
-                case LinkInfo.GDrive:
-                    break;
                 case LinkInfo.None:
+                case LinkInfo.GDrive:
                 case LinkInfo.M3U8Ffmpeg:
                 case LinkInfo.IframeMedia:
                 case LinkInfo.Mega:
                 case LinkInfo.PixelDrain:
-                case LinkInfo.Youtube:
+                case LinkInfo.YoutubeVideo:
                 case LinkInfo.GoFile:
                 case LinkInfo.MpegDash:
                 case LinkInfo.ResolveImage:
                 case LinkInfo.M3U8YtDlp:
                 case LinkInfo.SeleniumImage:
                 case LinkInfo.ObfuscatedM3U8:
+                case LinkInfo.PixivUgoira:
                 default:
-                    filename = ExtractFilename(url);
+                    if (filename == "")
+                    {
+                        filename = ExtractFilename(url);
+                    }
                     break;
             }
         }
