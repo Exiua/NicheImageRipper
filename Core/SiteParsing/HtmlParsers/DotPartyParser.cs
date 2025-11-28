@@ -2,9 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using Core.Utility;
@@ -49,7 +51,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     protected async Task<RipInfo> DotPartyParse(string domainUrl)
     {
         string dirName;
-        List<JsonObject> posts;
+        List<DotPartyPostResponse> posts;
         if (File.Exists(CachePath))
         {
             var cache = JsonUtility.Deserialize<Dictionary<string, DotPartyCache>>(CachePath);
@@ -75,13 +77,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var externalLinks = CreateExternalLinkDict();
         var numPosts = posts.Count;
 
-        foreach (var (i, postObject) in posts.Enumerate())
+        foreach (var (i, postResponse) in posts.Enumerate())
         {
             Log.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
-            var post = postObject["post"]!.AsObject();
-            var id = post["id"]!.Deserialize<string>()!;
+            var post = postResponse.Post;
+            var id = post.Id;
             Log.Debug("Post ID: {PostId}", id);
-            var content = post["content"]!.Deserialize<string>()!;
+            var content = post.Content;
             var soup = await Soupify(content, urlString: false);
             var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
             var possibleLinks = new List<string>();
@@ -110,9 +112,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
 
 
-            var file = post["file"]!.AsObject();
-            var name = file["name"]?.Deserialize<string>();
-            var path = file["path"]?.Deserialize<string>();
+            var file = post.File;
+            var name = file.Name;
+            var path = file.Path;
             if (path is not null)
             {
                 if (path[0] == '/')
@@ -125,11 +127,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 images.Add(imageLink);
             }
 
-            var attachments = post["attachments"]!.AsArray();
+            var attachments = post.Attachments;
             foreach (var attachment in attachments)
             {
-                var attachmentName = attachment!["name"]!.Deserialize<string>()!;
-                var attachmentPath = attachment["path"]!.Deserialize<string>()!;
+                var attachmentName = attachment.Name;
+                var attachmentPath = attachment.Path;
                 if (attachmentPath[0] == '/')
                 {
                     attachmentPath = domainUrl + attachmentPath;
@@ -241,7 +243,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         return externalLinks;
     }
     
-    private async Task<(string, List<JsonObject>)> GetAndCachePosts(string domainUrl)
+    private async Task<(string, List<DotPartyPostResponse>)> GetAndCachePosts(string domainUrl)
     {
         var (dirName, posts) = await GetPosts(domainUrl);
         var siteCache = new DotPartyCache
@@ -259,7 +261,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         return (dirName, posts);
     }
 
-    private async Task<(string, List<JsonObject>)> GetPosts(string domainUrl)
+    private async Task<(string, List<DotPartyPostResponse>)> GetPosts(string domainUrl)
     {
         var baseUrl = CurrentUrl;
         var urlSplit = baseUrl.Split("/");
@@ -285,7 +287,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
         dirName = $"{dirName} - ({sourceSite})";
         Log.Information("Parsed profile page: {DirName}", dirName);
-        var posts = new List<JsonObject>();
+        var posts = new List<DotPartyPostResponse>();
         var page = 0;
         while (true)
         {
@@ -302,9 +304,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             page++;
             Log.Debug("Retrieving page {PageNum} of size {PageSize}", page, PageSize);
 
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
-            var jsonPosts = json!.AsArray();
-            var ids = jsonPosts.Select(post => post!.AsObject()["id"].Deserialize<string>()!);
+            var jsonPosts = await response.Content.ReadFromJsonAsync<List<DotPartyPostShort>>();
+            if (jsonPosts is null)
+            {
+                throw new RipperException($"Failed to get posts on page {page}");
+            }
+            
+            var ids = jsonPosts.Select(post => post.Id);
             // Need to pull each post individually to get the html content body of the post
             foreach (var (i, id) in ids.Enumerate())
             {
@@ -320,14 +326,19 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                     $"Failed to get post {id}", 
                     delay: 15000);
                 
-                var postJson = await response.Content.ReadFromJsonAsync<JsonNode>();
-                posts.Add(postJson!.AsObject());
+                var postJson = await response.Content.ReadFromJsonAsync<DotPartyPostResponse>();
+                if (postJson is null)
+                {
+                    throw new RipperException($"Failed to get post {id}");
+                }
+                
+                posts.Add(postJson);
                 if ((i + 1) % 50 == 0)
                 {
                     await Sleep(1000);
                 }
             }
-            //posts.AddRange(jsonPosts.Select(post => post!.AsObject()));
+            
             if (jsonPosts.Count < PageSize)
             {
                 Log.Debug("Reached end of posts");
@@ -340,11 +351,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         return (dirName, posts);
     }
     
-    private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string attachmentName, string attachmentPath)
+    private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string? attachmentName, string attachmentPath)
     {
         var links = new List<string>();
         // ReSharper disable once InvertIf
-        if (attachmentName.Contains("download", StringComparison.InvariantCultureIgnoreCase) &&
+        if (attachmentName is not null && attachmentName.Contains("download", StringComparison.InvariantCultureIgnoreCase) &&
             attachmentName.EndsWith(".txt")) // fanbox/user/4565149/
         {
             var attachmentUrl = attachmentPath.StartsWith("https://") ?  attachmentPath : domainUrl + attachmentPath;
@@ -369,5 +380,121 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 public class DotPartyCache
 {
     public string DirName { get; set; } = null!;
-    public List<JsonObject> Posts { get; set; } = null!;
+    public List<DotPartyPostResponse> Posts { get; set; } = null!;
+}
+
+public class DotPartyPostShort
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = null!;
+    [JsonPropertyName("user")]
+    public string User { get; set; } = null!;
+    [JsonPropertyName("service")]
+    public string Service { get; set; } = null!;
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = null!;
+    [JsonPropertyName("substring")]
+    public string Substring { get; set; } = null!;
+    [JsonPropertyName("published")]
+    public string Published { get; set; } = null!;
+    [JsonPropertyName("file")]
+    public DotPartyFile File { get; set; } = null!;
+    [JsonPropertyName("attachments")]
+    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+}
+
+public class DotPartyFile
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+    [JsonPropertyName("path")]
+    public string? Path { get; set; }
+}
+
+public class DotPartyAttachment
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+    [JsonPropertyName("path")]
+    public string Path { get; set; } = null!;
+}
+
+public class DotPartyPostResponse
+{
+    [JsonPropertyName("post")]
+    public DotPartyPostFull Post { get; set; } = null!;
+    [JsonPropertyName("attachments")]
+    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+    [JsonPropertyName("previews")]
+    public List<DotPartyPreview> Previews { get; set; } = null!;
+    [JsonPropertyName("videos")]
+    public List<DotPartyVideo> Videos { get; set; } = null!;
+    [JsonPropertyName("props")]
+    public DotPartyProps Props { get; set; } = null!;
+}
+
+public class DotPartyPostFull
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = null!;
+    [JsonPropertyName("user")]
+    public string User { get; set; } = null!;
+    [JsonPropertyName("service")]
+    public string Service { get; set; } = null!;
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = null!;
+    [JsonPropertyName("content")]
+    public string Content { get; set; } = null!;
+    [JsonPropertyName("embed")]
+    public JsonObject Embed { get; set; } = null!;
+    [JsonPropertyName("shared_file")]
+    public bool SharedFile { get; set; }
+    [JsonPropertyName("added")]
+    public string? Added { get; set; }
+    [JsonPropertyName("published")]
+    public string Published { get; set; } = null!;
+    [JsonPropertyName("edited")]
+    public string Edited { get; set; } = null!;
+    [JsonPropertyName("file")]
+    public DotPartyFile File { get; set; } = null!;
+    [JsonPropertyName("attachments")]
+    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+    [JsonPropertyName("poll")]
+    public JsonObject? Poll { get; set; }
+    [JsonPropertyName("captions")]
+    public JsonObject? Captions { get; set; }
+    [JsonPropertyName("tags")]
+    public JsonArray Tags { get; set; } = null!;
+    [JsonPropertyName("incomplete_rewards")]
+    public JsonObject? IncompleteRewards { get; set; }
+    [JsonPropertyName("next")]
+    public string? Next { get; set; }
+    [JsonPropertyName("prev")]
+    public string? Prev { get; set; }
+}
+
+public class DotPartyPreview
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = null!;
+    [JsonPropertyName("server")]
+    public string Server { get; set; } = null!;
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = null!;
+    [JsonPropertyName("path")]
+    public string Path { get; set; } = null!;
+}
+
+public class DotPartyVideo
+{
+    [JsonExtensionData]
+    private Dictionary<string, JsonNode> Fields { get; set; } = null!;
+}
+
+public class DotPartyProps
+{
+    [JsonPropertyName("flagged")]
+    public JsonObject? Flagged { get; set; }
+    [JsonPropertyName("revisions")]
+    public List<List<JsonNode>> Revisions { get; set; } = null!; // Each sublist contains [revision number, DotPartyPostFull]
 }

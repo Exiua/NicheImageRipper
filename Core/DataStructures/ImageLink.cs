@@ -7,8 +7,8 @@ using Core.Enums;
 using Core.Exceptions;
 using JetBrains.Annotations;
 using Core.ExtensionMethods;
-using Core.Managers;
 using Core.Utility;
+using Serilog;
 
 namespace Core.DataStructures;
 
@@ -158,8 +158,9 @@ public partial class ImageLink
                     filename = $"{hash}.{b64Ext}";
                     break;
                 }
-                case LinkInfo.None:
                 case LinkInfo.GDrive:
+                    break;
+                case LinkInfo.None:
                 case LinkInfo.M3U8Ffmpeg:
                 case LinkInfo.IframeMedia:
                 case LinkInfo.Mega:
@@ -172,6 +173,7 @@ public partial class ImageLink
                 case LinkInfo.SeleniumImage:
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
+                case LinkInfo.YoutubeChannel:
                 default:
                     if (filename == "")
                     {
@@ -320,7 +322,18 @@ public partial class ImageLink
         }
         else
         {
-            fileName = Path.GetFileName(new Uri(url).LocalPath);
+            string localPath;
+            try
+            {
+                localPath = new Uri(url).LocalPath;   
+            }
+            catch (UriFormatException)
+            {
+                Log.Error("Invalid URL format: {Url}", url);
+                throw;
+            }
+            
+            fileName = Path.GetFileName(localPath);
             if (url.Contains(".m3u8"))
             {
                 LinkInfo = LinkInfo.M3U8Ffmpeg;
