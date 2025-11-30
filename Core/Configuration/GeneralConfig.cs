@@ -16,6 +16,7 @@ public class GeneralConfig
     public PostDownloadAction PostDownloadAction { get; set; }
     public bool AskToReRip { get; set; }
     public bool LiveHistory { get; set; }
+    public bool SkipFailedDownloads { get; set; }
     public int NumThreads { get; set; }
     public int MaxRetries { get; set; }
     public int RetryDelay { get; set; }
@@ -28,7 +29,7 @@ public class GeneralConfig
     public CustomConfig Custom { get; set; } = null!;
     
     [JsonExtensionData]
-    public Dictionary<string, JsonElement> ExtraData { get; set; } = null!;
+    public Dictionary<string, JsonElement>? ExtraData { get; set; }
 
     // Used for deserialization
     [UsedImplicitly]
@@ -48,6 +49,7 @@ public class GeneralConfig
         UnzipProtocol = UnzipProtocol.None;
         AskToReRip = true;
         LiveHistory = false;
+        SkipFailedDownloads = true;
         NumThreads = 1;
         MaxRetries = 4;
         RetryDelay = 1000;

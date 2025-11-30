@@ -100,7 +100,7 @@
                 </StackPanel>
             </TabItem>
             <TabItem Header="Settings">
-                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Grid.Row="0" Grid.Column="0" Margin="10" Text="Save Location:" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Margin="10" Text="{Binding SavePath}" />
                     <TextBlock Grid.Row="1" Grid.Column="0" Margin="10" Text="Select Save Folder:" />
@@ -119,6 +119,8 @@
                     <TextBox Grid.Row="7" Grid.Column="1" Margin="10" x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}" LostFocus="ValidateNumericValue" />
                     <TextBlock Grid.Row="8" Grid.Column="0" Margin="10" Text="Retry Delay (ms):" />
                     <TextBox Grid.Row="8" Grid.Column="1" Margin="10" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
+                    <TextBlock Grid.Row="9" Grid.Column="0" Margin="10" Text="Skip Failed Downloads:" />
+                    <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding SkipFailedDownloads}"/>
                 </Grid>
             </TabItem>
         </TabControl>

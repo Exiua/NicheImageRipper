@@ -48,6 +48,12 @@ public partial class NicheImageRipper : IDisposable
         get => Config.AskToReRip;
         set => Config.AskToReRip = value;
     }
+    
+    public static bool SkipFailedDownloads
+    {
+        get => Config.SkipFailedDownloads;
+        set => Config.SkipFailedDownloads = value;
+    }
 
     public static FilenameScheme FilenameScheme
     {
