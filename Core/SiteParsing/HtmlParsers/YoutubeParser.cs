@@ -30,7 +30,9 @@ public class YoutubeParser : HtmlParser
         {
             Log.Warning("YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
         }
-        
+
+        var url = CurrentUrl.Split("/").Take(4).Join('/');
+        CurrentUrl = url;
         var soup = await Soupify(xpath: "//h1[@class='dynamicTextViewModelH1']/span");
         var displayName = soup.SelectSingleNodeOrThrow("//h1[@class='dynamicTextViewModelH1']/span").InnerText;
         var username = soup
