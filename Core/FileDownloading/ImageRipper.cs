@@ -36,6 +36,7 @@ public partial class ImageRipper : IDisposable
 {
     internal const string RipIndexPath = ".ripIndex";
     
+    private const string YoutubeCookiesFile = "yt_cookies.txt";
     private const string RipStatePath = "ripState.json";
     private const int RetryCount = 4;
     private const int MillisecondsInSecond = 1000;
@@ -484,7 +485,8 @@ public partial class ImageRipper : IDisposable
         {
             // Maybe handle directory downloads (e.g., Mega) in the future?
             // Unable to determine filename before downloading files/directories from Mega.nz
-            if (Directory.Exists(imagePath) || link.LinkInfo == LinkInfo.Mega)
+            // Could probably guess file ext for youtube videos though (as we have filestem already)
+            if (Directory.Exists(imagePath) || link.LinkInfo == LinkInfo.Mega || link.LinkInfo == LinkInfo.YoutubeVideo)
             {
                 return;
             }
@@ -501,7 +503,7 @@ public partial class ImageRipper : IDisposable
     {
         var cmd = new []{"-D", $"\"{fullPath}\"", "-u", Config.Logins.DeviantArt.Username, "-p", 
             Config.Logins.DeviantArt.Password, "--write-log", "log.txt", url};
-        var exitCode = await RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
+        var (exitCode, _, _) = await RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
             endMessage: "Deviantart download finished");
         if (exitCode != 0)
         {
@@ -528,7 +530,7 @@ public partial class ImageRipper : IDisposable
             cmd = [ "-y", ..cmd ];
         }
         Log.Debug("ffmpeg {cmd}", string.Join(" ", cmd));
-        var exitCode = await RunSubprocess("ffmpeg", cmd, captureError: displayOutput,
+        var (exitCode, _, _) = await RunSubprocess("ffmpeg", cmd, captureError: displayOutput,
             startMessage: startMessage, endMessage: endMessage);
         if (exitCode != 0)
         {
@@ -564,46 +566,84 @@ public partial class ImageRipper : IDisposable
             ];
         //cmd = [ "--no-warnings", ..cmd ];
         Log.Debug("yt-dlp {cmd}", string.Join(" ", cmd));
-        var exitCode = await RunSubprocess("yt-dlp", cmd, /*true, true,*/ 
+        var (exitCode, output, _) = await RunSubprocess("yt-dlp", cmd, true,/* true,*/ 
             startMessage: startMessage, endMessage: endMessage);
-        if (exitCode != 0)
+
+        if (exitCode == 0)
         {
-            Log.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
+            return true;
+        }
+
+        var lines = output!.Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var ageRestricted = lines.Any(line => line.Contains("This video is age-restricted"));
+        if (ageRestricted)
+        {
+            if (!File.Exists(YoutubeCookiesFile))
+            {
+                Log.Error("Video is age-restricted but no cookies file found at {YoutubeCookiesFile}", YoutubeCookiesFile);
+                return false;
+            }
+            
+            Log.Information("Video is age-restricted, trying again with cookies");
+            cmd = [
+                "--force-overwrites",
+                "--cookies", $"\"{YoutubeCookiesFile}\"",
+                "-P", $"\"{parent}\"", 
+                "-o", $"\"{filename}\"",
+                $"\"{url}\"",
+            ];
+            
+            (exitCode, _, _) = await RunSubprocess("yt-dlp", cmd, true,/* true,*/ 
+                startMessage: startMessage, endMessage: endMessage);
         }
         
+        Log.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
+
         return exitCode == 0;
     }
     
-    private static async Task<int> RunSubprocess(string executable, string[]? arguments = null,
-                                     bool captureOutput = false, bool captureError = false,
-                                     string? startMessage = null, string? endMessage = null)
+    private static async Task<(int, string?, string?)> RunSubprocess(string executable, string[]? arguments = null,
+                                                                     bool captureOutput = false, bool captureError = false,
+                                                                     string? startMessage = null, string? endMessage = null)
     {
         if (startMessage is not null)
         {
-            Log.Information(startMessage);
+            Log.Information("{StartMessage:l}", startMessage);
         }
         
-        var process = new Process
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = executable,
-                Arguments = arguments is null ? "" : " ".Join(arguments),
-                RedirectStandardOutput = captureOutput,
-                RedirectStandardError = captureError,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
+            FileName = executable,
+            Arguments = arguments is null ? "" : " ".Join(arguments),
+            RedirectStandardOutput = captureOutput,
+            RedirectStandardError = captureError,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
-        
+
+        StringBuilder? output = null;
         if (captureOutput)
         {
-            process.OutputDataReceived += (_, args) => Log.Information(args.Data ?? "null");
+            output = new StringBuilder();
+            process.OutputDataReceived += (_, args) =>
+            {
+                var data = args.Data ?? "null";
+                output.AppendLine(data);
+                Log.Debug("{Data:l}", data);
+            };
         }
         
+        StringBuilder? error = null;
         if (captureError)
         {
-            process.ErrorDataReceived += (_, args) => Log.Error(args.Data ?? "null");
+            error = new StringBuilder();
+            process.ErrorDataReceived += (_, args) =>
+            {
+                var data = args.Data ?? "null";
+                error.AppendLine(data);
+                Log.Debug("{Data:l}", data);
+            };
         }
         
         process.Start();
@@ -622,10 +662,13 @@ public partial class ImageRipper : IDisposable
         var exitCode = process.ExitCode;
         if (endMessage is not null)
         {
-            Log.Information(endMessage);
+            Log.Information("{EndMessage:l}", endMessage);
         }
         
-        return exitCode;
+        var outputStr = output?.ToString();
+        var errorStr = error?.ToString();
+        
+        return (exitCode, outputStr, errorStr);
     }
 
     private static async Task<bool> HandleDuplicateFile(string imagePath, HashSet<HashKey> filesHashes)
@@ -733,9 +776,7 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.YoutubeVideo:
                 success = await DownloadYoutubeVideo(imagePath, imageLink);
-                break;
-            case LinkInfo.YoutubeChannel:
-                success = await DownloadYoutubeChannel(imagePath, imageLink);
+                await Sleep(1250);
                 break;
             case LinkInfo.Text:
                 await File.AppendAllTextAsync(imagePath, ripUrl + "\n");
@@ -768,7 +809,14 @@ public partial class ImageRipper : IDisposable
 
         if (!success)
         {
-            downloadStats.FailedDownloads.Add(ripUrl);
+            if (Config.SkipFailedDownloads)
+            {
+                downloadStats.FailedDownloads.Add(ripUrl);
+            }
+            else
+            {
+                throw new RipperException("Failed to download file: " + ripUrl);
+            }
         }
 
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
@@ -850,7 +898,7 @@ public partial class ImageRipper : IDisposable
         var parent = Directory.GetParent(filePath)!.FullName;
         var filename = Path.GetFileName(filePath);
         var cmd = new[] { "-P", $"\"{parent}\"", imageLink.Url, "-o", filename };
-        var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
+        var (exitCode, _, _) = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
         return exitCode == 0;
     }
@@ -910,26 +958,6 @@ public partial class ImageRipper : IDisposable
     {
         return RunYtDlp(imageLink, filePath, startMessage: "Starting yt-dlp download",
             endMessage: "yt-dlp download finished");
-    }
-
-    private static async Task<bool> DownloadYoutubeChannel(string filePath, ImageLink imageLink)
-    {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
-        {
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
-        }
-
-        var url = imageLink.Url;
-        var parent = Directory.GetParent(filePath)!.FullName;
-        string[] cmd = ["-P", $"\"{parent}\"", url];
-        var exitCode = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
-            endMessage: "youtube-dl download finished");
-        if (exitCode != 0)
-        {
-            Log.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
-        }
-        
-        return exitCode == 0;
     }
     
     private static async Task<bool> DownloadGDriveFile(string filePath, ImageLink imageLink)

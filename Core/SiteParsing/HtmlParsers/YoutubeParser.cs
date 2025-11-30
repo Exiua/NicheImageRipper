@@ -1,6 +1,9 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using Serilog;
@@ -28,20 +31,131 @@ public class YoutubeParser : HtmlParser
             Log.Warning("YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
         }
         
-        var soup = await Soupify();
+        var soup = await Soupify(xpath: "//h1[@class='dynamicTextViewModelH1']/span");
         var displayName = soup.SelectSingleNodeOrThrow("//h1[@class='dynamicTextViewModelH1']/span").InnerText;
         var username = soup
                       .SelectSingleNodeOrThrow(
                            "//span[@class='yt-core-attributed-string yt-content-metadata-view-model__metadata-text yt-core-attributed-string--white-space-pre-wrap yt-core-attributed-string--link-inherit-color']")
                       .InnerText;
         var dirName = $"{displayName} ({username})";
-        var imageLink = new ImageLink(CurrentUrl, FilenameScheme, 0)
+        var args = new SubprocessArgs("yt-dlp")
+                 .WithArgs(
+                      "--flat-playlist",
+                      "--print",
+                      "\"%(urls)s\"",
+                      CurrentUrl
+                  )
+                 .EnableOutputCapture();
+        var (exitCode, output, error) = await RunSubprocess(args);
+        if (exitCode != 0)
         {
-            LinkInfo = LinkInfo.YoutubeChannel,
+            Log.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
+            throw new RipperException("yt-dlp subprocess failed");
+        }
+
+        var images = output!.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                           .ToStringImageLinkWrapperList();
+        
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+
+    class SubprocessArgs
+    {
+        public string Executable { get; set; }
+        public List<string> Arguments { get; set; }
+        public bool CaptureOutput { get; set; }
+        public bool CaptureError { get; set; }
+
+        public SubprocessArgs(string executable)
+        {
+            Executable = executable;
+            Arguments = [];
+        }
+
+        public SubprocessArgs WithArg(string arg)
+        {
+            Arguments.Add(arg);
+            return this;
+        }
+
+        public SubprocessArgs WithArgs(params string[] args)
+        {
+            Arguments.AddRange(args);
+            return this;
+        }
+        
+        public SubprocessArgs EnableOutputCapture()
+        {
+            CaptureOutput = true;
+            return this;
+        }
+
+        public SubprocessArgs EnableErrorCapture()
+        {
+            CaptureError = true;
+            return this;
+        }
+
+        public string GetArgs()
+        {
+            return Arguments.Count == 0 ? "" : string.Join(" ", Arguments);
+        }
+    }
+    
+    private static async Task<(int, string?, string?)> RunSubprocess(SubprocessArgs args)
+    {
+        var arguments = args.GetArgs();
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = args.Executable,
+            Arguments = arguments,
+            RedirectStandardOutput = args.CaptureOutput,
+            RedirectStandardError = args.CaptureError,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
 
-        var images = new List<StringImageLinkWrapper> { imageLink };
+        string? output = null;
+        if (args.CaptureOutput)
+        {
+            output = "";
+            process.OutputDataReceived += (_, eventArgs) =>
+            {
+                if (eventArgs.Data is not null)
+                {
+                    output += eventArgs.Data + "\n";
+                }
+            };
+        }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        string? error = null;
+        if (args.CaptureError)
+        {
+            error = "";
+            process.ErrorDataReceived += (_, eventArgs) =>
+            {
+                if (eventArgs.Data is not null)
+                {
+                    error += eventArgs.Data + "\n";
+                }
+            };
+        }
+        
+        process.Start();
+        
+        if (args.CaptureOutput)
+        {
+            process.BeginOutputReadLine();
+        }
+        
+        if (args.CaptureError)
+        {
+            process.BeginErrorReadLine();
+        }
+        
+        await process.WaitForExitAsync();
+        var exitCode = process.ExitCode;
+        return (exitCode, output, error);
     }
 }

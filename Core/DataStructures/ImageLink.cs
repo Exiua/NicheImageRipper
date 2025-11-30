@@ -154,7 +154,7 @@ public partial class ImageLink
                 case LinkInfo.Base64:
                 {
                     var b64Ext = url.Split("image/")[1].Split(";")[0];
-                    var hash = BytesToString(MD5.HashData(Encoding.UTF8.GetBytes(url)));
+                    var hash = StringUtility.HashStringMd5(url);
                     filename = $"{hash}.{b64Ext}";
                     break;
                 }
@@ -173,7 +173,6 @@ public partial class ImageLink
                 case LinkInfo.SeleniumImage:
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
-                case LinkInfo.YoutubeChannel:
                 default:
                     if (filename == "")
                     {
@@ -198,8 +197,8 @@ public partial class ImageLink
         {
             case FilenameScheme.Hash:
             {
-                var hash5 = BytesToString(MD5.HashData(Encoding.UTF8.GetBytes(url)));
-                return hash5 + ext;
+                var hashMd5 = StringUtility.HashStringMd5(url);
+                return hashMd5 + ext;
             }
             case FilenameScheme.Chronological:
                 return index + ext;
@@ -320,6 +319,17 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
+        else if (url.Contains("youtube.com"))
+        {
+            if (url.Contains("/shorts/"))
+            {
+                fileName = url.Split("/")[^1];
+            }
+            else
+            {
+                fileName = url.Split("v=")[1].Split("&")[0];
+            }
+        }
         else
         {
             string localPath;
@@ -349,16 +359,6 @@ public partial class ImageLink
         var linkInfo = Enum.GetName(LinkInfo);
         var url = LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(Url) : Url;
         return !Referer.IsNullOrEmpty() ? $"({url}, {Filename}, {Referer}, {linkInfo})" : $"({url}, {Filename}, {linkInfo})";
-    }
-    
-    private static string BytesToString(byte[] bytes)
-    {
-        var sb = new StringBuilder(32);
-        foreach (var b in bytes)
-        {
-            sb.Append(b.ToString("X2"));
-        }
-        return sb.ToString();
     }
 
     [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]

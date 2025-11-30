@@ -94,7 +94,7 @@ public static partial class UrlUtility
         "https://hdzog.com/", "https://pornzog.com/", "https://x-x-x.tube/", "https://privatehomeclips.com/",
         "https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/", "https://e621.net/",
         "https://missav123.com/", "https://porncomics18.com/", "https://www.porncomic.io/", "https://hmvmania.com/",
-        "https://pmvhaven.com/"
+        "https://pmvhaven.com/", "https://www.youtube.com/"
     }.ToFrozenSet();
 
     /// <summary>
