@@ -1733,7 +1733,13 @@ public partial class ImageRipper : IDisposable
                 Log.Warning("Download response ended prematurely.");
                 throw new DownloadTimeoutException(totalSize, e.Message, e);
             }
-            
+
+            if (e.Message.StartsWith("Received an unexpected EOF or 0 bytes from the transport stream"))
+            {
+                Log.Warning("Received unexpected EOF from transport stream.");
+                throw new DownloadTimeoutException(totalSize, e.Message, e);
+            }
+
             Log.Error("An IO error occured: {savePath} - Reason: {Reason}", savePath, e.Message);
             return DownloadStatus.Failed;
         }
