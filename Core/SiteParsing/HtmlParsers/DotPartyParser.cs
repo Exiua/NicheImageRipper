@@ -511,15 +511,15 @@ public class DotPartyPostFull
     [JsonPropertyName("service")] public string Service { get; set; } = null!;
     [JsonPropertyName("title")] public string Title { get; set; } = null!;
     [JsonPropertyName("content")] public string Content { get; set; } = null!;
-    [JsonPropertyName("embed")] public JsonObject Embed { get; set; } = null!;
+    [JsonPropertyName("embed")] public JsonElement Embed { get; set; }
     [JsonPropertyName("shared_file")] public bool SharedFile { get; set; }
     [JsonPropertyName("added")] public string? Added { get; set; }
     [JsonPropertyName("published")] public string Published { get; set; } = null!;
     [JsonPropertyName("edited")] public string Edited { get; set; } = null!;
     [JsonPropertyName("file")] public DotPartyFile File { get; set; } = null!;
     [JsonPropertyName("attachments")] public List<DotPartyAttachment> Attachments { get; set; } = null!;
-    [JsonPropertyName("poll")] public JsonObject? Poll { get; set; }
-    [JsonPropertyName("captions")] public JsonObject? Captions { get; set; }
+    [JsonPropertyName("poll")] public JsonElement? Poll { get; set; }
+    [JsonPropertyName("captions")] public JsonElement? Captions { get; set; }
     [JsonPropertyName("tags")] public JsonArray Tags { get; set; } = null!;
 
     [JsonPropertyName("incomplete_rewards")]
@@ -539,12 +539,12 @@ public class DotPartyPreview
 
 public class DotPartyVideo
 {
-    [JsonExtensionData] private Dictionary<string, JsonNode> Fields { get; set; } = null!;
+    [JsonExtensionData] private Dictionary<string, JsonElement> Fields { get; set; } = null!;
 }
 
 public class DotPartyProps
 {
-    [JsonPropertyName("flagged")] public JsonObject? Flagged { get; set; }
+    [JsonPropertyName("flagged")] public string? Flagged { get; set; }
 
     [JsonPropertyName("revisions")]
     public List<List<JsonNode>> Revisions { get; set; } =
