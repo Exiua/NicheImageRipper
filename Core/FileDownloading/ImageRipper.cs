@@ -472,7 +472,15 @@ public partial class ImageRipper : IDisposable
         }
         catch (Exception e)
         {
-            Log.Debug("Caught exception, saving progress. Reason: {ErrorMessage}", e.Message);
+            if (e.Message.Contains("see inner exception"))
+            {
+                Log.Debug("Caught exception with inner exception while downloading {Url}: {InnerException}", link.Url, e.InnerException?.Message);
+            }
+            else
+            {
+                Log.Debug("Caught exception, saving progress. Reason: {ErrorMessage}", e.Message);
+            }
+            
             await File.WriteAllTextAsync(".ripIndex", CurrentIndex.ToString());
             throw;
         } 
@@ -1381,7 +1389,7 @@ public partial class ImageRipper : IDisposable
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Log.Debug("Exception during file write: {Exception}", e);
                 throw;
             }
             
