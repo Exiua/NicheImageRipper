@@ -365,7 +365,7 @@ public partial class NicheImageRipper : IDisposable
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
         {
-            File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
+            File.WriteAllText(".ripIndex", Ripper.GenerateSavePosition());
         }
 
         Config.SaveConfig();
