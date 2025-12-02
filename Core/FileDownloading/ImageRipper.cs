@@ -577,9 +577,9 @@ public partial class ImageRipper : IDisposable
         var (exitCode, output, _) = await RunSubprocess("yt-dlp", cmd, true,/* true,*/ 
             startMessage: startMessage, endMessage: endMessage);
 
-        if (exitCode == 0)
+        if (exitCode == 0 || link.LinkInfo != LinkInfo.YoutubeVideo)
         {
-            return true;
+            return exitCode == 0;
         }
 
         var lines = output!.Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
