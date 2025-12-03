@@ -15,6 +15,8 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class PornhubParser : HtmlParser
 {
+    private const int MaxEntriesPerBatch = 25;
+    
     public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
@@ -26,7 +28,7 @@ public class PornhubParser : HtmlParser
     public override async Task<RipInfo> Parse()
     {
         var cookie = Config.Cookies.Pornhub;
-        var cookieJar = Driver.Manage().Cookies;
+        var cookieJar = Driver.GetCookieJar();
         cookieJar.AddCookie(new Cookie("il", cookie));
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));
         cookieJar.AddCookie(new Cookie("adBlockAlertHidden", "1"));
@@ -85,7 +87,7 @@ public class PornhubParser : HtmlParser
                                         && !post.Contains("/model/")).ToList();
             foreach (var (i, post) in posts.Enumerate())
             {
-                Log.Information("Parsing post {i}/{totalPosts}", i + 1, posts.Count);
+                Log.Information("Parsing post {i}/{totalPosts}: {post}", i + 1, posts.Count, post);
                 soup = await Soupify(post);
                 var (postImages, _) = await PornhubLinkExtractor(soup);
                 images.AddRange(postImages);
@@ -108,6 +110,7 @@ public class PornhubParser : HtmlParser
         List<StringImageLinkWrapper> images;
         if (CurrentUrl.Contains("view_video"))
         {
+            Log.Debug("Parsing video page");
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").SelectSingleNodeOrThrow(".//span").InnerText;
             var player = soup.SelectSingleNodeOrThrow("//div[@id='player']").SelectSingleNodeOrThrow(".//script");
             var js = player.InnerText;
@@ -138,6 +141,7 @@ public class PornhubParser : HtmlParser
         }
         else if (CurrentUrl.Contains("/album/"))
         {
+            Log.Debug("Parsing album page");
             await LazyLoad(scrollBy: true);
             soup = await Soupify();
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='photoAlbumTitleV2']").InnerText.Trim();
@@ -159,13 +163,14 @@ public class PornhubParser : HtmlParser
         }
         else if(CurrentUrl.Contains("/gif/"))
         {
+            Log.Debug("Parsing gif page");
             dirName = soup.SelectSingleNode("//div[@class='gifTitle']/h1")?.InnerText ?? "";
             if (dirName == "")
             {
                 var id = CurrentUrl.Split("/")[4];
                 dirName = $"Pornhub Gif {id}";
             }
-            await WaitForElement("//video[@id='gifWebmPlayer']/source", timeout: -1);
+            await WaitForElement("//video[@id='gifWebmPlayer']/source", timeout: 60);
             soup = await Soupify();
             var url = soup.SelectSingleNodeOrThrow("//video[@id='gifWebmPlayer']/source").GetSrc();
             images = [url];

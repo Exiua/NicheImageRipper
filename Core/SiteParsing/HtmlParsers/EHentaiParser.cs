@@ -16,6 +16,7 @@ namespace Core.SiteParsing.HtmlParsers;
 public class EHentaiParser : HtmlParser
 {
     private const string ImageLinksFileName = "ehentai.json";
+    private const int MaxEntriesPerBatch = 250;
 
     // Quick fix for updating links, should be replaced with a more robust solution
     private static string _lastUrl = "";
@@ -73,7 +74,7 @@ public class EHentaiParser : HtmlParser
         {
             // Done to prevent taking too long getting links to the point where the links have expired
             // Also, E-Hentai seems to hang for too long when too many requests are made in a short period of time
-            if (i >= 250)
+            if (i >= MaxEntriesPerBatch)
             {
                 Log.Information("Skipping image {i} of {count}", i + 1, imageLinks.Count);
                 imageUrls.Add("");
@@ -131,7 +132,7 @@ public class EHentaiParser : HtmlParser
                 continue;
             }
 
-            if (i >= start + 250)
+            if (i >= start + MaxEntriesPerBatch)
             {
                 break;
             }
