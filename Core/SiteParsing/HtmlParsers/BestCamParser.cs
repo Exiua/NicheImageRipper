@@ -20,7 +20,7 @@ public class BestCamParser : HtmlParser
     ///     Parses the html for bestcam.tv and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var (capturer, b) = await ConfigureNetworkCapture<BestCamVideoCapturer>();
         await using var bidi = b;

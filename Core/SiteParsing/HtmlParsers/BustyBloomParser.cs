@@ -16,7 +16,7 @@ public class BustyBloomParser : HtmlParser
     ///     Parses the html for bustybloom.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse()
     {
         return GenericHtmlParser("bustybloom");
     }

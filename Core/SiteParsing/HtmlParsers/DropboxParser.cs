@@ -20,7 +20,7 @@ public class DropboxParser : HtmlParser
     ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         return await Parse("");
     }

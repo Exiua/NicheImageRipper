@@ -14,7 +14,7 @@ public class AllBooruParser : BooruParser
     {
     }
 
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var tags = ExtractTagsFromUrl(GivenUrl);
         Log.Debug("Parsing all boorus with tags: {Tags}", tags);

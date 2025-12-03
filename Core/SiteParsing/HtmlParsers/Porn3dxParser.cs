@@ -20,7 +20,7 @@ public class Porn3dxParser : HtmlParser
     ///     Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         const int maxRetries = 4;
         var cookie = Config.Cookies.Porn3dx;

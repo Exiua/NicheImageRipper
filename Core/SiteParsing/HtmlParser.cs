@@ -409,7 +409,7 @@ public abstract class HtmlParser : IDisposable
         return !siteLoginStatus.TryAdd(siteName, false) && siteLoginStatus[siteName];
     }
 
-    public abstract Task<RipInfo> Parse();
+    protected abstract Task<RipInfo> Parse();
 
     #region Generic Site Parsers
 

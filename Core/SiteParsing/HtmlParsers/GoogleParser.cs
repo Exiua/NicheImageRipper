@@ -17,7 +17,7 @@ public class GoogleParser : HtmlParser
     ///     Query the Google Drive API to get file information to download
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         return await GoogleParse("");
     }

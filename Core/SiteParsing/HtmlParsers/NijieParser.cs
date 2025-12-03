@@ -14,6 +14,9 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public partial class NijieParser : HtmlParser
 {
+    private const int Delay = 500;
+    private const int Retries = 4;
+    
     public NijieParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
@@ -22,13 +25,11 @@ public partial class NijieParser : HtmlParser
     ///     Parses the html for nijie.info and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
-        const int delay = 500;
-        const int retries = 4;
         await SiteLogin();
         var memberId = NijieRegex().Match(CurrentUrl).Groups[1].Value;
-        var soup = await Soupify($"https://nijie.info/members_illust.php?id={memberId}", delay: delay);
+        var soup = await Soupify($"https://nijie.info/members_illust.php?id={memberId}", delay: Delay);
         var dirName = soup.SelectSingleNodeOrThrow("//a[@class='name']").InnerText;
         var posts = new List<string>();
         var count = 1;
@@ -50,7 +51,7 @@ public partial class NijieParser : HtmlParser
             if (nextPageBtn is not null)
             {
                 var nextPage = nextPageBtn.SelectSingleNodeOrThrow(".//a").GetHref().Replace("&amp;", "&");
-                soup = await Soupify($"https://nijie.info{nextPage}", delay: delay);
+                soup = await Soupify($"https://nijie.info{nextPage}", delay: Delay);
             }
             else
             {
@@ -64,9 +65,9 @@ public partial class NijieParser : HtmlParser
         {
             Log.Information("Parsing illustration post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
-            soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
+            soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
             IEnumerable<StringImageLinkWrapper> imgs = null!;
-            for(var retryCount = 0; retryCount < retries; retryCount++)
+            for(var retryCount = 0; retryCount < Retries; retryCount++)
             {
                 try
                 {
@@ -79,9 +80,9 @@ public partial class NijieParser : HtmlParser
                 }
                 catch (NullReferenceException)
                 {
-                    await Task.Delay(delay * 10);
-                    soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
-                    if (retryCount == retries - 1)
+                    await Task.Delay(Delay * 10);
+                    soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
+                    if (retryCount == Retries - 1)
                     {
                         throw new RipperException("Failed to parse illustration post");
                     }
@@ -91,7 +92,7 @@ public partial class NijieParser : HtmlParser
             images.AddRange(imgs);
         }
         
-        soup = await Soupify($"https://nijie.info/members_dojin.php?id={memberId}", delay: delay);
+        soup = await Soupify($"https://nijie.info/members_dojin.php?id={memberId}", delay: Delay);
         posts = [];
         var doujins = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']")
                             .SelectNodes("./div");
@@ -105,9 +106,9 @@ public partial class NijieParser : HtmlParser
         {
             Log.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
-            soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
+            soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
             IEnumerable<StringImageLinkWrapper> imgs = null!;
-            for(var retryCount = 0; retryCount < retries; retryCount++)
+            for(var retryCount = 0; retryCount < Retries; retryCount++)
             {
                 try
                 {
@@ -118,9 +119,9 @@ public partial class NijieParser : HtmlParser
                 }
                 catch (NullReferenceException)
                 {
-                    await Task.Delay(delay * 10);
-                    soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: delay);
-                    if (retryCount == retries - 1)
+                    await Task.Delay(Delay * 10);
+                    soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
+                    if (retryCount == Retries - 1)
                     {
                         throw new RipperException("Failed to parse doujin post");
                     }

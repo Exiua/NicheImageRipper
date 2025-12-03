@@ -20,7 +20,7 @@ public class Zero6SeParser : HtmlParser
     ///     Parses the html for 06se.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         // var readMoreButton = Driver.TryFindElement(By.XPath("//div[@class='read-more']/a"));
         // readMoreButton?.Click();

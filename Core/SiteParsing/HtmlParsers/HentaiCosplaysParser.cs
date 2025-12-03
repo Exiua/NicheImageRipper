@@ -18,13 +18,13 @@ public partial class HentaiCosplaysParser : HtmlParser
     ///     Parses the html for hentai-cosplays.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         if (CurrentUrl.Contains("/video/"))
         {
             CurrentUrl = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
             var parser = new PornVideoXXXParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
-            return await parser.Parse();
+            return await parser.ParseSite(CurrentUrl);
         }
         
         var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs

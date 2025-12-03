@@ -18,7 +18,7 @@ public class CatBoxParser : HtmlParser
     ///     Parses the html for catbox.moe and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         Log.Warning("Catbox.moe support is experimental and may not work as expected");
         var soup = await Soupify();

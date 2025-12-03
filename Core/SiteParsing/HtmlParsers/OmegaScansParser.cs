@@ -24,7 +24,7 @@ public class OmegaScansParser : HtmlParser
     ///     Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         const string chapterListXpath = "//ul[contains(concat(' ', normalize-space(@class), ' '), ' grid ')]";
 
