@@ -26,6 +26,16 @@ public static class ExtensionMethods
             yield return (i++, item);
         }
     }
+
+    public static async IAsyncEnumerable<(int i, T)> EnumerateAsync<T>(this IAsyncEnumerable<T> enumerable, int start = 0)
+    {
+        var i = start;
+        await foreach(var item in enumerable)
+        {
+            yield return (i, item);
+            i++;
+        }
+    }
     
     public static string HexDigest(this byte[] bytes)
     {

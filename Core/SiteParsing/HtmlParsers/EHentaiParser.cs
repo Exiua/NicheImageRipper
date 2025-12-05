@@ -13,14 +13,12 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class EHentaiParser : HtmlParser
+public class EHentaiParser : TimeSensitiveHtmlParser
 {
-    private const string ImageLinksFileName = "ehentai.json";
-    private const int MaxEntriesPerBatch = 250;
+    protected override string ImageLinksFileName => "ehentai.json";
+    protected override int MaxEntriesPerBatch => 250;
+    protected override string ParserKey => "ehentai";
 
-    // Quick fix for updating links, should be replaced with a more robust solution
-    private static string _lastUrl = "";
-    
     public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
@@ -55,9 +53,10 @@ public class EHentaiParser : HtmlParser
         await SiteLogin();
         CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org"); // Redirect to exhentai
         var currentUrl = CurrentUrl;
-        _lastUrl = currentUrl;
+        StoreLastLink(currentUrl);
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='gn']").InnerText;
+        // Links to each image page
         var imageLinks = await GetImageLinks(soup, currentUrl);
         
         Log.Debug("Found {count} image links", imageLinks.Count);
@@ -69,6 +68,7 @@ public class EHentaiParser : HtmlParser
         
         JsonUtility.Serialize(ImageLinksFileName, imageLinksSave);
         
+        // Links to the images themselves
         var imageUrls = new List<string>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
@@ -103,55 +103,10 @@ public class EHentaiParser : HtmlParser
         var img = soup.SelectSingleNodeOrThrow("//img[@id='img']").GetSrc();
         return img;
     }
-
-    // Should never be called before Parse() is called
-    public async Task<List<ImageLink>> UpdateLinks(List<ImageLink> links, int start)
+    
+    protected override Task<string> UpdateLink(string link)
     {
-        if (!File.Exists(ImageLinksFileName))
-        {
-            throw new RipperException("Image links file does not exist. Please run Parse() first.");
-        }
-        
-        var imageLinksMap = JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
-        if (imageLinksMap is null || !imageLinksMap.TryGetValue(_lastUrl, out var imageLinks))
-        {
-            throw new RipperException("Image links not found in the file. Please run Parse() first.");
-        }
-        
-        if (start < 0 || start >= imageLinks.Count)
-        {
-            throw new ArgumentOutOfRangeException(nameof(start), "Start index is out of range.");
-        }
-        
-        Log.Information("Updating links from link {start} of {count}", start + 1, imageLinks.Count);
-        var updated = 0;
-        foreach (var (i, link) in imageLinks.Enumerate())
-        {
-            if (i < start)
-            {
-                continue;
-            }
-
-            if (i >= start + MaxEntriesPerBatch)
-            {
-                break;
-            }
-
-            // Expired links will have valid filenames, while invalid links will not have filenames
-            var regenFilename = links[i].IsInvalid;
-            var img = await GetImageLink(link);
-            Log.Information("Updating image link {i} of {count}", i + 1, imageLinks.Count);
-            links[i].Url = img;
-            if (regenFilename)
-            {
-                links[i].RegenerateFilename(FilenameScheme, i);
-            }
-
-            updated++;
-        }
-        
-        Log.Information("Updated {count} image links", updated);
-        return links;
+        return GetImageLink(link);
     }
 
     private async Task<List<string>> GetImageLinks(HtmlNode soup, string currentUrl)

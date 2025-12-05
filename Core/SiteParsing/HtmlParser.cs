@@ -378,6 +378,9 @@ public abstract class HtmlParser : IDisposable
         JsonUtility.Serialize("partial.json", partialSave);
     }
 
+    // TODO: Make private and call from ParseSite so children only need to implement SiteLoginHelper instead of worrying
+    //  about calling SiteLogin as well
+    //  Only issue is with GoFileParser/ParameterizedHtmlParser where CurrentUrl may need to be set before login
     protected Task<bool> SiteLogin()
     {
         Log.Debug("Checking if already logged in to {SiteName}", SiteName);
