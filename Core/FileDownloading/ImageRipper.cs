@@ -195,11 +195,11 @@ public partial class ImageRipper : IDisposable
 
         var start = await GetStartIndex();
         DownloadStats downloadStats;
-        HashSet<HashKey> filesHashes;
+        IndexedHashes filesHashes;
         if (!File.Exists(RipStatePath))
         {
             downloadStats = new DownloadStats();
-            filesHashes = [];
+            filesHashes = new IndexedHashes();
         }
         else
         {
@@ -211,7 +211,9 @@ public partial class ImageRipper : IDisposable
             }
             
             downloadStats = state.DownloadStats;
-            filesHashes = DeserializeHashKeyHashSet(state.FilesHashes);
+            filesHashes = IndexedHashes.Deserialize(state.FilesHashes);
+            Log.Debug("Truncating files hashes to index {StartIndex}", start);
+            filesHashes.TruncateToIndex(start);
         }
         
         try
@@ -228,13 +230,13 @@ public partial class ImageRipper : IDisposable
                 await HandleDownloadingFromList(start, fullPath, filesHashes, downloadStats);
             }
         }
-        catch
+        catch(Exception e)
         {
-            Log.Debug("Saving rip state due to exception");
+            Log.Debug("Saving rip state due to exception. Reason: {Message}", e.Message);
             var state = new RipState
             {
                 DownloadStats = downloadStats,
-                FilesHashes = SerializeHashKeyHashSet(filesHashes)
+                FilesHashes = filesHashes.Serialize(),
             };
             
             JsonUtility.Serialize(RipStatePath, state);
@@ -274,23 +276,13 @@ public partial class ImageRipper : IDisposable
         Log.Information("Download Complete");
         OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
     }
-
-    private static List<string> SerializeHashKeyHashSet(HashSet<HashKey> hashKeys)
-    {
-        return hashKeys.Select(hashKey => Convert.ToHexString(hashKey.Hash)).ToList();
-    }
-
-    private static HashSet<HashKey> DeserializeHashKeyHashSet(List<string> hashKeys)
-    {
-        return hashKeys.Select(hashKey => new HashKey(Convert.FromHexString(hashKey))).ToHashSet();
-    }
     
     private static Task Sleep(int milliseconds)
     {
         return Task.Delay(milliseconds);
     }
 
-    private async Task HandleGeneratingManually(int start, string fullPath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
+    private async Task HandleGeneratingManually(int start, string fullPath, IndexedHashes filesHashes, DownloadStats downloadStats)
     {
         // Gets the general url for all images in this album
         var imageLink = FolderInfo.Urls[0];
@@ -319,7 +311,7 @@ public partial class ImageRipper : IDisposable
                     var success = await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
                     if (success)
                     {
-                        await PostProcess(imageLink, imagePath, filesHashes, downloadStats);
+                        await PostProcess(imageLink, imagePath, filesHashes, downloadStats, index);
                     }
                     
                     break;
@@ -336,7 +328,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task HandleDownloadingFromList(int start, string fullPath, HashSet<HashKey> filesHashes, DownloadStats downloadStats)
+    private async Task HandleDownloadingFromList(int start, string fullPath, IndexedHashes filesHashes, DownloadStats downloadStats)
     {
         switch (SiteName)
         {
@@ -368,20 +360,21 @@ public partial class ImageRipper : IDisposable
                                 {
                                     return;
                                 }
-                                
+
                                 for (var attempt = 0; attempt < maxAttempts; attempt++)
                                 {
                                     while (Paused)
                                     {
                                         await Sleep(1000);
                                     }
-                                    
+
                                     try
                                     {
                                         await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats);
                                         Interlocked.Increment(ref complete);
                                         completed[i] = true;
-                                        Log.Information("Finished downloading {Index}, {Total} remaining", i + 1, total - complete);
+                                        Log.Information("Finished downloading {Index}, {Total} remaining", i + 1,
+                                            total - complete);
                                         OnProgressChanged?.Invoke(complete + 1, total + 1);
                                         break;
                                     }
@@ -389,19 +382,22 @@ public partial class ImageRipper : IDisposable
                                     {
                                         if (attempt == maxAttempts - 1)
                                         {
-                                            Log.Error(e, "Error downloading {Index}, {Total} remaining: {Url}", i + 1, total - complete, link.Url);
+                                            Log.Error(e, "Error downloading {Index}, {Total} remaining: {Url}", i + 1,
+                                                total - complete, link.Url);
                                         }
                                         else
                                         {
-                                            Log.Warning("Error downloading {Index}, {Total} remaining: {Url}, retrying... ({Attempt}/{MaxAttempts})", i + 1, total - complete, link.Url, attempt + 1, maxAttempts);
+                                            Log.Warning(
+                                                "Error downloading {Index}, {Total} remaining: {Url}, retrying... ({Attempt}/{MaxAttempts})",
+                                                i + 1, total - complete, link.Url, attempt + 1, maxAttempts);
                                             await Sleep(1000);
                                         }
                                     }
                                 }
-                                
+
                                 semaphore.Release();
                             });
-                            
+
                             await Task.WhenAll(tasks);
                         }
                         else
@@ -412,7 +408,7 @@ public partial class ImageRipper : IDisposable
                                 {
                                     await Sleep(1000);
                                 }
-                                
+
                                 // Compute the absolute index (i is the relative index after start)
                                 var index = start + i;
                                 await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true);
@@ -424,7 +420,17 @@ public partial class ImageRipper : IDisposable
                     catch (EHentaiUrlExpiredException e)
                     {
                         Log.Information("Refreshing EHentai links");
+                        Log.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
                         var parser = new EHentaiParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
+                        start = e.ResumeIndex;
+                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
+                        FolderInfo.Urls = updatedLinks;
+                    }
+                    catch (PornhubUrlExpiredException e)
+                    {
+                        Log.Information("Refreshing Pornhub links");
+                        Log.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
+                        var parser = new PornhubParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
                         var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
                         FolderInfo.Urls = updatedLinks;
@@ -436,7 +442,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task DownloadSingleFromList(int index, ImageLink link, string fullPath, HashSet<HashKey> filesHashes,
+    private async Task DownloadSingleFromList(int index, ImageLink link, string fullPath, IndexedHashes filesHashes,
                                               DownloadStats downloadStats, bool updateProgress = false)
     {
         Log.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
@@ -460,8 +466,8 @@ public partial class ImageRipper : IDisposable
             if (success)
             {
                 // DownloadFromList may modify filename (if it was missing extension)
-                imagePath = Path.Combine(fullPath, link.Filename); 
-                await PostProcess(link, imagePath, filesHashes, downloadStats);
+                imagePath = Path.Combine(fullPath, link.Filename);
+                await PostProcess(link, imagePath, filesHashes, downloadStats, index);
             }
         }
         catch (FileNotFoundException)
@@ -476,6 +482,12 @@ public partial class ImageRipper : IDisposable
         catch (EHentaiUrlExpiredException e)
         {
             Log.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
+            e.ResumeIndex = index;
+            throw;
+        }
+        catch (PornhubUrlExpiredException e)
+        {
+            Log.Debug("Caught PornhubUrlExpiredException, need to refresh links");
             e.ResumeIndex = index;
             throw;
         }
@@ -500,8 +512,8 @@ public partial class ImageRipper : IDisposable
         return $"{GivenUrl}|{CurrentIndex}";
     }
 
-    private async Task PostProcess(ImageLink link, string imagePath, HashSet<HashKey> filesHashes,
-                                   DownloadStats downloadStats)
+    private async Task PostProcess(ImageLink link, string imagePath, IndexedHashes filesHashes,
+                                   DownloadStats downloadStats, int index)
     {
         if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
         {
@@ -513,7 +525,7 @@ public partial class ImageRipper : IDisposable
                 return;
             }
             
-            var duplicate = await HandleDuplicateFile(imagePath, filesHashes);
+            var duplicate = await HandleDuplicateFile(imagePath, filesHashes, index);
             if (duplicate)
             {
                 downloadStats.NumDuplicates++;
@@ -693,10 +705,10 @@ public partial class ImageRipper : IDisposable
         return (exitCode, outputStr, errorStr);
     }
 
-    private static async Task<bool> HandleDuplicateFile(string imagePath, HashSet<HashKey> filesHashes)
+    private static async Task<bool> HandleDuplicateFile(string imagePath, IndexedHashes filesHashes, int index)
     {
         var fileHash = await FileUtility.GetFileHash(imagePath);
-        if (!filesHashes.Add(fileHash))
+        if (!filesHashes.Add(fileHash, index))
         {
             Log.Information("Duplicate file detected: {ImagePath}", imagePath);
             File.Delete(imagePath);
@@ -1170,7 +1182,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private static async Task<bool> DownloadObfuscatedM3U8(string filePath, ImageLink imageLink)
+    private async Task<bool> DownloadObfuscatedM3U8(string filePath, ImageLink imageLink)
     {
         try
         {
@@ -1178,6 +1190,17 @@ public partial class ImageRipper : IDisposable
             var referer = imageLink.Referer == "" ? null : imageLink.Referer;
             await M3U8Downloader.DownloadObfuscatedM3U8(imageLink.Url, parent, imageLink.Filename, referer);
             return true;
+        }
+        catch (HttpRequestException e)
+        {
+            if (SiteName == "pornhub" && e.StatusCode is HttpStatusCode.Gone or HttpStatusCode.NotFound)
+            {
+                //Log.Debug("Caught HttpRequestException with 410 Gone status code from Pornhub, need to refresh links");
+                throw new PornhubUrlExpiredException();
+            }
+
+            Log.Error(e, "Failed to download obfuscated M3U8");
+            return false;
         }
         catch (Exception e)
         {

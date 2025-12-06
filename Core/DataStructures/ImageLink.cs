@@ -45,7 +45,7 @@ public partial class ImageLink
     {
         Referer = referer;
         LinkInfo = linkInfo;
-        Url = GenerateUrl(url);
+        Url = ExtractUrl(url);
         Filename = GenerateFilename(url, filenameScheme, index, filename);
     }
 
@@ -71,7 +71,7 @@ public partial class ImageLink
         return Url.Contains(url);
     }
     
-    private string GenerateUrl(string url)
+    private string ExtractUrl(string url)
     {
         url = HttpUtility.HtmlDecode(url);
         
@@ -174,11 +174,47 @@ public partial class ImageLink
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
                 default:
+                    // TODO: Double-check this logic, the double check for filename == "" seems redundant
+                    //  smells like a logic issue
                     if (filename == "")
                     {
                         filename = ExtractFilename(url);
                     }
                     break;
+            }
+        }
+        else
+        {
+            switch (LinkInfo)
+            {
+                case LinkInfo.M3U8YtDlp:
+                {
+                    var extension = Path.GetExtension(filename);
+                    if (extension != "")
+                    {
+                        var stem = Path.GetFileNameWithoutExtension(filename);
+                        filename = stem; // yt-dlp adds the extension automatically
+                    }
+                    break;
+                }
+                case LinkInfo.None:
+                case LinkInfo.M3U8Ffmpeg:
+                case LinkInfo.GDrive:
+                case LinkInfo.IframeMedia:
+                case LinkInfo.Mega:
+                case LinkInfo.PixelDrain:
+                case LinkInfo.YoutubeVideo:
+                case LinkInfo.Text:
+                case LinkInfo.GoFile:
+                case LinkInfo.MpegDash:
+                case LinkInfo.ResolveImage:
+                case LinkInfo.SeleniumImage:
+                case LinkInfo.Base64:
+                case LinkInfo.ObfuscatedM3U8:
+                case LinkInfo.PixivUgoira:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
         
@@ -247,7 +283,8 @@ public partial class ImageLink
         {
             var parts = url.Split("/");
             fileName = parts.Length >= 9 ? parts[8] : parts[^1].Split(")")[0];
-            LinkInfo = url.Contains(".m3u8") ? LinkInfo.M3U8Ffmpeg : LinkInfo.None;
+            fileName = fileName.Split('?')[0];
+            LinkInfo = url.Contains(".m3u8") ? LinkInfo.M3U8YtDlp : LinkInfo.None;
         }
         else if (url.Contains("yande.re/"))
         {

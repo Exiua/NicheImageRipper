@@ -229,7 +229,7 @@ public class RipInfo
 
         Log.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
             name.Length, MaxDirectoryNameLength);
-        name = name[..MaxDirectoryNameLength];
+        name = name[..MaxDirectoryNameLength].Trim();
 
         return name;
     }

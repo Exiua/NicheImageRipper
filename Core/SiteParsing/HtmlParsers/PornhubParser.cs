@@ -89,22 +89,39 @@ public class PornhubParser : TimeSensitiveHtmlParser
             var cachePosts = new List<string>();
             foreach (var (i, post) in posts.Enumerate())
             {
-                Log.Information("Parsing post {i}/{totalPosts}: {post}", i + 1, posts.Count, post);
-                soup = await Soupify(post);
-                var (postImages, _, extraPosts) = await PornhubLinkExtractor(soup);
-                if (extraPosts is not null)
+                while (true)
                 {
-                    cachePosts.AddRange(extraPosts);
-                }
-                else
-                {
-                    cachePosts.Add(post);
-                }
-                
-                images.AddRange(postImages.ToStringImageLinks());
-                if (i % 50 == 0)
-                {
-                    await Sleep(5000);
+                    try
+                    {
+                        Log.Information("Parsing post {i}/{totalPosts}: {post}", i + 1, posts.Count, post);
+                        soup = await Soupify(post);
+                        var (postImages, _, extraPosts) = await PornhubLinkExtractor(soup);
+                        if (extraPosts is not null)
+                        {
+                            cachePosts.AddRange(extraPosts);
+                        }
+                        else
+                        {
+                            cachePosts.Add(post);
+                        }
+
+                        images.AddRange(postImages.ToStringImageLinks());
+                        if (i % 50 == 0)
+                        {
+                            await Sleep(5000);
+                        }
+                        
+                        break;
+                    }
+                    catch (WebDriverException e)
+                    {
+                        if (e.Message.EndsWith("timed out after 60 seconds."))
+                        {
+                            Log.Warning("Timeout while parsing post {post}", post);
+                            WebDriver.RegenerateDriver();
+                            await Sleep(250);
+                        }
+                    }
                 }
             }
             
