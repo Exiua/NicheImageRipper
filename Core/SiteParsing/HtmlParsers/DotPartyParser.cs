@@ -146,7 +146,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachmentName, attachmentPath);
                 if (specialCaseLinks is null)
                 {
-                    var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName);
+                    var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName ?? "");
                     images.Add(attachmentLink);
                 }
                 else
@@ -360,12 +360,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string? attachmentName,
                                                           string attachmentPath)
     {
-        var links = new List<string>();
+        List<string>? links = null;
         // ReSharper disable once InvertIf
         if (attachmentName is not null &&
             attachmentName.Contains("download", StringComparison.InvariantCultureIgnoreCase) &&
             attachmentName.EndsWith(".txt")) // fanbox/user/4565149/
         {
+            links ??= [];
             var attachmentUrl = attachmentPath.StartsWith("https://") ? attachmentPath : domainUrl + attachmentPath;
             Log.Debug("Fetching: {AttachmentUrl}", attachmentUrl);
             var response = await _httpClient.GetAsync(attachmentUrl);
