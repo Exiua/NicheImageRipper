@@ -10,8 +10,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Jpg5Parser : ParameterizedHtmlParser
+public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
 {
+    public static string ParserName => "jpg5";
+
     public Jpg5Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

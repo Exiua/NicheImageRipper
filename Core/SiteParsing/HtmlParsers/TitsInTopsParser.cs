@@ -14,8 +14,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class TitsInTopsParser : HtmlParser
+public class TitsInTopsParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "titsintops";
+
     private const string SiteUrl = "https://titsintops.com";
     
     public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)

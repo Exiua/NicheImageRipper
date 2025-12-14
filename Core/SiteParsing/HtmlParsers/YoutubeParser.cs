@@ -11,8 +11,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class YoutubeParser : HtmlParser
+public class YoutubeParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "youtube";
+
     public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
         requestHeaders, filenameScheme)

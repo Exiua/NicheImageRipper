@@ -13,8 +13,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class EHentaiParser : TimeSensitiveHtmlParser
+public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
 {
+    public static string ParserName => "e-hentai or exhentai";
+
     protected override string ImageLinksFileName => "ehentai.json";
     protected override int MaxEntriesPerBatch => 250;
     protected override string ParserKey => "ehentai";

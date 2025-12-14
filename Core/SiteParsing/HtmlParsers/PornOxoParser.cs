@@ -9,8 +9,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PornOxoParser : HtmlParser
+public class PornOxoParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "pornoxo";
+
     public PornOxoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

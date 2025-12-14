@@ -9,8 +9,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Cosplay69Parser : HtmlParser
+public class Cosplay69Parser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "cosplay69";
+
     public Cosplay69Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

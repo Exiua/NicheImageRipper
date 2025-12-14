@@ -9,8 +9,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class ToonilyParser : HtmlParser
+public class ToonilyParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "toonily";
+
     public ToonilyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

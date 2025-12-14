@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Nudity911Parser : HtmlParser
+public class Nudity911Parser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "nudity911";
+
     public Nudity911Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

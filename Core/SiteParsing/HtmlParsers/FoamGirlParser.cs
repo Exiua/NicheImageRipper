@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class FoamGirlParser : HtmlParser
+public class FoamGirlParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "foamgirl";
+
     public FoamGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

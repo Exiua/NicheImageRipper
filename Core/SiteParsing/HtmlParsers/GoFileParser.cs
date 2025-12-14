@@ -10,8 +10,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class GoFileParser : ParameterizedHtmlParser
+public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
 {
+    public static string ParserName => "gofile";
+
     public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

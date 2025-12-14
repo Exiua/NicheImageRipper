@@ -10,8 +10,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class MissAv123Parser : HtmlParser
+public class MissAv123Parser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "missav123";
+
     public MissAv123Parser(WebDriver driver, ApiClientManager apiClientManager,
                            Dictionary<string, string> requestHeaders,
                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,

@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class TsuminoParser : HtmlParser
+public class TsuminoParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "tsumino";
+
     public TsuminoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

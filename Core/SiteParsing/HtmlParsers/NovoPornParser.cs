@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class NovoPornParser : HtmlParser
+public class NovoPornParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "novoporn";
+
     public NovoPornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

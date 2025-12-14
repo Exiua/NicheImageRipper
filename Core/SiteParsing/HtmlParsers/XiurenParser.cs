@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class XiurenParser : HtmlParser
+public class XiurenParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "xiuren";
+
     public XiurenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

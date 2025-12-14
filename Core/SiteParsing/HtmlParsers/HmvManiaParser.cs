@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class HmvManiaParser : HtmlParser
+public class HmvManiaParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "hmvmania";
+
     public HmvManiaParser(WebDriver driver, ApiClientManager apiClientManager,
                           Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,

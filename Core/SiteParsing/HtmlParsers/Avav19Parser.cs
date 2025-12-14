@@ -6,8 +6,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Avav19Parser : Av19aParser
+public class Avav19Parser : Av19aParser, IHtmlParser
 {
+    public static string ParserName => "avav19";
+
     public Avav19Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

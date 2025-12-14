@@ -9,8 +9,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SexBjCamParser : HtmlParser
+public class SexBjCamParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "sexbjcam";
+
     public SexBjCamParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

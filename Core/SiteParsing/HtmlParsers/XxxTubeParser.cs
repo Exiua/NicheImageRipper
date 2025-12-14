@@ -11,8 +11,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class XxxTubeParser : HtmlParser
+public class XxxTubeParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "x-x-x";
+
     public XxxTubeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

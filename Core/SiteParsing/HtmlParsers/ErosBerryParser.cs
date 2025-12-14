@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class ErosBerryParser : HtmlParser
+public class ErosBerryParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "erosberry";
+
     public ErosBerryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

@@ -9,8 +9,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class NLegsParser : HtmlParser
+public class NLegsParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "nlegs";
+
     public NLegsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

@@ -10,8 +10,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Porn3dxParser : HtmlParser
+public class Porn3dxParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "porn3dx";
+
     public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

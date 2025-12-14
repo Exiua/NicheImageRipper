@@ -10,8 +10,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class EightSeParser : HtmlParser
+public class EightSeParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "8se";
+
     private const string CachePath = "eightsecache.json";
 
     public EightSeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)

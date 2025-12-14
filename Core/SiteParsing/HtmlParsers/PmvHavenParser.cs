@@ -14,8 +14,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PmvHavenParser : HtmlParser
+public class PmvHavenParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "pmvhaven";
+
     public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager,
                           Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,

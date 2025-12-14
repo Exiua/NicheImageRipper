@@ -6,8 +6,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BabesBangParser : HtmlParser
+public class BabesBangParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "babesbang";
+
     public BabesBangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

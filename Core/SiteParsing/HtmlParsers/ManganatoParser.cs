@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class ManganatoParser : HtmlParser
+public class ManganatoParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "manganato or chapmanganato";
+
     public ManganatoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

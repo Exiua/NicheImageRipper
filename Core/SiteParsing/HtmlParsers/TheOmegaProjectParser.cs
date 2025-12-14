@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class TheOmegaProjectParser : HtmlParser
+public class TheOmegaProjectParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "theomegaproject";
+
     public TheOmegaProjectParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

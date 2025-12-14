@@ -15,8 +15,10 @@ using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Rule34VideoParser : HtmlParser
+public class Rule34VideoParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "rule34video";
+
     public Rule34VideoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

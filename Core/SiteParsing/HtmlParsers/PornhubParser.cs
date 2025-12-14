@@ -14,8 +14,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PornhubParser : TimeSensitiveHtmlParser
+public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
 {
+    public static string ParserName => "pornhub";
+
     protected override string ImageLinksFileName => "pornhub.json";
     protected override int MaxEntriesPerBatch => 25;
     protected override string ParserKey => "pornhub";

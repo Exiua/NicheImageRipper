@@ -11,8 +11,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class KbjFanParser : HtmlParser
+public class KbjFanParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "kbjfan";
+
     public KbjFanParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class MicMicDollParser : HtmlParser
+public class MicMicDollParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "micmicdoll";
+
     public MicMicDollParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

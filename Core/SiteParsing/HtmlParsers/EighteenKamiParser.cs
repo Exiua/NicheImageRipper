@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class EighteenKamiParser : HtmlParser
+public class EighteenKamiParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "18kami";
+
     public EighteenKamiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

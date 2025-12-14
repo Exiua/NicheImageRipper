@@ -13,8 +13,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SimpCityParser : HtmlParser
+public class SimpCityParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "simpcity";
+
     private const string CacheFile = "simpcitycache.json";
 
     public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,

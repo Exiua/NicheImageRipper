@@ -11,8 +11,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class KoreanBjParser : HtmlParser
+public class KoreanBjParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "koreanbj";
+
     private const string WaitForElementXPath = "//div[@id='responsive-player']/iframe|//video[@id='player']";
     private const string IframeXPath = "//div[@id='responsive-player']/iframe";
     private const string VideoXPath = "//video[@id='player']";

@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BaobuaParser : HtmlParser
+public class BaobuaParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "baobua";
+
     public BaobuaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
         filenameScheme)

@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SexyBabesArtParser : HtmlParser
+public class SexyBabesArtParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "sexybabesart";
+
     public SexyBabesArtParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class FtvHunterParser : HtmlParser
+public class FtvHunterParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "ftvhunter";
+
     public FtvHunterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

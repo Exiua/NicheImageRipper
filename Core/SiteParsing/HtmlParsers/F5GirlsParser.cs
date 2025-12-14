@@ -6,8 +6,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class F5GirlsParser : HtmlParser
+public class F5GirlsParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "f5girls";
+
     public F5GirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

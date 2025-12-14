@@ -11,8 +11,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class LusciousParser : HtmlParser
+public class LusciousParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "luscious";
+
     public LusciousParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

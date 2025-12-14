@@ -6,8 +6,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class VideoMonstrParser : HtmlParser
+public class VideoMonstrParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "videomonstr";
+
     public VideoMonstrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

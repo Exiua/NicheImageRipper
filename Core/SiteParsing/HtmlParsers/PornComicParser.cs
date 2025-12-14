@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PornComicParser : HtmlParser
+public class PornComicParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "porncomic";
+
     public PornComicParser(WebDriver driver, ApiClientManager apiClientManager,
                            Dictionary<string, string> requestHeaders,
                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
