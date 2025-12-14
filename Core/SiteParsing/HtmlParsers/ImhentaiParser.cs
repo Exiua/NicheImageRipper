@@ -6,8 +6,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class ImhentaiParser : HtmlParser
+public class ImhentaiParser : HtmlParser<ImhentaiParser>, IHtmlParser
 {
+    public static string ParserName => "imhentai";
+
     public ImhentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

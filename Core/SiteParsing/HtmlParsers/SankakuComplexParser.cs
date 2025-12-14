@@ -7,8 +7,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SankakuComplexParser : HtmlParser
+public class SankakuComplexParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "sankakucomplex";
+    
     public SankakuComplexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

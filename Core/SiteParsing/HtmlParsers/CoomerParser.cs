@@ -5,8 +5,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class CoomerParser : DotPartyParser
+public class CoomerParser : DotPartyParser, IHtmlParser
 {
+    public static string ParserName => "coomer";
+    
     public CoomerParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

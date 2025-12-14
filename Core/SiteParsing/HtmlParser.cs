@@ -31,8 +31,6 @@ public abstract class HtmlParser : IDisposable
     protected static GeneralConfig Config => Configuration.Config.Instance;
     protected static TokenManager TokenManager => TokenManager.Instance;
 
-    //public static Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
-
     protected WebDriver WebDriver { get; }
     public bool Interrupted { get; set; }
     private string SiteName { get; set; }
@@ -1197,4 +1195,12 @@ public abstract class HtmlParser : IDisposable
     }
 
     protected virtual void DisposeInternal() {}
+}
+
+public abstract class HtmlParser<T> : HtmlParser
+    where T : HtmlParser<T>, IHtmlParser
+{
+    protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    {
+    }
 }

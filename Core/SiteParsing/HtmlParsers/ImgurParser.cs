@@ -14,8 +14,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class ImgurParser : HtmlParser
+public class ImgurParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "imgur";
+    
     public ImgurParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }

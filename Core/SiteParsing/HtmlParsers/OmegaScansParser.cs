@@ -14,8 +14,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class OmegaScansParser : HtmlParser
+public class OmegaScansParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "omegascans";
+    
     public OmegaScansParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
