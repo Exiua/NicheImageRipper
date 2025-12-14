@@ -36,7 +36,7 @@ public class BestCamParser : HtmlParser
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='movie-detail-name']").InnerText;
             var playButton = Driver.FindElement(By.XPath("//div[@class='play-icon']"));
             playButton.Click();
-            WaitForPlaylist(capturer, links =>
+            await WaitForPlaylist(capturer, links =>
             {
                 var url = links[0];
                 var filename = url.Split("/")[4].Split("?")[0].Remove(".m3u8") + ".mp4";

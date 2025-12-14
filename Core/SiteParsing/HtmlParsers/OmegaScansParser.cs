@@ -48,7 +48,7 @@ public class OmegaScansParser : HtmlParser
         Log.Debug("Found {chapterCount} chapters", chapterCount);
 
         var apiUrl = "";
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var url = links[0];
             apiUrl = url;

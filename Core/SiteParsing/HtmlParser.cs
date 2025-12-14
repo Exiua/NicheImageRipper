@@ -987,7 +987,7 @@ public abstract class HtmlParser : IDisposable
         Driver.ExecuteScript("window.scrollTo(0, 0);");
     }
 
-    protected void WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback)
+    protected async Task WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback)
     {
         var i = 0;
         while (true)
@@ -996,11 +996,13 @@ public abstract class HtmlParser : IDisposable
             if (links.Count == 0)
             {
                 i++;
-                if (i % 4 == 3)
+                if (i % 50 == 49)
                 {
+                    Log.Debug("No playlist links found yet, refreshing page...");
                     Driver.Refresh();
                 }
 
+                await Sleep(250);
                 continue;
             }
     

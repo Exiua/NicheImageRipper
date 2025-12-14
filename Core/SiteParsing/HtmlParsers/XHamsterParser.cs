@@ -29,7 +29,7 @@ public class XHamsterParser : HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText + $" ({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var url = links[0];
             var filename = UrlUtility.GetUrlParameterValue(url, "key").Split(",")[0] + ".mp4";

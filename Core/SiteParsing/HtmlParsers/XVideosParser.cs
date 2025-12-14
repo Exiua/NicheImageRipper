@@ -29,7 +29,7 @@ public class XVideosParser : HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='page-title']").ChildNodes[0].InnerText + $" ({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var url = links[0];
             var filename = url.Split("/")[^2] + ".mp4";

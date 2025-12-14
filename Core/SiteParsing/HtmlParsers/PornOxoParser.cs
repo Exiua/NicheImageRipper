@@ -28,7 +28,7 @@ public class PornOxoParser : HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='video-top-header']/h1").ChildNodes[0].InnerText.Trim() + $" ({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var link = new ImageLink(links[0], FilenameScheme, 0)
             {

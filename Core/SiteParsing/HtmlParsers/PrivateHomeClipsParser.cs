@@ -29,7 +29,7 @@ public class PrivateHomeClipsParser : HtmlParser
         var videoUrl = soup.SelectSingleNodeOrThrow("//video").GetSrc();
         if (videoUrl.StartsWith("blob:"))
         {
-            WaitForPlaylist(capturer, links =>
+            await WaitForPlaylist(capturer, links =>
             {
                 var url = links[0];
                 string filename;

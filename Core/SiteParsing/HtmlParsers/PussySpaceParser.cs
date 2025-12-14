@@ -34,7 +34,7 @@ public class PussySpaceParser : HtmlParser
                         .Where(t => !string.IsNullOrEmpty(t))
                         .Join(" ") + $"({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var playlist = new ImageLink(links[0], FilenameScheme, 0)
             {
