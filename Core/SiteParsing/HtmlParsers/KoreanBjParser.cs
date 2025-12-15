@@ -19,7 +19,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
     private const string IframeXPath = "//div[@id='responsive-player']/iframe";
     private const string VideoXPath = "//video[@id='player']";
     
-    public KoreanBjParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public KoreanBjParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KoreanBjParser>(filenameScheme))
     {
     }
 

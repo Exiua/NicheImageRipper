@@ -11,7 +11,7 @@ public class CherryNudesParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cherrynudes";
 
-    public CherryNudesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public CherryNudesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CherryNudesParser>(filenameScheme))
     {
     }
 

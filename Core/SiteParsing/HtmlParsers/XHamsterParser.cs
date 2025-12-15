@@ -14,7 +14,7 @@ public class XHamsterParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xhamster";
 
-    public XHamsterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public XHamsterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XHamsterParser>(filenameScheme))
     {
     }
 

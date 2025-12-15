@@ -13,7 +13,7 @@ public class JRantsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "jrants";
 
-    public JRantsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public JRantsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JRantsParser>(filenameScheme))
     {
     }
 

@@ -11,7 +11,7 @@ public class NovoHotParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "novohot";
 
-    public NovoHotParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public NovoHotParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NovoHotParser>(filenameScheme))
     {
     }
 

@@ -10,7 +10,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public partial class SxChineseGirlz01Parser : HtmlParser
 {
-    public SxChineseGirlz01Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public SxChineseGirlz01Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SxChineseGirlz01Parser>(filenameScheme))
     {
     }
 

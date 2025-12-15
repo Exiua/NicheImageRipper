@@ -9,7 +9,7 @@ public class YandeParser : BooruParser, IHtmlParser
 {
     public static string ParserName => "yande";
 
-    public YandeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public YandeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<YandeParser>(filenameScheme))
     {
     }
 

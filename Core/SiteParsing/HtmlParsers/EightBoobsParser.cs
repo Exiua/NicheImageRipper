@@ -11,7 +11,7 @@ public class EightBoobsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "8boobs";
 
-    public EightBoobsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public EightBoobsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EightBoobsParser>(filenameScheme))
     {
     }
 

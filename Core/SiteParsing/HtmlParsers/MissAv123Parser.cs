@@ -17,7 +17,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
     public MissAv123Parser(WebDriver driver, ApiClientManager apiClientManager,
                            Dictionary<string, string> requestHeaders,
                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<MissAv123Parser>(filenameScheme))
     {
     }
 

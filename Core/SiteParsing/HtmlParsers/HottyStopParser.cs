@@ -11,7 +11,7 @@ public class HottyStopParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hottystop";
 
-    public HottyStopParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public HottyStopParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HottyStopParser>(filenameScheme))
     {
     }
 

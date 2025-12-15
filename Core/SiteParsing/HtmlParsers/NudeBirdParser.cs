@@ -11,7 +11,7 @@ public class NudeBirdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nudebird";
 
-    public NudeBirdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public NudeBirdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NudeBirdParser>(filenameScheme))
     {
     }
 

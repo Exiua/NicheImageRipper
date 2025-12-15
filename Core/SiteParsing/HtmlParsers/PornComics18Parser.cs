@@ -15,7 +15,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
     public PornComics18Parser(WebDriver driver, ApiClientManager apiClientManager,
                               Dictionary<string, string> requestHeaders,
                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<PornComics18Parser>(filenameScheme))
     {
     }
 

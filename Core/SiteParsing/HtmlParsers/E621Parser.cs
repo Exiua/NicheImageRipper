@@ -12,7 +12,7 @@ public class E621Parser : BooruParser, IHtmlParser
 {
     public static string ParserName => "e621";
 
-    public E621Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public E621Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<E621Parser>(filenameScheme))
     {
     }
 

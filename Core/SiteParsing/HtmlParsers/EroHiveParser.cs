@@ -13,7 +13,7 @@ public class EroHiveParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "erohive";
 
-    public EroHiveParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public EroHiveParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EroHiveParser>(filenameScheme))
     {
     }
 

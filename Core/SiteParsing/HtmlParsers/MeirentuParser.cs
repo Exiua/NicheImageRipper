@@ -12,7 +12,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "meirentu";
 
-    public MeirentuParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public MeirentuParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MeirentuParser>(filenameScheme))
     {
     }
 

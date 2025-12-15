@@ -14,7 +14,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "gofile";
 
-    public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GoFileParser>(filenameScheme))
     {
     }
 

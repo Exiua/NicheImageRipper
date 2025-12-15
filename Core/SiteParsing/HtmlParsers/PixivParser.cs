@@ -14,7 +14,7 @@ public class PixivParser : HtmlParser, IHtmlParser
 
     public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<PixivParser>(filenameScheme))
     {
     }
 

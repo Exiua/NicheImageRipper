@@ -13,7 +13,7 @@ public class NLegsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nlegs";
 
-    public NLegsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public NLegsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NLegsParser>(filenameScheme))
     {
     }
 

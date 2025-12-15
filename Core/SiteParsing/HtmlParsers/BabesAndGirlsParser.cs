@@ -11,7 +11,7 @@ public class BabesAndGirlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babesandgirls";
 
-    public BabesAndGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public BabesAndGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabesAndGirlsParser>(filenameScheme))
     {
     }
     

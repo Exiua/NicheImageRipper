@@ -11,7 +11,7 @@ public class RedPornBlogParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "redpornblog";
 
-    public RedPornBlogParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public RedPornBlogParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<RedPornBlogParser>(filenameScheme))
     {
     }
 

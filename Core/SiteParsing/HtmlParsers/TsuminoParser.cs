@@ -11,7 +11,7 @@ public class TsuminoParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "tsumino";
 
-    public TsuminoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public TsuminoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TsuminoParser>(filenameScheme))
     {
     }
 

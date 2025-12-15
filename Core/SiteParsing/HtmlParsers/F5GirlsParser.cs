@@ -10,7 +10,7 @@ public class F5GirlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "f5girls";
 
-    public F5GirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public F5GirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<F5GirlsParser>(filenameScheme))
     {
     }
 

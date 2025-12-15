@@ -11,7 +11,7 @@ public class EighteenKamiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "18kami";
 
-    public EighteenKamiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public EighteenKamiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EighteenKamiParser>(filenameScheme))
     {
     }
 

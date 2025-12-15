@@ -16,7 +16,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
 
     public SpankBangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        filenameScheme)
+        IHtmlParser.GetFilenameScheme<SpankBangParser>(filenameScheme))
     {
     }
 

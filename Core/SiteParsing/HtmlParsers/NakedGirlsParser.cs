@@ -11,7 +11,7 @@ public class NakedGirlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nakedgirls";
 
-    public NakedGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public NakedGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NakedGirlsParser>(filenameScheme))
     {
     }
 

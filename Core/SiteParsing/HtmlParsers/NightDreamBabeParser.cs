@@ -11,7 +11,7 @@ public class NightDreamBabeParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nightdreambabe";
 
-    public NightDreamBabeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public NightDreamBabeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NightDreamBabeParser>(filenameScheme))
     {
     }
 

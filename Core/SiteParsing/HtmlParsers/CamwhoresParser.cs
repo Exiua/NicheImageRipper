@@ -11,7 +11,7 @@ public class CamwhoresParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "camwhores";
 
-    public CamwhoresParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public CamwhoresParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CamwhoresParser>(filenameScheme))
     {
     }
 

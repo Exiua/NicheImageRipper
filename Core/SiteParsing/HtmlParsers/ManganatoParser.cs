@@ -12,7 +12,7 @@ public class ManganatoParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "manganato or chapmanganato";
 
-    public ManganatoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public ManganatoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ManganatoParser>(filenameScheme))
     {
     }
 

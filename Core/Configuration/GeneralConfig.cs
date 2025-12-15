@@ -27,6 +27,7 @@ public class GeneralConfig
     public KeyConfig Keys { get; set; } = null!;
     public CookieConfig Cookies { get; set; } = null!;
     public CustomConfig Custom { get; set; } = null!;
+    public Dictionary<string, SettingsOverride> ParserSpecificSettingsOverrides { get; set; } = new();
     
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtraData { get; set; }
@@ -61,6 +62,7 @@ public class GeneralConfig
         Cookies = CookieConfig.New();
         Custom = CustomConfig.New();
         ExtraData = new Dictionary<string, JsonElement>();
+        ParserSpecificSettingsOverrides = new Dictionary<string, SettingsOverride>();
     }
     
     public void SaveConfig()

@@ -13,7 +13,7 @@ public class MangaParkParser : HtmlParser, IHtmlParser
     public static string ParserName => "mangapark";
 
     public MangaParkParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MangaParkParser>(filenameScheme))
     {
     }
 

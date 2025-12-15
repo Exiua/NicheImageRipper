@@ -11,7 +11,7 @@ public class SilkenGirlParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "silkengirl";
 
-    public SilkenGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public SilkenGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SilkenGirlParser>(filenameScheme))
     {
     }
 

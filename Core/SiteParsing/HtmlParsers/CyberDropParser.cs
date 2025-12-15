@@ -15,7 +15,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
 
     private const int ParseDelay = 500;
     
-    public CyberDropParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public CyberDropParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CyberDropParser>(filenameScheme))
     {
     }
 

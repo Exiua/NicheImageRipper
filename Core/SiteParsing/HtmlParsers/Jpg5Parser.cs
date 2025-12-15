@@ -14,7 +14,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "jpg5";
 
-    public Jpg5Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public Jpg5Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Jpg5Parser>(filenameScheme))
     {
     }
 

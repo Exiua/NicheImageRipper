@@ -20,7 +20,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
 
     private const string SiteUrl = "https://titsintops.com";
     
-    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TitsInTopsParser>(filenameScheme))
     {
     }
 

@@ -11,7 +11,7 @@ public class DecorativeModelsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "decorativemodels";
 
-    public DecorativeModelsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public DecorativeModelsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DecorativeModelsParser>(filenameScheme))
     {
     }
 

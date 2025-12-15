@@ -12,7 +12,7 @@ public class ThreeHentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "3hentai";
 
-    public ThreeHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public ThreeHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ThreeHentaiParser>(filenameScheme))
     {
     }
 

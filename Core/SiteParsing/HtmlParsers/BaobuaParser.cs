@@ -14,7 +14,7 @@ public class BaobuaParser : HtmlParser, IHtmlParser
 
     public BaobuaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        filenameScheme)
+        IHtmlParser.GetFilenameScheme<BaobuaParser>(filenameScheme))
     {
     }
 

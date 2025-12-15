@@ -10,7 +10,7 @@ public class VideoMonstrParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "videomonstr";
 
-    public VideoMonstrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public VideoMonstrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<VideoMonstrParser>(filenameScheme))
     {
     }
 

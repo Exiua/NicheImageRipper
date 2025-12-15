@@ -11,7 +11,7 @@ public class GrabPussyParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "grabpussy";
 
-    public GrabPussyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public GrabPussyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GrabPussyParser>(filenameScheme))
     {
     }
 

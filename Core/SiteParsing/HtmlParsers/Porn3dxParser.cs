@@ -14,7 +14,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "porn3dx";
 
-    public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Porn3dxParser>(filenameScheme))
     {
     }
 

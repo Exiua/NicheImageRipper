@@ -12,7 +12,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "apcomics";
 
-    public ApComicsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public ApComicsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ApComicsParser>(filenameScheme))
     {
     }
 

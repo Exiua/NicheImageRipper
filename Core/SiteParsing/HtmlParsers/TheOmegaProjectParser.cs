@@ -11,7 +11,7 @@ public class TheOmegaProjectParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "theomegaproject";
 
-    public TheOmegaProjectParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public TheOmegaProjectParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TheOmegaProjectParser>(filenameScheme))
     {
     }
 

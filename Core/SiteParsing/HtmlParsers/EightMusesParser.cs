@@ -11,7 +11,7 @@ public class EightMusesParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "8muses";
 
-    public EightMusesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public EightMusesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EightMusesParser>(filenameScheme))
     {
     }
 

@@ -11,7 +11,7 @@ public class Glam0urParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "glam0ur";
 
-    public Glam0urParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public Glam0urParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Glam0urParser>(filenameScheme))
     {
     }
 

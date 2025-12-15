@@ -14,7 +14,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "dropbox";
     
-    public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DropboxParser>(filenameScheme))
     {
     }
 

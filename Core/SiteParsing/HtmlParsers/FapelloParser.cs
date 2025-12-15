@@ -11,7 +11,7 @@ public class FapelloParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "fapello";
 
-    public FapelloParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public FapelloParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FapelloParser>(filenameScheme))
     {
     }
 

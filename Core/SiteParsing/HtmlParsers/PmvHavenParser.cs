@@ -5,10 +5,8 @@ using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using Core.SiteParsing.VideoCapturers;
-using CSWebDriverClient.Models.Responses;
 using OpenQA.Selenium;
 using Serilog;
-using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
 using FeatureNotSupportedException = Core.Exceptions.NotSupportedException;
 using WebDriver = Core.Driver.WebDriver;
 
@@ -21,7 +19,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
     public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager,
                           Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<PmvHavenParser>(filenameScheme))
     {
     }
 

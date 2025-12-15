@@ -13,7 +13,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "twitter or x";
 
-    public TwitterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public TwitterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TwitterParser>(filenameScheme))
     {
     }
 

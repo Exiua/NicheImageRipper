@@ -11,7 +11,7 @@ public class Cool18Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cool18";
 
-    public Cool18Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public Cool18Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Cool18Parser>(filenameScheme))
     {
     }
 

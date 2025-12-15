@@ -14,7 +14,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public partial class MangaDexParser : HtmlParser
 {
-    public MangaDexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public MangaDexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MangaDexParser>(filenameScheme))
     {
     }
 

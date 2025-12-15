@@ -11,7 +11,7 @@ public class BuonduaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "buondua";
 
-    public BuonduaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public BuonduaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BuonduaParser>(filenameScheme))
     {
     }
     

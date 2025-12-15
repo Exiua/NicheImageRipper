@@ -14,7 +14,7 @@ public class RedGifsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "redgifs";
     
-    public RedGifsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public RedGifsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<RedGifsParser>(filenameScheme))
     {
     }
 

@@ -17,7 +17,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
 
     public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<YoutubeParser>(filenameScheme))
     {
     }
 

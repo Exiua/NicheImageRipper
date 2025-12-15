@@ -19,7 +19,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
 
     public BunkrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<BunkrParser>(filenameScheme))
     {
     }
 

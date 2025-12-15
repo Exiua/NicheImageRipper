@@ -10,9 +10,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Zero6SeParser : HtmlParser
+public class Zero6SeParser : HtmlParser, IHtmlParser
 {
-    public Zero6SeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "06se";
+
+    public Zero6SeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<Zero6SeParser>(filenameScheme))
     {
     }
 
@@ -44,11 +48,6 @@ public class Zero6SeParser : HtmlParser
         }
 
         src = img.GetNullableSrc();
-        if (string.IsNullOrWhiteSpace(src))
-        {
-            return null;
-        }
-        
-        return src;
+        return string.IsNullOrWhiteSpace(src) ? null : src;
     }
 }

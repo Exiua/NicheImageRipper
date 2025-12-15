@@ -11,7 +11,7 @@ public class FiveGeParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "5ge";
 
-    public FiveGeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public FiveGeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FiveGeParser>(filenameScheme))
     {
     }
 

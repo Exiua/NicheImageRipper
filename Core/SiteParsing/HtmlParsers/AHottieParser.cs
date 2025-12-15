@@ -12,7 +12,7 @@ public class AHottieParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "ahottie";
 
-    public AHottieParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public AHottieParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AHottieParser>(filenameScheme))
     {
     }
 

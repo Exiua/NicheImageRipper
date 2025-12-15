@@ -11,7 +11,7 @@ public class XArtHunterParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xarthunter";
 
-    public XArtHunterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public XArtHunterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XArtHunterParser>(filenameScheme))
     {
     }
 

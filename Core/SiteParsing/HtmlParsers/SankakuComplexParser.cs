@@ -11,7 +11,7 @@ public class SankakuComplexParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "sankakucomplex";
     
-    public SankakuComplexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public SankakuComplexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SankakuComplexParser>(filenameScheme))
     {
     }
 

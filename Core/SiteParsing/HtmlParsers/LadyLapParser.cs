@@ -13,7 +13,7 @@ public class LadyLapParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "ladylap";
 
-    public LadyLapParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public LadyLapParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<LadyLapParser>(filenameScheme))
     {
     }
 

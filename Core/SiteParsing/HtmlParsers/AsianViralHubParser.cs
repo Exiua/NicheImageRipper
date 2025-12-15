@@ -12,7 +12,7 @@ public class AsianViralHubParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "asianviralhub";
 
-    public AsianViralHubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public AsianViralHubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AsianViralHubParser>(filenameScheme))
     {
     }
 

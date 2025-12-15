@@ -11,7 +11,7 @@ public class CuteGirlPornParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cutegirlporn";
 
-    public CuteGirlPornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public CuteGirlPornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CuteGirlPornParser>(filenameScheme))
     {
     }
 

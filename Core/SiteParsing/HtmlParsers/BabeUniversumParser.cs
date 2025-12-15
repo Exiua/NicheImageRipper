@@ -11,7 +11,7 @@ public class BabeUniversumParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babeuniversum";
 
-    public BabeUniversumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public BabeUniversumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabeUniversumParser>(filenameScheme))
     {
     }
     

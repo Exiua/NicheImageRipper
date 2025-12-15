@@ -19,7 +19,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "rule34video";
 
-    public Rule34VideoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public Rule34VideoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Rule34VideoParser>(filenameScheme))
     {
     }
 

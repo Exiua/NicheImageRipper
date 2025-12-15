@@ -15,7 +15,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "kbjfan";
 
-    public KbjFanParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public KbjFanParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KbjFanParser>(filenameScheme))
     {
     }
 

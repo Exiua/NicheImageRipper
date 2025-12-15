@@ -14,7 +14,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
 
     public XCancelParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                    FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        filenameScheme)
+        IHtmlParser.GetFilenameScheme<XCancelParser>(filenameScheme))
     {
     }
 

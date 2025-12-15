@@ -20,7 +20,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
     private const string CacheFile = "simpcitycache.json";
 
     public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SimpCityParser>(filenameScheme))
     {
     }
 

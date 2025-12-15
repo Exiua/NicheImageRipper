@@ -23,7 +23,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
     protected override string ParserKey => "pornhub";
 
 
-    public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornhubParser>(filenameScheme))
     {
     }
 

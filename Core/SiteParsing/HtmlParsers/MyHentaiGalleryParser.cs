@@ -11,7 +11,7 @@ public class MyHentaiGalleryParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "myhentaigallery";
 
-    public MyHentaiGalleryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public MyHentaiGalleryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MyHentaiGalleryParser>(filenameScheme))
     {
     }
 

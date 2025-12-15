@@ -11,7 +11,7 @@ public class JkForumParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "jkforum";
 
-    public JkForumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public JkForumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JkForumParser>(filenameScheme))
     {
     }
 

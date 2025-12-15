@@ -10,7 +10,7 @@ public class BabesAroundParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babesaround";
 
-    public BabesAroundParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public BabesAroundParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabesAroundParser>(filenameScheme))
     {
     }
     

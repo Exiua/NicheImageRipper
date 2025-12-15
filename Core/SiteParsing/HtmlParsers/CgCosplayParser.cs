@@ -15,7 +15,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cgcosplay";
 
-    public CgCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public CgCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CgCosplayParser>(filenameScheme))
     {
     }
 

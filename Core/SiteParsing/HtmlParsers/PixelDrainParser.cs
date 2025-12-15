@@ -16,7 +16,7 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "pixeldrain";
 
-    public PixelDrainParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public PixelDrainParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PixelDrainParser>(filenameScheme))
     {
     }
 

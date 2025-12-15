@@ -12,7 +12,7 @@ public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hustlebootytemptats";
 
-    public HustleBootyTempTatsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public HustleBootyTempTatsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HustleBootyTempTatsParser>(filenameScheme))
     {
     }
 

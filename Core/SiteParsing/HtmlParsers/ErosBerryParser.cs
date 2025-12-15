@@ -11,7 +11,7 @@ public class ErosBerryParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "erosberry";
 
-    public ErosBerryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public ErosBerryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ErosBerryParser>(filenameScheme))
     {
     }
 

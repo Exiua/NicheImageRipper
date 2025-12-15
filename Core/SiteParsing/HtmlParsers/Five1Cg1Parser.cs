@@ -11,7 +11,7 @@ public class Five1Cg1Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "51cg1";
 
-    public Five1Cg1Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public Five1Cg1Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Five1Cg1Parser>(filenameScheme))
     {
     }
 

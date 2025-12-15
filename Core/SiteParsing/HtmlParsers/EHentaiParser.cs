@@ -21,7 +21,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     protected override int MaxEntriesPerBatch => 250;
     protected override string ParserKey => "ehentai";
 
-    public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EHentaiParser>(filenameScheme))
     {
     }
 

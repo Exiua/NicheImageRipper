@@ -11,7 +11,7 @@ public class InvenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "inven";
 
-    public InvenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public InvenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<InvenParser>(filenameScheme))
     {
     }
 

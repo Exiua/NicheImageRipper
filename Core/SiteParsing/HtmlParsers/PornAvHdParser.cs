@@ -12,7 +12,7 @@ public class PornAvHdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pornavhd";
 
-    public PornAvHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public PornAvHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornAvHdParser>(filenameScheme))
     {
     }
 
