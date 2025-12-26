@@ -146,7 +146,15 @@ public abstract class HtmlParser : IDisposable
         #endif
     }
 
-    public static HtmlParser GetParser(string siteName, WebDriver webDriver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+    public static HtmlParser GetParser(string siteName, WebDriver webDriver, ApiClientManager clientManager,
+                                       Dictionary<string, string> requestHeaders,
+                                       FilenameScheme filenameScheme = FilenameScheme.Original)
+    {
+        return HtmlParserFactory.Create(siteName, webDriver, clientManager, requestHeaders, filenameScheme);
+    }
+
+    // Working on phasing this out into a factory pattern with auto-registration
+    public static HtmlParser GetParser2(string siteName, WebDriver webDriver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                                        FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         return siteName switch
