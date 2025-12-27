@@ -12,9 +12,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class ArchivebateParser : HtmlParser
+public partial class ArchivebateParser : HtmlParser, IHtmlParser
 {
     private const string CachePath = "archivebateCache.json";
+    
+    public static string ParserName => "archivebate";
     
     public ArchivebateParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ArchivebateParser>(filenameScheme))
     {

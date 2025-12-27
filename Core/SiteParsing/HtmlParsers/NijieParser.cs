@@ -12,8 +12,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class NijieParser : HtmlParser
+public partial class NijieParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "nijie";
+
     private const int Delay = 500;
     private const int Retries = 4;
     

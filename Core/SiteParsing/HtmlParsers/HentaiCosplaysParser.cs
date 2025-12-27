@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class HentaiCosplaysParser : HtmlParser
+public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "hentai-cosplays";
+
     public HentaiCosplaysParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiCosplaysParser>(filenameScheme))
     {
     }

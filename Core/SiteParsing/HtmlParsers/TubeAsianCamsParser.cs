@@ -13,8 +13,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class TubeAsianCamsParser : HtmlParser
+public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "tubeasiancams";
+
     public TubeAsianCamsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TubeAsianCamsParser>(filenameScheme))
     {
     }

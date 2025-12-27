@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class SxChineseGirlz01Parser : HtmlParser
+public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "sxchinesegirlz01";
+
     public SxChineseGirlz01Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SxChineseGirlz01Parser>(filenameScheme))
     {
     }

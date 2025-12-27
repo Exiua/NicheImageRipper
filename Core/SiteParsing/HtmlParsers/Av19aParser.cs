@@ -8,8 +8,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class Av19aParser : HtmlParser
+public partial class Av19aParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "av19a";
+
     public Av19aParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Av19aParser>(filenameScheme))
     {
     }

@@ -12,8 +12,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class MangaDexParser : HtmlParser
+public partial class MangaDexParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "mangadex";
+
     public MangaDexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MangaDexParser>(filenameScheme))
     {
     }

@@ -10,8 +10,10 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class FourKHdParser : HtmlParser
+public partial class FourKHdParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "4khd";
+
     public FourKHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FourKHdParser>(filenameScheme))
     {
     }
