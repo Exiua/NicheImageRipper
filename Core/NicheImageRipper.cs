@@ -244,6 +244,11 @@ public partial class NicheImageRipper : IDisposable
         {
             return url.Replace("exhentai.org", "e-hentai.org");
         }
+        
+        if (host.Contains("hanime1.me"))
+        {
+            return url.Split("&page=")[0];
+        }
 
         return url.Split("?")[0];
     }

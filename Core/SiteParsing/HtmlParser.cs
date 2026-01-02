@@ -27,7 +27,7 @@ public abstract class HtmlParser : IDisposable
 
     protected static readonly string[] ExternalSites =
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com"];
-    
+
     protected static GeneralConfig Config => Configuration.Config.Instance;
     protected static TokenManager TokenManager => TokenManager.Instance;
 
@@ -93,7 +93,7 @@ public abstract class HtmlParser : IDisposable
         {
             File.Delete(ImageRipper.RipIndexPath); // Not valid when no partial save
         }
-        
+
         Log.Debug("No partial save found for site; Parsing site");
         if (SiteName != "booru")
         {
@@ -129,9 +129,9 @@ public abstract class HtmlParser : IDisposable
             {
                 await CleanupWhenFailed(e);
                 throw;
-            }        
+            }
         }
-        
+
         // Can only reach here if RetryCount is less than 1 as the loop would have returned or thrown
         throw new RipperException("Retry count cannot be less than 1");
     }
@@ -154,8 +154,9 @@ public abstract class HtmlParser : IDisposable
     }
 
     // Working on phasing this out into a factory pattern with auto-registration
-    public static HtmlParser GetParser2(string siteName, WebDriver webDriver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                                       FilenameScheme filenameScheme = FilenameScheme.Original)
+    public static HtmlParser GetParser2(string siteName, WebDriver webDriver, ApiClientManager clientManager,
+                                        Dictionary<string, string> requestHeaders,
+                                        FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         return siteName switch
         {
@@ -196,7 +197,8 @@ public abstract class HtmlParser : IDisposable
             "cyberdrop" => new CyberDropParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "decorativemodels" => new DecorativeModelsParser(webDriver, clientManager, requestHeaders, filenameScheme),
             //DeviantArt
-            "dirtyyoungbitches" => new DirtyYoungBitchesParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "dirtyyoungbitches" =>
+                new DirtyYoungBitchesParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "e-hentai" or "exhentai" => new EHentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "eahentai" => new EahentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "8boobs" => new EightBoobsParser(webDriver, clientManager, requestHeaders, filenameScheme),
@@ -207,7 +209,8 @@ public abstract class HtmlParser : IDisposable
             "erome" => new EroMeParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "erothots" => new EroThotsParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "everia" => new EveriaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "exgirlfriendmarket" => new ExGirlFriendMarketParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "exgirlfriendmarket" => new ExGirlFriendMarketParser(webDriver, clientManager, requestHeaders,
+                filenameScheme),
             "fapello" => new FapelloParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "faponic" => new FaponicParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "f5girls" => new F5GirlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
@@ -224,13 +227,15 @@ public abstract class HtmlParser : IDisposable
             "hegrehunter" => new HegreHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "hentai-cosplays" => new HentaiCosplaysParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "hentairox" => new HentaiRoxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hustlebootytemptats" => new HustleBootyTempTatsParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "hustlebootytemptats" => new HustleBootyTempTatsParser(webDriver, clientManager, requestHeaders,
+                filenameScheme),
             "hotgirl" => new HotGirlParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "hotstunners" => new HotStunnersParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "hottystop" => new HottyStopParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "100bucksbabes" => new HundredBucksBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "imgbox" => new ImgBoxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "influencersgonewild" => new InfluencersGoneWildParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "influencersgonewild" => new InfluencersGoneWildParser(webDriver, clientManager, requestHeaders,
+                filenameScheme),
             "inven" => new InvenParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "jkforum" => new JkForumParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "join2babes" => new Join2BabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
@@ -239,7 +244,8 @@ public abstract class HtmlParser : IDisposable
             "livejasminbabes" => new LiveJasminBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "luscious" => new LusciousParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "mainbabes" => new MainBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "manganato" or "chapmanganato" => new ManganatoParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "manganato" or "chapmanganato" => new ManganatoParser(webDriver, clientManager, requestHeaders,
+                filenameScheme),
             "metarthunter" => new MetArtHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "morazzia" => new MorazziaParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "myhentaigallery" => new MyHentaiGalleryParser(webDriver, clientManager, requestHeaders, filenameScheme),
@@ -363,6 +369,7 @@ public abstract class HtmlParser : IDisposable
             "hmvmania" => new HmvManiaParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "pmvhaven" => new PmvHavenParser(webDriver, clientManager, requestHeaders, filenameScheme),
             "youtube" => new YoutubeParser(webDriver, clientManager, requestHeaders, filenameScheme),
+            "hanime1" => new Hanime1Parser(webDriver, clientManager, requestHeaders, filenameScheme),
             _ => throw new RipperException($"Site not supported: {siteName}")
         };
     }
@@ -637,6 +644,21 @@ public abstract class HtmlParser : IDisposable
         return htmlDocument.DocumentNode;
     }
 
+    protected async Task<HtmlNode> Soupify(CSWebDriverClient.Models.Responses.BaseResponse baseResponse)
+    {
+        return baseResponse switch
+        {
+            CSWebDriverClient.Models.Responses.ErrorResponse errorResponse => 
+                errorResponse.Details is not null
+                    ? throw new RipperException($"{errorResponse.Error}: {errorResponse.Details}")
+                    : throw new RipperException(errorResponse.Error),
+            CSWebDriverClient.Models.Responses.PageResponse pageResponse => await Soupify(pageResponse.Content, urlString: false),
+            CSWebDriverClient.Models.Responses.GetNetworkUrlsResponse =>
+                throw new RipperException("Incorrect response type: GetNetworkUrlsResponse"),
+            _ => throw new RipperException($"Unknown response type: {baseResponse}")
+        };
+    }
+
     /// <summary>
     ///     Convert FlareSolverr Solution response into an HtmlNode object
     /// </summary>
@@ -670,7 +692,7 @@ public abstract class HtmlParser : IDisposable
             {
                 continue; // No timeout, keep waiting
             }
-            
+
             if (currTime - startTime >= timeoutSpan)
             {
                 return null;
@@ -721,7 +743,9 @@ public abstract class HtmlParser : IDisposable
     ///     Thrown if CAPTCHA solving fails and session regeneration is disabled.
     /// </exception>
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
-                                                        List<Dictionary<string, string>>? cookies = null, List<string>? cookieWhitelist = null, bool replaceUserAgent = false)
+                                                        List<Dictionary<string, string>>? cookies = null,
+                                                        List<string>? cookieWhitelist = null,
+                                                        bool replaceUserAgent = false)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies);
         if (replaceUserAgent)
@@ -731,9 +755,10 @@ public abstract class HtmlParser : IDisposable
             WebDriver.RegenerateDriver(solution.UserAgent);
             CurrentUrl = currentUrl;
         }
-        
+
         var cookieJar = Driver.GetCookieJar();
-        foreach (var cookie in solution.Cookies.Where(cookie => cookieWhitelist is null || cookieWhitelist.Contains(cookie.Name)))
+        foreach (var cookie in solution.Cookies.Where(cookie =>
+                     cookieWhitelist is null || cookieWhitelist.Contains(cookie.Name)))
         {
             Log.Debug("Adding cookie: {@Cookie}", cookie);
             var seleniumCookie = cookie.ToSeleniumCookie();
@@ -760,7 +785,7 @@ public abstract class HtmlParser : IDisposable
 
         // Safety: Solution will not be null unless all attempts fail in which case an exception is thrown.
         Solution solution = null!;
-        for(var i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             try
             {
@@ -779,12 +804,12 @@ public abstract class HtmlParser : IDisposable
                 Log.Warning("Failed to get site solution for {CurrentUrl}, retrying...", CurrentUrl);
             }
         }
-        
+
         #if DEBUG
         await File.WriteAllTextAsync("test-solver.html", solution.Response);
         Log.Debug("User-Agent: {UserAgent}", solution.UserAgent);
         #endif
-        
+
         return solution;
     }
 
@@ -793,13 +818,14 @@ public abstract class HtmlParser : IDisposable
         var jitter = Random.Shared.Next(min, max);
         return Task.Delay(jitter);
     }
-    
+
     protected static Task Sleep(int milliseconds)
     {
         return Task.Delay(milliseconds);
     }
 
-    protected static async Task<T> RetryUntil<T>(Func<Task<T>> func, Func<T, bool> successCondition, string errorMessage, int delay = 250)
+    protected static async Task<T> RetryUntil<T>(Func<Task<T>> func, Func<T, bool> successCondition,
+                                                 string errorMessage, int delay = 250)
     {
         const int maxAttempts = 4;
         T value = default!;
@@ -816,7 +842,7 @@ public abstract class HtmlParser : IDisposable
                 await Sleep(delay);
                 continue;
             }
-            
+
             break;
         }
 
@@ -845,7 +871,7 @@ public abstract class HtmlParser : IDisposable
 
         return data;
     }
-    
+
     protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();
@@ -1011,7 +1037,7 @@ public abstract class HtmlParser : IDisposable
                 await Sleep(250);
                 continue;
             }
-    
+
             callback(links);
             break;
         }
@@ -1029,10 +1055,10 @@ public abstract class HtmlParser : IDisposable
         try
         {
             OpenQA.Selenium.Internal.Logging.Log.SetLevel(
-                typeof(OpenQA.Selenium.Remote.RemoteWebDriver), 
+                typeof(OpenQA.Selenium.Remote.RemoteWebDriver),
                 OpenQA.Selenium.Internal.Logging.LogEventLevel.Trace);
             OpenQA.Selenium.Internal.Logging.Log.SetLevel(
-                typeof(SeleniumManager), 
+                typeof(SeleniumManager),
                 OpenQA.Selenium.Internal.Logging.LogEventLevel.Trace);
             /*var options = InitializeOptions(debug);
             Driver = new FirefoxDriver(options);*/
@@ -1052,6 +1078,7 @@ public abstract class HtmlParser : IDisposable
             {
                 Log.Debug("Referer: {Referer}", data.Urls[0].Referer);
             }
+
             Log.Debug("Time Elapsed: {TimeElapsed}", end - start);
             var outData = data.Urls.Select(d => d.Url).ToList();
             JsonUtility.Serialize("test.json", outData);
@@ -1095,7 +1122,8 @@ public abstract class HtmlParser : IDisposable
         if (classType is not null)
         {
             var ripper =
-                (HtmlParser)Activator.CreateInstance(classType, WebDriver, ApiClientManager, RequestHeaders, FilenameScheme)!;
+                (HtmlParser)Activator.CreateInstance(classType, WebDriver, ApiClientManager, RequestHeaders,
+                    FilenameScheme)!;
             return ripper.Parse();
         }
 
@@ -1115,7 +1143,7 @@ public abstract class HtmlParser : IDisposable
         {
             return "allbooru";
         }
-        
+
         if (siteName == "x-x-x")
         {
             return "xxxtube";
@@ -1196,19 +1224,23 @@ public abstract class HtmlParser : IDisposable
         {
             FlareSolverrManager.DeleteSession().Wait();
         }
-        
+
         DisposeInternal();
 
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void DisposeInternal() {}
+    protected virtual void DisposeInternal()
+    {
+    }
 }
 
 public abstract class HtmlParser<T> : HtmlParser
     where T : HtmlParser<T>, IHtmlParser
 {
-    protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
 }

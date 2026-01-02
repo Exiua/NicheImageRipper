@@ -39,7 +39,7 @@ public static class ExtensionMethods
     
     public static string HexDigest(this byte[] bytes)
     {
-        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+        return Convert.ToHexStringLower(bytes);
     }
     
     public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> enumerable,
@@ -80,7 +80,7 @@ public static class ExtensionMethods
     {
         return string.Join(separator, values);
     }
-
+    
     public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
     {
         return src.Select(url => new StringImageLinkWrapper(url));
