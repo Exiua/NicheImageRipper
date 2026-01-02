@@ -89,7 +89,7 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                 dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText.Split(",")[0].Trim() + $" ({id})";
                 var list = soup.SelectSingleNodeOrThrow("//div[@class='holder']/div[@class='list']");
                 var listItems = list.SelectNodesOrThrow("./div[@class='list-item']");
-                var imageCount = listItems[3].InnerText.Trim().ToInt();
+                var imageCount = listItems[3].InnerText.Trim().ParseInt();
                 var imgs = soup.SelectSingleNodeOrThrow("//div[@id='albumGallery']")
                                .SelectNodesOrThrow("./div")
                                .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())

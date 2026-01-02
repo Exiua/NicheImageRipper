@@ -24,7 +24,7 @@ public class HentaiEraParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='row gallery_first']/h1").InnerText;
-        var pageCount = soup.SelectSingleNodeOrThrow("//button[@id='pages_btn']").InnerText.Trim().Split(' ')[0].ToInt();
+        var pageCount = soup.SelectSingleNodeOrThrow("//button[@id='pages_btn']").InnerText.Trim().Split(' ')[0].ParseInt();
         var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
         var baseUrl = imageContainer.GetAttributeValue("data-src");
 

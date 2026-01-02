@@ -24,7 +24,7 @@ public class AsmHentaiParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
-        var pages = soup.SelectSingleNodeOrThrow("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ToInt();
+        var pages = soup.SelectSingleNodeOrThrow("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ParseInt();
         var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1].Join("/");
         var images = new List<StringImageLinkWrapper>();
         for(var i = 0; i < pages; i++)

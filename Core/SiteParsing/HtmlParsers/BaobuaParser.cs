@@ -27,7 +27,7 @@ public class BaobuaParser : HtmlParser, IHtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//span[@itemprop='name']").InnerText.Split("|")[0].Trim();
         var images = new List<StringImageLinkWrapper>();
-        var pageCount = soup.SelectSingleNode("//div[@class='nav-links']")?.LastChild.InnerText.ToInt() ?? 1;
+        var pageCount = soup.SelectSingleNode("//div[@class='nav-links']")?.LastChild.InnerText.ParseInt() ?? 1;
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {

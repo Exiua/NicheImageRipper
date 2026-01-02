@@ -27,7 +27,7 @@ public class MeijuntuParser : HtmlParser, IHtmlParser
         var pageCount = soup.SelectSingleNodeOrThrow("//div[@id='pages']")
                             .SelectNodesOrThrow("./a")[^2]
                             .InnerText
-                            .ToInt();
+                            .ParseInt();
         var baseUrl = CurrentUrl.Remove(".html");
         var images = new List<StringImageLinkWrapper>();
         for(var i = 0; i < pageCount; i++)

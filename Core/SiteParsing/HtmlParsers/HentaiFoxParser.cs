@@ -24,7 +24,7 @@ public class HentaiFoxParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
-        var pageCount = soup.SelectSingleNodeOrThrow("//span[@class='i_text pages']").InnerText.Split(" ")[^1].ToInt();
+        var pageCount = soup.SelectSingleNodeOrThrow("//span[@class='i_text pages']").InnerText.Split(" ")[^1].ParseInt();
         var baseImage = soup.SelectSingleNodeOrThrow("//div[@class='g_thumb']//img").GetSrc();
 
         return RipInfo.FromGenerateInfo(baseImage, dirName, pageCount);

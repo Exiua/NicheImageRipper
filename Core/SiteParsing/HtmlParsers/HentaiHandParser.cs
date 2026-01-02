@@ -31,7 +31,7 @@ public class HentaiHandParser : HtmlParser, IHtmlParser
                             .InnerText
                             .Split('(')[1]
                             .Split(')')[0]
-                            .ToInt();
+                            .ParseInt();
         var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='gallery-image col-6 col-md-3 py-3']//img")
                           .GetSrc()
                           .Replace("/thumbnails/", "/images/");

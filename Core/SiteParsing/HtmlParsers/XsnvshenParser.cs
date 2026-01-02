@@ -29,7 +29,7 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
         var pageCount = Driver.FindElement(By.XPath("//em[@id='time']/span"))
                                 .Text
                                 .Split(" ")[1]
-                                .ToInt();
+                                .ParseInt();
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < pageCount; i++)
         {

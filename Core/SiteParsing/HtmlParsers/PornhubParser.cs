@@ -240,7 +240,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                     continue;
                 }
                 
-                var quality = qualityJson.Deserialize<string>()!.ToInt();
+                var quality = qualityJson.Deserialize<string>()!.ParseInt();
                 if (quality > highestQuality)
                 {
                     highestQuality = quality;

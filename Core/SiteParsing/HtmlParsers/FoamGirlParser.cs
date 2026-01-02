@@ -27,7 +27,7 @@ public class FoamGirlParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") 
                             ?? soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']").SelectNodesOrThrow("./a")[^2];
-        var pageCount = pageContainer.InnerText.ToInt();
+        var pageCount = pageContainer.InnerText.ParseInt();
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {
