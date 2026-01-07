@@ -30,7 +30,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         // TODO: May be able to rectify this in PostProcess by renaming files after download
         if (FilenameScheme != FilenameScheme.Original)
         {
-            Log.Warning("YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
+            Log.Warning(
+                "YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
         }
 
         var url = CurrentUrl.Split("/").Take(4).Join('/');
@@ -43,13 +44,13 @@ public class YoutubeParser : HtmlParser, IHtmlParser
                       .InnerText;
         var dirName = $"{displayName} ({username})";
         var args = new SubprocessArgs("yt-dlp")
-                 .WithArgs(
-                      "--flat-playlist",
-                      "--print",
-                      "\"%(urls)s\"",
-                      CurrentUrl
-                  )
-                 .EnableOutputCapture();
+                  .WithArgs(
+                       "--flat-playlist",
+                       "--print",
+                       "\"%(title)s|%(id)s\"",
+                       CurrentUrl
+                   )
+                  .EnableOutputCapture();
         var (exitCode, output, error) = await RunSubprocess(args);
         if (exitCode != 0)
         {
@@ -58,12 +59,21 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         }
 
         var images = output!.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                           .ToStringImageLinkWrapperList();
-        
+                            .Select(line =>
+                             {
+                                 var split = line.LastIndexOf('|');
+                                 var title = line[..split];
+                                 var id = line[(split + 1)..];
+                                 var videoUrl = $"https://www.youtube.com/watch?v={id}";
+                                 var imageLink = new ImageLink(videoUrl, FilenameScheme, 0, filename: title + ".webm");
+                                 return imageLink;
+                             })
+                            .ToStringImageLinkWrapperList();
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    class SubprocessArgs
+    private class SubprocessArgs
     {
         public string Executable { get; set; }
         public List<string> Arguments { get; set; }
@@ -87,7 +97,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             Arguments.AddRange(args);
             return this;
         }
-        
+
         public SubprocessArgs EnableOutputCapture()
         {
             CaptureOutput = true;
@@ -105,7 +115,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             return Arguments.Count == 0 ? "" : string.Join(" ", Arguments);
         }
     }
-    
+
     private static async Task<(int, string?, string?)> RunSubprocess(SubprocessArgs args)
     {
         var arguments = args.GetArgs();
@@ -145,19 +155,19 @@ public class YoutubeParser : HtmlParser, IHtmlParser
                 }
             };
         }
-        
+
         process.Start();
-        
+
         if (args.CaptureOutput)
         {
             process.BeginOutputReadLine();
         }
-        
+
         if (args.CaptureError)
         {
             process.BeginErrorReadLine();
         }
-        
+
         await process.WaitForExitAsync();
         var exitCode = process.ExitCode;
         return (exitCode, output, error);

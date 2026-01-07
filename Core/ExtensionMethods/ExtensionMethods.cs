@@ -95,6 +95,11 @@ public static class ExtensionMethods
     {
         return src.Select(url => new StringImageLinkWrapper(url)).ToList();
     }
+    
+    public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<ImageLink> src)
+    {
+        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
+    }
 
     public static T[] Pop<T>(this T[] src, int index)
     {

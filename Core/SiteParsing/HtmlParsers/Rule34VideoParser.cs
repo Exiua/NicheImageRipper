@@ -80,10 +80,10 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         }
         else if (CurrentUrl.Contains("/video/"))
         {
-            dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title_video']").InnerText;
             images = [];
-            var downloadLink = await GetVideoDownloadUrl(soup: soup);
-            images.Add(downloadLink);
+            (var downloadLink, dirName) = await GetVideoDownloadUrl(soup: soup);
+            var imageLink = new ImageLink(downloadLink, FilenameScheme, 0, filename: dirName + ".mp4");
+            images.Add(imageLink);
         }
         else if (CurrentUrl.Contains("/search/"))
         {
@@ -155,16 +155,6 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
             }
             
             soup = await Soupify(nextPageResponse.Content, urlString: false);
-            // var nextButton = Driver.TryFindElement(By.XPath("//div[@class='item pager next']/a"));
-            // if (nextButton is null)
-            // {
-            //     Log.Debug("Next button not found");
-            //     break;
-            // }
-            //
-            // Log.Debug("Clicking next button");  
-            // nextButton.Click();
-            // soup = await Soupify(delay: 500);
         }
 
         return await ParseVideoPosts(videoPosts);
@@ -175,14 +165,15 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var post in videoPosts)
         {
-            var downloadLink = await GetVideoDownloadUrl(post: post);
-            images.Add(downloadLink);
+            var (downloadLink, title) = await GetVideoDownloadUrl(post: post);
+            var imageLink = new ImageLink(downloadLink, FilenameScheme, 0, filename: title + ".mp4");
+            images.Add(imageLink);
         }
         
         return images;
     }
 
-    private async Task<string> GetVideoDownloadUrl(HtmlNode? soup = null, string? post = null)
+    private async Task<(string, string)> GetVideoDownloadUrl(HtmlNode? soup = null, string? post = null)
     {
         if (soup is null)
         {
@@ -197,6 +188,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
             soup = await SolveParse();
         }
         
+        var title = soup.SelectSingleNodeOrThrow("//h1[@class='title_video']").InnerText;
         Log.Debug("Searching for video info");
         var videoInfo = soup.SelectSingleNodeOrThrow("//div[@id='tab_video_info']");
         Log.Debug("Searching for downloads");
@@ -204,6 +196,6 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         Log.Debug("Grabbing download link");
         // First link is the highest quality
         var downloadLink = downloads.SelectSingleNodeOrThrow(".//a").GetHref().DecodeUrl();
-        return downloadLink;
+        return (downloadLink, title);
     }
 }
