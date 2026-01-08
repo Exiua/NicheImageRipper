@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -98,6 +99,12 @@ public partial class NicheImageRipper : IDisposable
     protected bool Debugging { get; set; }
 
     private bool _disposed;
+
+    static NicheImageRipper()
+    {
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding  = Encoding.UTF8;
+    }
 
     public void LoadUrlFile(string filepath)
     {

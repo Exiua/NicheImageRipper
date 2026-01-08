@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
@@ -46,6 +47,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         var args = new SubprocessArgs("yt-dlp")
                   .WithArgs(
                        "--flat-playlist",
+                       "--encoding", "utf-8",
                        "--print",
                        "\"%(title)s|%(id)s\"",
                        CurrentUrl
@@ -65,7 +67,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
                                  var title = line[..split];
                                  var id = line[(split + 1)..];
                                  var videoUrl = $"https://www.youtube.com/watch?v={id}";
-                                 var imageLink = new ImageLink(videoUrl, FilenameScheme, 0, filename: title + ".webm");
+                                 var imageLink = new ImageLink(videoUrl, FilenameScheme, 0, filename: title + ".webm", cleanFilename: true);
                                  return imageLink;
                              })
                             .ToStringImageLinkWrapperList();
@@ -125,7 +127,9 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             FileName = args.Executable,
             Arguments = arguments,
             RedirectStandardOutput = args.CaptureOutput,
+            StandardOutputEncoding = args.CaptureOutput ? Encoding.UTF8 : null,
             RedirectStandardError = args.CaptureError,
+            StandardErrorEncoding = args.CaptureError ? Encoding.UTF8 : null,
             UseShellExecute = false,
             CreateNoWindow = true
         };

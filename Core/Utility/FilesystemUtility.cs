@@ -6,22 +6,30 @@ namespace Core.Utility;
 public static class FilesystemUtility
 {
     private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*' , '\r', '\n'];
+    private static readonly HashSet<char> AllowedRightPunctuation = [')', ']', '}', '】', '»', '“', '”', '’', '」', '』'];
+    private static readonly HashSet<char> AllowedLeftPunctuation = ['(', '[', '{', '【', '«', '„', '“', '‘', '「', '『'];
     
-    public static string CleanPathStem(string pathStem)
+    /// <summary>
+    ///     Clean a path name by removing forbidden characters and trimming whitespace and punctuation. Does not modify
+    ///     valid enclosing characters such as parentheses, brackets, or braces.
+    /// </summary>
+    /// <param name="pathName">The path name to clean</param>
+    /// <returns>>The cleaned path name</returns>
+    public static string CleanPathStem(string pathName)
     {
-        pathStem = WebUtility.HtmlDecode(pathStem).Trim(' ', '\t', '\n', '\r');
+        pathName = WebUtility.HtmlDecode(pathName).Trim(' ', '\t', '\n', '\r');
         var cleanedPathStem = new StringBuilder();
-        foreach (var c in pathStem.Where(c => !ForbiddenChars.Contains(c)))
+        foreach (var c in pathName.Where(c => !ForbiddenChars.Contains(c)))
         {
             cleanedPathStem.Append(c);
         }
 
-        if (cleanedPathStem[^1] != ')' && cleanedPathStem[^1] != ']' && cleanedPathStem[^1] != '}')
+        if (!AllowedRightPunctuation.Contains(cleanedPathStem[^1]))
         {
             RStripPunctuation(cleanedPathStem);
         }
 
-        if (cleanedPathStem[0] != '(' && cleanedPathStem[0] != '[' && cleanedPathStem[0] != '{')
+        if (!AllowedLeftPunctuation.Contains(cleanedPathStem[0]))
         {
             LStripPunctuation(cleanedPathStem);
         }

@@ -40,13 +40,29 @@ public partial class ImageLink
         
     }
     
+    /// <summary>
+    ///     Construct an ImageLink from a URL and filename scheme
+    /// </summary>
+    /// <param name="url">URL of the file</param>
+    /// <param name="filenameScheme">Scheme to use for generating the filename</param>
+    /// <param name="index">Index of the file in the list of files (used for chronological naming)</param>
+    /// <param name="filename">Optional filename to use instead of generating one</param>
+    /// <param name="linkInfo">Optional LinkInfo to set instead of auto-detecting</param>
+    /// <param name="referer">Optional referer to set for the link</param>
+    /// <param name="cleanFilename">
+    ///     Whether to clean the provided filename or not (default: false).
+    ///     Does nothing if <paramref name="filename"/> was not provided.
+    /// </param>
     public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", 
-                     LinkInfo linkInfo = LinkInfo.None, string? referer = "")
+                     LinkInfo linkInfo = LinkInfo.None, string? referer = "", bool cleanFilename = false)
     {
         Referer = referer;
         LinkInfo = linkInfo;
         Url = ExtractUrl(url);
-        Filename = GenerateFilename(url, filenameScheme, index, filename);
+        // Filename cleaning is done on ExtractFilename which is skipped when a filename is provided
+        // This is to handle certain sites that provide nested folders which we want to preserve (e.g., gdrive)
+        // This can also cause issues if the provider did not intend the filename to have folders (e.g., youtube)
+        Filename = GenerateFilename(url, filenameScheme, index, filename, cleanFilename);
     }
 
     public void Rename(int index)
@@ -143,8 +159,9 @@ public partial class ImageLink
         return url.StartsWith("//") ? $"https:{url}" : url;
     }
 
-    private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename = "")
+    private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename = "", bool cleanFilename = false)
     {
+        var filenameProvided = filename != "";
         if(filename == "")
         {
             switch (LinkInfo)
@@ -223,6 +240,11 @@ public partial class ImageLink
             if(filename.Contains('%'))
             {
                 filename = Uri.UnescapeDataString(filename);
+            }
+
+            if (cleanFilename && filenameProvided)
+            {
+                filename = FilesystemUtility.CleanPathStem(filename);
             }
             
             return filename;
