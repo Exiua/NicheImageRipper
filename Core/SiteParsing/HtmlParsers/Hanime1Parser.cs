@@ -38,7 +38,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         if (CurrentUrl.Contains("/watch?"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//h3").InnerText;
-            var url = await GetVideoUrl(client);
+            var url = await GetVideoUrl(client, CurrentUrl);
             images.Add(url);
         }
         else if (CurrentUrl.Contains("/search?"))
@@ -85,23 +85,19 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<string> GetVideoUrl(Client client, string url = "")
+    private async Task<string> GetVideoUrl(Client client, string url)
     {
-        BaseResponse response;
-        if (url != "")
+        url = url.Replace("watch?", "download?");
+        var response = await client.GetPage(url, waitForXPath: "//a[@download]");
+        if (response is ErrorResponse errorResponse)
         {
-            response = await client.GetPage(url, waitForXPath: "//*[@id='video-download-btn']");
-            if (response is ErrorResponse errorResponse)
-            {
-                throw new Exception($"Error retrieving video page: {errorResponse.Error}");
-            }
+            throw new Exception($"Error retrieving video page: {errorResponse.Error}");
         }
 
         const int maxAttempts = 4;
         HtmlNode? downloadButton = null; 
         for (var i = 0; i < maxAttempts; i++)
         {
-            response = await client.PressButtonOnPage("//*[@id='video-download-btn']/..");
             var soup = await Soupify(response);
             downloadButton = soup.SelectSingleNode("//a[@download]"); // First link will be the highest quality
             if (downloadButton is null)
