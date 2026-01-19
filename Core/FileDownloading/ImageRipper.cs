@@ -1509,6 +1509,12 @@ public partial class ImageRipper : IDisposable
         }
     }
 
+    private static readonly Dictionary<string, string> PixivExtMap = new()
+    {
+        ["jpg"] = "png",
+        ["png"] = "gif",
+    };
+
     private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink, bool generatingManually)
     {
         Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
@@ -1530,14 +1536,14 @@ public partial class ImageRipper : IDisposable
                 }
 
                 // TODO: Improve this
-                // Api seems to always return .jpg even if the file is a .png
+                // Api seems to always return .jpg even if the file is a .png or .gif
                 var parts = imageLink.Url.Split(".");
                 var ext = parts[^1];
-                if (ext == "jpg")
+                if (PixivExtMap.TryGetValue(ext, out var mappedExt))
                 {
-                    parts[^1] = "png";
+                    parts[^1] = mappedExt;
                     imageLink.Url = string.Join(".", parts);
-                    Log.Information("Trying again with .png extension...");
+                    Log.Information("Trying again with .{MappedExt} extension...", mappedExt);
                 }
 
                 return false;
