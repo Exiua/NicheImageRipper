@@ -308,8 +308,9 @@ public partial class ImageRipper : IDisposable
                 {
                     var fullFilename = $"{index}{ext}";
                     var imagePath = Path.Combine(fullPath, fullFilename);
-                    var success = await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext);
-                    if (success)
+                    var skipDownload = new Box<bool>(false);
+                    var success = await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext, skipDownload);
+                    if (success && !skipDownload)
                     {
                         await PostProcess(imageLink, imagePath, filesHashes, downloadStats, index);
                     }
@@ -462,8 +463,9 @@ public partial class ImageRipper : IDisposable
         {
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
-            var success = await DownloadFromList(link, imagePath, index, downloadStats);
-            if (success)
+            var skipDownload = new Box<bool>(false);
+            var success = await DownloadFromList(link, imagePath, index, downloadStats, skipDownload);
+            if (success && !skipDownload)
             {
                 // DownloadFromList may modify filename (if it was missing extension)
                 imagePath = Path.Combine(fullPath, link.Filename);
@@ -718,7 +720,7 @@ public partial class ImageRipper : IDisposable
         Log.Debug("File hash: {FileHash}", fileHash);
         return false;
     }
-    
+
     /// <summary>
     ///     Download image from image url
     /// </summary>
@@ -726,7 +728,9 @@ public partial class ImageRipper : IDisposable
     /// <param name="filename">Name of the file to download</param>
     /// <param name="imagePath">Full path to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
-    private async Task<bool> DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext)
+    /// <param name="skipDownload"></param>
+    private async Task<bool> DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext,
+                                             Box<bool> skipDownload)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
@@ -739,7 +743,7 @@ public partial class ImageRipper : IDisposable
         bool success;
         try
         {
-            success = await DownloadFile(imagePath, imageLink, true);
+            success = await DownloadFile(imagePath, imageLink, true, skipDownload);
         }
         finally
         {
@@ -757,8 +761,9 @@ public partial class ImageRipper : IDisposable
     /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
+    /// <param name="skipDownload"></param>
     private async Task<bool> DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
-                                              DownloadStats downloadStats)
+                                              DownloadStats downloadStats, Box<bool> skipDownload)
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
@@ -820,7 +825,7 @@ public partial class ImageRipper : IDisposable
                 success = await DownloadMpegDashFile(imagePath, imageLink);
                 break;
             case LinkInfo.ResolveImage:
-                success = await ResolveAndDownloadFile(imagePath, imageLink);
+                success = await ResolveAndDownloadFile(imagePath, imageLink, skipDownload);
                 break;
             case LinkInfo.SeleniumImage:
                 success = await DownloadSeleniumImage(imagePath, imageLink);
@@ -833,7 +838,7 @@ public partial class ImageRipper : IDisposable
                  break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
-                success = await DownloadFile(imagePath, imageLink, false);
+                success = await DownloadFile(imagePath, imageLink, false, skipDownload);
                 break;
             default:
                 var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
@@ -859,7 +864,7 @@ public partial class ImageRipper : IDisposable
         return success;
     }
 
-    private async Task<bool> ResolveAndDownloadFile(string path, ImageLink imageLink)
+    private async Task<bool> ResolveAndDownloadFile(string path, ImageLink imageLink, Box<bool> skipDownload)
     {
         var url = imageLink.Url;
         for (var i = 0; i < RetryCount; i++)
@@ -875,7 +880,7 @@ public partial class ImageRipper : IDisposable
             Log.Debug("Resolved URL: {Url}", imageUrl);
             imageLink.Url = imageUrl;
 
-            var success = await DownloadFile(path, imageLink, false);
+            var success = await DownloadFile(path, imageLink, false, skipDownload);
             if (success)
             {
                 return true;
@@ -1320,7 +1325,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private async Task<bool> DownloadFile(string filePath, ImageLink imageLink, bool generatingManually)
+    private async Task<bool> DownloadFile(string filePath, ImageLink imageLink, bool generatingManually, Box<bool> skipDownload)
     {
         if(filePath[^1] == '/')
         {
@@ -1330,7 +1335,7 @@ public partial class ImageRipper : IDisposable
         var success = false;
         for (var attempt = 0; attempt < RetryCount; attempt++)
         {
-            success = await DownloadFileHelper(imageLink, filePath, generatingManually);
+            success = await DownloadFileHelper(imageLink, filePath, generatingManually, skipDownload);
             if (success)
             {
                 break;
@@ -1343,7 +1348,7 @@ public partial class ImageRipper : IDisposable
         }
         
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
-        if (Path.GetExtension(filePath) == "")
+        if (Path.GetExtension(filePath) == "" && !skipDownload)
         {
             Log.Debug("Finding correct extension for file: {ImagePath}", filePath);
             var extension = FileUtility.GetCorrectExtension(filePath);
@@ -1357,7 +1362,8 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually)
+    private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually,
+                                                Box<bool> skipDownload)
     {
         if (imageLink.IsInvalid)
         {
@@ -1405,7 +1411,7 @@ public partial class ImageRipper : IDisposable
 
             if (!response.IsSuccessStatusCode)
             {
-                return await HandleUnsuccessfulStatusCode(response, url, imageLink, generatingManually);
+                return await HandleUnsuccessfulStatusCode(response, url, imageLink, generatingManually, skipDownload);
             }
 
             DownloadStatus result;
@@ -1515,7 +1521,8 @@ public partial class ImageRipper : IDisposable
         ["png"] = "gif",
     };
 
-    private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink, bool generatingManually)
+    private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink,
+                                                          bool generatingManually, Box<bool> skipDownload)
     {
         Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
         await Sleep(500);
@@ -1544,6 +1551,15 @@ public partial class ImageRipper : IDisposable
                     parts[^1] = mappedExt;
                     imageLink.Url = string.Join(".", parts);
                     Log.Information("Trying again with .{MappedExt} extension...", mappedExt);
+                }
+                else
+                {
+                    Log.Warning("Unable to download Pixiv image: {URL}", imageLink.Url);
+                    skipDownload.Value = true;
+                    return true; // Prevent further retries
+                    // Some images may not exist, so we just log and move on
+                    // e.g., https://www.pixiv.net/en/artworks/14742347
+                    // A bit annoying since I am not sure if other extensions exist
                 }
 
                 return false;

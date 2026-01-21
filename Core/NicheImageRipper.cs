@@ -305,6 +305,9 @@ public partial class NicheImageRipper : IDisposable
                 // If empty url is returned Ripper is also null
                 UpdateHistory(Ripper!.FolderInfo, url);
             }
+            
+            // TODO: Add feature guard to allow users to disable saving unfinished URLs constantly
+            SaveUnfinishedUrls(); // Save after each rip to avoid data loss
         }
     }
 
@@ -369,10 +372,7 @@ public partial class NicheImageRipper : IDisposable
 
     public void SaveData()
     {
-        if (UrlQueue.Count > 0)
-        {
-            JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
-        }
+        SaveUnfinishedUrls();
 
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
@@ -381,6 +381,14 @@ public partial class NicheImageRipper : IDisposable
         }
 
         Config.SaveConfig();
+    }
+
+    private void SaveUnfinishedUrls()
+    {
+        if (UrlQueue.Count > 0)
+        {
+            JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
+        }
     }
 
     public static void ClearCache()
