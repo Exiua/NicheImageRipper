@@ -146,7 +146,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachmentName, attachmentPath);
                 if (specialCaseLinks is null)
                 {
-                    var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: attachmentName ?? "");
+                    var filename = attachmentName is not null ? ReplacePlusWithSpaceInFilename(attachmentName) : "";
+                    var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: filename);
                     images.Add(attachmentLink);
                 }
                 else
@@ -217,6 +218,36 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
     }
 
+    private static string ReplacePlusWithSpaceInFilename(string filename)
+    {
+        var newFilename = "";
+        var lastChar = '\0';
+        foreach (var c in filename)
+        {
+            switch (c)
+            {
+                case '+':
+                    if (lastChar == '+')
+                    {
+                        newFilename += '+';
+                    }
+                    break;
+                default:
+                    if (lastChar == '+')
+                    {
+                        newFilename += ' ';
+                    }
+                    
+                    newFilename += c;
+                    break;
+            }
+            
+            lastChar = c;
+        }
+        
+        return newFilename;
+    }
+    
     private static Dictionary<string, List<string>> ExtractPossibleExternalUrls(List<string> possibleUrls)
     {
         var externalLinks = CreateExternalLinkDict();
