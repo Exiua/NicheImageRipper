@@ -18,13 +18,13 @@ public partial class ImageLink
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
     public string Url { get; set; } = null!;
     public string Filename { get; set; } = null!;
-    
+
     public bool IsBlob => Url.StartsWith("blob:");
     public bool IsInvalid => Url == "";
-    
+
     [MemberNotNullWhen(true, nameof(Referer))]
     public bool HasReferer => !string.IsNullOrEmpty(Referer);
-    
+
     public static ImageLink Invalid => new()
     {
         Referer = null,
@@ -37,9 +37,8 @@ public partial class ImageLink
     [UsedImplicitly]
     public ImageLink()
     {
-        
     }
-    
+
     /// <summary>
     ///     Construct an ImageLink from a URL and filename scheme
     /// </summary>
@@ -53,7 +52,7 @@ public partial class ImageLink
     ///     Whether to clean the provided filename or not (default: false).
     ///     Does nothing if <paramref name="filename"/> was not provided.
     /// </param>
-    public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "", 
+    public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "",
                      LinkInfo linkInfo = LinkInfo.None, string? referer = "", bool cleanFilename = false)
     {
         Referer = referer;
@@ -70,33 +69,33 @@ public partial class ImageLink
         var ext = Path.GetExtension(Filename);
         Filename = index + ext;
     }
-    
+
     public void Rename(string newStem)
     {
         var ext = Path.GetExtension(Filename);
         Filename = newStem + ext;
     }
-    
+
     public void RegenerateFilename(FilenameScheme filenameScheme, int index)
     {
         Filename = GenerateFilename(Url, filenameScheme, index);
     }
-    
+
     public bool Contains(string url)
     {
         return Url.Contains(url);
     }
-    
+
     private string ExtractUrl(string url)
     {
         url = HttpUtility.HtmlDecode(url);
-        
+
         if (url.StartsWith("text:"))
         {
             LinkInfo = LinkInfo.Text;
             return url[5..];
         }
-        
+
         url = url.Replace("\n", "");
         if (url.Contains("iframe.mediadelivery.net"))
         {
@@ -113,13 +112,13 @@ public partial class ImageLink
             LinkInfo = LinkInfo.GDrive;
             return url;
         }
-        
+
         if (url.Contains("mega.nz"))
         {
             LinkInfo = LinkInfo.Mega;
             return url;
         }
-        
+
         if (url.Contains("saint.to"))
         {
             Referer = "https://saint.to/";
@@ -137,7 +136,7 @@ public partial class ImageLink
             Referer = "https://gofile.io/";
             return url;
         }
-        
+
         if (url.Contains("youtube.com"))
         {
             LinkInfo = LinkInfo.YoutubeVideo;
@@ -149,20 +148,21 @@ public partial class ImageLink
             var match = YoutubeEmbedRegex().Match(url);
             return match.Success ? $"https://www.youtube.com/watch?v={match.Groups[1].Value}" : url;
         }
-        
+
         if (url.StartsWith("data:image/") && url.Contains(";base64,"))
         {
             LinkInfo = LinkInfo.Base64;
             return url;
         }
-        
+
         return url.StartsWith("//") ? $"https:{url}" : url;
     }
 
-    private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename = "", bool cleanFilename = false)
+    private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename = "",
+                                    bool cleanFilename = false)
     {
         var filenameProvided = filename != "";
-        if(filename == "")
+        if (filename == "")
         {
             switch (LinkInfo)
             {
@@ -197,6 +197,7 @@ public partial class ImageLink
                     {
                         filename = ExtractFilename(url);
                     }
+
                     break;
             }
         }
@@ -212,6 +213,7 @@ public partial class ImageLink
                         var stem = Path.GetFileNameWithoutExtension(filename);
                         filename = stem; // yt-dlp adds the extension automatically
                     }
+
                     break;
                 }
                 case LinkInfo.None:
@@ -234,10 +236,10 @@ public partial class ImageLink
                     throw new ArgumentOutOfRangeException();
             }
         }
-        
-        if(filenameScheme == FilenameScheme.Original)
+
+        if (filenameScheme == FilenameScheme.Original)
         {
-            if(filename.Contains('%'))
+            if (filename.Contains('%'))
             {
                 filename = Uri.UnescapeDataString(filename);
             }
@@ -246,7 +248,7 @@ public partial class ImageLink
             {
                 filename = FilesystemUtility.CleanPathStem(filename);
             }
-            
+
             return filename;
         }
 
@@ -269,39 +271,40 @@ public partial class ImageLink
     private string ExtractFilename(string url)
     {
         string fileName;
-        if(url.Contains("https://titsintops.com/") && url[^1] == '/')
+        if (url.Contains("https://titsintops.com/") && url[^1] == '/')
         {
             fileName = url.Split("/")[^2];
             fileName = ExtensionRegex().Replace(fileName, ".$1");
         }
-        else if(url.Contains("sendvid.com") && url.Contains(".m3u8"))
+        else if (url.Contains("sendvid.com") && url.Contains(".m3u8"))
         {
             fileName = url.Split("/")[6];
             LinkInfo = LinkInfo.M3U8Ffmpeg;
         }
-        else if(url.Contains("iframe.mediadelivery.net"))
+        else if (url.Contains("iframe.mediadelivery.net"))
         {
             fileName = url.Split("/")[^1].Split("?")[0] + ".mp4"; // Assume mp4
         }
-        else if(url.Contains("erocdn.co"))
+        else if (url.Contains("erocdn.co"))
         {
             var parts = url.Split("/");
             var ext = parts[^1].Split(".")[^1];
             fileName = $"{parts[^2]}.{ext}";
         }
-        else if(url.Contains("thothub.lol/") && (url.Contains("/?rnd=") || url.Contains("get_image") || url.Contains("get_file")))
+        else if (url.Contains("thothub.lol/") &&
+                 (url.Contains("/?rnd=") || url.Contains("get_image") || url.Contains("get_file")))
         {
             fileName = url.Split("/")[^2];
         }
-        else if((url.Contains("kemono.su/") || url.Contains("coomer.su/")) && url.Contains("?f="))
+        else if ((url.Contains("kemono.su/") || url.Contains("coomer.su/")) && url.Contains("?f="))
         {
             fileName = url.Split("?f=")[^1];
-            if(fileName.Contains("http"))
+            if (fileName.Contains("http"))
             {
                 fileName = url.Split("?f=")[0].Split("/")[^1];
             }
         }
-        else if(url.Contains("phncdn.com"))
+        else if (url.Contains("phncdn.com"))
         {
             var parts = url.Split("/");
             fileName = parts.Length >= 9 ? parts[8] : parts[^1].Split(")")[0];
@@ -313,7 +316,7 @@ public partial class ImageLink
             fileName = url.Split("/")[^1];
             fileName = fileName.Remove("yande.re").Replace("%20", "-");
         }
-        else if(url.Contains("playhls.com/"))
+        else if (url.Contains("playhls.com/"))
         {
             fileName = url.Split("&id=")[^1];
             fileName = fileName.Split("&")[0] + ".mp4";
@@ -333,7 +336,7 @@ public partial class ImageLink
             {
                 fileName = url.Split(".")[^2] + ".mp4";
             }
-            
+
             LinkInfo = LinkInfo.MpegDash;
         }
         else if (url.Contains("nlegs.com") || url.Contains("ladylap.com"))
@@ -345,7 +348,8 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[^2];
         }
-        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8") || url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
+        else if (url.Contains("milocdn.com") && url.Contains("master.m3u8") ||
+                 url.Contains("cdn-centaurus.com") && url.Contains("master.m3u8"))
         {
             fileName = url.Split("t=")[1].Split("&")[0] + ".mp4";
             LinkInfo = LinkInfo.M3U8YtDlp;
@@ -372,8 +376,8 @@ public partial class ImageLink
         {
             fileName = url.Split("/")[8];
         }
-        else if (url.Contains("porndr.com") || url.Contains("abxxx.com") || url.Contains("love4porn.com") 
-                 || url.Contains("asianviralhub.com") || url.Contains("hdzog.com") 
+        else if (url.Contains("porndr.com") || url.Contains("abxxx.com") || url.Contains("love4porn.com")
+                 || url.Contains("asianviralhub.com") || url.Contains("hdzog.com")
                  || url.Contains("privatehomeclips.com") || url.Contains("x-x-x.tube"))
         {
             fileName = url.Split("/")[^2];
@@ -394,14 +398,14 @@ public partial class ImageLink
             string localPath;
             try
             {
-                localPath = new Uri(url).LocalPath;   
+                localPath = new Uri(url).LocalPath;
             }
             catch (UriFormatException)
             {
                 Log.Error("Invalid URL format: {Url}", url);
                 throw;
             }
-            
+
             fileName = Path.GetFileName(localPath);
             if (url.Contains(".m3u8"))
             {
@@ -412,16 +416,19 @@ public partial class ImageLink
 
         return FilesystemUtility.CleanPathStem(fileName);
     }
-    
+
     public override string ToString()
     {
         var linkInfo = Enum.GetName(LinkInfo);
         var url = LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(Url) : Url;
-        return !Referer.IsNullOrEmpty() ? $"({url}, {Filename}, {Referer}, {linkInfo})" : $"({url}, {Filename}, {linkInfo})";
+        return !Referer.IsNullOrEmpty()
+            ? $"({url}, {Filename}, {Referer}, {linkInfo})"
+            : $"({url}, {Filename}, {linkInfo})";
     }
 
     [GeneratedRegex(@"-(jpg|png|webp|mp4|mov|avi|wmv)\.\d+/?")]
     private static partial Regex ExtensionRegex();
+
     [GeneratedRegex("/embed/([a-zA-Z0-9-_]+)")]
     private static partial Regex YoutubeEmbedRegex();
 }

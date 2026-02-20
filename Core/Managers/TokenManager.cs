@@ -7,6 +7,7 @@ using Core.Enums;
 using Core.Utility;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
+using Google.Apis.PhotosLibrary.v1;
 using Google.Apis.Util.Store;
 
 namespace Core.Managers;
@@ -123,6 +124,17 @@ public class TokenManager
             [DriveService.Scope.DriveReadonly],
             "user", CancellationToken.None, new FileDataStore("GDriveCredentialCache"));
 
+        return credential;
+    }
+
+    public static async Task<UserCredential> GPhotoAuthenticate()
+    {
+        await using var stream = new FileStream("client_secrets.json", FileMode.Open, FileAccess.Read);
+        var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+            (await GoogleClientSecrets.FromStreamAsync(stream)).Secrets,
+            [PhotosLibraryService.Scope.DrivePhotosReadonly, PhotosLibraryService.Scope.PhotoslibraryReadonly],
+            "user", CancellationToken.None, new FileDataStore("GPhotoCredentialCache"));
+        
         return credential;
     }
 }

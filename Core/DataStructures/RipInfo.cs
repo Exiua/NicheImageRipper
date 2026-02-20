@@ -132,7 +132,7 @@ public class RipInfo
             {
                 try
                 {
-                    var (imageLink, newLinkCounter) = await QueryGDriveLinks(url.Url, linkCounter);
+                    var (imageLink, newLinkCounter) = await GDriveHelper.QueryGDriveLinks(url.Url, linkCounter, FilenameScheme);
                     imageLinks.AddRange(imageLink);
                     linkCounter = newLinkCounter;
                 }
@@ -157,46 +157,6 @@ public class RipInfo
         }
 
         return imageLinks;
-    }
-
-    private async Task<(List<ImageLink>, int)> QueryGDriveLinks(string gDriveUrl, int index)
-    {
-        var service = await GDriveHelper.AuthenticateGDrive();
-        var (id, singleFile) = ExtractId(gDriveUrl);
-        var files = await service.GetFiles(id);
-        var imageLinks = new List<ImageLink>();
-        var counter = index;
-        foreach (var file in files)
-        {
-            if (file.IsFolder)
-            {
-                continue;
-            }
-            
-            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.GetPath(),
-                linkInfo: LinkInfo.GDrive);
-            imageLinks.Add(imgLink);
-            counter++;
-        }
-
-        return (imageLinks, counter);
-    }
-
-    private static (string, bool) ExtractId(string url)
-    {
-        var parts = url.Split("/");
-        if (url.Contains("/d/"))
-        {
-            return (parts[^2], true);
-        }
-
-        var id = parts[^1].Split('?')[0];
-        if (id is "open" or "folderview")
-        {
-            id = parts[^1].Split("?id=")[^1];
-        }
-
-        return (id, false);
     }
 
     private static List<StringImageLinkWrapper> RemoveDuplicates(List<StringImageLinkWrapper> urls)

@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using Core.DataStructures;
+using Core.Enums;
 using Core.Managers;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -16,6 +18,46 @@ public static class GDriveHelper
             HttpClientInitializer = creds,
             ApplicationName = "GDriveHelper"
         });
+    }
+    
+    public static async Task<(List<ImageLink>, int)> QueryGDriveLinks(string gDriveUrl, int index, FilenameScheme filenameScheme)
+    {
+        var service = await AuthenticateGDrive();
+        var (id, singleFile) = ExtractId(gDriveUrl);
+        var files = await service.GetFiles(id);
+        var imageLinks = new List<ImageLink>();
+        var counter = index;
+        foreach (var file in files)
+        {
+            if (file.IsFolder)
+            {
+                continue;
+            }
+            
+            var imgLink = new ImageLink(file.Id, filenameScheme, counter, filename: file.GetPath(),
+                linkInfo: LinkInfo.GDrive);
+            imageLinks.Add(imgLink);
+            counter++;
+        }
+
+        return (imageLinks, counter);
+    }
+    
+    private static (string, bool) ExtractId(string url)
+    {
+        var parts = url.Split("/");
+        if (url.Contains("/d/"))
+        {
+            return (parts[^2], true);
+        }
+
+        var id = parts[^1].Split('?')[0];
+        if (id is "open" or "folderview")
+        {
+            id = parts[^1].Split("?id=")[^1];
+        }
+
+        return (id, false);
     }
 }
 
