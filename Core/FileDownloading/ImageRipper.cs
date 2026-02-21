@@ -1193,7 +1193,13 @@ public partial class ImageRipper : IDisposable
         {
             var parent = Directory.GetParent(filePath)!.FullName;
             var referer = imageLink.Referer == "" ? null : imageLink.Referer;
-            await M3U8Downloader.DownloadObfuscatedM3U8(imageLink.Url, parent, imageLink.Filename, referer);
+            var ext = Path.GetExtension(filePath);
+            if (ext == "")
+            {
+                imageLink.Filename += ".mp4";
+            }
+            
+            await M3U8Downloader.DownloadM3U8(imageLink.Url, parent, imageLink.Filename, referer);
             return true;
         }
         catch (HttpRequestException e)

@@ -107,7 +107,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                             cachePosts.Add(post);
                         }
 
-                        images.AddRange(postImages.ToStringImageLinks());
+                        images.AddRange(postImages);
                         if (i % 50 == 0)
                         {
                             await Sleep(5000);
@@ -137,7 +137,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         else
         {
             var (tempImages, dir, extraPosts) = await PornhubLinkExtractor(soup);
-            images = tempImages.ToStringImageLinkWrapperList();
+            images = tempImages;
             dirName = dir;
             if (extraPosts is not null)
             {
@@ -212,12 +212,12 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         return posts;
     }
 
-    private async Task<(List<string> images, string dirName, List<string>? extraPosts)> PornhubLinkExtractor(HtmlNode soup)
+    private async Task<(List<StringImageLinkWrapper> images, string dirName, List<string>? extraPosts)> PornhubLinkExtractor(HtmlNode soup)
     {
         // First parse may have expired links as we need to get number of links per post
         //  This mainly is due to albums as videos and gifs only have one link per post
         string dirName;
-        List<string> images;
+        List<StringImageLinkWrapper> images;
         List<string>? extraPosts = null;
         if (CurrentUrl.Contains("view_video"))
         {
@@ -248,7 +248,12 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 }
             }
 
-            images = [highestQualityUrl];
+            var imageLink = new ImageLink(highestQualityUrl, FilenameScheme, 0)
+            {
+                LinkInfo = LinkInfo.ObfuscatedM3U8,
+                Referer = "https://pornhub.com/"
+            };
+            images = [imageLink];
         }
         else if (CurrentUrl.Contains("/album/"))
         {

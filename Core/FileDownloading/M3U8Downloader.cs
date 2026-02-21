@@ -1,26 +1,32 @@
+using Core.Configuration;
 using Core.Exceptions;
 using Core.ExtensionMethods;
-using Core.Managers;
-using Core.Utility;
 using Serilog;
 
 namespace Core.FileDownloading;
 
 public static class M3U8Downloader
 {
-    public static async Task DownloadObfuscatedM3U8(string url, string savePath, string outputName,
-                                                    string? referer = null, bool isIndex = false)
+    private static GeneralConfig Config => Configuration.Config.Instance;
+
+    public static async Task DownloadM3U8(string url, string savePath, string outputName,
+                                          string? referer = null, bool isIndex = false)
     {
         Log.Debug("Url: {Url}, SavePath: {SavePath}, OutputName: {OutputName}, Referer: {Referer}, IsIndex: {IsIndex}",
             url, savePath, outputName, referer, isIndex);
-        string? temp = null;
+        string? tempPath = null;
+        #if DEBUG
+        var success = true;
+        #endif
         try
         {
             var path = Path.GetFullPath(savePath);
-            temp = Path.Combine(path, "temp");
-            Directory.CreateDirectory(temp);
+            tempPath = Path.Combine(path, "temp");
+            Directory.CreateDirectory(tempPath);
 
-            var client = new HttpClient();
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", Config.UserAgent);
+            Log.Debug("HttpClient initialized with User-Agent: {UserAgent}", Config.UserAgent);
             if (referer is not null)
             {
                 client.DefaultRequestHeaders.Add("Referer", referer);
@@ -28,208 +34,192 @@ public static class M3U8Downloader
                 client.DefaultRequestHeaders.Add("Origin", origin);
             }
 
-            var shortBaseUrl = url.Split("/").Take(3).Join("/");
-            var longBaseUrl = UrlUtility.TrimUrl(url);
-            var longBastUrl2 = longBaseUrl;
-            HttpResponseMessage response;
-            string content;
-            string? videoPlaylist;
-            if (!isIndex)
-            {
-                Log.Debug("Downloading M3U8 playlist from: {Url}", url);
-                response = await client.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                content = await response.Content.ReadAsStringAsync();
-                videoPlaylist = GetHighestQualityVideoPlaylist(content);
-                if (videoPlaylist is null)
-                {
-                    throw new RipperException("No video playlist found");
-                }
-
-                if (!videoPlaylist.StartsWith("http"))
-                {
-
-                    videoPlaylist = longBaseUrl + videoPlaylist;
-                }
-
-                longBastUrl2 = UrlUtility.TrimUrl(videoPlaylist);
-            }
-            else
-            {
-                videoPlaylist = url;
-            }
-
-            Log.Debug("Highest Quality Video Playlist: {Segment}", videoPlaylist);
-            response = await client.GetAsync(videoPlaylist);
-            response.EnsureSuccessStatusCode();
-            content = await response.Content.ReadAsStringAsync();
-            var segmentsDest = Path.Combine(temp, "segments");
-            Directory.CreateDirectory(segmentsDest);
-            var lines = content.Split('\n');
-            var segCount = 0;
-            var failedSegments = 0;
-            var pull = false;
-            var useAltLongBase = false;
-            foreach (var (i, line) in lines.Enumerate())
-            {
-                Log.Debug("Processing line: {Line}", line);
-                if (pull)
-                {
-                    pull = false;
-                    var segmentUrl = GetSegmentUrl(line, shortBaseUrl, useAltLongBase ? longBastUrl2 : longBaseUrl);
-                    Log.Debug("Downloading segment: {SegmentUrl}", segmentUrl);
-                    var res = await client.GetAsync(segmentUrl);
-                    if (!res.IsSuccessStatusCode)
-                    {
-                        if (i != 0)
-                        {
-                            Log.Warning("Failed to download segment: {SegmentUrl} with status code {StatusCode}",
-                                segmentUrl, res.StatusCode);
-                            failedSegments++;
-                            continue;
-                        }
-
-                        var segUrl = GetSegmentUrl(line, shortBaseUrl, longBastUrl2);
-                        Log.Debug("Retrying with alternate long base URL: {SegmentUrl}", segUrl);
-                        res = await client.GetAsync(segUrl);
-                        if (!res.IsSuccessStatusCode)
-                        {
-                            Log.Warning("Failed to download segment: {SegmentUrl} with status code {StatusCode}",
-                                segUrl,
-                                res.StatusCode);
-                            failedSegments++;
-                            continue;
-                        }
-
-                        useAltLongBase = true;
-                    }
-
-                    var data = await res.Content.ReadAsByteArrayAsync();
-                    byte[] segmentData;
-                    try
-                    {
-                        segmentData = ExtractTs(data);
-                    }
-                    catch (RipperException e)
-                    {
-                        Log.Error(e, "Failed to extract segment data");
-                        continue;
-                    }
-
-                    var segmentPath = Path.Combine(segmentsDest, $"segment_{segCount:D5}.ts");
-                    await File.WriteAllBytesAsync(segmentPath, segmentData);
-                    segCount++;
-                }
-                else if (line.StartsWith("#EXTINF"))
-                {
-                    pull = true;
-                }
-            }
-
-            if (failedSegments > 0)
-            {
-                Log.Warning("Failed to download {FailedSegments} segments", failedSegments);
-            }
-
-            Log.Debug("Downloaded {SegCount} segments", segCount);
-            var pathEntries = new List<string>(segCount);
-            for (var i = 0; i < segCount; i++)
-            {
-                var segmentPath = Path.Combine(segmentsDest, $"segment_{i:D5}.ts");
-                pathEntries.Add($"file '{segmentPath.Replace("'", "'\\''")}'");
-            }
-
-            var listPath = Path.Combine(temp, "segments.txt");
-            await File.WriteAllLinesAsync(listPath, pathEntries);
-            var outputPath = Path.Combine(path, outputName);
-            var cmd = new[]
-            {
-                "-f", "concat",
-                "-safe", "0",
-                "-i", $"\"{listPath}\"",
-                "-c", "copy",
-                $"\"{outputPath}\""
-
-            };
-            await ImageRipper.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation",
-                endMessage: "Finished ffmpeg concatenation");
-
-            Log.Debug("Output saved to: {OutputPath}", outputPath);
+            var playlistUrl = await GetPlaylistUrl(url, client);
+            var segments = await DownloadPlaylist(playlistUrl, client);
+            var segmentPaths = await DownloadSegments(segments, tempPath, client);
+            var outputPath = Path.Combine(savePath, outputName);
+            await ConcatenateSegments(segmentPaths, tempPath, outputPath);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error downloading M3U8 segments");
+            #if DEBUG
+            success = false;
+            #endif
+            throw;
         }
         finally
         {
-            if (temp is not null)
+            if (tempPath is not null)
             {
-                Directory.Delete(temp, true);
+                #if DEBUG // Keep temp files on failure for debugging
+                if (success)
+                {
+                    Directory.Delete(tempPath, true);
+                }
+                #else
+                Directory.Delete(tempPath, true);
+                #endif
             }
-            
+
             Log.Debug("Temporary files cleaned up.");
         }
     }
 
-    private static string GetSegmentUrl(string line, string shortBaseUrl, string longBaseUrl)
+    private static async Task ConcatenateSegments(List<string> segmentPaths, string tempPath, string outputPath)
     {
-        var segmentUrl = line.Trim();
-        if (segmentUrl.StartsWith("http"))
-        {
-            return segmentUrl;
-        }
+        var pathEntries = new List<string>(segmentPaths.Count);
+        pathEntries.AddRange(segmentPaths.Select(path => $"file '{path.Replace("'", "'\\''")}'"));
 
-        var qs = segmentUrl.IndexOf('?');
-        var queryStart = qs == -1 ? segmentUrl.Length - 1 : qs;
-        if (segmentUrl.IndexOf('/', 0, queryStart) != -1)
+        var listPath = Path.Combine(tempPath, "segments.txt");
+        await File.WriteAllLinesAsync(listPath, pathEntries);
+        var cmd = new[]
         {
-            segmentUrl = shortBaseUrl + segmentUrl;
-            Log.Debug("Using short base URL for segment: {SegmentUrl}", segmentUrl);
-        }
-        else
-        {
-            segmentUrl = longBaseUrl + segmentUrl;
-            Log.Debug("Using long base URL for segment: {SegmentUrl}", segmentUrl);
-        }
+            "-f", "concat",
+            "-safe", "0",
+            "-i", $"\"{listPath}\"",
+            "-c", "copy",
+            $"\"{outputPath}\""
+        };
+        await ImageRipper.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation",
+            endMessage: "Finished ffmpeg concatenation");
 
-        return segmentUrl;
+        Log.Debug("Output saved to: {OutputPath}", outputPath);
     }
-    
-    private static string? GetHighestQualityVideoPlaylist(string playlist)
+
+    private static async Task<List<string>> DownloadSegments(List<string> segments, string savePath,
+                                                             HttpClient client)
     {
-        var lines = playlist.Split('\n');
-        string? highestQuality = null;
-        var highestResolution = 0;
-        var store = false;
-        foreach (var line in lines)
+        var segmentPaths = new List<string>();
+        var segmentCount = 0;
+        foreach (var segment in segments)
         {
-            if (!line.StartsWith("#EXT-X-STREAM-INF"))
+            Log.Debug("Downloading segment URL: {SegmentUrl}", segment);
+            var segmentResponse = await client.GetAsync(segment);
+            segmentResponse.EnsureSuccessStatusCode();
+            var data = await segmentResponse.Content.ReadAsByteArrayAsync();
+            byte[] segmentData;
+            try
             {
-                if (store)
-                {
-                    highestQuality = line;
-                    store = false;
-                }
-                
+                segmentData = ExtractTs(data);
+            }
+            catch (RipperException e)
+            {
+                Log.Error(e, "Failed to extract segment data");
                 continue;
             }
-            
-            var parts = line.Split(',');
-            foreach (var part in parts)
+
+            var segmentPath = Path.Combine(savePath, $"segment_{segmentCount:D5}.ts");
+            Log.Debug("Saving segment {SegmentPath}", segmentPath);
+            segmentCount++;
+            await File.WriteAllBytesAsync(segmentPath, segmentData);
+            segmentPaths.Add(segmentPath);
+        }
+
+        return segmentPaths;
+    }
+
+    private static async Task<List<string>> DownloadPlaylist(string url, HttpClient client)
+    {
+        Log.Debug("Downloading playlist URL: {URL}", url);
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        var lines = content.Split('\n');
+
+        return (lines.Where(line => !line.StartsWith('#') && !string.IsNullOrWhiteSpace(line))
+                     .Select(line => ResolveUrl(url, line.Trim()))).ToList();
+    }
+
+    private static async Task<string> GetPlaylistUrl(string url, HttpClient client)
+    {
+        Log.Debug("Downloading M3U8 playlist from: {Url}", url);
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+        var playlistUrl = GetHighestQualityVideoPlaylist(content);
+        if (playlistUrl is null)
+        {
+            throw new InvalidOperationException("No video playlist found in M3U8 content");
+        }
+
+        var resolvedUrl = ResolveUrl(url, playlistUrl);
+        Log.Debug("Resolved playlist URL: {ResolvedUrl}", resolvedUrl);
+        return resolvedUrl;
+    }
+
+    private static string ResolveUrl(string baseUrl, string reference)
+    {
+        return new Uri(new Uri(baseUrl), reference).ToString();
+    }
+
+    private static string? GetHighestQualityVideoPlaylist(string playlist)
+    {
+        var lines = playlist
+                   .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                   .Select(l => l.Trim())
+                   .ToArray();
+
+        string? bestUri = null;
+        long bestScore = 0;
+
+        for (var i = 0; i < lines.Length - 1; i++)
+        {
+            var line = lines[i];
+
+            if (!line.StartsWith("#EXT-X-STREAM-INF"))
             {
-                if (!part.StartsWith("RESOLUTION="))
+                continue;
+            }
+
+            long bandwidth = 0;
+            long pixels = 0;
+
+            foreach (var part in line.Split(','))
+            {
+                if (part.StartsWith("BANDWIDTH="))
+                {
+                    if (long.TryParse(part["BANDWIDTH=".Length..], out var bw))
+                    {
+                        bandwidth = bw;
+                    }
+                }
+                else if (part.StartsWith("RESOLUTION="))
+                {
+                    var r = part["RESOLUTION=".Length..].Split('x');
+                    if (r.Length == 2 &&
+                        long.TryParse(r[0], out var w) &&
+                        long.TryParse(r[1], out var h))
+                    {
+                        pixels = w * h;
+                    }
+                }
+            }
+
+            // prefer resolution; fallback to bandwidth
+            var score = pixels > 0 ? pixels : bandwidth;
+
+            if (score <= bestScore)
+            {
+                continue;
+            }
+
+            bestScore = score;
+
+            // next NON-tag line is URI
+            for (var j = i + 1; j < lines.Length; j++)
+            {
+                if (lines[j].StartsWith('#'))
                 {
                     continue;
                 }
-                
-                var resolutionPart = part.TrimStartMatches("RESOLUTION=");
-                var resolution = resolutionPart.Split('x')[0];
-                var resolutionValue = int.TryParse(resolution, out var res) ? res : 0;
-                if (resolutionValue > highestResolution)
-                {
-                    highestResolution = resolutionValue;
-                    store = true;
-                }
+
+                bestUri = lines[j];
+                break;
             }
         }
-        
-        return highestQuality;
+
+        return bestUri;
     }
 
     private static byte[] ExtractTs(byte[] segment)
@@ -239,7 +229,7 @@ public static class M3U8Downloader
         {
             throw new RipperException("No TS packet found");
         }
-        
+
         var slice = new Memory<byte>(segment, index, segment.Length - index);
         while (slice.Length >= 189)
         {
@@ -248,7 +238,7 @@ public static class M3U8Downloader
                 break;
             }
 
-            var tempSlice = new Memory<byte>(segment, index+1, segment.Length - index - 1);
+            var tempSlice = new Memory<byte>(segment, index + 1, segment.Length - index - 1);
             var tempIndex = tempSlice.IndexOf((byte)0x47);
             if (tempIndex == -1)
             {
@@ -258,7 +248,7 @@ public static class M3U8Downloader
             index += tempIndex + 1;
             slice = tempSlice[index..];
         }
-        
+
         return slice.ToArray();
     }
 }

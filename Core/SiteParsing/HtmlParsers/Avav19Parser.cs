@@ -8,7 +8,7 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public class Avav19Parser : Av19aParser, IHtmlParser
 {
-    public static string ParserName => "avav19";
+    public new static string ParserName => "avav19";
 
     public Avav19Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Avav19Parser>(filenameScheme))
     {
