@@ -14,6 +14,7 @@ public class CookieConfig
     public required string SimpCity { get; set; }
     [JsonConverter(typeof(StringOrArrayConverter))] // required for backward compatibility
     public required string[] Pixiv { get; set; }
+    public required string SteamCommunity { get; set; }
     
     public static CookieConfig New()
     {
@@ -26,7 +27,8 @@ public class CookieConfig
             Thothub = "",
             Kemono = "",
             SimpCity = "",
-            Pixiv = []
+            Pixiv = [],
+            SteamCommunity = "",
         };
     }
 }

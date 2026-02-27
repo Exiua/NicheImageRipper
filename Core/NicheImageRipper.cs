@@ -209,7 +209,7 @@ public partial class NicheImageRipper : IDisposable
     public static string NormalizeUrl(string url)
     {
         var host = new Uri(url).Host;
-
+        
         if (host.Contains("pornhub.com"))
         {
             return NormalizePornhubUrl(url);
@@ -255,6 +255,25 @@ public partial class NicheImageRipper : IDisposable
         if (host.Contains("hanime1.me"))
         {
             return url.Split("&page=")[0];
+        }
+        
+        if (host.Contains("steamcommunity.com"))
+        {
+            var parts = url.Split('?');
+            var parameters = parts.Length > 1 ? parts[1].Split('&') : [];
+            if (parameters.Length < 1)
+            {
+                throw new RipperException("Unexpected Steam Community URL format: " + url);
+            }
+
+            var appId = parameters.FirstOrDefault(p => p.StartsWith("appid"));
+            if (appId is null)
+            {
+                throw new RipperException("Unexpected Steam Community URL format: " + url);
+            }
+            
+            var normalizedUrl = $"{parts[0]}?{appId}";
+            return normalizedUrl;
         }
 
         return url.Split("?")[0];
