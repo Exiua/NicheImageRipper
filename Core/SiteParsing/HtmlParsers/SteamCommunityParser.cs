@@ -1,6 +1,7 @@
 using Common.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
+using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
 using HtmlAgilityPack;
@@ -28,6 +29,18 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse()
     {
+        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.SteamCmd))
+        {
+            Log.Error("SteamCmd is not available, cannot parse steamcommunity.com");
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.SteamCmd);
+        }
+
+        if (Config.Cookies.SteamCommunity.IsNullOrEmpty())
+        {
+            Log.Error("No cookies found for steamcommunity.com, cannot parse. Please provide cookies in the config file.");
+            throw new MissingCookieException(nameof(Config.Cookies.SteamCommunity));
+        }
+        
         Driver.SetCookie("steamLoginSecure", Config.Cookies.SteamCommunity);
         Driver.Refresh();
         var soup = await Soupify();

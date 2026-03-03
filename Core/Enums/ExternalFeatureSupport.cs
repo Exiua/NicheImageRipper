@@ -9,4 +9,5 @@ public enum ExternalFeatureSupport
     MegaCmd         = 1 << 2,
     FlareSolverr    = 1 << 3,
     CSWebDriver     = 1 << 4,
+    SteamCmd        = 1 << 5,
 }

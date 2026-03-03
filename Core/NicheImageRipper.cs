@@ -668,11 +668,12 @@ public partial class NicheImageRipper : IDisposable
     private static ExternalFeatureSupport GetExternalFeatureSupport()
     {
         var support = ExternalFeatureSupport.None;
-        support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : ExternalFeatureSupport.None;
-        support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : ExternalFeatureSupport.None;
-        support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : ExternalFeatureSupport.None;
-        support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : ExternalFeatureSupport.None;
-        support |= CheckForCSWebDriver() ? ExternalFeatureSupport.CSWebDriver : ExternalFeatureSupport.None;
+        support |= CheckForFfmpeg()         ? ExternalFeatureSupport.Ffmpeg         : ExternalFeatureSupport.None;
+        support |= CheckForYtDlp()          ? ExternalFeatureSupport.YtDlp          : ExternalFeatureSupport.None;
+        support |= CheckForMegaCmd()        ? ExternalFeatureSupport.MegaCmd        : ExternalFeatureSupport.None;
+        support |= CheckForFlareSolverr()   ? ExternalFeatureSupport.FlareSolverr   : ExternalFeatureSupport.None;
+        support |= CheckForCSWebDriver()    ? ExternalFeatureSupport.CSWebDriver    : ExternalFeatureSupport.None;
+        support |= CheckForSteamCmd()       ? ExternalFeatureSupport.SteamCmd       : ExternalFeatureSupport.None;
         return support;
     }
 
@@ -699,6 +700,11 @@ public partial class NicheImageRipper : IDisposable
     private static bool CheckForCSWebDriver()
     {
         return Config.CSWebDriverUri != "";
+    }
+    
+    private static bool CheckForSteamCmd()
+    {
+        return CheckForProcess("steamcmd", "+login anonymous +quit");
     }
 
     private static bool CheckForProcess(string filename, string arguments)
