@@ -256,7 +256,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public bool Play()
     {
-        return _ripper.Play();
+        return _ripper.Resume();
     }
 
     public bool Pause()

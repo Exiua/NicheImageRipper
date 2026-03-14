@@ -6,6 +6,7 @@ public class RejectedUrlsInfo
     public int StartIndex { get; }
     
     public int Count => Urls.Count;
+    public bool HasRejectedUrls => Urls.Count > 0;
 
     public RejectedUrlsInfo(int startIndex)
     {

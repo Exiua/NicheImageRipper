@@ -23,8 +23,6 @@ namespace Core;
 
 public partial class NicheImageRipper : IDisposable
 {
-    private Version? _latestVersion;
-
     public static string Title => "NicheImageRipper";
     public static GeneralConfig Config => Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
@@ -34,11 +32,12 @@ public partial class NicheImageRipper : IDisposable
 
     public Version Version { get; } = new(4, 0, 0, 0);
 
-    public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
+    public Version LatestVersion => field ??= GetLatestVersion().Result;
 
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; }
     public ImageRipper? Ripper { get; set; }
+    public bool Paused =>  Ripper?.Paused ?? false;
 
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
@@ -136,7 +135,7 @@ public partial class NicheImageRipper : IDisposable
         }
     }
 
-    public bool Play()
+    public bool Resume()
     {
         if (Ripper is null)
         {
@@ -606,7 +605,7 @@ public partial class NicheImageRipper : IDisposable
         OnUrlQueueUpdated?.Invoke();
     }
 
-    public void DequeueUrls(List<string> urlsToRemove)
+    public void DequeueUrls(IEnumerable<string> urlsToRemove)
     {
         var currentCount = UrlQueue.Count;
         UrlQueue = UrlQueue.Except(urlsToRemove).ToList();

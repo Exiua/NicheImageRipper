@@ -1,0 +1,6 @@
+@CoreService_HostAddress = http://localhost:5108
+
+GET {{CoreService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

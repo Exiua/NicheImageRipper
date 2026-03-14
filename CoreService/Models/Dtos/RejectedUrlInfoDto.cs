@@ -1,0 +1,9 @@
+using Core.Enums;
+
+namespace CoreService.Models.Dtos;
+
+public class RejectedUrlInfoDto(string url, QueueFailureReason reason)
+{
+    public string Url { get; set; } = url;
+    public QueueFailureReason Reason { get; set; } = reason;
+}
