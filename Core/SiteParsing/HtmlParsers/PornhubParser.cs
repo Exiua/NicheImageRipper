@@ -248,9 +248,8 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 }
             }
 
-            var imageLink = new ImageLink(highestQualityUrl, FilenameScheme, 0)
+            var imageLink = new ImageLink(highestQualityUrl, FilenameScheme, 0, filename: $"{dirName}.mp4", cleanFilename: true)
             {
-                Filename = $"{dirName}.mp4",
                 LinkInfo = LinkInfo.ObfuscatedM3U8,
                 Referer = "https://pornhub.com/"
             };
