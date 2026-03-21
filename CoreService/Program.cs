@@ -6,9 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 #if DEBUG
-const LogEventLevel minimumLevel = Serilog.Events.LogEventLevel.Debug;
+const LogEventLevel minimumLevel = LogEventLevel.Debug;
 #else
-const LogEventLevel minimumLevel = Serilog.Events.LogEventLevel.Information;
+const LogEventLevel minimumLevel = LogEventLevel.Information;
 #endif
 
 Log.Logger = new LoggerConfiguration()

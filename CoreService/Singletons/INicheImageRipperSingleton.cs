@@ -1,5 +1,6 @@
 using Core.DataStructures;
 using Core.History;
+using CoreService.Models.Configs;
 using CoreService.Models.Dtos;
 
 namespace CoreService.Singletons;
@@ -16,4 +17,6 @@ public interface INicheImageRipperSingleton
     public bool Resume();
     public IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null);
     public int GetHistoryCount();
+    public Config GetConfig();
+    public void UpdateConfig(Config config);
 }
