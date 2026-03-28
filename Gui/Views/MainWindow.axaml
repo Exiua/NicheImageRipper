@@ -1,0 +1,129 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Gui.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Gui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Gui">
+    
+    <Window.Resources>
+        <StreamGeometry x:Key="PauseButtonIcon">M520-200v-560h240v560H520Zm-320 0v-560h240v560H200Zm400-80h80v-400h-80v400Zm-320 0h80v-400h-80v400Zm0-400v400-400Zm320 0v400-400Z</StreamGeometry>
+        <StreamGeometry x:Key="PlayButtonIcon">M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z</StreamGeometry>
+    </Window.Resources>
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Grid x:Name="GridBackground" ColumnDefinitions="*" RowDefinitions="Auto, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+          Height="{Binding Height, RelativeSource={RelativeSource Self}}" Focusable="True">
+        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
+            <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
+            <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput"/>
+            <Button HotKey="Enter" Command="{Binding RipCommand}">Rip</Button>
+            <Button Click="PlayPauseButton_OnClick"><PathIcon x:Name="PlayPauseButtonIcon" Data="{StaticResource PauseButtonIcon}"></PathIcon></Button>
+        </StackPanel>
+        <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
+            <TabItem Header="Logs">
+                <TextBox x:Name="LogTextBox" Text="{Binding LogText}" Margin="5"
+                         IsReadOnly="True" />
+            </TabItem>
+            <TabItem Header="Queue">
+                <Grid RowDefinitions="Auto, *" ColumnDefinitions="*">
+                    <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Button Command="{Binding DequeueUrlsCommand}"
+                                    Margin="0,10">
+                                Remove Urls
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" /> <!-- Spacer -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBlock Text="{Binding UrlCountText}" />
+                        </StackPanel>
+                    </Grid>
+                    <ListBox Grid.Row="1" Grid.Column="0" x:Name="UrlQueue" SelectionMode="Multiple"
+                             SelectedItems="{Binding SelectedUrls}" />
+                </Grid>
+            </TabItem>
+            <TabItem Header="History">
+                <StackPanel Orientation="Vertical">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Button x:Name="PreviousHistoryPageButton" Click="PreviousHistoryPage" IsEnabled="False">Previous</Button>
+                            <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage" />
+                            <Button x:Name="NextHistoryPageButton" Click="NextHistoryPage">Next</Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" /> <!-- Spacer -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBox Text="{Binding HistoryFilterText}" Width="500" LostFocus="UpdateCurrentHistoryPageWithFilter" />
+                            <Button Click="ClearHistoryFilter">Clear</Button>
+                        </StackPanel>
+                    </Grid>
+                    <DataGrid Margin="0, 10" ItemsSource="{Binding History}"
+                              IsReadOnly="True"
+                              KeyUp="HistoryDataGrid_OnKeyUp"
+                              CanUserReorderColumns="False"
+                              CanUserResizeColumns="True"
+                              CanUserSortColumns="False"
+                              GridLinesVisibility="All"
+                              BorderThickness="1" BorderBrush="Gray">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}" 
+                                                Width="{Binding NameWidth}" Tag="HistoryName"
+                                                PropertyChanged="OnHistoryColumnWidthChanged" />
+                            <DataGridTextColumn Header="Url" Binding="{Binding Url}" 
+                                                Width="{Binding UrlWidth}" Tag="HistoryUrl"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTextColumn Header="Date" Binding="{Binding Date}" 
+                                                Width="{Binding DateWidth}" Tag="HistoryDate"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}"
+                                                Width="{Binding CountWidth}" Tag="HistoryCount"
+                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
+                            <DataGridTemplateColumn Header="Action">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Re-rip" 
+                                                Command="{Binding ((vm:MainWindowViewModel)DataContext).ReRipUrlCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                                CommandParameter="{Binding Url}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Settings">
+                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="10" Text="Save Location:" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="10" Text="{Binding SavePath}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="10" Text="Select Save Folder:" />
+                    <Button Grid.Row="1" Grid.Column="1" Margin="10" Click="SelectFolder">Browse</Button>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="10" Text="Load Unfinished Urls:" />
+                    <Button Grid.Row="2" Grid.Column="1" Margin="10" Click="SelectUnfinishedUrlFile">Browse</Button>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="10" Text="Check For Updates:" />
+                    <Button Grid.Row="3" Grid.Column="1" Margin="10">Check</Button>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Margin="10" Text="Clear Cache:" />
+                    <Button Grid.Row="4" Grid.Column="1" Margin="10" Command="{Binding ClearCacheCommand}">Clear</Button>
+                    <TextBlock Grid.Row="5" Grid.Column="0" Margin="10" Text="Filename Scheme:" />
+                    <ComboBox Grid.Row="5" Grid.Column="1" Margin="10" x:Name="FilenameSchemeComboBox" SelectedIndex="{Binding FilenameSchemeIndex}" />
+                    <TextBlock Grid.Row="6" Grid.Column="0" Margin="10" Text="Unzip Protocol:" />
+                    <ComboBox Grid.Row="6" Grid.Column="1" Margin="10" x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
+                    <TextBlock Grid.Row="7" Grid.Column="0" Margin="10" Text="Max Retries:" />
+                    <TextBox Grid.Row="7" Grid.Column="1" Margin="10" x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}" LostFocus="ValidateNumericValue" />
+                    <TextBlock Grid.Row="8" Grid.Column="0" Margin="10" Text="Retry Delay (ms):" />
+                    <TextBox Grid.Row="8" Grid.Column="1" Margin="10" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
+                    <TextBlock Grid.Row="9" Grid.Column="0" Margin="10" Text="Skip Failed Downloads:" />
+                    <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding SkipFailedDownloads}"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+
+</Window>

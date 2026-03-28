@@ -10,9 +10,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlareSolverrIntegration", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MangaDexLibrary", "MangaDexLibrary\MangaDexLibrary.csproj", "{DC425561-67A2-4D30-A3E4-1EDF272D9C48}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreGui", "CoreGui\CoreGui.csproj", "{C99547B8-939F-4F38-A894-DC8DA05C97FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gui", "Gui\Gui.csproj", "{C99547B8-939F-4F38-A894-DC8DA05C97FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreTui", "CoreTui\CoreTui.csproj", "{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tui", "Tui\Tui.csproj", "{1E121D1F-D0D7-4E9F-89BA-44F905AAC8E6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{8CA7B3FC-6E65-4668-84E7-15D3867BEB34}"
 EndProject
@@ -22,9 +22,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApiTest", "PixivApiTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSWebDriverClient", "CSWebDriverClient\CSWebDriverClient.csproj", "{0FDDA1DF-2CFA-4905-BEFF-8A171538164D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreService", "CoreService\CoreService.csproj", "{CCC06193-F695-460B-BF64-0D050F39A259}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service", "Service\Service.csproj", "{CCC06193-F695-460B-BF64-0D050F39A259}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreServiceAdminCli", "CoreServiceAdminCli\CoreServiceAdminCli.csproj", "{9D1B639C-7130-49F0-818F-26231EC1995B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceAdminCli", "ServiceAdminCli\ServiceAdminCli.csproj", "{9D1B639C-7130-49F0-818F-26231EC1995B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
