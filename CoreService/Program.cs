@@ -1,8 +1,10 @@
 using CoreService.Contexts;
 using CoreService.Handlers;
+using CoreService.Serilog;
 using CoreService.Services;
 using CoreService.Singletons;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -27,7 +29,6 @@ Log.Logger = new LoggerConfiguration()
                  shared: true)
             .CreateLogger();
 
-builder.Host.UseSerilog();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -39,12 +40,21 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+var broadcaster = new WebSocketLogBroadcaster(null);
+builder.Services.AddSingleton(broadcaster);
 builder.Services.AddSingleton<INicheImageRipperSingleton, NicheImageRipperSingleton>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
 builder.Services
        .AddAuthentication("ApiKey")
        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+
+builder.Host.UseSerilog((_, _, configuration) =>
+{
+    configuration
+       .WriteTo.Console()
+       .WriteTo.WebSocketLogs(broadcaster);
+});
 
 var app = builder.Build();
 
@@ -55,9 +65,32 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
+app.UseWebSockets();
 app.MapControllers();
+
+app.Map("/ws/logs", async context =>
+    {
+        if (!context.User.Identity?.IsAuthenticated ?? true)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        if (!context.WebSockets.IsWebSocketRequest)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        var broadcaster = context.RequestServices.GetRequiredService<WebSocketLogBroadcaster>();
+        using var socket = await context.WebSockets.AcceptWebSocketAsync();
+
+        await broadcaster.AddClientAndWaitAsync(socket, context.RequestAborted);
+    })
+   .RequireAuthorization(new AuthorizeAttribute
+    {
+        AuthenticationSchemes = "ApiKey"
+    });
 
 app.Run();
