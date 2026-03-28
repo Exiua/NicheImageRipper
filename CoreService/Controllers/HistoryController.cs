@@ -1,10 +1,12 @@
 using Core.DataStructures;
 using CoreService.Models.Requests;
 using CoreService.Singletons;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreService.Controllers;
 
+[Authorize(AuthenticationSchemes = "ApiKey")]
 [ApiController]
 [Route("api/history")]
 public partial class HistoryController(ILogger<HistoryController> logger, INicheImageRipperSingleton nicheImageRipperSingleton) : ControllerBase

@@ -7,7 +7,7 @@ namespace Core.History;
 
 public class HistoryManager : IDisposable
 {
-    private const string ConnectionString = "Data Source=history.db";
+    private const string ConnectionString = "Data Source=NicheImageRipper.db";
     
     public static HistoryManager Instance { get; } = new();
     

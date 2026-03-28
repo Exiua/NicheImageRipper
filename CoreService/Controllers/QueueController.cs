@@ -1,9 +1,11 @@
 using CoreService.Models.Dtos;
 using CoreService.Singletons;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreService.Controllers;
 
+[Authorize(AuthenticationSchemes = "ApiKey")]
 [ApiController]
 [Route("api/queue")]
 public class QueueController(ILogger<QueueController> logger, INicheImageRipperSingleton nicheImageRipperSingleton) : ControllerBase
