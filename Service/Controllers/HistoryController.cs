@@ -1,4 +1,5 @@
 using Core.DataStructures;
+using Core.History;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Models.Requests;
@@ -9,23 +10,36 @@ namespace Service.Controllers;
 [Authorize(AuthenticationSchemes = "ApiKey")]
 [ApiController]
 [Route("api/history")]
-public partial class HistoryController(ILogger<HistoryController> logger, INicheImageRipperSingleton nicheImageRipperSingleton) : ControllerBase
+public partial class HistoryController(
+    ILogger<HistoryController> logger,
+    INicheImageRipperSingleton nicheImageRipperSingleton) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<IEnumerable<HistoryEntry>> GetHistory([FromBody] GetHistoryRequest request)
+    public ActionResult<IEnumerable<HistoryEntry>> GetHistory([FromQuery] int start,
+                                                              [FromQuery] int offset,
+                                                              [FromQuery] HistoryFilterType? filterType,
+                                                              [FromQuery] string? filterValue)
     {
-        var start = request.Start;
-        var offset = request.Offset;
         if (start < 0 || offset < 1)
         {
             return BadRequest();
         }
 
-        var filter = request.Filter;
+        HistoryFilter? filter = filterType switch
+        {
+            HistoryFilterType.DateStart => new HistoryDateFilter(DateTime.Parse(filterValue!),
+                HistoryFilterType.DateStart),
+            HistoryFilterType.DateEnd => new HistoryDateFilter(DateTime.Parse(filterValue!), HistoryFilterType.DateEnd),
+            HistoryFilterType.Url => new HistoryUrlFilter(filterValue!),
+            HistoryFilterType.DirectoryName => new HistoryNameFilter(filterValue!),
+            null => null,
+            _ => throw new InvalidOperationException("Unknown filter type")
+        };
+
         var historyEntries = nicheImageRipperSingleton.GetHistory(start, offset, filter);
         return Ok(historyEntries);
     }
-    
+
     [HttpGet("count")]
     public ActionResult<int> GetHistoryCount()
     {

@@ -24,7 +24,7 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
     }
 
     [HttpDelete]
-    public IActionResult DequeueUrls([FromQuery] string[] urls)
+    public IActionResult DequeueUrls([FromBody] string[] urls)
     {
         nicheImageRipperSingleton.Dequeue(urls);
         return Ok();

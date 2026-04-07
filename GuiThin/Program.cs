@@ -3,6 +3,7 @@ using ReactiveUI.Avalonia;
 using System;
 using System.Threading.Tasks;
 using Core.Configuration;
+using GuiThin.Models;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -18,7 +19,7 @@ sealed class Program
     public static void Main(string[] args)
     {
         // Important to call this as early as possible
-        Config.ReloadConfig<GeneralConfig>();
+        Config.ReloadConfig<GuiThinConfig>();
         
         #if DEBUG
         Log.Logger = new LoggerConfiguration()

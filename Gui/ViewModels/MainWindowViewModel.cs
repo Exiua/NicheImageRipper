@@ -6,6 +6,7 @@ using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Common.Utility;
 using Core;
 using Core.DataStructures;
 using Core.Enums;
@@ -23,28 +24,16 @@ public class MainWindowViewModel : ViewModelBase
 {
     private readonly NicheImageRipper _ripper;
     private readonly ITaskbarProgressService? _progressService = GetTaskbarProgressService(); //TODO: Implement usage
-
+    
+    private static readonly Version Version = new(1, 0, 0);
     private static GuiConfig Config => (GuiConfig) Core.Configuration.Config.Instance;
+
+    public static string Title => $"Gui v{Version} - Core v{NicheImageRipper.Version}";
 
     internal MainWindow MainWindow { get; set; } = null!;
 
     private bool _ripInProgress;
-    private string _urlInput = "";
-    private string _savePath = NicheImageRipper.SavePath;
-    private int _filenameSchemeIndex;
-    private int _unzipProtocolIndex;
-    private string _logText = "";
-    private string _currentHistoryPageDisplay = "1";
     private int _currentHistoryPage;
-    private string _maxRetriesDisplay = NicheImageRipper.MaxRetries.ToString();
-    private string _retryDelayDisplay = NicheImageRipper.RetryDelay.ToString();
-    private double _nameWidth = Config.HistoryColumnWidths.NameWidth;
-    private double _urlWidth = Config.HistoryColumnWidths.UrlWidth;
-    private double _dateWidth = Config.HistoryColumnWidths.DateWidth;
-    private double _countWidth = Config.HistoryColumnWidths.CountWidth;
-    private string _historyFilterText = "";
-    private string _urlCountText = "URLs in queue: 0";
-    private bool _skipFailedDownloads;
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -55,49 +44,49 @@ public class MainWindowViewModel : ViewModelBase
 
     public string SavePath
     {
-        get => _savePath;
+        get;
         set
         {
-            this.RaiseAndSetIfChanged(ref _savePath, value);
+            this.RaiseAndSetIfChanged(ref field, value);
             NicheImageRipper.SavePath = value;
         }
-    }
+    } = NicheImageRipper.SavePath;
 
     public string UrlInput
     {
-        get => _urlInput;
-        set => this.RaiseAndSetIfChanged(ref _urlInput, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
 
     public int FilenameSchemeIndex
     {
-        get => _filenameSchemeIndex;
+        get;
         set
         {
-            this.RaiseAndSetIfChanged(ref _filenameSchemeIndex, value);
+            this.RaiseAndSetIfChanged(ref field, value);
             NicheImageRipper.FilenameScheme = (FilenameScheme)value;
         }
     }
 
     public int UnzipProtocolIndex
     {
-        get => _unzipProtocolIndex;
+        get;
         set
         {
-            this.RaiseAndSetIfChanged(ref _unzipProtocolIndex, value);
+            this.RaiseAndSetIfChanged(ref field, value);
             NicheImageRipper.UnzipProtocol = (UnzipProtocol)value;
         }
     }
 
     public string LogText
     {
-        get => _logText;
-        set => this.RaiseAndSetIfChanged(ref _logText, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
 
     public string CurrentHistoryPageDisplay
     {
-        get => _currentHistoryPageDisplay;
+        get;
         set
         {
             if (int.TryParse(value, out var result))
@@ -109,83 +98,83 @@ public class MainWindowViewModel : ViewModelBase
                 result = -1;
             }
 
-            this.RaiseAndSetIfChanged(ref _currentHistoryPageDisplay, result.ToString());
+            this.RaiseAndSetIfChanged(ref field, result.ToString());
         }
-    }
+    } = "1";
 
     public string MaxRetriesDisplay
     {
-        get => _maxRetriesDisplay;
-        set => this.RaiseAndSetIfChanged(ref _maxRetriesDisplay, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = NicheImageRipper.MaxRetries.ToString();
 
     public string RetryDelayDisplay
     {
-        get => _retryDelayDisplay;
-        set => this.RaiseAndSetIfChanged(ref _retryDelayDisplay, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = NicheImageRipper.RetryDelay.ToString();
 
     public bool SkipFailedDownloads
     {
-        get => _skipFailedDownloads;
+        get;
         set
         {
-            this.RaiseAndSetIfChanged(ref _skipFailedDownloads, value);
+            this.RaiseAndSetIfChanged(ref field, value);
             NicheImageRipper.SkipFailedDownloads = value;
         }
     }
 
     public double NameWidth
     {
-        get => _nameWidth;
+        get;
         set
         {
             Config.HistoryColumnWidths.NameWidth = value;
-            this.RaiseAndSetIfChanged(ref _nameWidth, value);
+            this.RaiseAndSetIfChanged(ref field, value);
         }
-    }
+    } = Config.HistoryColumnWidths.NameWidth;
 
     public double UrlWidth
     {
-        get => _urlWidth;
+        get;
         set
         {
             Config.HistoryColumnWidths.UrlWidth = value;
-            this.RaiseAndSetIfChanged(ref _urlWidth, value);
+            this.RaiseAndSetIfChanged(ref field, value);
         }
-    }
+    } = Config.HistoryColumnWidths.UrlWidth;
 
     public double DateWidth
     {
-        get => _dateWidth;
+        get;
         set
         {
             Config.HistoryColumnWidths.DateWidth = value;
-            this.RaiseAndSetIfChanged(ref _dateWidth, value);
+            this.RaiseAndSetIfChanged(ref field, value);
         }
-    }
+    } = Config.HistoryColumnWidths.DateWidth;
 
     public double CountWidth
     {
-        get => _countWidth;
+        get;
         set
         {
             Config.HistoryColumnWidths.CountWidth = value;
-            this.RaiseAndSetIfChanged(ref _countWidth, value);
+            this.RaiseAndSetIfChanged(ref field, value);
         }
-    }
+    } = Config.HistoryColumnWidths.CountWidth;
 
     public string HistoryFilterText
     {
-        get => _historyFilterText;
-        set => this.RaiseAndSetIfChanged(ref _historyFilterText, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
 
     public string UrlCountText
     {
-        get => _urlCountText;
-        set => this.RaiseAndSetIfChanged(ref _urlCountText, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "URLs in queue: 0";
 
     public ReactiveCommand<Unit, Unit> RipCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
@@ -193,6 +182,12 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
+    static MainWindowViewModel()
+    {
+        // FIXME: There is probably a cleaner way to structure this helper function
+        GuiUtility.ExtractTagsFromUrlFunc = BooruParser.ExtractTagsFromUrl;
+    }
+    
     public MainWindowViewModel()
     {
         _ripper = new NicheImageRipper();
@@ -334,107 +329,24 @@ public class MainWindowViewModel : ViewModelBase
         Task.Run(() => QueueUrls(input));
     }
 
-    /// <summary>
-    ///     Split input by spaces, but multiple spaces are treated as one
-    /// </summary>
-    /// <param name="input">String to split</param>
-    /// <returns>List of split strings</returns>
-    private static List<string> SplitInput(string input)
-    {
-        var parts = new List<string>();
-        var currentPart = "";
-        foreach (var c in input)
-        {
-            if (char.IsWhiteSpace(c))
-            {
-                if (currentPart == "")
-                {
-                    continue;
-                }
-
-                parts.Add(currentPart);
-                currentPart = "";
-            }
-            else
-            {
-                currentPart += c;
-            }
-        }
-        
-        if (currentPart != "")
-        {
-            parts.Add(currentPart);
-        }
-        
-        return parts;
-    }
-
     private async Task QueueUrls(string input)
     {
         if (!string.IsNullOrWhiteSpace(input))
         {
-            var parts = SplitInput(input);
+            var parts = GuiUtility.SplitInput(input);
             RejectedUrlsInfo rejectedUrls;
             if (parts[0] == "booru")
             {
-                if (parts.Count < 2)
+                try
+                {
+                    var urls = GuiUtility.ExpandBooruInput(parts);
+                    rejectedUrls = _ripper.QueueUrls(string.Join("", urls));
+                }
+                catch (InvalidOperationException)
                 {
                     Log.Warning("Missing argument: <tags>");
                     return;
                 }
-
-                // This is prob unintuitive
-                // Basically, any booru-like URL (i.e. starts with https:// and contains tags=) is converted to the global booru URL
-                //      such that the ripper will pull from all supported boorus
-                // Any other parts are treated as tags for a single booru search, but if a url is encountered, the tags
-                //      are queued first, then the url is queued, and subsequent tags are treated as a different search
-                // This process repeats until all input is consumed
-                // Example input:
-                // booru cute tall https://example.booru.com/post?tags=cat+animal funny
-                // Results in three searches:
-                // 1. cute, tall
-                // 2. cat, animal
-                // 3. funny
-                var urls = new List<string>();
-                var tags = new List<string>();
-                foreach (var part in parts.Skip(1))
-                {
-                    if (part.StartsWith("https://"))
-                    {
-                        if (tags.Count > 0)
-                        {
-                            var tagsString = string.Join("+", tags);
-                            var url = "https://booru.com/post?tags=" + tagsString;
-                            urls.Add(url);
-                            tags.Clear();
-                        }
-
-                        {
-                            // May throw an exception, if the input is not a booru-like URL
-                            var tagsString = BooruParser.ExtractTagsFromUrl(part);
-                            if (tagsString.EndsWith('+'))
-                            {
-                                tagsString = tagsString[..^1]; // Remove trailing +
-                            }
-
-                            var url = "https://booru.com/post?" + tagsString;
-                            urls.Add(url);
-                        }
-                    }
-                    else
-                    {
-                        tags.Add(part);
-                    }
-                }
-
-                if (tags.Count > 0)
-                {
-                    var tagsString = string.Join("+", tags);
-                    var url = "https://booru.com/post?tags=" + tagsString;
-                    urls.Add(url);
-                }
-
-                rejectedUrls = _ripper.QueueUrls(string.Join("", urls));
             }
             else
             {
