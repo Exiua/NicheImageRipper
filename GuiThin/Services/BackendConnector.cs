@@ -95,16 +95,16 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         string[] urls,
         CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, "api/queue", urls);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<List<RejectedUrlInfoDto>>(
-            JsonOptions,
+        return await SendAsync<string[], List<RejectedUrlInfoDto>>(
+            HttpMethod.Post,
+            "api/queue",
+            urls,
             cancellationToken);
+    }
 
-        return result ?? [];
+    public Task<int> GetQueueCountAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<int>(HttpMethod.Get, "api/queue/count", cancellationToken);
     }
 
     public async Task DequeueUrlsAsync(
@@ -121,7 +121,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
 
         response.EnsureSuccessStatusCode();
     }
-    
+
     private async Task<T> SendAsync<T>(HttpMethod method, string path, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(method, path);
@@ -132,7 +132,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken)
                ?? throw new InvalidOperationException($"Server returned no {typeof(T).Name} value.");
     }
-    
+
     private async Task<TResponse> SendAsync<TRequest, TResponse>(
         HttpMethod method,
         string path,
@@ -172,7 +172,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
     {
         return SendAsync<bool>(HttpMethod.Get, "api/state/is-ripping", cancellationToken);
     }
-    
+
     public Task<IEnumerable<HistoryEntry>> GetHistoryAsync(
         GetHistoryRequest request,
         CancellationToken cancellationToken = default)

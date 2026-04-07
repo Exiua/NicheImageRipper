@@ -29,4 +29,11 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
         nicheImageRipperSingleton.Dequeue(urls);
         return Ok();
     }
+
+    [HttpGet("count")]
+    public ActionResult<long> GetQueueCount()
+    {
+        var queueSnapshot = nicheImageRipperSingleton.GetQueueSnapshot();
+        return Ok(queueSnapshot.Length);
+    }
 }

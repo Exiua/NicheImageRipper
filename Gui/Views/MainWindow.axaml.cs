@@ -198,48 +198,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             return;
         }
         
-        HistoryFilter? filter = null;
-        var match = HistoryFilterRegex().Match(input);
-        if (match.Success)
-        {
-            var category = match.Groups[1].Value;
-            var value = match.Groups[2].Value;
-            switch (category)
-            {
-                case "name":
-                    filter = new HistoryNameFilter(value);
-                    break;
-                case "url":
-                    filter = new HistoryUrlFilter(value);
-                    break;
-                case "date":
-                    var date = ParsePartialDate(value);
-                    if (date is not null)
-                    {
-                        filter = new HistoryDateFilter(date.Value);
-                    }
-                    break;
-                case "before":
-                    date = ParsePartialDate(value);
-                    if (date is not null)
-                    {
-                        filter = new HistoryDateFilter(date.Value, HistoryFilterType.DateEnd);
-                    }
-                    break;
-                case "after":
-                    date = ParsePartialDate(value);
-                    if (date is not null)
-                    {
-                        filter = new HistoryDateFilter(date.Value, HistoryFilterType.DateStart);
-                    }
-                    break;
-            }
-        }
-        else
-        {
-            filter = new HistoryNameFilter(input);
-        }
-        
+        var filter = HistoryFilter.Parse(input);
         LoadHistory(filter);
     }
 
@@ -448,7 +407,4 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         var paused = ViewModel?.Pause() ?? false;
         _paused = paused;
     }
-
-    [GeneratedRegex(@"^(?i)(name|url|date|before|after):(.+)", RegexOptions.None, "en-US")]
-    private static partial Regex HistoryFilterRegex();
 }

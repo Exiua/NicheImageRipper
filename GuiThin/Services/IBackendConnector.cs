@@ -17,6 +17,7 @@ public interface IBackendConnector
     event Action<BackendLogEvent>? LogReceived;
 
     public Task<string[]> GetQueueSnapshotAsync(CancellationToken cancellationToken = default);
+    public Task<int> GetQueueCountAsync(CancellationToken cancellationToken = default);
 
     public Task<List<RejectedUrlInfoDto>> QueueUrlsAsync(
         string[] urls,
@@ -37,7 +38,7 @@ public interface IBackendConnector
         CancellationToken cancellationToken = default);
 
     public Task<int> GetHistoryCountAsync(CancellationToken cancellationToken = default);
-    
+
     public Task ConnectLogsAsync(CancellationToken cancellationToken = default);
     public Task DisconnectLogsAsync(CancellationToken cancellationToken = default);
 }

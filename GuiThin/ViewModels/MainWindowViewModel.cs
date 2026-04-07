@@ -1,13 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using Common.Utility;
+using Common.Gui.ExtensionMethods;
+using Common.Gui.Utility;
 using Core;
+using Core.DataStructures;
 using Core.Enums;
+using Core.History;
 using Core.SiteParsing.HtmlParsers;
 using GuiThin.Models;
 using GuiThin.Services;
@@ -15,6 +20,7 @@ using GuiThin.Views;
 using ReactiveUI;
 using Serilog;
 using Service.Models.Dtos;
+using Service.Models.Requests;
 
 namespace GuiThin.ViewModels;
 
@@ -42,6 +48,39 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    public bool Paused
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+    
+    public string HistoryFilterText
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
+    
+    public string UrlCountText
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "URLs in queue: 0";
+    
+    public List<string> SelectedUrls { get; set; } = [];
+    
+    public int CurrentHistoryPage { get; private set; } = 1;
+
+    public string CurrentHistoryPageDisplay
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "1";
+
+    public int HistoryPageSize { get; set; } = 100;
+    
+    public ObservableCollection<string> UrlQueue { get; }
+    public ObservableCollection<HistoryEntry> History { get; }
+
     public ReactiveCommand<Unit, Task> RipCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
     public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
@@ -63,6 +102,9 @@ public class MainWindowViewModel : ViewModelBase
         ClearCacheCommand = ReactiveCommand.Create(ClearCache);
         DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
         ReRipUrlCommand = ReactiveCommand.Create<string>(Rerip);
+        
+        UrlQueue = new ObservableCollection<string>([]);
+        History = new ObservableCollection<HistoryEntry>([]);
     }
 
     private async Task QueueAndRipAsync()
@@ -84,12 +126,12 @@ public class MainWindowViewModel : ViewModelBase
         var urlsToQueue = BuildUrlsToQueue(input);
         await QueueUrlsCoreAsync(urlsToQueue);
 
-        var queueAfter = await backendConnector.GetQueueSnapshotAsync();
-        Log.Debug("URLS in queue: {Count}", queueAfter.Length);
+        await RefreshQueueCountAsync();
 
         if (!await backendConnector.GetIsRippingStateAsync())
         {
             await backendConnector.RipAsync();
+            await RefreshQueueCountAsync();
         }
     }
     
@@ -201,5 +243,75 @@ public class MainWindowViewModel : ViewModelBase
         });
         
         return confirmationViewModel.Confirmed;
+    }
+    
+    public async Task RefreshQueueCountAsync(CancellationToken cancellationToken = default)
+    {
+        var snapshot = await backendConnector.GetQueueSnapshotAsync(cancellationToken);
+        UrlCountText = $"URLs in queue: {snapshot.Length}";
+    }
+    
+    public async Task<bool> PlayAsync(CancellationToken cancellationToken = default)
+    {
+        var stateChanged = await backendConnector.ResumeAsync(cancellationToken);
+        Paused = false;
+        return stateChanged;
+    }
+
+    public async Task<bool> PauseAsync(CancellationToken cancellationToken = default)
+    {
+        var stateChanged = await backendConnector.PauseAsync(cancellationToken);
+        Paused = true;
+        return stateChanged;
+    }
+
+    public void ApplyCurrentHistoryPageDisplay()
+    {
+        if (int.TryParse(CurrentHistoryPageDisplay, out var page) && page >= 1)
+        {
+            CurrentHistoryPage = page;
+        }
+        else
+        {
+            CurrentHistoryPage = 1;
+            CurrentHistoryPageDisplay = "1";
+        }
+    }
+    
+    public async Task RefreshHistoryPageAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyCurrentHistoryPageDisplay();
+
+        var historyCount = await backendConnector.GetHistoryCountAsync(cancellationToken);
+        var maxPage = Math.Max(1, (int)Math.Ceiling(historyCount / (double)HistoryPageSize));
+
+        if (CurrentHistoryPage > maxPage)
+        {
+            CurrentHistoryPage = maxPage;
+            CurrentHistoryPageDisplay = maxPage.ToString();
+        }
+
+        var request = new GetHistoryRequest
+        {
+            Start = (CurrentHistoryPage - 1) * HistoryPageSize,
+            Offset = HistoryPageSize,
+            Filter = BuildHistoryFilter()
+        };
+
+        var history = await backendConnector.GetHistoryAsync(request, cancellationToken);
+
+        History.Update(history);
+    }
+
+    private HistoryFilter? BuildHistoryFilter()
+    {
+        var input = HistoryFilterText.Trim();
+        return string.IsNullOrEmpty(input) ? null : HistoryFilter.Parse(input);
+    }
+
+    public async Task RefreshStateAsync(CancellationToken cancellationToken = default)
+    {
+        Paused = await backendConnector.GetPausedStateAsync(cancellationToken);
+        await RefreshQueueCountAsync(cancellationToken);
     }
 }

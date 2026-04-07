@@ -1,4 +1,4 @@
-namespace Common.Utility;
+namespace Common.Gui.Utility;
 
 public static class GuiUtility
 {
