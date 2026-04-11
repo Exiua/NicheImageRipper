@@ -32,7 +32,7 @@ public partial class NicheImageRipper : IDisposable
 
     protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
 
-    public Version Version { get; } = new(4, 0, 0, 0);
+    public Version Version { get; } = new(4, 1, 0, 0);
 
     public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
 

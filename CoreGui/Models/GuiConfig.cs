@@ -5,38 +5,13 @@ namespace CoreGui.Models;
 
 public class GuiConfig : GeneralConfig
 {
-    public HistoryColumnWidths HistoryColumnWidths { get; set; } = null!;
-    
-    [UsedImplicitly]
-    public GuiConfig() : base()
-    {
-        
-    }
-
-    protected GuiConfig(bool _) : base(_)
-    {
-        HistoryColumnWidths = HistoryColumnWidths.Default;
-    }
+    public HistoryColumnWidths HistoryColumnWidths { get; set; } = new();
 }
 
 public class HistoryColumnWidths
 {
-    public double NameWidth { get; set; }
-    public double UrlWidth { get; set; }
-    public double DateWidth { get; set; }
-    public double CountWidth { get; set; }
-    
-    [UsedImplicitly]
-    public HistoryColumnWidths()
-    {
-        
-    }
-    
-    public static HistoryColumnWidths Default { get; } = new()
-    {
-        NameWidth = 530,
-        UrlWidth = 530,
-        DateWidth = 150,
-        CountWidth = 100
-    };
+    public double NameWidth { get; set; } = 530;
+    public double UrlWidth { get; set; } = 530;
+    public double DateWidth { get; set; } = 150;
+    public double CountWidth { get; set; } = 100;
 }
