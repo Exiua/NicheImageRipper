@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Core;
 using Core.DataStructures;
 
-namespace Gui.Models.Full;
+namespace Gui.Services.Full;
 
 public class FullRipperClient : IRipperClient
 {

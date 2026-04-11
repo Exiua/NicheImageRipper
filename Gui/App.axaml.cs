@@ -5,6 +5,8 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Gui.Formatters.Thin;
 using Gui.Models;
+using Gui.Services;
+using Gui.Services.Full;
 using Gui.Services.Thin;
 using Gui.ViewModels;
 using Gui.Views;
@@ -50,9 +52,9 @@ public partial class App : Application
         }
         else
         {
-            collection.AddTransient<IRipperClient>();
+            collection.AddTransient<IRipperClient, FullRipperClient>();
             collection.AddTransient<IRipperSettings>();
-            collection.AddTransient<IGuiSettings>();
+            collection.AddTransient<IGuiSettings, FullGuiSettings>();
         }
         
         collection.AddTransient<MainWindowViewModel>();

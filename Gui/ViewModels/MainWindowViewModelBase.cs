@@ -8,6 +8,7 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.History;
 using Gui.Models;
+using Gui.Services;
 using ReactiveUI;
 using Serilog;
 

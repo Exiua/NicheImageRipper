@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core.DataStructures;
 
-namespace Gui.Models;
+namespace Gui.Services;
 
 public interface IRipperClient : IDisposable
 {

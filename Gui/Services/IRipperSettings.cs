@@ -1,6 +1,6 @@
 using Core.Enums;
 
-namespace Gui.Models;
+namespace Gui.Services;
 
 public interface IRipperSettings
 {

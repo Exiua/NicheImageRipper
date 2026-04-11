@@ -1,4 +1,4 @@
-namespace Gui.Models;
+namespace Gui.Services;
 
 public interface IGuiSettings
 {

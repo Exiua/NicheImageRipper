@@ -10,6 +10,7 @@ using Core.Enums;
 using Core.History;
 using Core.SiteParsing.HtmlParsers;
 using Gui.Models;
+using Gui.Services;
 using Gui.Views;
 using ReactiveUI;
 using Serilog;
