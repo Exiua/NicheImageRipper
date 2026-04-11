@@ -8,14 +8,14 @@ public enum LinkInfo
     IframeMedia,    // Requires BunnyVideoDrm to download
     Mega,           // Requires MegaCmd to download
     PixelDrain,     // Requires PixelDrain API to download
-    Youtube,        // Requires yt-dlp to download
+    YoutubeVideo,   // Requires yt-dlp to download video
     Text,           // Save as text file
     GoFile,         // Requires cookies and special re-check logic
     MpegDash,       // Requires yt-dlp to download
     ResolveImage,   // Requires the image link to be resolved to the download link in the ImageRipper
     M3U8YtDlp,      // Requires yt-dlp to download m3u8 files
     SeleniumImage,  // Requires Selenium to download the image
-    Base64,         // Base64 encoded image,
+    Base64,         // Base64 encoded image
     ObfuscatedM3U8, // Requires deobfuscation of each segment before concatenation with ffmpeg
     PixivUgoira,    // Requires downloading the Ugoira zip and converting to gif or mp4
 }

@@ -10,11 +10,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class EightSeParser : HtmlParser
+public class EightSeParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "8se";
+
     private const string CachePath = "eightsecache.json";
 
-    public EightSeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public EightSeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EightSeParser>(filenameScheme))
     {
     }
 
@@ -22,7 +24,7 @@ public class EightSeParser : HtmlParser
     ///     Parses the html for tw.8se.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         string dirName;
         List<string> imageLinks;

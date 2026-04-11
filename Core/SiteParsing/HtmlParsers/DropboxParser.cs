@@ -10,9 +10,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class DropboxParser : HtmlParser
+public class DropboxParser : HtmlParser, IHtmlParser
 {
-    public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "dropbox";
+    
+    public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DropboxParser>(filenameScheme))
     {
     }
 
@@ -20,7 +22,7 @@ public class DropboxParser : HtmlParser
     ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         return await Parse("");
     }

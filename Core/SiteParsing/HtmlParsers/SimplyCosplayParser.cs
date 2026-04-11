@@ -8,9 +8,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SimplyCosplayParser : HtmlParser
+public class SimplyCosplayParser : HtmlParser, IHtmlParser
 {
-    public SimplyCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "simply-cosplay";
+
+    public SimplyCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SimplyCosplayParser>(filenameScheme))
     {
     }
 
@@ -18,7 +20,7 @@ public class SimplyCosplayParser : HtmlParser
     ///     Parses the html for simply-cosplay.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         await Sleep(5000);
         var viewButton = Driver.TryFindElement(By.XPath("//button[@class='btn btn-default']"));

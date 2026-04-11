@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class FoxHqParser : HtmlParser
+public class FoxHqParser : HtmlParser, IHtmlParser
 {
-    public FoxHqParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "foxhq";
+
+    public FoxHqParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FoxHqParser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class FoxHqParser : HtmlParser
     ///     Parses the html for foxhq.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;

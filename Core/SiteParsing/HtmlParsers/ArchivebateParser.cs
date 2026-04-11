@@ -12,11 +12,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class ArchivebateParser : HtmlParser
+public partial class ArchivebateParser : HtmlParser, IHtmlParser
 {
     private const string CachePath = "archivebateCache.json";
     
-    public ArchivebateParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "archivebate";
+    
+    public ArchivebateParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ArchivebateParser>(filenameScheme))
     {
     }
 
@@ -24,7 +26,7 @@ public partial class ArchivebateParser : HtmlParser
     ///     Parses the html for archivebate.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var verifyButton = Driver.FindElement(By.Id("verify"));
         Driver.Click(verifyButton);

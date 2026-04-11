@@ -26,10 +26,20 @@ public static class ExtensionMethods
             yield return (i++, item);
         }
     }
+
+    public static async IAsyncEnumerable<(int i, T)> EnumerateAsync<T>(this IAsyncEnumerable<T> enumerable, int start = 0)
+    {
+        var i = start;
+        await foreach(var item in enumerable)
+        {
+            yield return (i, item);
+            i++;
+        }
+    }
     
     public static string HexDigest(this byte[] bytes)
     {
-        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+        return Convert.ToHexStringLower(bytes);
     }
     
     public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> enumerable,
@@ -70,7 +80,7 @@ public static class ExtensionMethods
     {
         return string.Join(separator, values);
     }
-
+    
     public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
     {
         return src.Select(url => new StringImageLinkWrapper(url));
@@ -82,6 +92,11 @@ public static class ExtensionMethods
     }
     
     public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
+    {
+        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
+    }
+    
+    public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<ImageLink> src)
     {
         return src.Select(url => new StringImageLinkWrapper(url)).ToList();
     }

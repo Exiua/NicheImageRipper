@@ -13,12 +13,14 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SimpCityParser : HtmlParser
+public class SimpCityParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "simpcity";
+
     private const string CacheFile = "simpcitycache.json";
 
     public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SimpCityParser>(filenameScheme))
     {
     }
 
@@ -26,7 +28,7 @@ public class SimpCityParser : HtmlParser
     ///     Parses the html for simpcity.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var currentUrl = CurrentUrl;
         Log.Debug("Creating resolvable url map");

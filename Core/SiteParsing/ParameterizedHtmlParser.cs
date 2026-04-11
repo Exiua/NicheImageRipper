@@ -11,7 +11,7 @@ public abstract class ParameterizedHtmlParser : HtmlParser
     {
     }
 
-    public override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse()
     {
         return Parse("");
     }

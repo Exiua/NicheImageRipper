@@ -5,9 +5,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class KemonoParser : DotPartyParser
+public class KemonoParser : DotPartyParser, IHtmlParser
 {
-    public KemonoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "kemono";
+    
+    public KemonoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KemonoParser>(filenameScheme))
     {
     }
 
@@ -22,6 +24,6 @@ public class KemonoParser : DotPartyParser
             CurrentUrl = url;
         }
         
-        return await DotPartyParse("https://kemono.cr");
+        return await DotPartyParse("https://kemono.su");
     }
 }

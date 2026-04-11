@@ -8,12 +8,14 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PornComics18Parser : HtmlParser
+public class PornComics18Parser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "porncomics18";
+
     public PornComics18Parser(WebDriver driver, ApiClientManager apiClientManager,
                               Dictionary<string, string> requestHeaders,
                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<PornComics18Parser>(filenameScheme))
     {
     }
 
@@ -21,7 +23,7 @@ public class PornComics18Parser : HtmlParser
     ///     Parses the html for porncomics18.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         Driver.AddCookie("wpmanga-adault", "1");
         Driver.Refresh();

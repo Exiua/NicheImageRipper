@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class HentaiClubParser : HtmlParser
+public class HentaiClubParser : HtmlParser, IHtmlParser
 {
-    public HentaiClubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "hentaiclub";
+
+    public HentaiClubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiClubParser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class HentaiClubParser : HtmlParser
     ///     Parses the html for hentaiclub.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         await LazyLoad(new LazyLoadArgs
         {

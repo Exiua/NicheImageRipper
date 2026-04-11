@@ -8,11 +8,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BaobuaParser : HtmlParser
+public class BaobuaParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "baobua";
+
     public BaobuaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        filenameScheme)
+        IHtmlParser.GetFilenameScheme<BaobuaParser>(filenameScheme))
     {
     }
 
@@ -20,12 +22,12 @@ public class BaobuaParser : HtmlParser
     ///     Parses the html for baobua.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//span[@itemprop='name']").InnerText.Split("|")[0].Trim();
         var images = new List<StringImageLinkWrapper>();
-        var pageCount = soup.SelectSingleNode("//div[@class='nav-links']")?.LastChild.InnerText.ToInt() ?? 1;
+        var pageCount = soup.SelectSingleNode("//div[@class='nav-links']")?.LastChild.InnerText.ParseInt() ?? 1;
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {

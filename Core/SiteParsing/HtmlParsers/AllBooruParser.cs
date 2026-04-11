@@ -8,13 +8,15 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class AllBooruParser : BooruParser
+public class AllBooruParser : BooruParser, IHtmlParser
 {
-    public AllBooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "booru";
+
+    public AllBooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AllBooruParser>(filenameScheme))
     {
     }
 
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var tags = ExtractTagsFromUrl(GivenUrl);
         Log.Debug("Parsing all boorus with tags: {Tags}", tags);

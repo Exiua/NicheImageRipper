@@ -13,9 +13,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class TubeAsianCamsParser : HtmlParser
+public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
 {
-    public TubeAsianCamsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "tubeasiancams";
+
+    public TubeAsianCamsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TubeAsianCamsParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,7 @@ public partial class TubeAsianCamsParser : HtmlParser
     ///     Parses the html for tubeasiancams.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='entry-title']").InnerText;

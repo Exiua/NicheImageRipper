@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class ImgBoxParser : HtmlParser
+public class ImgBoxParser : HtmlParser, IHtmlParser
 {
-    public ImgBoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "imgbox";
+
+    public ImgBoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImgBoxParser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class ImgBoxParser : HtmlParser
     ///     Parses the html for imgbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']")

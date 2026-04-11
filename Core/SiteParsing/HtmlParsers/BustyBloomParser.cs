@@ -6,9 +6,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BustyBloomParser : HtmlParser
+public class BustyBloomParser : HtmlParser, IHtmlParser
 {
-    public BustyBloomParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "bustybloom";
+
+    public BustyBloomParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BustyBloomParser>(filenameScheme))
     {
     }
     
@@ -16,7 +18,7 @@ public class BustyBloomParser : HtmlParser
     ///     Parses the html for bustybloom.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse()
     {
         return GenericHtmlParser("bustybloom");
     }

@@ -14,9 +14,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class QuatvnParser : HtmlParser
+public class QuatvnParser : HtmlParser, IHtmlParser
 {
-    public QuatvnParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "quatvn";
+
+    public QuatvnParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<QuatvnParser>(filenameScheme))
     {
     }
 
@@ -24,7 +26,7 @@ public class QuatvnParser : HtmlParser
     ///     Parses the html for quatvn.love and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         HtmlNode soup = null!;
         for (var i = 0; i < 4; i++)

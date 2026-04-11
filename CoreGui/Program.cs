@@ -7,6 +7,7 @@ using CoreGui.Models;
 using CoreGui.Utility;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace CoreGui;
 
@@ -25,7 +26,7 @@ sealed class Program
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .Enrich.FromLogContext()
-                    .WriteTo.Console()
+                    .WriteTo.Console(theme: AnsiConsoleTheme.Code)
                     .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Debug)
                     .WriteTo.Gui()
                     .CreateLogger();
@@ -33,7 +34,7 @@ sealed class Program
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .Enrich.FromLogContext()
-                    .WriteTo.Console()
+                    .WriteTo.Console(theme: AnsiConsoleTheme.Code)
                     .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Information)
                     .WriteTo.Gui()
                     .CreateLogger();

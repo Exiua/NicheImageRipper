@@ -11,13 +11,15 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BunkrParser : ParameterizedHtmlParser
+public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
 {
+    public static string ParserName => "bunkr";
+
     private const int ParseDelay = 500;
 
     public BunkrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<BunkrParser>(filenameScheme))
     {
     }
 

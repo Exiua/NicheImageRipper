@@ -3,24 +3,26 @@
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Gkmo.Google.Apis.PhotosLibrary.v1" Version="1.36.1.1471" />
       <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
       <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
-      <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
-      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.9.0" />
-      <PackageReference Include="Selenium.WebDriver" Version="4.36.0" />
+      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.11.1" />
+      <PackageReference Include="Selenium.WebDriver" Version="4.39.0" />
       <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.36.0" />
       <PackageReference Include="Serilog" Version="4.3.0" />
-      <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
-      <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+      <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+      <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-      <PackageReference Include="SharpCompress" Version="0.39.0" />
+      <PackageReference Include="SharpCompress" Version="0.42.1" />
+      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.2" />
       <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
-      <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
-      <PackageReference Include="System.Drawing.Common" Version="9.0.5" />
+      <PackageReference Include="System.Data.SQLite" Version="2.0.2" />
+      <PackageReference Include="System.Drawing.Common" Version="10.0.1" />
     </ItemGroup>
 
     <ItemGroup>

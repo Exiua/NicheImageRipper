@@ -8,9 +8,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SfmCompileParser : HtmlParser
+public class SfmCompileParser : HtmlParser, IHtmlParser
 {
-    public SfmCompileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "sfmcompile";
+
+    public SfmCompileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SfmCompileParser>(filenameScheme))
     {
     }
 
@@ -18,7 +20,7 @@ public class SfmCompileParser : HtmlParser
     ///     Parses the html for sfmcompile.club and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-alpha g1-alpha-2nd page-title archive-title']")

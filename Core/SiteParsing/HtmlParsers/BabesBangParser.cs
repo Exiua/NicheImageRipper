@@ -6,9 +6,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class BabesBangParser : HtmlParser
+public class BabesBangParser : HtmlParser, IHtmlParser
 {
-    public BabesBangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "babesbang";
+
+    public BabesBangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabesBangParser>(filenameScheme))
     {
     }
     
@@ -16,7 +18,7 @@ public class BabesBangParser : HtmlParser
     ///     Parses the html for babesbang.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse()
     {
         return GenericBabesHtmlParser("//div[@class='main-title']", "//div[@class='gal-block']");
     }

@@ -77,11 +77,9 @@ public struct StringImageLinkWrapper
         {
             return wrapper.Url;
         }
-        if (wrapper.ImageLink is not null)
-        {
-            return wrapper.ImageLink.Url;
-        }
-
-        throw new RipperException("StringImageLinkWrapper is empty.");
+        
+        return wrapper.ImageLink is not null 
+            ? wrapper.ImageLink.Url 
+            : throw new RipperException("StringImageLinkWrapper is empty.");
     }
 }

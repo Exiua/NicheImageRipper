@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -48,6 +49,12 @@ public partial class NicheImageRipper : IDisposable
         get => Config.AskToReRip;
         set => Config.AskToReRip = value;
     }
+    
+    public static bool SkipFailedDownloads
+    {
+        get => Config.SkipFailedDownloads;
+        set => Config.SkipFailedDownloads = value;
+    }
 
     public static FilenameScheme FilenameScheme
     {
@@ -93,6 +100,12 @@ public partial class NicheImageRipper : IDisposable
 
     private bool _disposed;
 
+    static NicheImageRipper()
+    {
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding  = Encoding.UTF8;
+    }
+
     public void LoadUrlFile(string filepath)
     {
         var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
@@ -121,6 +134,28 @@ public partial class NicheImageRipper : IDisposable
                 AddToUrlQueue(historyEntry.Url, noCheck: true);
             }
         }
+    }
+
+    public bool Play()
+    {
+        if (Ripper is null)
+        {
+            return false;
+        }
+
+        Ripper.Paused = false;
+        return true;
+    }
+    
+    public bool Pause()
+    {
+        if (Ripper is null)
+        {
+            return false;
+        }
+
+        Ripper.Paused = true;
+        return true;
     }
 
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
@@ -216,6 +251,11 @@ public partial class NicheImageRipper : IDisposable
         {
             return url.Replace("exhentai.org", "e-hentai.org");
         }
+        
+        if (host.Contains("hanime1.me"))
+        {
+            return url.Split("&page=")[0];
+        }
 
         return url.Split("?")[0];
     }
@@ -265,6 +305,9 @@ public partial class NicheImageRipper : IDisposable
                 // If empty url is returned Ripper is also null
                 UpdateHistory(Ripper!.FolderInfo, url);
             }
+            
+            // TODO: Add feature guard to allow users to disable saving unfinished URLs constantly
+            SaveUnfinishedUrls(); // Save after each rip to avoid data loss
         }
     }
 
@@ -329,18 +372,23 @@ public partial class NicheImageRipper : IDisposable
 
     public void SaveData()
     {
-        if (UrlQueue.Count > 0)
-        {
-            JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
-        }
+        SaveUnfinishedUrls();
 
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
         {
-            File.WriteAllText(".ripIndex", Ripper.CurrentIndex.ToString());
+            File.WriteAllText(".ripIndex", Ripper.GenerateSavePosition());
         }
 
         Config.SaveConfig();
+    }
+
+    private void SaveUnfinishedUrls()
+    {
+        if (UrlQueue.Count > 0)
+        {
+            JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
+        }
     }
 
     public static void ClearCache()

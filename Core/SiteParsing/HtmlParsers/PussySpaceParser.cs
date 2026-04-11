@@ -10,9 +10,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PussySpaceParser : HtmlParser
+public class PussySpaceParser : HtmlParser, IHtmlParser
 {
-    public PussySpaceParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "pussyspace";
+
+    public PussySpaceParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PussySpaceParser>(filenameScheme))
     {
     }
 
@@ -20,7 +22,7 @@ public class PussySpaceParser : HtmlParser
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var id = CurrentUrl.Split("-")[1];
         var (capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>();
@@ -34,7 +36,7 @@ public class PussySpaceParser : HtmlParser
                         .Where(t => !string.IsNullOrEmpty(t))
                         .Join(" ") + $"({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var playlist = new ImageLink(links[0], FilenameScheme, 0)
             {

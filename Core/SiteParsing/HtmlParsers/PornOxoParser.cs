@@ -9,9 +9,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PornOxoParser : HtmlParser
+public class PornOxoParser : HtmlParser, IHtmlParser
 {
-    public PornOxoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "pornoxo";
+
+    public PornOxoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornOxoParser>(filenameScheme))
     {
     }
 
@@ -19,7 +21,7 @@ public class PornOxoParser : HtmlParser
     ///     Parses the html for pornoxo.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var id = CurrentUrl.Split("/")[4];
         var (capturer, b) = await ConfigureNetworkCapture<PornOxoCapturer>();
@@ -28,7 +30,7 @@ public class PornOxoParser : HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='video-top-header']/h1").ChildNodes[0].InnerText.Trim() + $" ({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var link = new ImageLink(links[0], FilenameScheme, 0)
             {

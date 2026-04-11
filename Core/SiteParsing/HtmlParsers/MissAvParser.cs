@@ -1,0 +1,56 @@
+using Common.ExtensionMethods;
+using Core.DataStructures;
+using Core.Enums;
+using Core.ExtensionMethods;
+using Core.Managers;
+using Core.SiteParsing.VideoCapturers;
+using Serilog;
+using NotSupportedException = Core.Exceptions.NotSupportedException;
+using WebDriver = Core.Driver.WebDriver;
+
+namespace Core.SiteParsing.HtmlParsers;
+
+public class MissAvParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "missav";
+
+    public MissAvParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
+                  FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<MissAvParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    protected override async Task<RipInfo> Parse()
+    {
+        var (capturer, b) = await ConfigureNetworkCapture<MissAvVideoCapturer>();
+        await using var bidi = b;
+        Driver.Refresh();
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class]").InnerText;
+        var images = new List<StringImageLinkWrapper>();
+        if (CurrentUrl.Contains("/genres/"))
+        {
+            throw new NotSupportedException("GenreParsing", "Parsing genres is not supported for MissAv");
+        }
+        else
+        {
+            await WaitForPlaylist(capturer, links =>
+            {
+                var url = links[0];
+                var filename = url.Split("/")[3] + ".mp4";
+                var link = new ImageLink(url, FilenameScheme, 0, filename: filename)
+                {
+                    LinkInfo = LinkInfo.M3U8YtDlp,
+                    Referer = CurrentUrl
+                };
+                images.Add(link);
+            });
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

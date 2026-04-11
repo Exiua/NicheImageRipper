@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class WantedBabesParser : HtmlParser
+public class WantedBabesParser : HtmlParser, IHtmlParser
 {
-    public WantedBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "wantedbabes";
+
+    public WantedBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<WantedBabesParser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class WantedBabesParser : HtmlParser
     ///     Parses the html for wantedbabes.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse()
     {
         return GenericBabesHtmlParser("//div[@id='main-content']//h1", "//div[@class='gallery']");
     }

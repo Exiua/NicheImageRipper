@@ -14,9 +14,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class TitsInTopsParser : HtmlParser
+public class TitsInTopsParser : HtmlParser, IHtmlParser
 {
-    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "titsintops";
+
+    private const string SiteUrl = "https://titsintops.com";
+    
+    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TitsInTopsParser>(filenameScheme))
     {
     }
 
@@ -24,9 +28,8 @@ public class TitsInTopsParser : HtmlParser
     ///     Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
-        const string siteUrl = "https://titsintops.com";
         await SiteLogin();
         var cookies = Driver.GetCookieJar();
         var cookieStr = cookies.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value};");
@@ -98,7 +101,7 @@ public class TitsInTopsParser : HtmlParser
             }
     
             var nextPageUrl = nextPage.GetHref();
-            soup = await Soupify($"{siteUrl}{nextPageUrl}");
+            soup = await Soupify($"{SiteUrl}{nextPageUrl}");
         }
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

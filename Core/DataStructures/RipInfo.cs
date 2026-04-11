@@ -10,7 +10,7 @@ namespace Core.DataStructures;
 
 public class RipInfo
 {
-    private const int MaxDirectoryNameLength = 130; // Half of typical max path length to allow for subdirectories and filenames
+    private const int MaxDirectoryNameLength = 200; 
     
     private string _directoryName = null!; // Initialized through the property setter
 
@@ -132,7 +132,7 @@ public class RipInfo
             {
                 try
                 {
-                    var (imageLink, newLinkCounter) = await QueryGDriveLinks(url.Url, linkCounter);
+                    var (imageLink, newLinkCounter) = await GDriveHelper.QueryGDriveLinks(url.Url, linkCounter, FilenameScheme);
                     imageLinks.AddRange(imageLink);
                     linkCounter = newLinkCounter;
                 }
@@ -157,41 +157,6 @@ public class RipInfo
         }
 
         return imageLinks;
-    }
-
-    private async Task<(List<ImageLink>, int)> QueryGDriveLinks(string gDriveUrl, int index)
-    {
-        var service = await GDriveHelper.AuthenticateGDrive();
-        var (id, singleFile) = ExtractId(gDriveUrl);
-        var files = await service.GetFiles(id);
-        var imageLinks = new List<ImageLink>();
-        var counter = index;
-        foreach (var file in files)
-        {
-            var imgLink = new ImageLink(file.Id, FilenameScheme, counter, filename: file.Name,
-                linkInfo: LinkInfo.GDrive);
-            imageLinks.Add(imgLink);
-            counter++;
-        }
-
-        return (imageLinks, counter);
-    }
-
-    private static (string, bool) ExtractId(string url)
-    {
-        var parts = url.Split("/");
-        if (url.Contains("/d/"))
-        {
-            return (parts[^2], true);
-        }
-
-        var id = parts[^1].Split('?')[0];
-        if (id is "open" or "folderview")
-        {
-            id = parts[^1].Split("?id=")[^1];
-        }
-
-        return (id, false);
     }
 
     private static List<StringImageLinkWrapper> RemoveDuplicates(List<StringImageLinkWrapper> urls)
@@ -224,7 +189,7 @@ public class RipInfo
 
         Log.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
             name.Length, MaxDirectoryNameLength);
-        name = name[..MaxDirectoryNameLength];
+        name = name[..MaxDirectoryNameLength].Trim();
 
         return name;
     }

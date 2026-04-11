@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SankakuComplexParser : HtmlParser
+public class SankakuComplexParser : HtmlParser, IHtmlParser
 {
-    public SankakuComplexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "sankakucomplex";
+    
+    public SankakuComplexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SankakuComplexParser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class SankakuComplexParser : HtmlParser
     ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;

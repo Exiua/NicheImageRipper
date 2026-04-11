@@ -11,9 +11,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class NewgroundsParser : HtmlParser
+public partial class NewgroundsParser : HtmlParser, IHtmlParser
 {
-    public NewgroundsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "newgrounds";
+
+    public NewgroundsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NewgroundsParser>(filenameScheme))
     {
     }
 
@@ -21,7 +23,7 @@ public partial class NewgroundsParser : HtmlParser
     ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var lazyLoadArgs = new LazyLoadArgs
         {

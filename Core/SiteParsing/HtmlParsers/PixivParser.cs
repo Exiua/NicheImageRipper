@@ -8,11 +8,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class PixivParser : HtmlParser
+public class PixivParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "pixiv";
+
     public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<PixivParser>(filenameScheme))
     {
     }
 
@@ -20,7 +22,7 @@ public class PixivParser : HtmlParser
     ///     Parses the html for pixiv.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         const int delay = 500;
         const int illustsPerPage = 30;

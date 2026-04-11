@@ -8,9 +8,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public partial class SxChineseGirlz01Parser : HtmlParser
+public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
 {
-    public SxChineseGirlz01Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "sxchinesegirlz01";
+
+    public SxChineseGirlz01Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SxChineseGirlz01Parser>(filenameScheme))
     {
     }
 
@@ -18,7 +20,7 @@ public partial class SxChineseGirlz01Parser : HtmlParser
     ///     Parses the html for sxchinesegirlz01.xyz and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;

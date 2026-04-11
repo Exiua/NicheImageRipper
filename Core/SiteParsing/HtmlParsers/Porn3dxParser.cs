@@ -10,9 +10,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Porn3dxParser : HtmlParser
+public class Porn3dxParser : HtmlParser, IHtmlParser
 {
-    public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "porn3dx";
+
+    public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Porn3dxParser>(filenameScheme))
     {
     }
 
@@ -20,7 +22,7 @@ public class Porn3dxParser : HtmlParser
     ///     Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         const int maxRetries = 4;
         var cookie = Config.Cookies.Porn3dx;

@@ -10,12 +10,14 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class MissAv123Parser : HtmlParser
+public class MissAv123Parser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "missav123";
+
     public MissAv123Parser(WebDriver driver, ApiClientManager apiClientManager,
                            Dictionary<string, string> requestHeaders,
                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, filenameScheme)
+        requestHeaders, IHtmlParser.GetFilenameScheme<MissAv123Parser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,7 @@ public class MissAv123Parser : HtmlParser
     ///     Parses the html for missav123.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
         {
@@ -43,7 +45,7 @@ public class MissAv123Parser : HtmlParser
             throw new RipperException($"Failed to get network URLs: {errorResponse.Error}");
         }
         
-        var successResponse = (GetNetworkUrlResponse) urls;
+        var successResponse = (GetNetworkUrlsResponse) urls;
         var playlist = successResponse.Urls.FirstOrDefault(url => url.Contains("playlist.m3u8"));
         if (playlist.IsNullOrEmpty())
         {

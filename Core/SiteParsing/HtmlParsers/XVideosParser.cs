@@ -9,9 +9,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class XVideosParser : HtmlParser
+public class XVideosParser : HtmlParser, IHtmlParser
 {
-    public XVideosParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "xvideos";
+
+    public XVideosParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XVideosParser>(filenameScheme))
     {
     }
 
@@ -19,7 +21,7 @@ public class XVideosParser : HtmlParser
     ///     Parses the html for xvideos.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var currentUrl = CurrentUrl;
         var id = currentUrl.Split("/")[3].Split(".")[1];
@@ -29,7 +31,7 @@ public class XVideosParser : HtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='page-title']").ChildNodes[0].InnerText + $" ({id})";
         var images = new List<StringImageLinkWrapper>();
-        WaitForPlaylist(capturer, links =>
+        await WaitForPlaylist(capturer, links =>
         {
             var url = links[0];
             var filename = url.Split("/")[^2] + ".mp4";

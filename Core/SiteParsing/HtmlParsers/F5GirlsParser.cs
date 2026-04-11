@@ -6,9 +6,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class F5GirlsParser : HtmlParser
+public class F5GirlsParser : HtmlParser, IHtmlParser
 {
-    public F5GirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "f5girls";
+
+    public F5GirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<F5GirlsParser>(filenameScheme))
     {
     }
 
@@ -16,7 +18,7 @@ public class F5GirlsParser : HtmlParser
     ///     Parses the html for f5girls.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectNodesOrThrow("//div[@class='container']")[2]

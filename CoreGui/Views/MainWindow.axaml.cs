@@ -1,13 +1,18 @@
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Core;
 using Core.Enums;
 using Core.History;
@@ -27,7 +32,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         MimeTypes = ["application/json"],
     };
 
-    //private MainWindowViewModel ViewModel => (MainWindowViewModel) DataContext!;
+    private Key _lastKeyPressed;
+    private bool _copyReady;
 
     public MainWindow()
     {
@@ -69,10 +75,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     }
     
     private readonly ThreadSafeStringBuilder _logBuilder = new();
+    private readonly Mutex _logLock = new();
     private int _logCount;
     private const int MaxLogLines = 1000;
     private const int NumLogLinesToRemove = 50;
-    private readonly Mutex _logLock = new();
+    private bool _paused;
 
     public void OnLog(string message)
     {
@@ -357,6 +364,89 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
                 Log.Warning("Unknown column tag: {tag}", column.Tag);
                 break;
         }
+    }
+    
+    private void HistoryDataGrid_OnKeyUp(object? sender, KeyEventArgs e)
+    {
+        Log.Debug("Key Up: {Key}", e.Key);
+        if (sender is not DataGrid dataGrid)
+        {
+            return;
+        }
+
+        _copyReady = _lastKeyPressed switch
+        {
+            Key.LeftCtrl or Key.RightCtrl => e.Key == Key.C,
+            Key.C => e.Key is Key.LeftCtrl or Key.RightCtrl,
+            _ => _copyReady
+        };
+
+        Log.Debug("Copy Ready: {CopyReady}", _copyReady);
+        _lastKeyPressed = e.Key;
+
+        if (_copyReady)
+        {
+            var descendants = dataGrid.GetVisualDescendants();
+            foreach (var cell in descendants.OfType<DataGridCell>())
+            {
+                if (!cell.Classes.Contains(":selected"))
+                {
+                    continue;
+                }
+                
+                var textBlock = cell.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault();
+                if (textBlock is not null)
+                {
+                    Log.Debug("Copy: {Text}", textBlock.Text);
+                    Clipboard?.SetTextAsync(textBlock.Text).Wait();
+                }
+            }
+            
+            _copyReady = false;
+        }
+    }
+    
+    private void PlayPauseButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        PlayPauseToggle();
+    }
+    
+    private void PlayPauseToggle()
+    {
+        if (_paused)
+        {
+            Play();
+            _paused = false;
+        }
+        else
+        {
+            Pause();
+            _paused = true;
+        }
+    }
+
+    private void Play()
+    {
+        var iconFound = this.TryGetResource("PauseButtonIcon", out var icon);
+        if (iconFound)
+        {
+            PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
+        }
+
+        var playing = ViewModel?.Play() ?? false;
+        _paused = !playing;
+    }
+
+    private void Pause()
+    {
+        var iconFound = this.TryGetResource("PlayButtonIcon", out var icon);
+        if (iconFound)
+        {
+            PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
+        }
+        
+        var paused = ViewModel?.Pause() ?? false;
+        _paused = paused;
     }
 
     [GeneratedRegex(@"^(?i)(name|url|date|before|after):(.+)", RegexOptions.None, "en-US")]

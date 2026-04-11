@@ -6,44 +6,80 @@ namespace Core.ExtensionMethods;
 
 public static class StringExtensionMethods
 {
-    public static IEnumerable<(int i, char)> Enumerate(this string s, int start = 0)
+    extension(string s)
     {
-        for(var i = start; i < s.Length; i++)
+        public IEnumerable<(int i, char)> Enumerate(int start = 0)
         {
-            yield return (i, s[i]);
+            for(var i = start; i < s.Length; i++)
+            {
+                yield return (i, s[i]);
+            }
         }
-    }
 
-    public static string ToTitle(this string src)
-    {
-        return src[0].ToString().ToUpper() + src[1..];
-    }
-    
-    public static string ToQueryString(this string url, Dictionary<string, string> dict)
-    {
-        var uriBuilder = new UriBuilder(url);
-        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-        foreach (var (key, value) in dict)
+        public string ToTitle()
         {
-            query[key] = value;
+            return s[0].ToString().ToUpper() + s[1..];
         }
-        uriBuilder.Query = query.ToString();
-        return uriBuilder.ToString();
-    }
 
-    public static string Join(this string separator, IEnumerable<string> values)
-    {
-        return string.Join(separator, values);
-    }
+        public string ToQueryString(Dictionary<string, string> dict)
+        {
+            var uriBuilder = new UriBuilder(s);
+            var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+            foreach (var (key, value) in dict)
+            {
+                query[key] = value;
+            }
+            uriBuilder.Query = query.ToString();
+            return uriBuilder.ToString();
+        }
 
-    public static List<StringImageLinkWrapper> IntoStringImageLinkWrapperList(this string src)
-    {
-        return [new StringImageLinkWrapper(src)];
-    }
+        public string Join(IEnumerable<string> values)
+        {
+            return string.Join(s, values);
+        }
 
-    public static string Remove(this string src, string toRemove)
-    {
-        return src.Replace(toRemove, string.Empty);
+        public List<StringImageLinkWrapper> IntoStringImageLinkWrapperList()
+        {
+            return [new StringImageLinkWrapper(s)];
+        }
+
+        public string Remove(string toRemove)
+        {
+            return s.Replace(toRemove, string.Empty);
+        }
+        
+        public int ParseInt()
+        {
+            return int.Parse(s);
+        }
+        
+        /// <summary>
+        ///     Remove HTML artifacts from a url string (such as &amp;) and replace them with their proper characters
+        /// </summary>
+        /// <returns>Cleaned URL string</returns>
+        public string DecodeUrl()
+        {
+            return HttpUtility.HtmlDecode(s);
+        }
+        
+        /// <summary>
+        ///     Remove percent-encoding from a url string.
+        /// </summary>
+        /// <returns>Cleaned URL string</returns>
+        public string UnescapeUrl()
+        {
+            return Uri.UnescapeDataString(s);
+        }
+        
+        public bool Contains(params string[] substrings)
+        {
+            return substrings.All(s.Contains);
+        }
+
+        public string TrimStartMatches(string prefix)
+        {
+            return s.StartsWith(prefix) ? s[prefix.Length..] : s;
+        }
     }
 
     public static bool IsNullOrEmpty([NotNullWhen(false)]this string? s)
@@ -54,30 +90,5 @@ public static class StringExtensionMethods
     public static string JoinWith(this IEnumerable<string> values, string separator)
     {
         return string.Join(separator, values);
-    }
-
-    public static int ToInt(this string s)
-    {
-        return int.Parse(s);
-    }
-
-    /// <summary>
-    ///     Remove HTML artifacts from a url string (such as &amp;) and replace them with their proper characters
-    /// </summary>
-    /// <param name="s">URL string to clean</param>
-    /// <returns>Cleaned URL string</returns>
-    public static string DecodeUrl(this string s)
-    {
-        return HttpUtility.HtmlDecode(s);
-    }
-    
-    public static bool Contains(this string s, params string[] substrings)
-    {
-        return substrings.All(s.Contains);
-    }
-
-    public static string TrimStartMatches(this string input, string prefix)
-    {
-        return input.StartsWith(prefix) ? input[prefix.Length..] : input;
     }
 }

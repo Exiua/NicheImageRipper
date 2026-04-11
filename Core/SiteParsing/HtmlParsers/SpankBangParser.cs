@@ -10,11 +10,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class SpankBangParser : HtmlParser
+public class SpankBangParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "spankbang";
+
     public SpankBangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        filenameScheme)
+        IHtmlParser.GetFilenameScheme<SpankBangParser>(filenameScheme))
     {
     }
 
@@ -22,7 +24,7 @@ public class SpankBangParser : HtmlParser
     ///     Parses the html for spankbang.com and spankbang.party and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         const string playlistXPath = "//div[contains(concat(' ', @class, ' '), ' video-list ') and " +
                                      "contains(concat(' ', @class, ' '), ' video-rotate ')]";

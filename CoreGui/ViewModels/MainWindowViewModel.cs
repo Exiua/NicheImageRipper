@@ -44,6 +44,7 @@ public class MainWindowViewModel : ViewModelBase
     private double _countWidth = Config.HistoryColumnWidths.CountWidth;
     private string _historyFilterText = "";
     private string _urlCountText = "URLs in queue: 0";
+    private bool _skipFailedDownloads;
 
     public int HistoryCount => NicheImageRipper.GetHistoryCount();
     public int PageSize { get; set; } = 100;
@@ -124,6 +125,16 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _retryDelayDisplay, value);
     }
 
+    public bool SkipFailedDownloads
+    {
+        get => _skipFailedDownloads;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _skipFailedDownloads, value);
+            NicheImageRipper.SkipFailedDownloads = value;
+        }
+    }
+
     public double NameWidth
     {
         get => _nameWidth;
@@ -190,7 +201,7 @@ public class MainWindowViewModel : ViewModelBase
         DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
         ReRipUrlCommand = ReactiveCommand.Create<string>(Rerip);
         UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);
-        var history = NicheImageRipper.GetHistoryPage(1, PageSize);
+        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage, PageSize);
         History = new ObservableCollection<HistoryEntry>(history);
 
         _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
@@ -241,6 +252,16 @@ public class MainWindowViewModel : ViewModelBase
     private static void ClearCache()
     {
         NicheImageRipper.ClearCache();
+    }
+
+    public bool Play()
+    {
+        return _ripper.Play();
+    }
+
+    public bool Pause()
+    {
+        return _ripper.Pause();
     }
 
     private void OnUrlQueueUpdated()

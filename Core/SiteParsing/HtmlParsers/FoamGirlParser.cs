@@ -8,9 +8,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class FoamGirlParser : HtmlParser
+public class FoamGirlParser : HtmlParser, IHtmlParser
 {
-    public FoamGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "foamgirl";
+
+    public FoamGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FoamGirlParser>(filenameScheme))
     {
     }
 
@@ -18,14 +20,14 @@ public class FoamGirlParser : HtmlParser
     ///     Parses the html for foamgirl.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='item_title']/h1").InnerText.Split('(')[0];
         var images = new List<StringImageLinkWrapper>();
         var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") 
                             ?? soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']").SelectNodesOrThrow("./a")[^2];
-        var pageCount = pageContainer.InnerText.ToInt();
+        var pageCount = pageContainer.InnerText.ParseInt();
         var baseUrl = CurrentUrl;
         for(var i = 0; i < pageCount; i++)
         {

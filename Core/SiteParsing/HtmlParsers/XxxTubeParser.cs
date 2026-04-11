@@ -11,9 +11,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class XxxTubeParser : HtmlParser
+public class XxxTubeParser : HtmlParser, IHtmlParser
 {
-    public XxxTubeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "x-x-x";
+
+    public XxxTubeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XxxTubeParser>(filenameScheme))
     {
     }
 
@@ -21,7 +23,7 @@ public class XxxTubeParser : HtmlParser
     ///     Parses the html for x-x-x.tube and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var parts = CurrentUrl.Split("/");
         var category = parts[3];
@@ -87,7 +89,7 @@ public class XxxTubeParser : HtmlParser
                 dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText.Split(",")[0].Trim() + $" ({id})";
                 var list = soup.SelectSingleNodeOrThrow("//div[@class='holder']/div[@class='list']");
                 var listItems = list.SelectNodesOrThrow("./div[@class='list-item']");
-                var imageCount = listItems[3].InnerText.Trim().ToInt();
+                var imageCount = listItems[3].InnerText.Trim().ParseInt();
                 var imgs = soup.SelectSingleNodeOrThrow("//div[@id='albumGallery']")
                                .SelectNodesOrThrow("./div")
                                .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())

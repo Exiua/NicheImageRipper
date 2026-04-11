@@ -8,11 +8,13 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class XCancelParser : HtmlParser
+public class XCancelParser : HtmlParser, IHtmlParser
 {
+    public static string ParserName => "xcancel";
+
     public XCancelParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                    FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        filenameScheme)
+        IHtmlParser.GetFilenameScheme<XCancelParser>(filenameScheme))
     {
     }
 
@@ -25,7 +27,7 @@ public class XCancelParser : HtmlParser
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var baseUrl = CurrentUrl.Split("/").Take(4).Join('/') + "/media";
         if (!CurrentUrl.Contains("/media"))

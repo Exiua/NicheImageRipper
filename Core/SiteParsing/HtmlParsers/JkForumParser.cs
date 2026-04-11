@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class JkForumParser : HtmlParser
+public class JkForumParser : HtmlParser, IHtmlParser
 {
-    public JkForumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "jkforum";
+
+    public JkForumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JkForumParser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class JkForumParser : HtmlParser
     ///     Parses the html for jkforum.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse()
     {
         var soup = await Soupify(delay: 1000);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title-cont']")

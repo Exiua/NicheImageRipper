@@ -7,9 +7,11 @@ using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
 
-public class Rule34Parser : BooruParser
+public class Rule34Parser : BooruParser, IHtmlParser
 {
-    public Rule34Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "rule34";
+    
+    public Rule34Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Rule34Parser>(filenameScheme))
     {
     }
 
@@ -17,7 +19,7 @@ public class Rule34Parser : BooruParser
     ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    public override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse()
     {
         return BooruParse(Booru.Rule34);
     }
