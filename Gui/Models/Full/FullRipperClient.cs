@@ -1,50 +1,60 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Core;
 using Core.DataStructures;
 
 namespace Gui.Models.Full;
 
 public class FullRipperClient : IRipperClient
 {
-    public int UrlQueueCount { get; }
+    private readonly NicheImageRipper _ripper;
+
+    public int UrlQueueCount => _ripper.UrlQueue.Count;
     
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
+
+    public FullRipperClient()
+    {
+        _ripper = new NicheImageRipper();
+        _ripper.OnUrlQueueUpdated += () => OnUrlQueueUpdated?.Invoke();
+        _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
+    }
     
     public Task Rip()
     {
-        throw new NotImplementedException();
+        return _ripper.Rip();
     }
 
     public bool Resume()
     {
-        throw new NotImplementedException();
+        return _ripper.Resume();
     }
 
     public bool Pause()
     {
-        throw new NotImplementedException();
+        return _ripper.Pause();
     }
 
     public IEnumerable<string> GetUrlQueue()
     {
-        throw new NotImplementedException();
+        return _ripper.UrlQueue;
     }
 
     public RejectedUrlsInfo QueueUrls(string url)
     {
-        throw new NotImplementedException();
+        return _ripper.QueueUrls(url);
     }
 
     public void DequeueUrls(IEnumerable<string> url)
     {
-        throw new NotImplementedException();
+        _ripper.DequeueUrls(url);
     }
 
     public void ForceQueueUrl(string url)
     {
-        throw new NotImplementedException();
+        _ripper.ForceQueueUrl(url);
     }
 
     public void RequeueUrls(RejectedUrlsInfo rejectedUrls)
