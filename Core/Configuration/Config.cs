@@ -8,20 +8,20 @@ public static class Config
 
     public static GeneralConfig Instance { get; private set; } = LoadConfig<GeneralConfig>();
     
-    private static T CreateTemplateConfig<T>() where T : GeneralConfig
+    private static T CreateTemplateConfig<T>() where T : GeneralConfig, new()
     {
-        var config = (T)Activator.CreateInstance(typeof(T), [ true ])!;
+        var config = new T();
         return config;
     }
 
-    private static T LoadConfig<T>() where T : GeneralConfig
+    private static T LoadConfig<T>() where T : GeneralConfig, new()
     {
         return File.Exists(ConfigPath)
             ? JsonUtility.Deserialize<T>(ConfigPath)!
             : CreateTemplateConfig<T>();
     }
     
-    public static void ReloadConfig<T>() where T : GeneralConfig
+    public static void ReloadConfig<T>() where T : GeneralConfig, new()
     {
         Instance = LoadConfig<T>();
     }
