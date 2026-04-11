@@ -1,0 +1,13 @@
+using Core.Enums;
+
+namespace Gui.Models;
+
+public interface IRipperSettings
+{
+    public string SavePath { get; set; }
+    public FilenameScheme FilenameScheme { get; set; }
+    public UnzipProtocol UnzipProtocol { get; set; }
+    public int MaxRetries { get; set; }
+    public int RetryDelay { get; set; }
+    public bool SkipFailedDownloads { get; set; }
+}

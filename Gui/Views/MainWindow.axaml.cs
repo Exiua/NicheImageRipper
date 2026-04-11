@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ using Serilog;
 
 namespace Gui.Views;
 
-public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
+public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 {
     private static FilePickerFileType Json { get; } = new("JSON")
     {
@@ -35,12 +36,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     private Key _lastKeyPressed;
     private bool _copyReady;
 
-    public MainWindow()
+    public MainWindow(MainWindowViewModelBase viewModel)
     {
-        DataContext = new MainWindowViewModel
-        {
-            MainWindow = this,
-        };
+        DataContext = viewModel;
         
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();
@@ -53,8 +51,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         //GuiSink.OnLog += OnLog;
         GuiSink.MainWindow = this;
         Closing += OnClose;
-        this.WhenActivated(action =>
-            action(ViewModel.ShowConfirmationDialog.RegisterHandler(DoShowDialogAsync)));
+        this.WhenActivated(disposables =>
+        {
+            ViewModel!.ShowConfirmationDialog.RegisterHandler(DoShowDialogAsync).DisposeWith(disposables);
+        });
     }
 
     private void OnClose(object? sender, WindowClosingEventArgs windowClosingEventArgs)
@@ -134,7 +134,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
             var path = Uri.UnescapeDataString(folder[0].Path.AbsolutePath);
             Log.Debug("Selected folder: {folder}", path);
-            ViewModel!.SavePath = path;
+            ViewModel!.RipperSettings.SavePath = path;
         }
         catch (Exception e)
         {
@@ -200,40 +200,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         
         var filter = HistoryFilter.Parse(input);
         LoadHistory(filter);
-    }
-
-    private static DateTime? ParsePartialDate(string input)
-    {
-        var formats = new[]
-        {
-            "yyyy",       // e.g., "2025" → 2025/01/01
-            "MM",         // e.g., "02"   → currentYear/02/01
-            "yyyy/MM",    // e.g., "2025/02" → 2025/02/01
-            "yyyy-MM",    // e.g., "2025-02"
-            "MM/yyyy",    // e.g., "02/2025"
-            "MM-yyyy",    // e.g., "02-2025"
-            "yyyy/MM/dd", // full date fallback
-            "MM/dd/yyyy"
-        };
-
-        var now = DateTime.Now;
-
-        foreach (var format in formats)
-        {
-            if (DateTime.TryParseExact(input, format, null, System.Globalization.DateTimeStyles.None, out var result))
-            {
-                return format switch
-                {
-                    // Fill in missing components manually
-                    "yyyy" => new DateTime(result.Year, 1, 1),
-                    "MM" => new DateTime(now.Year, result.Month, 1),
-                    "yyyy/MM" or "yyyy-MM" or "MM/yyyy" or "MM-yyyy" => new DateTime(result.Year, result.Month, 1),
-                    _ => result
-                };
-            }
-        }
-
-        return null;
     }
     
     private void ClearHistoryFilter(object? sender, RoutedEventArgs e)
@@ -308,16 +274,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
         switch (column.Tag)
         {
             case "HistoryName":
-                ViewModel.NameWidth = dataGridLengthArgs.NewValue.Value.Value;
+                ViewModel.GuiSettings.NameWidth = dataGridLengthArgs.NewValue.Value.Value;
                 break;
             case "HistoryUrl":
-                ViewModel.UrlWidth = dataGridLengthArgs.NewValue.Value.Value;
+                ViewModel.GuiSettings.UrlWidth = dataGridLengthArgs.NewValue.Value.Value;
                 break;
             case "HistoryDate":
-                ViewModel.DateWidth = dataGridLengthArgs.NewValue.Value.Value;
+                ViewModel.GuiSettings.DateWidth = dataGridLengthArgs.NewValue.Value.Value;
                 break;
             case "HistoryCount":
-                ViewModel.CountWidth = dataGridLengthArgs.NewValue.Value.Value;
+                ViewModel.GuiSettings.CountWidth = dataGridLengthArgs.NewValue.Value.Value;
                 break;
             default:
                 Log.Warning("Unknown column tag: {tag}", column.Tag);
@@ -392,7 +358,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
             PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
         }
 
-        var playing = ViewModel?.Play() ?? false;
+        var playing = ViewModel?.Resume() ?? false;
         _paused = !playing;
     }
 

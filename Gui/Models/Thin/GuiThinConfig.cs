@@ -1,7 +1,7 @@
 using Core.Configuration;
 using JetBrains.Annotations;
 
-namespace GuiThin.Models;
+namespace Gui.Models.Thin;
 
 public class GuiThinConfig : GeneralConfig
 {

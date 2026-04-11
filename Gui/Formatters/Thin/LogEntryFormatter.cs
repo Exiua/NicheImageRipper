@@ -1,7 +1,7 @@
 using System.Text;
-using GuiThin.Models.Data;
+using Gui.Models.Thin.Data;
 
-namespace GuiThin.Formatters;
+namespace Gui.Formatters.Thin;
 
 public sealed class LogEntryFormatter
 {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace GuiThin.Models.Data;
+namespace Gui.Models.Thin.Data;
 
 public sealed class BackendLogEvent
 {

@@ -1,7 +1,7 @@
 using System;
-using GuiThin.Models.Data;
+using Gui.Models.Thin.Data;
 
-namespace GuiThin.Services;
+namespace Gui.Services.Thin;
 
 public interface ILogTextService
 {

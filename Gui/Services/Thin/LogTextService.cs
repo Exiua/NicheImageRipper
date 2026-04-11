@@ -1,10 +1,10 @@
 using System;
 using System.Reactive.Subjects;
-using GuiThin.Formatters;
-using GuiThin.Models;
-using GuiThin.Models.Data;
+using Gui.Formatters.Thin;
+using Gui.Models.Thin;
+using Gui.Models.Thin.Data;
 
-namespace GuiThin.Services;
+namespace Gui.Services.Thin;
 
 public sealed class LogTextService : ILogTextService, IDisposable
 {

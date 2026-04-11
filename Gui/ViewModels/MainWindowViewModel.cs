@@ -1,19 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Reactive;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using Avalonia.Threading;
-using Common.Gui.ExtensionMethods;
 using Common.Gui.Utility;
 using Core;
 using Core.DataStructures;
 using Core.Enums;
 using Core.History;
 using Core.SiteParsing.HtmlParsers;
-using Gui.Utility;
 using Gui.Models;
 using Gui.Views;
 using ReactiveUI;
@@ -21,27 +16,16 @@ using Serilog;
 
 namespace Gui.ViewModels;
 
-public class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : MainWindowViewModelBase
 {
-    private readonly NicheImageRipper _ripper;
-    private readonly ITaskbarProgressService? _progressService = GetTaskbarProgressService(); //TODO: Implement usage
-    
     private static readonly Version Version = new(1, 0, 0);
     private static GuiConfig Config => (GuiConfig) Core.Configuration.Config.Instance;
 
-    public static string Title => $"Gui v{Version} - Core v{NicheImageRipper.Version}";
+    public override string Title => $"Gui v{Version} - Core v{NicheImageRipper.Version}";
 
     internal MainWindow MainWindow { get; set; } = null!;
 
     private bool _ripInProgress;
-    private int _currentHistoryPage;
-
-    public int HistoryCount => NicheImageRipper.GetHistoryCount();
-    public int PageSize { get; set; } = 100;
-    public ObservableCollection<string> UrlQueue { get; }
-    public ObservableCollection<HistoryEntry> History { get; }
-
-    public List<string> SelectedUrls { get; set; } = [];
 
     public string SavePath
     {
@@ -52,68 +36,6 @@ public class MainWindowViewModel : ViewModelBase
             NicheImageRipper.SavePath = value;
         }
     } = NicheImageRipper.SavePath;
-
-    public string UrlInput
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "";
-
-    public int FilenameSchemeIndex
-    {
-        get;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref field, value);
-            NicheImageRipper.FilenameScheme = (FilenameScheme)value;
-        }
-    }
-
-    public int UnzipProtocolIndex
-    {
-        get;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref field, value);
-            NicheImageRipper.UnzipProtocol = (UnzipProtocol)value;
-        }
-    }
-
-    public string LogText
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "";
-
-    public string CurrentHistoryPageDisplay
-    {
-        get;
-        set
-        {
-            if (int.TryParse(value, out var result))
-            {
-                _currentHistoryPage = result;
-            }
-            else
-            {
-                result = -1;
-            }
-
-            this.RaiseAndSetIfChanged(ref field, result.ToString());
-        }
-    } = "1";
-
-    public string MaxRetriesDisplay
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = NicheImageRipper.MaxRetries.ToString();
-
-    public string RetryDelayDisplay
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = NicheImageRipper.RetryDelay.ToString();
 
     public bool SkipFailedDownloads
     {
@@ -165,137 +87,29 @@ public class MainWindowViewModel : ViewModelBase
         }
     } = Config.HistoryColumnWidths.CountWidth;
 
-    public string HistoryFilterText
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "";
-
-    public string UrlCountText
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "URLs in queue: 0";
-
-    public ReactiveCommand<Unit, Unit> RipCommand { get; }
-    public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
-    public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
-    public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
-    public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
-
     static MainWindowViewModel()
     {
         // FIXME: There is probably a cleaner way to structure this helper function
         GuiUtility.ExtractTagsFromUrlFunc = BooruParser.ExtractTagsFromUrl;
     }
     
-    public MainWindowViewModel()
+    public MainWindowViewModel(IRipperClient ripperClient, IRipperSettings ripperSettings, IGuiSettings guiSettings) : base(ripperClient, ripperSettings, guiSettings)
     {
-        _ripper = new NicheImageRipper();
-        RipCommand = ReactiveCommand.CreateRunInBackground(QueueAndRip);
-        ClearCacheCommand = ReactiveCommand.Create(ClearCache);
-        DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
-        ReRipUrlCommand = ReactiveCommand.Create<string>(Rerip);
-        UrlQueue = new ObservableCollection<string>(_ripper.UrlQueue);
-        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage, PageSize);
-        History = new ObservableCollection<HistoryEntry>(history);
-
-        _ripper.OnUrlQueueUpdated += OnUrlQueueUpdated;
-        _ripper.OnProgressChanged += OnProgressChanged;
-    }
-    
-    private static ITaskbarProgressService? GetTaskbarProgressService()
-    {
-        #if WINDOWS
-        return new WindowsTaskbarProgressService();
-        #else
-        return null;
-        #endif
     }
 
-    public void DecrementHistoryPage()
-    {
-        if (_currentHistoryPage > 1)
-        {
-            _currentHistoryPage--;
-            CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
-        }
-    }
-
-    public void IncrementHistoryPage()
-    {
-        if (NextHistoryPageExists())
-        {
-            _currentHistoryPage++;
-            CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
-        }
-    }
-
-    public void RefreshHistoryPage()
-    {
-        if (_currentHistoryPage < 1)
-        {
-            _currentHistoryPage = 1;
-        }
-        else if (_currentHistoryPage > HistoryCount / PageSize)
-        {
-            _currentHistoryPage = HistoryCount / PageSize;
-        }
-
-        CurrentHistoryPageDisplay = _currentHistoryPage.ToString();
-    }
-
-    private static void ClearCache()
+    protected override void ClearCache()
     {
         NicheImageRipper.ClearCache();
     }
 
-    public bool Play()
+    protected override List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null) => NicheImageRipper.GetHistoryPage(start, offset, filter);
+
+    protected override void DequeueUrls()
     {
-        return _ripper.Resume();
+        RipperClient.DequeueUrls(SelectedUrls);
     }
 
-    public bool Pause()
-    {
-        return _ripper.Pause();
-    }
-
-    private void OnUrlQueueUpdated()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            UrlQueue.Update(_ripper.UrlQueue);
-            UrlCountText = $"URLs in queue: {_ripper.UrlQueue.Count}";
-        });
-    }
-
-    private void OnProgressChanged(int current, int total)
-    {
-        if (_progressService is not null)
-        {
-            var windowHandle = GetWindowHandle();
-            if (windowHandle == IntPtr.Zero)
-            {
-                Log.Warning("Failed to get window handle for progress update.");
-                return;
-            }
-            
-            _progressService.SetProgress(windowHandle, (ulong)current, (ulong)total);
-        }
-    }
-    
-    private IntPtr GetWindowHandle()
-    {
-        var handle = TopLevel.GetTopLevel(MainWindow)?.TryGetPlatformHandle()?.Handle;
-        return handle ?? IntPtr.Zero;
-    }
-    
-    private void DequeueUrls()
-    {
-        _ripper.DequeueUrls(SelectedUrls);
-    }
-
-    private void Rerip(string url)
+    protected override void Rerip(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -304,9 +118,9 @@ public class MainWindowViewModel : ViewModelBase
         }
         
         Log.Debug("Re-ripping URL: {url}", url);
-        _ripper.ForceQueueUrl(url);
+        RipperClient.ForceQueueUrl(url);
         
-        Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
+        Log.Debug("URLS in queue: {count}", RipperClient.UrlQueueCount);
 
         if (_ripInProgress)
         {
@@ -316,10 +130,10 @@ public class MainWindowViewModel : ViewModelBase
         Task.Run(Rip);
     }
 
-    private void QueueAndRip()
+    protected override void QueueAndRip()
     {
         var input = UrlInput;
-        if (string.IsNullOrWhiteSpace(input) && _ripper.UrlQueue.Count == 0)
+        if (string.IsNullOrWhiteSpace(input) && RipperClient.UrlQueueCount == 0)
         {
             return;
         }
@@ -341,7 +155,7 @@ public class MainWindowViewModel : ViewModelBase
                 try
                 {
                     var urls = GuiUtility.ExpandBooruInput(parts);
-                    rejectedUrls = _ripper.QueueUrls(string.Join("", urls));
+                    rejectedUrls = RipperClient.QueueUrls(string.Join("", urls));
                 }
                 catch (InvalidOperationException)
                 {
@@ -351,7 +165,7 @@ public class MainWindowViewModel : ViewModelBase
             }
             else
             {
-                rejectedUrls = _ripper.QueueUrls(input);
+                rejectedUrls = RipperClient.QueueUrls(input);
             }
 
             if (rejectedUrls.Count != 0)
@@ -388,11 +202,11 @@ public class MainWindowViewModel : ViewModelBase
                     }
                 }
 
-                _ripper.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
+                RipperClient.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
             }
         }
 
-        Log.Debug("URLS in queue: {count}", _ripper.UrlQueue.Count);
+        Log.Debug("URLS in queue: {count}", RipperClient.UrlQueueCount);
 
         if (_ripInProgress)
         {
@@ -409,16 +223,8 @@ public class MainWindowViewModel : ViewModelBase
             Message = $"Are you sure you want to re-rip this URL?\n{url}"
         };
         
-        await Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            var windows = new ConfirmationWindow
-            {
-                DataContext = confirmationViewModel
-            };
-            await windows.ShowDialog(MainWindow);
-        });
-        
-        return confirmationViewModel.Confirmed;
+        var result = await ShowConfirmationDialog.Handle(confirmationViewModel);
+        return result?.Confirmed ?? false;
     }
 
     private async Task Rip()
@@ -426,28 +232,14 @@ public class MainWindowViewModel : ViewModelBase
         _ripInProgress = true;
         try
         {
-            await _ripper.Rip();
+            await RipperClient.Rip();
         
-            if (_progressService is not null)
-            {
-                var windowHandle = GetWindowHandle();
-                if (windowHandle != IntPtr.Zero)
-                {
-                    _progressService.ClearProgress(windowHandle);
-                }
-            }
+            ClearProgress();
         }
         catch (Exception e)
         {
             Dispatcher.UIThread.Post(() => { Log.Error(e, "Error occurred while ripping"); });
-            if (_progressService is not null)
-            {
-                var windowHandle = GetWindowHandle();
-                if (windowHandle != IntPtr.Zero)
-                {
-                    _progressService.SetError(windowHandle);
-                }
-            }
+            SetProgressError();
         }
         finally
         {
@@ -455,61 +247,18 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    internal void LoadUnfinishedUrls(string path)
+    public override void LoadUnfinishedUrls(string path)
     {
-        _ripper.LoadUrlFile(path);
+        RipperClient.LoadUrlFile(path);
     }
 
-    public void LoadHistory(HistoryFilter? filter = null)
+    public override void SaveData()
     {
-        var history = NicheImageRipper.GetHistoryPage(_currentHistoryPage - 1, PageSize, filter);
-        Log.Debug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
-        History.Update(history);
+        RipperClient.SaveData();
     }
 
-    public bool NextHistoryPageExists()
+    public override void Cleanup()
     {
-        Log.Debug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}",
-            CurrentHistoryPageDisplay, PageSize, HistoryCount);
-        return HistoryCount - (_currentHistoryPage * PageSize) > PageSize;
-    }
-
-    public void SaveData()
-    {
-        _ripper.SaveData();
-    }
-
-    public void Cleanup()
-    {
-        _ripper.Dispose();
-    }
-
-    public void SetMaxRetries(int maxRetries)
-    {
-        if (maxRetries == -1)
-        {
-            MaxRetriesDisplay = NicheImageRipper.MaxRetries.ToString();
-        }
-        else
-        {
-            NicheImageRipper.MaxRetries = maxRetries;
-        }
-    }
-
-    public void SetRetryDelay(int result)
-    {
-        if (result == -1)
-        {
-            RetryDelayDisplay = NicheImageRipper.RetryDelay.ToString();
-        }
-        else
-        {
-            NicheImageRipper.RetryDelay = result;
-        }
-    }
-
-    public void ClearHistoryFilter()
-    {
-        HistoryFilterText = "";
+        RipperClient.Dispose();
     }
 }

@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.DataStructures;
-using GuiThin.Models.Data;
-using Service.Models.Dtos;
-using Service.Models.Requests;
+using Gui.Models.Thin.Data;
 
-namespace GuiThin.Services;
+namespace Gui.Services.Thin;
 
 public interface IBackendConnector
 {

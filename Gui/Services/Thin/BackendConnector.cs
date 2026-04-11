@@ -9,12 +9,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.DataStructures;
-using GuiThin.Models;
-using GuiThin.Models.Data;
-using Service.Models.Dtos;
-using Service.Models.Requests;
+using Gui.Models.Thin;
+using Gui.Models.Thin.Data;
 
-namespace GuiThin.Services;
+namespace Gui.Services.Thin;
 
 public class BackendConnector(HttpClient httpClient, ApplicationState applicationState) : IBackendConnector, IDisposable
 {
