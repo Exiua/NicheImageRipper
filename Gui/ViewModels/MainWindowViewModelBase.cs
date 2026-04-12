@@ -25,6 +25,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ILogTextSource LogTextSource { get; }
 
     public abstract string Title { get; }
+    public abstract int HistoryCount { get; }
 
     private bool RipInProgress { get; set; }
 
@@ -38,7 +39,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     {
         get;
         protected set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "";
+    }
 
     public string UrlCountText
     {
@@ -125,12 +126,6 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     }
 
     public bool IsRipping
-    {
-        get;
-        protected set => this.RaiseAndSetIfChanged(ref field, value);
-    }
-
-    public int HistoryCount
     {
         get;
         protected set => this.RaiseAndSetIfChanged(ref field, value);

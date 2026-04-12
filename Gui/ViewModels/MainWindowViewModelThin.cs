@@ -16,7 +16,9 @@ public class MainWindowViewModelThin(
 {
     private static readonly Version Version = new(1, 0, 0);
     
-    public override string Title => $"GuiThin v{Version} - Core v{NicheImageRipper.Version}";
+    public override string Title => $"GuiThin v{Version} - Core v{"TODO"}";
+    public override int HistoryCount { get; }
+
 
     protected override void ClearCache()
     {

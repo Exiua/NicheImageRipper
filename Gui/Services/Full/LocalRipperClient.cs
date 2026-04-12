@@ -12,6 +12,8 @@ public class LocalRipperClient : IRipperClient
 
     public int UrlQueueCount => _ripper.UrlQueue.Count;
     
+    private bool _disposed;
+    
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
@@ -59,21 +61,28 @@ public class LocalRipperClient : IRipperClient
 
     public void RequeueUrls(RejectedUrlsInfo rejectedUrls)
     {
-        throw new NotImplementedException();
+        _ripper.RequeueUrls(rejectedUrls);
     }
 
     public void LoadUrlFile(string path)
     {
-        throw new NotImplementedException();
+        _ripper.LoadUrlFile(path);
     }
 
     public void SaveData()
     {
-        throw new NotImplementedException();
+        _ripper.SaveData();
     }
     
     public void Dispose()
     {
-        // TODO release managed resources here
+        if (_disposed)
+        {
+            return;
+        }
+        
+        _disposed = true;
+        _ripper.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

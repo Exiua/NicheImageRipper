@@ -14,9 +14,10 @@ public class MainWindowViewModelFull(
     ILogTextSource logTextSource) 
     : MainWindowViewModelBase(ripperClient, ripperSettings, guiSettings, logTextSource)
 {
-    private static readonly Version Version = new(1, 0, 0);
+    private static readonly Version Version = new(2, 0, 0);
 
     public override string Title => $"Gui v{Version} - Core v{NicheImageRipper.Version}";
+    public override int HistoryCount => NicheImageRipper.GetHistoryCount();
 
     protected override void ClearCache()
     {

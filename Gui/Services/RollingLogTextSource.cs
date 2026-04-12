@@ -59,26 +59,30 @@ public sealed class RollingLogTextSource : ILogTextSource
 
     private static string Render(LogEntryModel entry)
     {
-        var sb = new StringBuilder();
+        var time = entry.Timestamp?.ToLocalTime().ToString("HH:mm:ss");
+        var level = ToShortLevel(entry.Level ?? "Information");
 
-        sb.Append('[');
-        sb.Append(entry.Timestamp.ToString());
-        sb.Append("] ");
-
-        if (!string.IsNullOrWhiteSpace(entry.Level))
-        {
-            sb.Append(entry.Level);
-            sb.Append(": ");
-        }
-
-        sb.Append(entry.RenderedMessage);
+        var line = $"[{time} {level}] {entry.RenderedMessage}";
 
         if (!string.IsNullOrWhiteSpace(entry.Exception))
         {
-            sb.AppendLine();
-            sb.Append(entry.Exception);
+            line += Environment.NewLine + entry.Exception;
         }
 
-        return sb.ToString();
+        return line;
+    }
+    
+    private static string ToShortLevel(string level)
+    {
+        return level switch
+        {
+            "Verbose" => "VRB",
+            "Debug" => "DBG",
+            "Information" => "INF",
+            "Warning" => "WRN",
+            "Error" => "ERR",
+            "Fatal" => "FTL",
+            _ => level.Length >= 3 ? level[..3].ToUpperInvariant() : level.ToUpperInvariant()
+        };
     }
 }

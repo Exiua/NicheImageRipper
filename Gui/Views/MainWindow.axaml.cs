@@ -39,6 +39,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     public MainWindow(MainWindowViewModelBase viewModel)
     {
         DataContext = viewModel;
+        viewModel.Initialize();
         
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();
