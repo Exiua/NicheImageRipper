@@ -9,19 +9,24 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.DataStructures;
+using Core.Utility;
+using Gui.Models;
 using Gui.Models.Thin;
-using Gui.Models.Thin.Data;
+using Service.Models.Dtos;
+using Service.Models.Requests;
 
 namespace Gui.Services.Thin;
 
 public class BackendConnector(HttpClient httpClient, ApplicationState applicationState) : IBackendConnector, IDisposable
 {
+    private const string ConfigFilename = "config.json";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    private static GuiThinConfig Config => (GuiThinConfig)Core.Configuration.Config.Instance;
+    private static GuiThinConfig Config { get; }
 
     private ClientWebSocket _webSocket = new();
     private bool _disposed;
@@ -38,7 +43,20 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         set => Config.EndpointUri = value;
     }
 
-    public event Action<BackendLogEvent>? LogReceived;
+    public event Action<LogEntryModel>? LogReceived;
+
+    static BackendConnector()
+    {
+        if (File.Exists(ConfigFilename))
+        {
+            var config = JsonUtility.Deserialize<GuiThinConfig>(ConfigFilename);
+            Config = config ?? new GuiThinConfig();
+        }
+        else
+        {
+            Config = new GuiThinConfig();
+        }
+    }
 
     private void EnsureConfigured()
     {
@@ -252,7 +270,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
 
             try
             {
-                var logEvent = System.Text.Json.JsonSerializer.Deserialize<BackendLogEvent>(json);
+                var logEvent = System.Text.Json.JsonSerializer.Deserialize<LogEntryModel>(json);
 
                 if (logEvent is not null)
                 {
@@ -261,9 +279,9 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
             }
             catch (Exception ex)
             {
-                var fallback = new BackendLogEvent
+                var fallback = new LogEntryModel
                 {
-                    Timestamp = DateTime.UtcNow.ToString("O"),
+                    Timestamp = DateTimeOffset.UtcNow,
                     Level = "Error",
                     RenderedMessage = "Malformed log payload received",
                     Exception = $"Raw: {json}\n\nError: {ex}"

@@ -1,60 +1,52 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Core;
 using Core.DataStructures;
 
-namespace Gui.Services.Full;
+namespace Gui.Services.Thin;
 
-public class FullRipperClient : IRipperClient
+public class RemoteRipperClient(IBackendConnector backendConnector) : IRipperClient
 {
-    private readonly NicheImageRipper _ripper;
-
-    public int UrlQueueCount => _ripper.UrlQueue.Count;
-    
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
-    public FullRipperClient()
-    {
-        _ripper = new NicheImageRipper();
-        _ripper.OnUrlQueueUpdated += () => OnUrlQueueUpdated?.Invoke();
-        _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
-    }
+    public int UrlQueueCount => backendConnector.GetQueueCountAsync().Result;
     
     public Task Rip()
     {
-        return _ripper.Rip();
+        return backendConnector.RipAsync();
     }
 
     public bool Resume()
     {
-        return _ripper.Resume();
+        return backendConnector.ResumeAsync().Result;
     }
 
     public bool Pause()
     {
-        return _ripper.Pause();
+        return backendConnector.PauseAsync().Result;
     }
 
     public IEnumerable<string> GetUrlQueue()
     {
-        return _ripper.UrlQueue;
+        return backendConnector.GetQueueSnapshotAsync().Result;
     }
 
     public RejectedUrlsInfo QueueUrls(string url)
     {
-        return _ripper.QueueUrls(url);
+        //return backendConnector.QueueUrlsAsync([url]).Result;
+        throw new NotImplementedException();
     }
 
     public void DequeueUrls(IEnumerable<string> url)
     {
-        _ripper.DequeueUrls(url);
+        backendConnector.DequeueUrlsAsync(url as string[] ?? url.ToArray()).Wait();
     }
 
     public void ForceQueueUrl(string url)
     {
-        _ripper.ForceQueueUrl(url);
+        throw new NotImplementedException();
     }
 
     public void RequeueUrls(RejectedUrlsInfo rejectedUrls)
@@ -74,6 +66,6 @@ public class FullRipperClient : IRipperClient
     
     public void Dispose()
     {
-        // TODO release managed resources here
+        throw new NotImplementedException();
     }
 }

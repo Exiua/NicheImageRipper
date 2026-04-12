@@ -4,7 +4,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Gui.Formatters.Thin;
-using Gui.Models;
 using Gui.Services;
 using Gui.Services.Full;
 using Gui.Services.Thin;
@@ -32,40 +31,41 @@ public partial class App : Application
         const bool thin = false;
         if (thin)
         {
-            collection.AddTransient<IRipperClient>();
-            collection.AddTransient<IRipperSettings>();
-            collection.AddTransient<IGuiSettings>();
-            
             collection.AddSingleton(new HttpClient());
         
             collection.AddSingleton<LogEntryFormatter>();
-            collection.AddSingleton<ILogTextService>(sp => new LogTextService(
+            /*collection.AddSingleton<ILogTextSource>(sp => new LogTextService(
                 sp.GetRequiredService<LogEntryFormatter>(),
-                maxEntries: 500));
+                maxEntries: 500));*/
         
             collection.AddSingleton<IBackendConnector, BackendConnector>();
-            collection.AddSingleton<LogStreamCoordinator>();
-        
-            collection.AddSingleton<MainWindowViewModel>();
         
             collection.AddSingleton<ApplicationState>();
+            
+            collection.AddSingleton<IRipperClient, RemoteRipperClient>();
+            collection.AddSingleton<IRipperSettings>();
+            collection.AddSingleton<IGuiSettings>();
+            collection.AddSingleton<IGuiLogBridgeCoordinator, LocalGuiLogBridgeCoordinator>();
+            collection.AddSingleton<MainWindowViewModelFull>();
         }
         else
         {
-            collection.AddTransient<IRipperClient, FullRipperClient>();
-            collection.AddTransient<IRipperSettings>();
-            collection.AddTransient<IGuiSettings, FullGuiSettings>();
+            collection.AddSingleton<IRipperClient, LocalRipperClient>();
+            collection.AddSingleton<IRipperSettings, FullRipperSettings>();
+            collection.AddSingleton<IGuiSettings, FullGuiSettings>();
+            collection.AddSingleton<IGuiLogBridgeCoordinator, LocalGuiLogBridgeCoordinator>();
+            collection.AddSingleton<MainWindowViewModelBase, MainWindowViewModelFull>();
         }
         
-        collection.AddTransient<MainWindowViewModel>();
+        collection.AddSingleton<ILogTextSource, RollingLogTextSource>();
 
         // Creates a ServiceProvider containing services from the provided IServiceCollection
         var services = collection.BuildServiceProvider();
 
         // Force event wiring to happen.
-        _ = services.GetRequiredService<LogStreamCoordinator>();
+        _ = services.GetRequiredService<IGuiLogBridgeCoordinator>();
         
-        var vm = services.GetRequiredService<MainWindowViewModel>();
+        var vm = services.GetRequiredService<MainWindowViewModelBase>();
         
         switch (ApplicationLifetime)
         {

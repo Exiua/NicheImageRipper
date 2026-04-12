@@ -1,4 +1,5 @@
 using System;
+using Gui.Models;
 using Gui.Views;
 using Serilog;
 using Serilog.Configuration;
@@ -7,10 +8,14 @@ using Serilog.Events;
 
 namespace Gui.Utility;
 
-public class GuiSink(IFormatProvider? formatProvider) : ILogEventSink
+public sealed class GuiSink : ILogEventSink
 {
-    public static event Action<string>? OnLog;
-    public static MainWindow? MainWindow { get; set; }
+    private readonly IFormatProvider? _formatProvider;
+
+    public GuiSink(IFormatProvider? formatProvider = null)
+    {
+        _formatProvider = formatProvider;
+    }
 
     public void Emit(LogEvent logEvent)
     {
@@ -18,10 +23,17 @@ public class GuiSink(IFormatProvider? formatProvider) : ILogEventSink
         {
             return;
         }
-        
-        var message = logEvent.RenderMessage(formatProvider);
-        OnLog?.Invoke(message);
-        MainWindow?.OnLog(message);
+
+        var entry = new LogEntryModel
+        {
+            Timestamp = logEvent.Timestamp,
+            Level = logEvent.Level.ToString(),
+            RenderedMessage = logEvent.RenderMessage(_formatProvider),
+            MessageTemplate = logEvent.MessageTemplate.Text,
+            Exception = logEvent.Exception?.ToString()
+        };
+
+        GuiLogBridge.Publish(entry);
     }
 }
 

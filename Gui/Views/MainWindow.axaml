@@ -17,7 +17,7 @@
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel />
+        <vm:MainWindowViewModelBase />
     </Design.DataContext>
 
     <Grid x:Name="GridBackground" ColumnDefinitions="*" RowDefinitions="Auto, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -75,16 +75,16 @@
                               BorderThickness="1" BorderBrush="Gray">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}" 
-                                                Width="{Binding GuiSettings.NameWidth}" Tag="HistoryName"
+                                                Width="{Binding NameWidth}" Tag="HistoryName"
                                                 PropertyChanged="OnHistoryColumnWidthChanged" />
                             <DataGridTextColumn Header="Url" Binding="{Binding Url}" 
-                                                Width="{Binding GuiSettings.UrlWidth}" Tag="HistoryUrl"
+                                                Width="{Binding UrlWidth}" Tag="HistoryUrl"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
                             <DataGridTextColumn Header="Date" Binding="{Binding Date}" 
-                                                Width="{Binding GuiSettings.DateWidth}" Tag="HistoryDate"
+                                                Width="{Binding DateWidth}" Tag="HistoryDate"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
                             <DataGridTextColumn Header="#" Binding="{Binding NumUrls}"
-                                                Width="{Binding GuiSettings.CountWidth}" Tag="HistoryCount"
+                                                Width="{Binding CountWidth}" Tag="HistoryCount"
                                                 PropertyChanged="OnHistoryColumnWidthChanged"/>
                             <DataGridTemplateColumn Header="Action">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -102,7 +102,7 @@
             <TabItem Header="Settings">
                 <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Grid.Row="0" Grid.Column="0" Margin="10" Text="Save Location:" />
-                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="10" Text="{Binding RipperSettings.SavePath}" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="10" Text="{Binding SavePath}" />
                     <TextBlock Grid.Row="1" Grid.Column="0" Margin="10" Text="Select Save Folder:" />
                     <Button Grid.Row="1" Grid.Column="1" Margin="10" Click="SelectFolder">Browse</Button>
                     <TextBlock Grid.Row="2" Grid.Column="0" Margin="10" Text="Load Unfinished Urls:" />
@@ -120,7 +120,7 @@
                     <TextBlock Grid.Row="8" Grid.Column="0" Margin="10" Text="Retry Delay (ms):" />
                     <TextBox Grid.Row="8" Grid.Column="1" Margin="10" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
                     <TextBlock Grid.Row="9" Grid.Column="0" Margin="10" Text="Skip Failed Downloads:" />
-                    <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding RipperSettings.SkipFailedDownloads}"/>
+                    <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding SkipFailedDownloads}"/>
                 </Grid>
             </TabItem>
         </TabControl>

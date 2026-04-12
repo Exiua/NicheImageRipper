@@ -1,22 +1,14 @@
-using Core.Configuration;
-using JetBrains.Annotations;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Gui.Models.Thin;
 
-public class GuiThinConfig : GeneralConfig
+public class GuiThinConfig
 {
-    public string ApiKey { get; set; } = null!;
-    public string EndpointUri { get; set; } = null!;
+    public string ApiKey { get; set; } = "";
+    public string EndpointUri { get; set; } = "";
     
-    [UsedImplicitly]
-    public GuiThinConfig() : base()
-    {
-        
-    }
-
-    protected GuiThinConfig(bool _) : base(_)
-    {
-        ApiKey = "";
-        EndpointUri = "";
-    }
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? ExtraData { get; set; }
 }

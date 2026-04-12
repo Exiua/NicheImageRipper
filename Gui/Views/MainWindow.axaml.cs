@@ -48,8 +48,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
         UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
-        //GuiSink.OnLog += OnLog;
-        GuiSink.MainWindow = this;
         Closing += OnClose;
         this.WhenActivated(disposables =>
         {
@@ -74,48 +72,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         task.Wait();
     }
     
-    private readonly ThreadSafeStringBuilder _logBuilder = new();
-    private readonly Mutex _logLock = new();
-    private int _logCount;
-    private const int MaxLogLines = 1000;
-    private const int NumLogLinesToRemove = 50;
     private bool _paused;
-
-    public void OnLog(string message)
-    {
-        lock (_logLock)
-        {
-            _logBuilder.Append($"{message}\n");
-            _logCount++;
-            if (_logCount > MaxLogLines)
-            {
-                var lines = 0;
-                for (var i = 0; i < _logBuilder.Length; i++)
-                {
-                    if (_logBuilder[i] == '\n')
-                    {
-                        lines++;
-                    }
-                
-                    if (lines >= NumLogLinesToRemove)
-                    {
-                        _logBuilder.Remove(0, i + 1); // Works because we are removing the first i + 1 characters
-                        _logCount -= lines;
-                        break;
-                    }
-                
-                    // This can technically never remove lines from the log if for some reason, less than NumLogLinesToRemove
-                    // lines are in the log, but that **should** never happen
-                }
-            }
-            
-            Dispatcher.UIThread.Post(() =>
-            {
-                ViewModel!.LogText = _logBuilder.ToString();
-                LogTextBox.CaretIndex = int.MaxValue;
-            }, DispatcherPriority.Background);
-        }
-    }
 
     private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)
     {

@@ -1,15 +1,15 @@
 using System.Text;
-using Gui.Models.Thin.Data;
+using Gui.Models;
 
 namespace Gui.Formatters.Thin;
 
 public sealed class LogEntryFormatter
 {
-    public string Format(BackendLogEvent entry)
+    public string Format(LogEntryModel entry)
     {
         var sb = new StringBuilder();
 
-        if (!string.IsNullOrWhiteSpace(entry.Timestamp))
+        if (!string.IsNullOrWhiteSpace(entry.Timestamp?.ToString("0")))
         {
             sb.Append('[');
             sb.Append(entry.Timestamp);

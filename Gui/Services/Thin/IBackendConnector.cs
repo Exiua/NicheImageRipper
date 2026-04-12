@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.DataStructures;
-using Gui.Models.Thin.Data;
+using Gui.Models;
+using Service.Models.Dtos;
+using Service.Models.Requests;
 
 namespace Gui.Services.Thin;
 
@@ -12,7 +14,7 @@ public interface IBackendConnector
     public string ApiKey { get; set; }
     public string EndpointUri { get; set; }
 
-    event Action<BackendLogEvent>? LogReceived;
+    event Action<LogEntryModel>? LogReceived;
 
     public Task<string[]> GetQueueSnapshotAsync(CancellationToken cancellationToken = default);
     public Task<int> GetQueueCountAsync(CancellationToken cancellationToken = default);

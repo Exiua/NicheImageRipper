@@ -1,11 +1,12 @@
+using System;
 using System.Text.Json.Serialization;
 
-namespace Gui.Models.Thin.Data;
+namespace Gui.Models;
 
-public sealed class BackendLogEvent
+public sealed class LogEntryModel
 {
     [JsonPropertyName("Timestamp")]
-    public string? Timestamp { get; set; }
+    public DateTimeOffset? Timestamp { get; set; }
 
     [JsonPropertyName("Level")]
     public string? Level { get; set; }
