@@ -15,6 +15,8 @@ namespace Gui;
 
 public partial class App : Application
 {
+    public static bool Thin { get; set; }
+    
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -28,8 +30,7 @@ public partial class App : Application
 
         // Register all the services needed for the application to run
         var collection = new ServiceCollection();
-        const bool thin = false;
-        if (thin)
+        if (Thin)
         {
             collection.AddSingleton(new HttpClient());
         
@@ -43,10 +44,10 @@ public partial class App : Application
             collection.AddSingleton<ApplicationState>();
             
             collection.AddSingleton<IRipperClient, RemoteRipperClient>();
-            collection.AddSingleton<IRipperSettings>();
-            collection.AddSingleton<IGuiSettings>();
+            collection.AddSingleton<IRipperSettings, ThinRipperSettings>();
+            collection.AddSingleton<IGuiSettings, ThinGuiSettings>();
             collection.AddSingleton<IGuiLogBridgeCoordinator, LocalGuiLogBridgeCoordinator>();
-            collection.AddSingleton<MainWindowViewModelFull>();
+            collection.AddSingleton<MainWindowViewModelBase, MainWindowViewModelThin>();
         }
         else
         {

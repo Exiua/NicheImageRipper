@@ -4,16 +4,19 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
+using System.Reactive;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Core.Configuration;
 using Core.DataStructures;
 using Core.Utility;
 using Gui.Models;
 using Gui.Models.Thin;
 using Service.Models.Dtos;
 using Service.Models.Requests;
+using Config = Service.Models.Configs.Config;
 
 namespace Gui.Services.Thin;
 
@@ -165,6 +168,11 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
 
         response.EnsureSuccessStatusCode();
 
+        if (typeof(TResponse) == typeof(Unit))
+        {
+            return (TResponse)(object)new Unit();
+        }
+        
         return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken)
                ?? throw new InvalidOperationException($"Server returned no {typeof(TResponse).Name} value.");
     }
@@ -241,6 +249,17 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         }
 
         _webSocket.Dispose();
+    }
+
+    public async Task<GeneralConfig> GetConfigAsync(CancellationToken cancellationToken = default)
+    {
+        var config = await SendAsync<GeneralConfig>(HttpMethod.Get, "api/settings", cancellationToken);
+        return config;
+    }
+
+    public async Task UpdateConfigAsync(Config config, CancellationToken cancellationToken = default)
+    {
+        await SendAsync<Config, Unit>(HttpMethod.Patch, "api/settings", config, cancellationToken);
     }
 
     private async Task ReceiveLoopAsync(ClientWebSocket socket, CancellationToken cancellationToken)

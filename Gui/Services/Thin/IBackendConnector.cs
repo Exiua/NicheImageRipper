@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Core.Configuration;
 using Core.DataStructures;
 using Gui.Models;
 using Service.Models.Requests;
+using Config = Service.Models.Configs.Config;
 
 namespace Gui.Services.Thin;
 
@@ -40,4 +42,6 @@ public interface IBackendConnector
 
     public Task ConnectLogsAsync(CancellationToken cancellationToken = default);
     public Task DisconnectLogsAsync(CancellationToken cancellationToken = default);
+    public Task<GeneralConfig> GetConfigAsync(CancellationToken cancellationToken = default);
+    public Task UpdateConfigAsync(Config config, CancellationToken cancellationToken = default);
 }

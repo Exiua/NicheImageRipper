@@ -1,9 +1,10 @@
 using Core;
+using Core.Configuration;
 using Core.DataStructures;
 using Core.History;
 using Service.Utilities.ExtensionMethods;
-using Service.Models.Configs;
 using Service.Models.Dtos;
+using Config = Service.Models.Configs.Config;
 using SettingsOverride = Core.Configuration.SettingsOverride;
 
 namespace Service.Singletons;
@@ -99,9 +100,9 @@ public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger
         return NicheImageRipper.GetHistoryCount();
     }
 
-    public Config GetConfig()
+    public GeneralConfig GetConfig()
     {
-        return Config.FromCoreConfig(NicheImageRipper.Config);
+        return NicheImageRipper.Config;
     }
 
     public void UpdateConfig(Config config)
