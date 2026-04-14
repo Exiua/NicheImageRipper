@@ -29,49 +29,54 @@ public class LocalRipperClient : IRipperClient
         return _ripper.Rip();
     }
 
-    public bool Resume()
+    public Task<bool> Resume()
     {
-        return _ripper.Resume();
+        return Task.FromResult(_ripper.Resume());
     }
 
-    public bool Pause()
+    public Task<bool> Pause()
     {
-        return _ripper.Pause();
+        return Task.FromResult(_ripper.Pause());
     }
 
-    public IEnumerable<string> GetUrlQueue()
+    public Task<IEnumerable<string>> GetUrlQueue()
     {
-        return _ripper.UrlQueue;
+        return Task.FromResult<IEnumerable<string>>(_ripper.UrlQueue);
     }
 
-    public RejectedUrlsInfo QueueUrls(string url)
+    public Task<RejectedUrlsInfo> QueueUrls(string url)
     {
-        return _ripper.QueueUrls(url);
+        return Task.FromResult(_ripper.QueueUrls(url));
     }
 
-    public void DequeueUrls(IEnumerable<string> url)
+    public Task DequeueUrls(IEnumerable<string> url)
     {
         _ripper.DequeueUrls(url);
+        return Task.CompletedTask;
     }
 
-    public void ForceQueueUrl(string url)
+    public Task ForceQueueUrl(string url)
     {
         _ripper.ForceQueueUrl(url);
+        return Task.CompletedTask;
     }
 
-    public void RequeueUrls(RejectedUrlsInfo rejectedUrls)
+    public Task RequeueUrls(RejectedUrlsInfo rejectedUrls)
     {
         _ripper.RequeueUrls(rejectedUrls);
+        return Task.CompletedTask;
     }
 
-    public void LoadUrlFile(string path)
+    public Task LoadUrlFile(string path)
     {
         _ripper.LoadUrlFile(path);
+        return Task.CompletedTask;
     }
 
-    public void SaveData()
+    public Task SaveData()
     {
         _ripper.SaveData();
+        return Task.CompletedTask;
     }
     
     public void Dispose()

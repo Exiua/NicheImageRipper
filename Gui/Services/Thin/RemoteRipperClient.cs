@@ -18,54 +18,55 @@ public class RemoteRipperClient(IBackendConnector backendConnector) : IRipperCli
         return backendConnector.RipAsync();
     }
 
-    public bool Resume()
+    public Task<bool> Resume()
     {
-        return backendConnector.ResumeAsync().Result;
+        return backendConnector.ResumeAsync();
     }
 
-    public bool Pause()
+    public Task<bool> Pause()
     {
-        return backendConnector.PauseAsync().Result;
+        return backendConnector.PauseAsync();
     }
 
-    public IEnumerable<string> GetUrlQueue()
+    public async Task<IEnumerable<string>> GetUrlQueue()
     {
-        return backendConnector.GetQueueSnapshotAsync().Result;
+        var queue = await backendConnector.GetQueueSnapshotAsync();
+        return queue;
     }
 
-    public RejectedUrlsInfo QueueUrls(string url)
+    public Task<RejectedUrlsInfo> QueueUrls(string url)
     {
-        //return backendConnector.QueueUrlsAsync([url]).Result;
+        //return backendConnector.QueueUrlsAsync([url]);
         throw new NotImplementedException();
     }
 
-    public void DequeueUrls(IEnumerable<string> url)
+    public Task DequeueUrls(IEnumerable<string> url)
     {
-        backendConnector.DequeueUrlsAsync(url as string[] ?? url.ToArray()).Wait();
+        return backendConnector.DequeueUrlsAsync(url as string[] ?? url.ToArray());
     }
 
-    public void ForceQueueUrl(string url)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void RequeueUrls(RejectedUrlsInfo rejectedUrls)
+    public Task ForceQueueUrl(string url)
     {
         throw new NotImplementedException();
     }
 
-    public void LoadUrlFile(string path)
+    public Task RequeueUrls(RejectedUrlsInfo rejectedUrls)
     {
         throw new NotImplementedException();
     }
 
-    public void SaveData()
+    public Task LoadUrlFile(string path)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SaveData()
     {
         throw new NotImplementedException();
     }
     
     public void Dispose()
     {
-        throw new NotImplementedException();
+        GC.SuppressFinalize(this);
     }
 }

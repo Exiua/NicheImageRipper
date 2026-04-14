@@ -107,14 +107,19 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         return result ?? [];
     }
 
-    public async Task<List<RejectedUrlInfoDto>> QueueUrlsAsync(
-        string[] urls,
+    public async Task<RejectedUrlsInfo> QueueUrlsAsync(
+        string urls,
         CancellationToken cancellationToken = default)
     {
-        return await SendAsync<string[], List<RejectedUrlInfoDto>>(
+        var request = new QueueRequest
+        {
+            Urls = urls,
+        };
+        
+        return await SendAsync<QueueRequest, RejectedUrlsInfo>(
             HttpMethod.Post,
             "api/queue",
-            urls,
+            request,
             cancellationToken);
     }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Core;
 using Core.DataStructures;
 using Core.History;
 using Gui.Services;

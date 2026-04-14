@@ -1,6 +1,7 @@
+using Core.DataStructures;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Service.Models.Dtos;
+using Service.Models.Requests;
 using Service.Singletons;
 
 namespace Service.Controllers;
@@ -17,9 +18,9 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
     }
 
     [HttpPost]
-    public ActionResult<List<RejectedUrlInfoDto>> QueueUrls([FromBody] string[] urls)
+    public ActionResult<RejectedUrlsInfo> QueueUrls(QueueRequest urls)
     {
-        var rejected = nicheImageRipperSingleton.Queue(urls);
+        var rejected = nicheImageRipperSingleton.Queue(urls.Urls);
         return Ok(rejected);
     }
 

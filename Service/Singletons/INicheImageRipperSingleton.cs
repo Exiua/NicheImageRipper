@@ -8,7 +8,7 @@ namespace Service.Singletons;
 public interface INicheImageRipperSingleton
 {
     public string[] GetQueueSnapshot();
-    public IEnumerable<RejectedUrlInfoDto> Queue(string[] urls);
+    public RejectedUrlsInfo Queue(string urls);
     public void Dequeue(string[] urls);
     public bool Rip();
     public bool IsRipping { get; }

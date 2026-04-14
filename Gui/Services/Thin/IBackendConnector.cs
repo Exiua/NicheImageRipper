@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Core.DataStructures;
 using Gui.Models;
-using Service.Models.Dtos;
 using Service.Models.Requests;
 
 namespace Gui.Services.Thin;
@@ -19,8 +18,8 @@ public interface IBackendConnector
     public Task<string[]> GetQueueSnapshotAsync(CancellationToken cancellationToken = default);
     public Task<int> GetQueueCountAsync(CancellationToken cancellationToken = default);
 
-    public Task<List<RejectedUrlInfoDto>> QueueUrlsAsync(
-        string[] urls,
+    public Task<RejectedUrlsInfo> QueueUrlsAsync(
+        string urls,
         CancellationToken cancellationToken = default);
 
     public Task DequeueUrlsAsync(

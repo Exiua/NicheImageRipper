@@ -22,16 +22,11 @@ public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger
         }
     }
 
-    public IEnumerable<RejectedUrlInfoDto> Queue(string[] urls)
+    public RejectedUrlsInfo Queue(string urls)
     {
         using (_ripperLock.EnterScope())
         {
-            var rejected = urls.Select(url => _ripper.QueueUrls(url))
-                               .Where(rejectedUrlsInfo => rejectedUrlsInfo.HasRejectedUrls)
-                               .SelectMany(rejectedUrlsInfo => rejectedUrlsInfo.Urls)
-                               .Select(rejectedUrl => new RejectedUrlInfoDto(rejectedUrl.Url, rejectedUrl.Reason))
-                               .ToList();
-            return rejected;
+            return  _ripper.QueueUrls(urls);
         }
     }
 

@@ -294,21 +294,28 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         PlayPauseToggle();
     }
     
-    private void PlayPauseToggle()
+    private async void PlayPauseToggle()
     {
-        if (_paused)
+        try
         {
-            Play();
-            _paused = false;
+            if (_paused)
+            {
+                await Play();
+                _paused = false;
+            }
+            else
+            {
+                await Pause();
+                _paused = true;
+            }
         }
-        else
+        catch (Exception e)
         {
-            Pause();
-            _paused = true;
+            Log.Error(e, "Failed to toggle play/pause");
         }
     }
 
-    private void Play()
+    private async Task Play()
     {
         var iconFound = this.TryGetResource("PauseButtonIcon", out var icon);
         if (iconFound)
@@ -316,11 +323,20 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
         }
 
-        var playing = ViewModel?.Resume() ?? false;
+        bool playing;
+        if (ViewModel is null)
+        {
+            playing = false;
+        }
+        else
+        {
+            playing = await ViewModel.Resume();
+        }
+        
         _paused = !playing;
     }
 
-    private void Pause()
+    private async Task Pause()
     {
         var iconFound = this.TryGetResource("PlayButtonIcon", out var icon);
         if (iconFound)
@@ -328,7 +344,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
         }
         
-        var paused = ViewModel?.Pause() ?? false;
+        bool paused;
+        if (ViewModel is null)
+        {
+            paused = false;
+        }
+        else
+        {
+            paused = await ViewModel.Pause();
+        }
+        
         _paused = paused;
     }
 }

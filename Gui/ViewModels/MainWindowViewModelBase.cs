@@ -197,8 +197,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     }
 
-    public ObservableCollection<string> UrlQueue { get; } = [];
-    public ObservableCollection<HistoryEntry> History { get; } = [];
+    public ObservableCollection<string> UrlQueue { get; }
+    public ObservableCollection<HistoryEntry> History { get; }
 
     public List<string> SelectedUrls
     {
@@ -291,7 +291,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
                 try
                 {
                     var urls = ExpandBooruInput(parts);
-                    rejectedUrls = RipperClient.QueueUrls(string.Join("", urls));
+                    rejectedUrls = await RipperClient.QueueUrls(string.Join("", urls));
                 }
                 catch (InvalidOperationException)
                 {
@@ -301,7 +301,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             }
             else
             {
-                rejectedUrls = RipperClient.QueueUrls(input);
+                rejectedUrls = await RipperClient.QueueUrls(input);
             }
 
             if (rejectedUrls.Count != 0)
@@ -338,7 +338,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
                     }
                 }
 
-                RipperClient.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
+                await RipperClient.RequeueUrls(rejectedUrls.WithRejectedUrls(urlsToRequeue));
             }
         }
 
@@ -502,11 +502,19 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private void OnUrlQueueUpdated()
     {
-        Dispatcher.UIThread.Post(() =>
+        Dispatcher.UIThread.Post(async void () =>
         {
-            var queue = RipperClient.GetUrlQueue().ToList();
-            UrlQueue.Update(queue);
-            UrlCountText = $"URLs in queue: {queue.Count}";
+            try
+            {
+                var queueIter = await RipperClient.GetUrlQueue();
+                var queue = queueIter.ToList();
+                UrlQueue.Update(queue);
+                UrlCountText = $"URLs in queue: {queue.Count}";
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Error occurred while fetching url queue");
+            }
         });
     }
 
@@ -602,12 +610,12 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     }
 
-    public bool Resume()
+    public Task<bool> Resume()
     {
         return RipperClient.Resume();
     }
 
-    public bool Pause()
+    public Task<bool> Pause()
     {
         return RipperClient.Pause();
     }

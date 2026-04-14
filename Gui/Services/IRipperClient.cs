@@ -13,13 +13,13 @@ public interface IRipperClient : IDisposable
     public int UrlQueueCount { get; }
 
     public Task Rip();
-    public bool Resume();
-    public bool Pause();
-    public IEnumerable<string> GetUrlQueue();
-    public RejectedUrlsInfo QueueUrls(string url);
-    public void DequeueUrls(IEnumerable<string> url);
-    public void ForceQueueUrl(string url);
-    public void RequeueUrls(RejectedUrlsInfo rejectedUrls);
-    public void LoadUrlFile(string path);
-    public void SaveData();
+    public Task<bool> Resume();
+    public Task<bool> Pause();
+    public Task<IEnumerable<string>> GetUrlQueue();
+    public Task<RejectedUrlsInfo> QueueUrls(string url);
+    public Task DequeueUrls(IEnumerable<string> url);
+    public Task ForceQueueUrl(string url);
+    public Task RequeueUrls(RejectedUrlsInfo rejectedUrls);
+    public Task LoadUrlFile(string path);
+    public Task SaveData();
 }
