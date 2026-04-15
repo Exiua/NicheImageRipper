@@ -4,8 +4,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Gui.Formatters.Thin;
+using Gui.Models;
 using Gui.Services;
 using Gui.Services.Full;
+using Gui.Services.Shared;
+using Gui.Services.Shared.Windows;
 using Gui.Services.Thin;
 using Gui.ViewModels;
 using Gui.Views;
@@ -59,6 +62,12 @@ public partial class App : Application
         }
         
         collection.AddSingleton<ILogTextSource, RollingLogTextSource>();
+        
+        #if WINDOWS
+        collection.AddSingleton<ITaskbarProgressService, WindowsTaskbarProgressService>();
+        #else
+        collection.AddSingleton<ITaskbarProgressService, NullTaskbarProgressService>();
+        #endif
 
         // Creates a ServiceProvider containing services from the provided IServiceCollection
         var services = collection.BuildServiceProvider();
@@ -67,14 +76,15 @@ public partial class App : Application
         _ = services.GetRequiredService<IGuiLogBridgeCoordinator>();
         
         var vm = services.GetRequiredService<MainWindowViewModelBase>();
+        var taskbarProgressService = services.GetRequiredService<ITaskbarProgressService>();
         
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:
-                desktop.MainWindow = new MainWindow(vm);
+                desktop.MainWindow = new MainWindow(vm, taskbarProgressService);
                 break;
             case ISingleViewApplicationLifetime singleViewPlatform:
-                singleViewPlatform.MainView = new MainWindow(vm);
+                singleViewPlatform.MainView = new MainWindow(vm, taskbarProgressService);
                 break;
         }
 

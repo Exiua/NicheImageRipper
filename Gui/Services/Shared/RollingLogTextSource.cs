@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using Gui.Models;
 
-namespace Gui.Services;
+namespace Gui.Services.Shared;
 
 public sealed class RollingLogTextSource : ILogTextSource
 {

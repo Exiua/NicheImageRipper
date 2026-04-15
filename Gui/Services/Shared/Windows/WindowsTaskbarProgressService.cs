@@ -2,13 +2,8 @@
 
 using System;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.Marshalling;
-using Windows.Win32;
-using Windows.Win32.UI.Shell;
-using Windows.Win32.Foundation;
-using Gui.Services;
 
-namespace Gui.Models;
+namespace Gui.Services.Shared.Windows;
 
 public class WindowsTaskbarProgressService : ITaskbarProgressService
 {

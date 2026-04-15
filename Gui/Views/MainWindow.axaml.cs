@@ -18,6 +18,7 @@ using Core;
 using Core.Enums;
 using Core.History;
 using Gui.Models;
+using Gui.Services;
 using Gui.Utility;
 using Gui.ViewModels;
 using ReactiveUI;
@@ -33,11 +34,15 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         MimeTypes = ["application/json"],
     };
 
+    private readonly ITaskbarProgressService _taskbarProgressService;
+
     private Key _lastKeyPressed;
     private bool _copyReady;
+    private IntPtr _windowHandle;
 
-    public MainWindow(MainWindowViewModelBase viewModel)
+    public MainWindow(MainWindowViewModelBase viewModel, ITaskbarProgressService taskbarProgressService)
     {
+        _taskbarProgressService = taskbarProgressService;
         DataContext = viewModel;
         viewModel.Initialize();
         
@@ -49,14 +54,99 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
         UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
-        Closing += OnClose;
+        
+        Closing += OnClosing;
+        Opened += OnOpened;
+        
         this.WhenActivated(disposables =>
         {
             ViewModel!.ShowConfirmationDialog.RegisterHandler(DoShowDialogAsync).DisposeWith(disposables);
         });
+        
+        this.WhenActivated(disposables =>
+        {
+            ViewModel!.WhenAnyValue(x => x.ProgressCurrent, x => x.ProgressTotal)
+                .Subscribe(tuple =>
+                {
+                    var (current, total) = tuple;
+
+                    if (_windowHandle == IntPtr.Zero)
+                    {
+                        return;
+                    }
+
+                    if (total == 0)
+                    {
+                        _taskbarProgressService.ClearProgress(_windowHandle);
+                    }
+                    else
+                    {
+                        _taskbarProgressService.SetProgress(_windowHandle, current, total);
+                    }
+                })
+                .DisposeWith(disposables);
+
+            ViewModel!.WhenAnyValue(x => x.ProgressHasError)
+                .Subscribe(hasError =>
+                {
+                    if (_windowHandle == IntPtr.Zero)
+                    {
+                        return;
+                    }
+
+                    if (hasError)
+                    {
+                        _taskbarProgressService.SetError(_windowHandle);
+                    }
+                    else if (ViewModel.ProgressTotal == 0)
+                    {
+                        _taskbarProgressService.ClearProgress(_windowHandle);
+                    }
+                    else if (ViewModel.ProgressIsPaused)
+                    {
+                        _taskbarProgressService.SetPaused(_windowHandle);
+                    }
+                    else
+                    {
+                        _taskbarProgressService.SetProgress(
+                            _windowHandle,
+                            ViewModel.ProgressCurrent,
+                            ViewModel.ProgressTotal);
+                    }
+                })
+                .DisposeWith(disposables);
+
+            ViewModel!.WhenAnyValue(x => x.ProgressIsPaused)
+                .Subscribe(isPaused =>
+                {
+                    if (_windowHandle == IntPtr.Zero || ViewModel.ProgressTotal == 0 || ViewModel.ProgressHasError)
+                    {
+                        return;
+                    }
+
+                    if (isPaused)
+                    {
+                        _taskbarProgressService.SetPaused(_windowHandle);
+                    }
+                    else
+                    {
+                        _taskbarProgressService.SetProgress(
+                            _windowHandle,
+                            ViewModel.ProgressCurrent,
+                            ViewModel.ProgressTotal);
+                    }
+                })
+                .DisposeWith(disposables);
+        });
+    }
+    
+    private void OnOpened(object? sender, EventArgs e)
+    {
+        _windowHandle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        _taskbarProgressService.Initialize();
     }
 
-    private void OnClose(object? sender, WindowClosingEventArgs windowClosingEventArgs)
+    private void OnClosing(object? sender, WindowClosingEventArgs windowClosingEventArgs)
     {
         var task = Dispatcher.UIThread.InvokeAsync(() =>
         {

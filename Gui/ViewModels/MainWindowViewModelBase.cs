@@ -486,8 +486,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         try
         {
             await RipperClient.Rip();
-
-            ClearProgress();
+            ClearProgressState();
         }
         catch (Exception e)
         {
@@ -610,23 +609,30 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     }
 
-    public Task<bool> Resume()
+    public async Task<bool> Resume()
     {
-        return RipperClient.Resume();
+        var stateChanged = await RipperClient.Resume();
+        ProgressIsPaused = false;
+        return stateChanged;
     }
 
-    public Task<bool> Pause()
+    public async Task<bool> Pause()
     {
-        return RipperClient.Pause();
+        var stateChanged = await RipperClient.Pause();
+        ProgressIsPaused = true;
+        return stateChanged;
     }
 
-    private static void ClearProgress()
+    private void ClearProgressState()
     {
-        // TODO
+        ProgressCurrent = 0;
+        ProgressTotal = 0;
+        ProgressHasError = false;
+        ProgressIsPaused = false;
     }
 
-    private static void SetProgressError()
+    private void SetProgressError()
     {
-        // TODO
+        ProgressHasError = true;
     }
 }

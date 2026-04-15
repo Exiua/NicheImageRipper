@@ -6,6 +6,7 @@ using Core.Configuration;
 using Gui.Utility;
 using Gui.Models;
 using Serilog;
+using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 
@@ -21,24 +22,22 @@ sealed class Program
     {
         // Important to call this as early as possible
         Config.ReloadConfig<GuiConfig>();
-        
+
         #if DEBUG
-        Log.Logger = new LoggerConfiguration()
-                    .MinimumLevel.Debug()
-                    .Enrich.FromLogContext()
-                    .WriteTo.Console(theme: AnsiConsoleTheme.Code)
-                    .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Debug)
-                    .WriteTo.Gui()
-                    .CreateLogger();
+        var consoleSwitch = new LoggingLevelSwitch(LogEventLevel.Debug);
+        var fileSwitch = new LoggingLevelSwitch(LogEventLevel.Debug);
         #else
+        var consoleSwitch = new LoggingLevelSwitch(LogEventLevel.Information);
+        var fileSwitch = new LoggingLevelSwitch(LogEventLevel.Information);
+        #endif
+        
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .Enrich.FromLogContext()
-                    .WriteTo.Console(theme: AnsiConsoleTheme.Code)
-                    .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Information)
+                    .WriteTo.Console(theme: AnsiConsoleTheme.Code, levelSwitch: consoleSwitch)
+                    .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, levelSwitch: fileSwitch)
                     .WriteTo.Gui()
                     .CreateLogger();
-        #endif
         
         // Handle global exceptions
         AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
