@@ -15,6 +15,7 @@ using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
+using OpenQA.Selenium.Manager;
 using Serilog;
 using Serilog.Events;
 using WebDriver = Core.Driver.WebDriver;
@@ -872,7 +873,7 @@ public abstract class HtmlParser : IDisposable
         return data;
     }
 
-    protected async Task<(T, BiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
+    protected async Task<(T, IBiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
     {
         var capturer = new T();
         var bidi = await Driver.AsBiDiAsync();

@@ -2091,7 +2091,7 @@ public partial class ImageRipper : IDisposable
         files = Directory.GetFiles(directoryPath, "*.7z", SearchOption.AllDirectories);
         (intermediateCount, intermediateError) = UncompressAndGetResults(files, file =>
         {
-            using var archive = SevenZipArchive.Open(file);
+            using var archive = SevenZipArchive.OpenArchive(file);
             UncompressFile(file, archive);
         });
         count += intermediateCount;
@@ -2100,7 +2100,7 @@ public partial class ImageRipper : IDisposable
         files = Directory.GetFiles(directoryPath, "*.rar", SearchOption.AllDirectories);
         (intermediateCount, intermediateError) = UncompressAndGetResults(files, file =>
         {
-            using var archive = RarArchive.Open(file);
+            using var archive = RarArchive.OpenArchive(file);
             UncompressFile(file, archive);
         });
         count += intermediateCount;

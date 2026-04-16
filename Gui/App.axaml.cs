@@ -29,7 +29,7 @@ public partial class App : Application
     {
         // If you use CommunityToolkit, line below is needed to remove Avalonia data validation.
         // Without this line you will get duplicate validations from both Avalonia and CT
-        BindingPlugins.DataValidators.RemoveAt(0);
+        //BindingPlugins.DataValidators.RemoveAt(0);
 
         // Register all the services needed for the application to run
         var collection = new ServiceCollection();
