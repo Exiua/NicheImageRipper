@@ -262,6 +262,17 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         await SendAsync<Config, Unit>(HttpMethod.Patch, "api/settings", config, cancellationToken);
     }
 
+    public async Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default)
+    {
+        var versionString = await SendAsync<string>(HttpMethod.Get, "api/version", cancellationToken);
+        if (Version.TryParse(versionString, out var version))
+        {
+            return version;
+        }
+
+        throw new InvalidOperationException($"Server returned invalid version string: {versionString}");
+    }
+
     private async Task ReceiveLoopAsync(ClientWebSocket socket, CancellationToken cancellationToken)
     {
         var buffer = new byte[8192];
