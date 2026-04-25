@@ -336,4 +336,9 @@ public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger
             }
         }
     }
+
+    public Version GetVersion()
+    {
+        return NicheImageRipper.Version;
+    }
 }
