@@ -20,4 +20,5 @@ public interface INicheImageRipperSingleton
     public int GetHistoryCount();
     public GeneralConfig GetConfig();
     public void UpdateConfig(Config config);
+    public Version GetVersion();
 }
