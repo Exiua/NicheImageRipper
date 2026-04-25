@@ -104,9 +104,8 @@ public partial class NicheImageRipper : IDisposable
         Console.InputEncoding  = Encoding.UTF8;
     }
 
-    public void LoadUrlFile(string filepath)
+    public void LoadUrls(List<string> loadedUrls)
     {
-        var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
         foreach (var url in loadedUrls)
         {
             AddToUrlQueue(url, noCheck: true);
