@@ -218,48 +218,83 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    private void PreviousHistoryPage(object? sender, RoutedEventArgs e)
+    private async void PreviousHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel!.DecrementHistoryPage();
-        LoadHistory();
+        try
+        {
+            ViewModel!.DecrementHistoryPage();
+            await LoadHistory();
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to load previous history page");
+        }
     }
 
     // FIXME: NextHistoryPageExists() is not working as expected
-    private void NextHistoryPage(object? sender, RoutedEventArgs e)
+    private async void NextHistoryPage(object? sender, RoutedEventArgs e)
     {
-        ViewModel!.IncrementHistoryPage();
-        LoadHistory();
-    }
-
-    private void UpdateCurrentHistoryPage(object? sender, RoutedEventArgs e)
-    {
-        ViewModel!.RefreshHistoryPage();
-        LoadHistory();
-    }
-
-    private void UpdateCurrentHistoryPageWithFilter(object? send, RoutedEventArgs e)
-    {
-        var input = ViewModel!.HistoryFilterText.Trim();
-        if (string.IsNullOrEmpty(input))
+        try
         {
-            ViewModel.ClearHistoryFilter();
-            LoadHistory();
-            return;
+            ViewModel!.IncrementHistoryPage();
+            await LoadHistory();
         }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to load next history page");
+        }
+    }
+
+    private async void UpdateCurrentHistoryPage(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            ViewModel!.RefreshHistoryPage();
+            await LoadHistory();
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to refresh history page");
+        }
+    }
+
+    private async void UpdateCurrentHistoryPageWithFilter(object? send, RoutedEventArgs e)
+    {
+        try
+        {
+            var input = ViewModel!.HistoryFilterText.Trim();
+            if (string.IsNullOrEmpty(input))
+            {
+                ViewModel.ClearHistoryFilter();
+                await LoadHistory();
+                return;
+            }
         
-        var filter = HistoryFilter.Parse(input);
-        LoadHistory(filter);
+            var filter = HistoryFilter.Parse(input);
+            await LoadHistory(filter);
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to apply history filter");
+        }
     }
     
-    private void ClearHistoryFilter(object? sender, RoutedEventArgs e)
+    private async void ClearHistoryFilter(object? sender, RoutedEventArgs e)
     {
-        ViewModel!.ClearHistoryFilter();
-        LoadHistory();
+        try
+        {
+            ViewModel!.ClearHistoryFilter();
+            await LoadHistory();
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Failed to clear history filter");
+        }
     }
 
-    private void LoadHistory(HistoryFilter? filter = null)
+    private async Task LoadHistory(HistoryFilter? filter = null)
     {
-        ViewModel!.LoadHistory(filter);
+        await ViewModel!.LoadHistory(filter);
         PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
         NextHistoryPageButton.IsEnabled = ViewModel.NextHistoryPageExists();
     }
