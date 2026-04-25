@@ -44,4 +44,5 @@ public interface IBackendConnector
     public Task DisconnectLogsAsync(CancellationToken cancellationToken = default);
     public Task<GeneralConfig> GetConfigAsync(CancellationToken cancellationToken = default);
     public Task UpdateConfigAsync(Config config, CancellationToken cancellationToken = default);
+    public Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default);
 }
