@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Core;
-using Core.DataStructures;
-using Core.History;
 using Gui.Services;
 
 namespace Gui.ViewModels;
@@ -16,14 +12,5 @@ public class MainWindowViewModelFull(
 {
     private static readonly Version Version = new(2, 0, 0);
 
-    public override string Title => $"Gui v{Version} - Core v{NicheImageRipper.Version}";
-    public override int HistoryCount => NicheImageRipper.GetHistoryCount();
-
-    protected override void ClearCache()
-    {
-        NicheImageRipper.ClearCache();
-    }
-
-    protected override List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null) =>
-        NicheImageRipper.GetHistoryPage(start, offset, filter);
+    public override string Title => $"Gui v{Version} - Core v{RipperClient.GetCoreVersion().Result}";
 }

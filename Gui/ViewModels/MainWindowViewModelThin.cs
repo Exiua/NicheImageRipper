@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using Core.DataStructures;
-using Core.History;
 using Gui.Services;
 
 namespace Gui.ViewModels;
@@ -15,17 +12,11 @@ public class MainWindowViewModelThin(
 {
     private static readonly Version Version = new(1, 0, 0);
     
-    public override string Title => $"GuiThin v{Version} - Core v{"TODO"}";
-    public override int HistoryCount { get; }
+    public override string Title => $"GuiThin v{Version} - Core v{RipperClient.GetCoreVersion().Result}";
 
-
-    protected override void ClearCache()
+    public override void Initialize()
     {
-        throw new NotImplementedException();
-    }
-
-    protected override List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
-    {
-        throw new NotImplementedException();
+        base.Initialize();
+        Active = false;
     }
 }
