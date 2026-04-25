@@ -25,7 +25,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ILogTextSource LogTextSource { get; }
 
     public abstract string Title { get; }
-    public abstract int HistoryCount { get; }
+
+    private int HistoryCount => RipperClient.GetUrlQueue().Result.Count();
 
     private bool RipInProgress { get; set; }
 
@@ -196,6 +197,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             RipperSettings.SkipFailedDownloads = value;
         }
     }
+    
+    public bool Active { get; set; }
 
     public ObservableCollection<string> UrlQueue { get; }
     public ObservableCollection<HistoryEntry> History { get; }
@@ -206,10 +209,10 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = [];
 
-    public ReactiveCommand<Unit, Unit> RipCommand { get; }
-    public ReactiveCommand<Unit, Unit> ClearCacheCommand { get; }
-    public ReactiveCommand<Unit, Unit> DequeueUrlsCommand { get; }
-    public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
+    public ReactiveCommand<Unit, Task> RipCommand { get; }
+    public ReactiveCommand<Unit, Task> ClearCacheCommand { get; }
+    public ReactiveCommand<Unit, Task> DequeueUrlsCommand { get; }
+    public ReactiveCommand<string, Task> ReRipUrlCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     protected MainWindowViewModelBase(IRipperClient ripperClient, IRipperSettings ripperSettings,
@@ -228,15 +231,15 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         UrlWidth = GuiSettings.UrlWidth;
         DateWidth = GuiSettings.DateWidth;
         CountWidth = GuiSettings.CountWidth;
-        
+
         LogTextSource = logTextSource;
         LogText = LogTextSource.CurrentText;
         LogTextSource.LogTextChanged += OnLogTextChanged;
 
         RipCommand = ReactiveCommand.CreateRunInBackground(QueueAndRip);
-        ClearCacheCommand = ReactiveCommand.Create(ClearCache);
-        DequeueUrlsCommand = ReactiveCommand.Create(DequeueUrls);
-        ReRipUrlCommand = ReactiveCommand.Create<string>(Rerip);
+        ClearCacheCommand = ReactiveCommand.CreateRunInBackground(ClearCache);
+        DequeueUrlsCommand = ReactiveCommand.CreateRunInBackground(DequeueUrls);
+        ReRipUrlCommand = ReactiveCommand.CreateRunInBackground<string, Task>(Rerip);
         UrlQueue = new ObservableCollection<string>([]);
         History = new ObservableCollection<HistoryEntry>([]);
 
@@ -244,40 +247,43 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         RipperClient.OnProgressChanged += OnProgressChanged;
     }
 
-    public void Initialize()
+    public virtual void Initialize()
     {
-        var history = GetHistoryPage(CurrentHistoryPage, PageSize);
+        var history = GetHistoryPage(CurrentHistoryPage, PageSize).Result;
         History.Update(history);
     }
 
-    protected abstract void ClearCache();
-    protected abstract List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null);
+    private Task ClearCache()
+    {
+        return RipperClient.ClearCache();
+    }
+
+    private Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null) =>
+        RipperClient.GetHistoryPage(start, offset, filter);
 
     private void OnLogTextChanged(string text)
     {
-        Dispatcher.UIThread.Post(() =>
-        {
-            LogText = text;
-        });
-    }
-    
-    private void DequeueUrls()
-    {
-        RipperClient.DequeueUrls(SelectedUrls);
+        Dispatcher.UIThread.Post(() => { LogText = text; });
     }
 
-    private void QueueAndRip()
+    private Task DequeueUrls()
+    {
+        return RipperClient.DequeueUrls(SelectedUrls);
+    }
+
+    private Task QueueAndRip()
     {
         var input = UrlInput;
         if (string.IsNullOrWhiteSpace(input) && RipperClient.UrlQueueCount == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         Log.Debug("Queuing URL: {url}", input);
 
         UrlInput = "";
         Task.Run(() => QueueUrls(input));
+        return Task.CompletedTask;
     }
 
     private async Task QueueUrls(string input)
@@ -459,7 +465,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         return urls;
     }
 
-    private void Rerip(string url)
+    private async Task Rerip(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -468,7 +474,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
 
         Log.Debug("Re-ripping URL: {url}", url);
-        RipperClient.ForceQueueUrl(url);
+        await RipperClient.ForceQueueUrl(url);
 
         Log.Debug("URLS in queue: {count}", RipperClient.UrlQueueCount);
 
@@ -477,7 +483,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             return;
         }
 
-        Task.Run(Rip);
+        await Task.Run(Rip);
     }
 
     private async Task Rip()
@@ -578,9 +584,9 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         HistoryFilterText = "";
     }
 
-    public void LoadHistory(HistoryFilter? filter = null)
+    public async Task LoadHistory(HistoryFilter? filter = null)
     {
-        var history = GetHistoryPage(CurrentHistoryPage - 1, PageSize, filter);
+        var history = await GetHistoryPage(CurrentHistoryPage - 1, PageSize, filter);
         Log.Debug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
         History.Update(history);
     }
