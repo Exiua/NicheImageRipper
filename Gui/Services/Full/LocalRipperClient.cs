@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core;
 using Core.DataStructures;
+using Core.History;
+using Core.Utility;
 
 namespace Gui.Services.Full;
 
@@ -78,7 +80,23 @@ public class LocalRipperClient : IRipperClient
         _ripper.SaveData();
         return Task.CompletedTask;
     }
+
+    public Task<Version> GetCoreVersion()
+    {
+        return Task.FromResult(NicheImageRipper.Version);
+    }
     
+    public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
+    {
+        return Task.FromResult(NicheImageRipper.GetHistoryPage(start, offset, filter));
+    }
+
+    public Task ClearCache()
+    {
+        NicheImageRipper.ClearCache();
+        return Task.CompletedTask;
+    }
+
     public void Dispose()
     {
         if (_disposed)
