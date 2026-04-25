@@ -14,6 +14,7 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     {
         try
         {
+            logger.LogInformation("Ripping");
             return Task.FromResult<ActionResult<bool>>(Ok(nicheImageRipperSingleton.Rip()));
         }
         catch (Exception exception)
@@ -22,11 +23,20 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
         }
     }
 
+    [HttpPost("save")]
+    public Task<IActionResult> Save()
+    {
+        logger.LogInformation("Saving");
+        nicheImageRipperSingleton.Save();
+        return Task.FromResult<IActionResult>(Ok());
+    }
+
     [HttpPost("pause")]
     public Task<ActionResult<bool>> Pause()
     {
         try
         {
+            logger.LogInformation("Pausing");
             return Task.FromResult<ActionResult<bool>>(Ok(nicheImageRipperSingleton.Pause()));
         }
         catch (Exception exception)
@@ -40,6 +50,7 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     {
         try
         {
+            logger.LogInformation("Resuming");
             return Task.FromResult<ActionResult<bool>>(Ok(nicheImageRipperSingleton.Resume()));
         }
         catch (Exception exception)
@@ -51,12 +62,24 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     [HttpGet("paused")]
     public ActionResult<bool> GetPausedState()
     {
-        return Ok(nicheImageRipperSingleton.Paused);
+        var isPaused = nicheImageRipperSingleton.Paused;
+        logger.LogInformation("IsPaused: {isPaused}", isPaused);
+        return Ok(isPaused);
     }
 
     [HttpGet("is-ripping")]
     public ActionResult<bool> GetIsRippingState()
     {
-        return Ok(nicheImageRipperSingleton.IsRipping);
+        var isRipping = nicheImageRipperSingleton.IsRipping;
+        logger.LogInformation("IsRipping: {isRipping}", isRipping);
+        return Ok(isRipping);
+    }
+
+    [HttpPost("clear-cache")]
+    public Task<IActionResult> ClearCache()
+    {
+        logger.LogInformation("Clearing cache");
+        nicheImageRipperSingleton.ClearCache();
+        return Task.FromResult<IActionResult>(Ok());
     }
 }

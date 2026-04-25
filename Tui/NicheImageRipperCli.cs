@@ -218,7 +218,10 @@ public class NicheImageRipperCli : NicheImageRipper
                         PrintHistory();
                         break;
                     case "l" or "load":
-                        LoadUrlFile(cmdParts.Length < 2 ? "UnfinishedRips.json" : cmdParts[1]);
+                        var urls = JsonUtility.Deserialize<List<string>>(cmdParts.Length < 2
+                            ? "UnfinishedRips.json"
+                            : cmdParts[1])!;
+                        LoadUrls(urls);
                         LogMessageToFile("URLs loaded");
                         break;
                     case "list":

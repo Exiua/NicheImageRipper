@@ -13,7 +13,12 @@ public class LocalRipperClient : IRipperClient
     private readonly NicheImageRipper _ripper;
 
     public int UrlQueueCount => _ripper.UrlQueue.Count;
-    
+    public bool Connected
+    {
+        get => true;
+        set { }
+    }
+
     private bool _disposed;
     
     public event Action? OnUrlQueueUpdated;
@@ -59,7 +64,7 @@ public class LocalRipperClient : IRipperClient
 
     public Task ForceQueueUrl(string url)
     {
-        _ripper.ForceQueueUrl(url);
+        _ripper.ForceQueueUrls(url);
         return Task.CompletedTask;
     }
 

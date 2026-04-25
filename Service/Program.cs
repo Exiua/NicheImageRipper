@@ -40,8 +40,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-var broadcaster = new WebSocketLogBroadcaster(null);
-builder.Services.AddSingleton(broadcaster);
+builder.Services.AddSingleton<WebSocketBroadcaster>();
 builder.Services.AddSingleton<INicheImageRipperSingleton, NicheImageRipperSingleton>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
@@ -49,8 +48,10 @@ builder.Services
        .AddAuthentication("ApiKey")
        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 
-builder.Host.UseSerilog((_, _, configuration) =>
+builder.Host.UseSerilog((_, services, configuration) =>
 {
+    var broadcaster = services.GetRequiredService<WebSocketBroadcaster>();
+
     configuration
        .WriteTo.Console()
        .WriteTo.WebSocketLogs(broadcaster);
@@ -83,7 +84,7 @@ app.Map("/ws/logs", async context =>
             return;
         }
 
-        var broadcaster = context.RequestServices.GetRequiredService<WebSocketLogBroadcaster>();
+        var broadcaster = context.RequestServices.GetRequiredService<WebSocketBroadcaster>();
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
         await broadcaster.AddClientAndWaitAsync(socket, context.RequestAborted);

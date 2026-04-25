@@ -3,15 +3,16 @@ using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
+using Service.Models.WebSocket;
 using Service.Singletons;
 
 namespace Service.Serilog;
 
 public sealed class WebSocketLogSink : ILogEventSink
 {
-    private readonly WebSocketLogBroadcaster _broadcaster;
+    private readonly WebSocketBroadcaster _broadcaster;
 
-    public WebSocketLogSink(WebSocketLogBroadcaster broadcaster)
+    public WebSocketLogSink(WebSocketBroadcaster broadcaster)
     {
         _broadcaster = broadcaster;
     }
@@ -29,13 +30,17 @@ public sealed class WebSocketLogSink : ILogEventSink
                 kvp => kvp.Value.ToString())
         };
 
-        var json = JsonSerializer.Serialize(payload);
+        var envelope = new WsEnvelope
+        {
+            EventType = WsEventType.Log,
+            Payload = JsonSerializer.SerializeToElement(payload),
+        };
 
         _ = Task.Run(async () =>
         {
             try
             {
-                await _broadcaster.BroadcastAsync(json);
+                await _broadcaster.BroadcastAsync(envelope);
             }
             catch(Exception e)
             {
@@ -49,7 +54,7 @@ public static class WebSocketLogSinkExtensions
 {
     public static LoggerConfiguration WebSocketLogs(
         this LoggerSinkConfiguration sinkConfiguration,
-        WebSocketLogBroadcaster broadcaster)
+        WebSocketBroadcaster broadcaster)
     {
         return sinkConfiguration.Sink(new WebSocketLogSink(broadcaster));
     }

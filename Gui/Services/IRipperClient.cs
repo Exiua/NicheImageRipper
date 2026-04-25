@@ -12,6 +12,7 @@ public interface IRipperClient : IDisposable
     public event Action<int, int>? OnProgressChanged;
 
     public int UrlQueueCount { get; }
+    public bool Connected { get; protected set; }
 
     public Task Rip();
     public Task<bool> Resume();

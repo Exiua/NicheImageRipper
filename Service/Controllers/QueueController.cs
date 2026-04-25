@@ -18,9 +18,19 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
     }
 
     [HttpPost]
-    public ActionResult<RejectedUrlsInfo> QueueUrls(QueueRequest urls)
+    public ActionResult<RejectedUrlsInfo> QueueUrls([FromBody] QueueRequest urls, [FromQuery] bool force = false)
     {
-        var rejected = nicheImageRipperSingleton.Queue(urls.Urls);
+        RejectedUrlsInfo rejected;
+        if (force)
+        {
+            nicheImageRipperSingleton.ForceQueue(urls.Urls);
+            rejected = new RejectedUrlsInfo(0);
+        }
+        else
+        {
+            rejected = nicheImageRipperSingleton.Queue(urls.Urls);
+        }
+        
         return Ok(rejected);
     }
 
@@ -36,5 +46,12 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
     {
         var queueSnapshot = nicheImageRipperSingleton.GetQueueSnapshot();
         return Ok(queueSnapshot.Length);
+    }
+    
+    [HttpPost("load")]
+    public IActionResult LoadUrls([FromBody] List<string> urls)
+    {
+        nicheImageRipperSingleton.LoadUrls(urls);
+        return Ok();
     }
 }

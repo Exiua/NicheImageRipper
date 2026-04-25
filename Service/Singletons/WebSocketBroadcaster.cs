@@ -1,14 +1,51 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
-using System.Text;
+using System.Text.Json;
+using Service.Models.WebSocket;
 
 namespace Service.Singletons;
 
-public sealed class WebSocketLogBroadcaster(ILogger<WebSocketLogBroadcaster> logger)
+public sealed class WebSocketBroadcaster
 {
     private readonly ConcurrentDictionary<Guid, WebSocket> _clients = new();
+    private readonly INicheImageRipperSingleton _nicheImageRipperSingleton;
+    private readonly ILoggerFactory _loggerFactory;
 
-    internal readonly ILogger<WebSocketLogBroadcaster> Logger = logger;
+    internal ILogger<WebSocketBroadcaster> Logger => field ??= _loggerFactory.CreateLogger<WebSocketBroadcaster>();
+
+    public WebSocketBroadcaster(ILoggerFactory loggerFactory,
+                                INicheImageRipperSingleton nicheImageRipperSingleton)
+    {
+        _loggerFactory = loggerFactory;
+        _nicheImageRipperSingleton = nicheImageRipperSingleton;
+        _nicheImageRipperSingleton.ProgressChanged += OnProgressChanged;
+        _nicheImageRipperSingleton.QueueUpdated += OnQueueUpdated;
+    }
+
+    private void OnProgressChanged(int current, int total)
+    {
+        var envelope = new WsEnvelope
+        {
+            EventType = WsEventType.ProgressChange,
+            Payload = JsonSerializer.SerializeToElement(new ProgressChangedEvent
+            {
+                Current = current,
+                Total = total,
+            }),
+        };
+        
+        _ = BroadcastSafeAsync(envelope);
+    }
+
+    private void OnQueueUpdated()
+    {
+        var envelope = new WsEnvelope
+        {
+            EventType = WsEventType.QueueUpdate,
+        };
+        
+        _ = BroadcastSafeAsync(envelope);
+    }
 
     public async Task AddClientAndWaitAsync(WebSocket socket, CancellationToken cancellationToken)
     {
@@ -31,7 +68,7 @@ public sealed class WebSocketLogBroadcaster(ILogger<WebSocketLogBroadcaster> log
                 }
             }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Logger.LogError(e, "Error in WebSocket client connection");
         }
@@ -49,7 +86,7 @@ public sealed class WebSocketLogBroadcaster(ILogger<WebSocketLogBroadcaster> log
                         CancellationToken.None);
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.LogError(e, "Error in WebSocket client connection");
             }
@@ -57,10 +94,22 @@ public sealed class WebSocketLogBroadcaster(ILogger<WebSocketLogBroadcaster> log
             socket.Dispose();
         }
     }
-
-    public async Task BroadcastAsync(string message, CancellationToken cancellationToken = default)
+    
+    private async Task BroadcastSafeAsync(WsEnvelope envelope)
     {
-        var bytes = Encoding.UTF8.GetBytes(message);
+        try
+        {
+            await BroadcastAsync(envelope);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to broadcast WebSocket event {EventType}", envelope.EventType);
+        }
+    }
+
+    public async Task BroadcastAsync(WsEnvelope message, CancellationToken cancellationToken = default)
+    {
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(message);
         var deadClients = new List<Guid>();
 
         foreach (var (key, socket) in _clients)
@@ -96,7 +145,7 @@ public sealed class WebSocketLogBroadcaster(ILogger<WebSocketLogBroadcaster> log
             {
                 socket.Dispose();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.LogError(e, "Error broadcasting log event");
             }

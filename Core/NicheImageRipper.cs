@@ -569,7 +569,7 @@ public partial class NicheImageRipper : IDisposable
         return rejectedUrls.WithRejectedUrls(failedUrls);
     }
 
-    public void ForceQueueUrl(string url)
+    public void ForceQueueUrls(string url)
     {
         var normalizedUrl = NormalizeUrl(url);
         if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))

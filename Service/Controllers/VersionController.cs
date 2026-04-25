@@ -13,6 +13,8 @@ public class VersionController(ILogger<VersionController> logger, INicheImageRip
     [HttpGet]
     public ActionResult<Version> GetCurrentVersion()
     {
-        return Ok(nicheImageRipperSingleton.GetVersion());
+        var coreVersion = nicheImageRipperSingleton.GetVersion();
+        logger.LogInformation("Current version: {CoreVersion}", coreVersion);
+        return Ok(coreVersion);
     }
 }

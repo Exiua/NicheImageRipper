@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
@@ -14,8 +15,8 @@ using Core.DataStructures;
 using Core.Utility;
 using Gui.Models;
 using Gui.Models.Thin;
-using Service.Models.Dtos;
 using Service.Models.Requests;
+using Service.Models.WebSocket;
 using Config = Service.Models.Configs.Config;
 
 namespace Gui.Services.Thin;
@@ -47,6 +48,9 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
     }
 
     public event Action<LogEntryModel>? LogReceived;
+    public event Action? QueueUpdated;
+    public event Action<int, int>? ProgressChanged;
+    public event Action<string>? UnknownEventReceived;
 
     static BackendConnector()
     {
@@ -112,16 +116,17 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
 
     public async Task<RejectedUrlsInfo> QueueUrlsAsync(
         string urls,
+        bool force = false,
         CancellationToken cancellationToken = default)
     {
         var request = new QueueRequest
         {
             Urls = urls,
         };
-        
+
         return await SendAsync<QueueRequest, RejectedUrlsInfo>(
             HttpMethod.Post,
-            "api/queue",
+            $"api/queue?force={force}",
             request,
             cancellationToken);
     }
@@ -144,6 +149,12 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         using var response = await httpClient.SendAsync(request, cancellationToken);
 
         response.EnsureSuccessStatusCode();
+    }
+
+    public Task LoadUrlsAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default)
+    {
+        var urlList = urls as string[] ?? urls.ToArray();
+        return SendAsync<string[], Unit>(HttpMethod.Post, "api/queue/load", urlList, cancellationToken);
     }
 
     private async Task<T> SendAsync<T>(HttpMethod method, string path, CancellationToken cancellationToken = default)
@@ -172,7 +183,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         {
             return (TResponse)(object)new Unit();
         }
-        
+
         return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken)
                ?? throw new InvalidOperationException($"Server returned no {typeof(TResponse).Name} value.");
     }
@@ -220,7 +231,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
             cancellationToken);
     }
 
-    public async Task ConnectLogsAsync(CancellationToken cancellationToken = default)
+    public async Task ConnectWebSocketAsync(CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
 
@@ -238,7 +249,7 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         _ = Task.Run(() => ReceiveLoopAsync(socket, cancellationToken), cancellationToken);
     }
 
-    public async Task DisconnectLogsAsync(CancellationToken cancellationToken = default)
+    public async Task DisconnectWebSocketAsync(CancellationToken cancellationToken = default)
     {
         if (_webSocket.State == WebSocketState.Open)
         {
@@ -273,6 +284,16 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         throw new InvalidOperationException($"Server returned invalid version string: {versionString}");
     }
 
+    public Task ClearCacheAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<Unit>(HttpMethod.Post, "api/state/clear-cache", cancellationToken);
+    }
+
+    public Task SaveStateAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<Unit>(HttpMethod.Post, "api/state/save", cancellationToken);
+    }
+
     private async Task ReceiveLoopAsync(ClientWebSocket socket, CancellationToken cancellationToken)
     {
         var buffer = new byte[8192];
@@ -295,7 +316,13 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
                         WebSocketCloseStatus.NormalClosure,
                         "Closing",
                         cancellationToken);
+
                     return;
+                }
+
+                if (result.MessageType != WebSocketMessageType.Text)
+                {
+                    continue;
                 }
 
                 ms.Write(buffer, 0, result.Count);
@@ -305,24 +332,60 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
 
             try
             {
-                var logEvent = System.Text.Json.JsonSerializer.Deserialize<LogEntryModel>(json);
+                var envelope = JsonSerializer.Deserialize<WsEnvelope>(json);
 
-                if (logEvent is not null)
+                if (envelope is null)
                 {
-                    LogReceived?.Invoke(logEvent);
+                    continue;
+                }
+
+                switch (envelope.EventType)
+                {
+                    case WsEventType.Log:
+                    {
+                        var logEvent = envelope.Payload.Deserialize<LogEntryModel>();
+
+                        if (logEvent is not null)
+                        {
+                            LogReceived?.Invoke(logEvent);
+                        }
+
+                        break;
+                    }
+                    case WsEventType.QueueUpdate:
+                    {
+                        QueueUpdated?.Invoke();
+                        
+                        break;
+                    }
+                    case WsEventType.ProgressChange:
+                    {
+                        var progressEvent = envelope.Payload.Deserialize<ProgressChangedEvent>();
+
+                        if (progressEvent is not null)
+                        {
+                            ProgressChanged?.Invoke(progressEvent.Current, progressEvent.Total);
+                        }
+
+                        break;
+                    }
+                    case WsEventType.Unknown:
+                    default:
+                    {
+                        UnknownEventReceived?.Invoke(json);
+                        break;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                var fallback = new LogEntryModel
+                LogReceived?.Invoke(new LogEntryModel
                 {
                     Timestamp = DateTimeOffset.UtcNow,
                     Level = "Error",
-                    RenderedMessage = "Malformed log payload received",
+                    RenderedMessage = "Malformed WebSocket payload received",
                     Exception = $"Raw: {json}\n\nError: {ex}"
-                };
-
-                LogReceived?.Invoke(fallback);
+                });
             }
         }
     }

@@ -9,11 +9,24 @@ using SettingsOverride = Core.Configuration.SettingsOverride;
 
 namespace Service.Singletons;
 
-public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger) : INicheImageRipperSingleton
+public class NicheImageRipperSingleton : INicheImageRipperSingleton
 {
-    private readonly NicheImageRipper _ripper = new();
+    private readonly NicheImageRipper _ripper;
     private readonly Lock _ripperLock = new();
+    private readonly ILogger<NicheImageRipperSingleton> _logger;
+    
     private bool _isRipping;
+
+    public event Action? QueueUpdated;
+    public event Action<int, int>? ProgressChanged;
+
+    public NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger)
+    {
+        _logger = logger;
+        _ripper = new NicheImageRipper();
+        _ripper.OnProgressChanged += (current, total) => ProgressChanged?.Invoke(current, total);
+        _ripper.OnUrlQueueUpdated += () => QueueUpdated?.Invoke();
+    }
     
     public string[] GetQueueSnapshot()
     {
@@ -28,6 +41,14 @@ public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger
         using (_ripperLock.EnterScope())
         {
             return  _ripper.QueueUrls(urls);
+        }
+    }
+
+    public void ForceQueue(string urls)
+    {
+        using (_ripperLock.EnterScope())
+        {
+            _ripper.ForceQueueUrls(urls);
         }
     }
 
@@ -54,7 +75,7 @@ public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger
             }
             catch (Exception e)
             {
-                logger.LogError(e, "An error occurred while ripping.");
+                _logger.LogError(e, "An error occurred while ripping.");
             }
             finally
             {
@@ -340,5 +361,20 @@ public class NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger
     public Version GetVersion()
     {
         return NicheImageRipper.Version;
+    }
+
+    public void ClearCache()
+    {
+        NicheImageRipper.ClearCache();
+    }
+
+    public void Save()
+    {
+        _ripper.SaveData();
+    }
+
+    public void LoadUrls(List<string> urls)
+    {
+        _ripper.LoadUrls(urls);
     }
 }
