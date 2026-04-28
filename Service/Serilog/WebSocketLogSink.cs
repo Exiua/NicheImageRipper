@@ -10,15 +10,17 @@ namespace Service.Serilog;
 
 public sealed class WebSocketLogSink : ILogEventSink
 {
-    private readonly WebSocketBroadcaster _broadcaster;
+    private readonly Func<WebSocketBroadcaster> _broadcasterFactory;
 
-    public WebSocketLogSink(WebSocketBroadcaster broadcaster)
+    public WebSocketLogSink(Func<WebSocketBroadcaster> broadcasterFactory)
     {
-        _broadcaster = broadcaster;
+        _broadcasterFactory = broadcasterFactory;
     }
 
     public void Emit(LogEvent logEvent)
     {
+        var broadcaster = _broadcasterFactory();
+        //Console.WriteLine(logEvent.RenderMessage());
         var payload = new
         {
             timestamp = logEvent.Timestamp,
@@ -40,11 +42,11 @@ public sealed class WebSocketLogSink : ILogEventSink
         {
             try
             {
-                await _broadcaster.BroadcastAsync(envelope);
+                await broadcaster.BroadcastAsync(envelope);
             }
             catch(Exception e)
             {
-                _broadcaster.Logger.LogError(e, "Error broadcasting log event");
+                //_broadcaster.Logger.LogError(e, "Error broadcasting log event");
             }
         });
     }
@@ -54,8 +56,8 @@ public static class WebSocketLogSinkExtensions
 {
     public static LoggerConfiguration WebSocketLogs(
         this LoggerSinkConfiguration sinkConfiguration,
-        WebSocketBroadcaster broadcaster)
+        Func<WebSocketBroadcaster> broadcasterFactory)
     {
-        return sinkConfiguration.Sink(new WebSocketLogSink(broadcaster));
+        return sinkConfiguration.Sink(new WebSocketLogSink(broadcasterFactory));
     }
 }

@@ -14,6 +14,7 @@ public class SettingsController(ILogger<SettingsController> logger, INicheImageR
     [HttpGet]
     public ActionResult<GeneralConfig> GetConfig()
     {
+        logger.LogInformation("Getting config");
         return Ok(nicheImageRipperSingleton.GetConfig());
     }
 

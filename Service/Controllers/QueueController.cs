@@ -20,6 +20,7 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
     [HttpPost]
     public ActionResult<RejectedUrlsInfo> QueueUrls([FromBody] QueueRequest urls, [FromQuery] bool force = false)
     {
+        logger.LogInformation("Queueing URLs: {Urls}, Force: {Force}", urls.Urls, force);
         RejectedUrlsInfo rejected;
         if (force)
         {

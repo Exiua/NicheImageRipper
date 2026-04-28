@@ -48,13 +48,19 @@ builder.Services
        .AddAuthentication("ApiKey")
        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 
-builder.Host.UseSerilog((_, services, configuration) =>
+builder.Host.UseSerilog((context, services, configuration) =>
 {
-    var broadcaster = services.GetRequiredService<WebSocketBroadcaster>();
-
     configuration
+       .MinimumLevel.Is(minimumLevel)
+       .Enrich.FromLogContext()
        .WriteTo.Console()
-       .WriteTo.WebSocketLogs(broadcaster);
+       .WriteTo.File(
+            "logs/service-.log",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            shared: true)
+       .WriteTo.WebSocketLogs(() =>
+            services.GetRequiredService<WebSocketBroadcaster>());
 });
 
 var app = builder.Build();
@@ -94,4 +100,5 @@ app.Map("/ws/logs", async context =>
         AuthenticationSchemes = "ApiKey"
     });
 
+//Log.Logger.Information("Application started");
 app.Run();

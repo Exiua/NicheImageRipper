@@ -70,7 +70,7 @@ public sealed class WebSocketBroadcaster
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error in WebSocket client connection");
+            //Logger.LogError(e, "Error in WebSocket client connection");
         }
         finally
         {
@@ -88,7 +88,7 @@ public sealed class WebSocketBroadcaster
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error in WebSocket client connection");
+                //Logger.LogError(e, "Error in WebSocket client connection");
             }
 
             socket.Dispose();
@@ -103,7 +103,7 @@ public sealed class WebSocketBroadcaster
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to broadcast WebSocket event {EventType}", envelope.EventType);
+            //Logger.LogError(ex, "Failed to broadcast WebSocket event {EventType}", envelope.EventType);
         }
     }
 
@@ -147,7 +147,7 @@ public sealed class WebSocketBroadcaster
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error broadcasting log event");
+                //Logger.LogError(e, "Error broadcasting log event");
             }
         }
     }
