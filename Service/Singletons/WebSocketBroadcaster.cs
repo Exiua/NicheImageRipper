@@ -54,6 +54,7 @@ public sealed class WebSocketBroadcaster
 
         var buffer = new byte[1024];
 
+        Logger.LogInformation("Adding WebSocket client connection: {Id}", id);
         try
         {
             while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
@@ -70,7 +71,7 @@ public sealed class WebSocketBroadcaster
         }
         catch (Exception e)
         {
-            //Logger.LogError(e, "Error in WebSocket client connection");
+            Logger.LogError(e, "Error in WebSocket client connection");
         }
         finally
         {
@@ -88,7 +89,7 @@ public sealed class WebSocketBroadcaster
             }
             catch (Exception e)
             {
-                //Logger.LogError(e, "Error in WebSocket client connection");
+                Logger.LogError(e, "Error in WebSocket client connection");
             }
 
             socket.Dispose();
@@ -103,7 +104,7 @@ public sealed class WebSocketBroadcaster
         }
         catch (Exception ex)
         {
-            //Logger.LogError(ex, "Failed to broadcast WebSocket event {EventType}", envelope.EventType);
+            Logger.LogError(ex, "Failed to broadcast WebSocket event {EventType}", envelope.EventType);
         }
     }
 

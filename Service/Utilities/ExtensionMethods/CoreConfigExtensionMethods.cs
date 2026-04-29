@@ -1,3 +1,5 @@
+using Service.Models;
+
 namespace Service.Utilities.ExtensionMethods;
 
 public static class CoreConfigExtensionMethods

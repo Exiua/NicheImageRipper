@@ -1,5 +1,4 @@
 using System.Net.Http;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -17,7 +16,7 @@ namespace Gui;
 
 public partial class App : Application
 {
-    public static bool Thin { get; set; } = true;
+    public static bool Thin { get; set; } = false;
     
     public override void Initialize()
     {

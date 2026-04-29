@@ -61,7 +61,8 @@ public sealed class RollingLogTextSource : ILogTextSource
         var time = entry.Timestamp?.ToLocalTime().ToString("HH:mm:ss");
         var level = ToShortLevel(entry.Level ?? "Information");
 
-        var line = $"[{time} {level}] {entry.RenderedMessage}";
+        //var line = $"[{time} {level}] {entry.RenderedMessage}";
+        var line = $"{entry.RenderedMessage}";
 
         if (!string.IsNullOrWhiteSpace(entry.Exception))
         {

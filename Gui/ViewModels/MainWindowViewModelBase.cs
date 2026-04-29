@@ -223,6 +223,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<Unit, Task> ConnectCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
+    public event Action? LogTextChanged;
+    
     protected MainWindowViewModelBase(IRipperClient ripperClient, IRipperSettings ripperSettings,
                                       IGuiSettings guiSettings, ILogTextSource logTextSource)
     {
@@ -299,6 +301,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     private void OnLogTextChanged(string text)
     {
         Dispatcher.UIThread.Post(() => { LogText = text; });
+        LogTextChanged?.Invoke();
     }
 
     private Task DequeueUrls()

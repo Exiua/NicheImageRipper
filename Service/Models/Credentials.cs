@@ -1,4 +1,4 @@
-namespace Service;
+namespace Service.Models;
 
 public class Credentials
 {

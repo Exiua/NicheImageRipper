@@ -50,6 +50,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
         UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
         
+        viewModel.LogTextChanged += OnLogTextChanged;
+        
         Closing += OnClosing;
         Opened += OnOpened;
         
@@ -157,9 +159,17 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         
         task.Wait();
     }
-    
+
     private bool _paused;
 
+    public void OnLogTextChanged()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            LogTextBox.CaretIndex = int.MaxValue;
+        }, DispatcherPriority.Background);
+    }
+    
     private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)
     {
         try
