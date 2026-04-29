@@ -25,6 +25,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ILogTextSource LogTextSource { get; }
 
     public abstract string Title { get; }
+    public abstract bool IsThinClient { get; }
 
     private int HistoryCount => RipperClient.GetUrlQueue().Result.Count();
 
@@ -213,6 +214,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<Unit, Task> ClearCacheCommand { get; }
     public ReactiveCommand<Unit, Task> DequeueUrlsCommand { get; }
     public ReactiveCommand<string, Task> ReRipUrlCommand { get; }
+    public ReactiveCommand<Unit, Task> ConnectCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     protected MainWindowViewModelBase(IRipperClient ripperClient, IRipperSettings ripperSettings,
@@ -240,6 +242,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         ClearCacheCommand = ReactiveCommand.CreateRunInBackground(ClearCache);
         DequeueUrlsCommand = ReactiveCommand.CreateRunInBackground(DequeueUrls);
         ReRipUrlCommand = ReactiveCommand.CreateRunInBackground<string, Task>(Rerip);
+        ConnectCommand = ReactiveCommand.CreateRunInBackground(ConnectToRemote);
         UrlQueue = new ObservableCollection<string>([]);
         History = new ObservableCollection<HistoryEntry>([]);
 
@@ -247,10 +250,26 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         RipperClient.OnProgressChanged += OnProgressChanged;
     }
 
-    public virtual void Initialize()
+    private bool _initialized;
+    
+    public virtual async Task InitializeAsync()
     {
-        var history = GetHistoryPage(CurrentHistoryPage, PageSize).Result;
+        if (_initialized)
+        {
+            return;
+        }
+
+        _initialized = true;
+        await RipperClient.InitializeAsync();
+        await RipperSettings.InitializeAsync();
+        await GuiSettings.InitializeAsync();
+        var history = await GetHistoryPage(CurrentHistoryPage, PageSize);
         History.Update(history);
+    }
+
+    public virtual Task ConnectToRemote()
+    {
+        return Task.CompletedTask;
     }
 
     private Task ClearCache()
@@ -505,7 +524,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     }
 
-    private void OnUrlQueueUpdated()
+    protected void OnUrlQueueUpdated()
     {
         Dispatcher.UIThread.Post(async void () =>
         {

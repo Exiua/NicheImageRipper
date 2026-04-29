@@ -1,6 +1,6 @@
 namespace Gui.Services;
 
-public interface IGuiSettings
+public interface IGuiSettings : IAsyncInitialization
 {
     public double NameWidth { get; set; }
     public double UrlWidth { get; set; }

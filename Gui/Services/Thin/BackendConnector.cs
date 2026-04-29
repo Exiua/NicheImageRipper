@@ -21,7 +21,7 @@ using Config = Service.Models.Configs.Config;
 
 namespace Gui.Services.Thin;
 
-public class BackendConnector(HttpClient httpClient, ApplicationState applicationState) : IBackendConnector, IDisposable
+public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDisposable
 {
     private const string ConfigFilename = "config.json";
 
@@ -101,17 +101,40 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
         return request;
     }
 
-    public async Task<string[]> GetQueueSnapshotAsync(CancellationToken cancellationToken = default)
+    private async Task<T> SendAsync<T>(HttpMethod method, string path, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, "api/queue");
+        using var request = CreateRequest(method, path);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException($"Server returned no {typeof(T).Name} value.");
+    }
+
+    private async Task<TResponse> SendAsync<TRequest, TResponse>(
+        HttpMethod method,
+        string path,
+        TRequest payload,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(method, path, payload);
         using var response = await httpClient.SendAsync(request, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<string[]>(JsonOptions, cancellationToken);
+        if (typeof(TResponse) == typeof(Unit))
+        {
+            return (TResponse)(object)new Unit();
+        }
 
-        return result ?? [];
+        return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException($"Server returned no {typeof(TResponse).Name} value.");
+    }
+
+    public async Task<string[]> GetQueueSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        return await SendAsync<string[]>(HttpMethod.Get, "api/queue", cancellationToken);
     }
 
     public async Task<RejectedUrlsInfo> QueueUrlsAsync(
@@ -145,47 +168,17 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
             return;
         }
 
-        using var request = CreateRequest(HttpMethod.Delete, "api/queue", urls);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-
-        response.EnsureSuccessStatusCode();
+        await SendAsync<string[], Unit>(HttpMethod.Delete, "api/queue", urls, cancellationToken);
+        // using var request = CreateRequest(HttpMethod.Delete, "api/queue", urls);
+        // using var response = await httpClient.SendAsync(request, cancellationToken);
+        //
+        // response.EnsureSuccessStatusCode();
     }
 
     public Task LoadUrlsAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default)
     {
         var urlList = urls as string[] ?? urls.ToArray();
         return SendAsync<string[], Unit>(HttpMethod.Post, "api/queue/load", urlList, cancellationToken);
-    }
-
-    private async Task<T> SendAsync<T>(HttpMethod method, string path, CancellationToken cancellationToken = default)
-    {
-        using var request = CreateRequest(method, path);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken)
-               ?? throw new InvalidOperationException($"Server returned no {typeof(T).Name} value.");
-    }
-
-    private async Task<TResponse> SendAsync<TRequest, TResponse>(
-        HttpMethod method,
-        string path,
-        TRequest payload,
-        CancellationToken cancellationToken = default)
-    {
-        using var request = CreateRequest(method, path, payload);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-
-        response.EnsureSuccessStatusCode();
-
-        if (typeof(TResponse) == typeof(Unit))
-        {
-            return (TResponse)(object)new Unit();
-        }
-
-        return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken)
-               ?? throw new InvalidOperationException($"Server returned no {typeof(TResponse).Name} value.");
     }
 
     public Task<bool> RipAsync(CancellationToken cancellationToken = default)
@@ -231,37 +224,6 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
             cancellationToken);
     }
 
-    public async Task ConnectWebSocketAsync(CancellationToken cancellationToken = default)
-    {
-        EnsureConfigured();
-
-        _webSocket.Dispose();
-
-        var socket = new ClientWebSocket();
-
-        socket.Options.SetRequestHeader("X-API-Key", ApiKey);
-
-        var endpointUri = new Uri(EndpointUri);
-        await socket.ConnectAsync(endpointUri, cancellationToken);
-
-        _webSocket = socket;
-
-        _ = Task.Run(() => ReceiveLoopAsync(socket, cancellationToken), cancellationToken);
-    }
-
-    public async Task DisconnectWebSocketAsync(CancellationToken cancellationToken = default)
-    {
-        if (_webSocket.State == WebSocketState.Open)
-        {
-            await _webSocket.CloseAsync(
-                WebSocketCloseStatus.NormalClosure,
-                "Client disconnect",
-                cancellationToken);
-        }
-
-        _webSocket.Dispose();
-    }
-
     public async Task<GeneralConfig> GetConfigAsync(CancellationToken cancellationToken = default)
     {
         var config = await SendAsync<GeneralConfig>(HttpMethod.Get, "api/settings", cancellationToken);
@@ -276,12 +238,9 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
     public async Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default)
     {
         var versionString = await SendAsync<string>(HttpMethod.Get, "api/version", cancellationToken);
-        if (Version.TryParse(versionString, out var version))
-        {
-            return version;
-        }
-
-        throw new InvalidOperationException($"Server returned invalid version string: {versionString}");
+        return Version.TryParse(versionString, out var version)
+            ? version
+            : throw new InvalidOperationException($"Server returned invalid version string: {versionString}");
     }
 
     public Task ClearCacheAsync(CancellationToken cancellationToken = default)
@@ -292,6 +251,45 @@ public class BackendConnector(HttpClient httpClient, ApplicationState applicatio
     public Task SaveStateAsync(CancellationToken cancellationToken = default)
     {
         return SendAsync<Unit>(HttpMethod.Post, "api/state/save", cancellationToken);
+    }
+
+    public async Task ConnectWebSocketAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        _webSocket.Dispose();
+
+        var socket = new ClientWebSocket();
+        socket.Options.SetRequestHeader("X-API-Key", ApiKey);
+
+        var baseUri = new Uri(EndpointUri.TrimEnd('/'));
+
+        var wsUri = new UriBuilder(baseUri)
+        {
+            Scheme = baseUri.Scheme == Uri.UriSchemeHttps ? "wss" : "ws",
+            Path = "ws/events"
+        }.Uri;
+
+        await socket.ConnectAsync(wsUri, cancellationToken);
+
+        _webSocket = socket;
+        //_connected = true;
+
+        _ = Task.Run(() => ReceiveLoopAsync(socket, cancellationToken), cancellationToken);
+    }
+
+    public async Task DisconnectWebSocketAsync(CancellationToken cancellationToken = default)
+    {
+        if (_webSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+        {
+            await _webSocket.CloseAsync(
+                WebSocketCloseStatus.NormalClosure,
+                "Client disconnect",
+                cancellationToken);
+        }
+
+        //_connected = false;
+        _webSocket.Dispose();
     }
 
     private async Task ReceiveLoopAsync(ClientWebSocket socket, CancellationToken cancellationToken)

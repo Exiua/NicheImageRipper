@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Core.Configuration;
 using Core.Enums;
 using Config = Service.Models.Configs.Config;
@@ -6,21 +8,33 @@ namespace Gui.Services.Thin;
 
 public class ThinRipperSettings : IRipperSettings
 {
-    private readonly GeneralConfig _config;
     private readonly IBackendConnector _backendConnector;
-    
+
+    private GeneralConfig _config = new();
+    private bool _initialized;
+    private bool _loading;
+
+    public ThinRipperSettings(IBackendConnector backendConnector)
+    {
+        _backendConnector = backendConnector;
+    }
+
     public string SavePath
     {
         get => _config.SavePath;
         set
         {
+            if (_config.SavePath == value)
+            {
+                return;
+            }
+
             _config.SavePath = value;
-            var configPatch = new Config
+
+            UpdateRemoteConfig(new Config
             {
                 SavePath = value
-            };
-            
-            _backendConnector.UpdateConfigAsync(configPatch).Wait();
+            });
         }
     }
 
@@ -29,13 +43,17 @@ public class ThinRipperSettings : IRipperSettings
         get => _config.FilenameScheme;
         set
         {
+            if (_config.FilenameScheme == value)
+            {
+                return;
+            }
+
             _config.FilenameScheme = value;
-            var configPatch = new Config
+
+            UpdateRemoteConfig(new Config
             {
                 FilenameScheme = value
-            };
-            
-            _backendConnector.UpdateConfigAsync(configPatch).Wait();
+            });
         }
     }
 
@@ -44,13 +62,17 @@ public class ThinRipperSettings : IRipperSettings
         get => _config.UnzipProtocol;
         set
         {
+            if (_config.UnzipProtocol == value)
+            {
+                return;
+            }
+
             _config.UnzipProtocol = value;
-            var configPatch = new Config
+
+            UpdateRemoteConfig(new Config
             {
                 UnzipProtocol = value
-            };
-            
-            _backendConnector.UpdateConfigAsync(configPatch).Wait();
+            });
         }
     }
 
@@ -59,13 +81,17 @@ public class ThinRipperSettings : IRipperSettings
         get => _config.MaxRetries;
         set
         {
+            if (_config.MaxRetries == value)
+            {
+                return;
+            }
+
             _config.MaxRetries = value;
-            var configPatch = new Config
+
+            UpdateRemoteConfig(new Config
             {
                 MaxRetries = value
-            };
-            
-            _backendConnector.UpdateConfigAsync(configPatch).Wait();
+            });
         }
     }
 
@@ -74,13 +100,17 @@ public class ThinRipperSettings : IRipperSettings
         get => _config.RetryDelay;
         set
         {
+            if (_config.RetryDelay == value)
+            {
+                return;
+            }
+
             _config.RetryDelay = value;
-            var configPatch = new Config
+
+            UpdateRemoteConfig(new Config
             {
                 RetryDelay = value
-            };
-            
-            _backendConnector.UpdateConfigAsync(configPatch).Wait();
+            });
         }
     }
 
@@ -89,20 +119,59 @@ public class ThinRipperSettings : IRipperSettings
         get => _config.SkipFailedDownloads;
         set
         {
+            if (_config.SkipFailedDownloads == value)
+            {
+                return;
+            }
+
             _config.SkipFailedDownloads = value;
-            var configPatch = new Config
+
+            UpdateRemoteConfig(new Config
             {
                 SkipFailedDownloads = value
-            };
-            
-            _backendConnector.UpdateConfigAsync(configPatch).Wait();
+            });
         }
     }
 
-    public ThinRipperSettings(BackendConnector backendConnector)
+    public async Task InitializeAsync()
     {
-        _backendConnector = backendConnector;
-        var settings = backendConnector.GetConfigAsync().Result;
-        _config = settings;
+        if (_initialized)
+        {
+            return;
+        }
+
+        _loading = true;
+
+        try
+        {
+            _config = await _backendConnector.GetConfigAsync();
+            _initialized = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void UpdateRemoteConfig(Config configPatch)
+    {
+        if (!_initialized || _loading)
+        {
+            return;
+        }
+
+        _ = UpdateRemoteConfigAsync(configPatch);
+    }
+
+    private async Task UpdateRemoteConfigAsync(Config configPatch)
+    {
+        try
+        {
+            await _backendConnector.UpdateConfigAsync(configPatch);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
     }
 }

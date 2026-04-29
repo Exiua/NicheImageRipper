@@ -22,11 +22,14 @@
 
     <Grid x:Name="GridBackground" ColumnDefinitions="*" RowDefinitions="Auto, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
           Height="{Binding Height, RelativeSource={RelativeSource Self}}" Focusable="True">
-        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
+        <StackPanel x:Name="TopPanel" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
             <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput"/>
-            <Button HotKey="Enter" Command="{Binding RipCommand}">Rip</Button>
+            <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput" IsReadOnly="{Binding Active}"/>
+            <Button HotKey="Enter" Command="{Binding RipCommand}" IsEnabled="{Binding !Active}">Rip</Button>
             <Button Click="PlayPauseButton_OnClick"><PathIcon x:Name="PlayPauseButtonIcon" Data="{StaticResource PauseButtonIcon}"></PathIcon></Button>
+            <Button Content="Connect"
+                    Command="{Binding ConnectCommand}"
+                    IsVisible="{Binding IsThinClient}" />
         </StackPanel>
         <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
             <TabItem Header="Logs">

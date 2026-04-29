@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
@@ -18,7 +19,7 @@ namespace Gui;
 
 public partial class App : Application
 {
-    public static bool Thin { get; set; }
+    public static bool Thin { get; set; } = true;
     
     public override void Initialize()
     {
@@ -27,10 +28,6 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // If you use CommunityToolkit, line below is needed to remove Avalonia data validation.
-        // Without this line you will get duplicate validations from both Avalonia and CT
-        //BindingPlugins.DataValidators.RemoveAt(0);
-
         // Register all the services needed for the application to run
         var collection = new ServiceCollection();
         if (Thin)
@@ -77,15 +74,20 @@ public partial class App : Application
         
         var vm = services.GetRequiredService<MainWindowViewModelBase>();
         var taskbarProgressService = services.GetRequiredService<ITaskbarProgressService>();
+        Task.Run(async () => await vm.InitializeAsync());
         
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:
+            {
                 desktop.MainWindow = new MainWindow(vm, taskbarProgressService);
                 break;
+            }
             case ISingleViewApplicationLifetime singleViewPlatform:
+            {
                 singleViewPlatform.MainView = new MainWindow(vm, taskbarProgressService);
                 break;
+            }
         }
 
         base.OnFrameworkInitializationCompleted();

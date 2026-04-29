@@ -1,15 +1,12 @@
 using System;
 using System.Linq;
 using System.Reactive.Disposables;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
-using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
@@ -18,9 +15,7 @@ using Avalonia.VisualTree;
 using Core;
 using Core.Enums;
 using Core.History;
-using Gui.Models;
 using Gui.Services;
-using Gui.Utility;
 using Gui.ViewModels;
 using ReactiveUI;
 using Serilog;
@@ -45,7 +40,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         _taskbarProgressService = taskbarProgressService;
         DataContext = viewModel;
-        viewModel.Initialize();
+        viewModel.InitializeAsync();
         
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();

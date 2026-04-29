@@ -2,7 +2,7 @@ using Core.Enums;
 
 namespace Gui.Services;
 
-public interface IRipperSettings
+public interface IRipperSettings : IAsyncInitialization
 {
     public string SavePath { get; set; }
     public FilenameScheme FilenameScheme { get; set; }

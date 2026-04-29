@@ -13,11 +13,7 @@ public class LocalRipperClient : IRipperClient
     private readonly NicheImageRipper _ripper;
 
     public int UrlQueueCount => _ripper.UrlQueue.Count;
-    public bool Connected
-    {
-        get => true;
-        set { }
-    }
+    public bool Connected => true;
 
     private bool _disposed;
     

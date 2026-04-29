@@ -76,7 +76,7 @@ app.UseAuthorization();
 app.UseWebSockets();
 app.MapControllers();
 
-app.Map("/ws/logs", async context =>
+app.Map("/ws/events", async context =>
     {
         if (!context.User.Identity?.IsAuthenticated ?? true)
         {

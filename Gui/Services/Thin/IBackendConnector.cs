@@ -10,7 +10,7 @@ using Config = Service.Models.Configs.Config;
 
 namespace Gui.Services.Thin;
 
-public interface IBackendConnector
+public interface IBackendConnector : IAsyncInitialization
 {
     public string ApiKey { get; set; }
     public string EndpointUri { get; set; }

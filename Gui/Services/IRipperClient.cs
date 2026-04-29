@@ -6,13 +6,13 @@ using Core.History;
 
 namespace Gui.Services;
 
-public interface IRipperClient : IDisposable
+public interface IRipperClient : IAsyncInitialization, IDisposable
 {
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
     public int UrlQueueCount { get; }
-    public bool Connected { get; protected set; }
+    public bool Connected { get; }
 
     public Task Rip();
     public Task<bool> Resume();
