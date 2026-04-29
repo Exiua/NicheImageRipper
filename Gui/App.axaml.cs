@@ -2,10 +2,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Gui.Formatters.Thin;
-using Gui.Models;
 using Gui.Services;
 using Gui.Services.Full;
 using Gui.Services.Shared;
@@ -74,7 +72,6 @@ public partial class App : Application
         
         var vm = services.GetRequiredService<MainWindowViewModelBase>();
         var taskbarProgressService = services.GetRequiredService<ITaskbarProgressService>();
-        Task.Run(async () => await vm.InitializeAsync());
         
         switch (ApplicationLifetime)
         {

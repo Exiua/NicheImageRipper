@@ -42,8 +42,13 @@ public class MainWindowViewModelThin(
         Active = false;
     }
 
-    public override async Task ConnectToRemote()
+    protected override async Task ConnectToRemote()
     {
+        if (Active)
+        {
+            return;
+        }
+        
         if (string.IsNullOrWhiteSpace(Config.ApiKey) ||
             string.IsNullOrWhiteSpace(Config.EndpointUri))
         {
@@ -61,9 +66,12 @@ public class MainWindowViewModelThin(
 
             Log.Information("Connected to remote backend. Core version: {Version}", remoteVersion);
 
+            await InitializeAsync();
+
             await backendConnector.ConnectWebSocketAsync();
 
             Active = true;
+            ConnectButtonDisplay = "Disconnect";
 
             OnUrlQueueUpdated();
         }

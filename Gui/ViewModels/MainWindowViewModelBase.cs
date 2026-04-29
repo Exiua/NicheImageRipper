@@ -6,11 +6,11 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using Common.Gui.ExtensionMethods;
 using Core.DataStructures;
 using Core.Enums;
 using Core.History;
 using Core.SiteParsing.HtmlParsers;
+using Gui.ExtensionMethods;
 using Gui.Services;
 using ReactiveUI;
 using Serilog;
@@ -210,6 +210,12 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = [];
 
+    public string ConnectButtonDisplay
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "Connect";
+
     public ReactiveCommand<Unit, Task> RipCommand { get; }
     public ReactiveCommand<Unit, Task> ClearCacheCommand { get; }
     public ReactiveCommand<Unit, Task> DequeueUrlsCommand { get; }
@@ -242,7 +248,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         ClearCacheCommand = ReactiveCommand.CreateRunInBackground(ClearCache);
         DequeueUrlsCommand = ReactiveCommand.CreateRunInBackground(DequeueUrls);
         ReRipUrlCommand = ReactiveCommand.CreateRunInBackground<string, Task>(Rerip);
-        ConnectCommand = ReactiveCommand.CreateRunInBackground(ConnectToRemote);
+        ConnectCommand = ReactiveCommand.CreateRunInBackground(ToggleStateToRemote);
         UrlQueue = new ObservableCollection<string>([]);
         History = new ObservableCollection<HistoryEntry>([]);
 
@@ -267,7 +273,17 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         History.Update(history);
     }
 
-    public virtual Task ConnectToRemote()
+    private Task ToggleStateToRemote()
+    {
+        return Active ? DisconnectFromRemote() : ConnectToRemote();
+    }
+
+    protected virtual Task ConnectToRemote()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected virtual Task DisconnectFromRemote()
     {
         return Task.CompletedTask;
     }

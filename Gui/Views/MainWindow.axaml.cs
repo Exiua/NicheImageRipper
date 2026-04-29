@@ -40,7 +40,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         _taskbarProgressService = taskbarProgressService;
         DataContext = viewModel;
-        viewModel.InitializeAsync();
         
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();

@@ -27,7 +27,7 @@
             <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput" IsReadOnly="{Binding Active}"/>
             <Button HotKey="Enter" Command="{Binding RipCommand}" IsEnabled="{Binding !Active}">Rip</Button>
             <Button Click="PlayPauseButton_OnClick"><PathIcon x:Name="PlayPauseButtonIcon" Data="{StaticResource PauseButtonIcon}"></PathIcon></Button>
-            <Button Content="Connect"
+            <Button Content="{Binding ConnectButtonDisplay}"
                     Command="{Binding ConnectCommand}"
                     IsVisible="{Binding IsThinClient}" />
         </StackPanel>

@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Avalonia.Threading;
 
-namespace Common.Gui.ExtensionMethods;
+namespace Gui.ExtensionMethods;
 
 public static class GeneralExtensionMethods
 {
@@ -12,10 +14,13 @@ public static class GeneralExtensionMethods
     /// <typeparam name="T">Type of the collection</typeparam>
     public static void Update<T>(this ObservableCollection<T> collection, IEnumerable<T> source)
     {
-        collection.Clear();
-        foreach (var item in source)
+        Dispatcher.UIThread.Post(() =>
         {
-            collection.Add(item);
-        }
+            collection.Clear();
+            foreach (var item in source)
+            {
+                collection.Add(item);
+            }
+        });
     }
 }
