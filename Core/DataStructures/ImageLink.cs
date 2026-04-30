@@ -55,6 +55,7 @@ public partial class ImageLink
     {
         Referer = referer;
         LinkInfo = linkInfo;
+        url = url.Trim();
         Url = ExtractUrl(url);
         // Filename cleaning is done on ExtractFilename which is skipped when a filename is provided
         // This is to handle certain sites that provide nested folders which we want to preserve (e.g., gdrive)
@@ -188,6 +189,7 @@ public partial class ImageLink
                 case LinkInfo.SeleniumImage:
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
+                case LinkInfo.SteamCommunity:
                 default:
                     // TODO: Double-check this logic, the double check for filename == "" seems redundant
                     //  smells like a logic issue
@@ -230,6 +232,7 @@ public partial class ImageLink
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
                     break;
+                case LinkInfo.SteamCommunity:
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -244,7 +247,15 @@ public partial class ImageLink
 
             if (cleanFilename && filenameProvided)
             {
-                filename = FilesystemUtility.CleanPathStem(filename);
+                if (filename == "" /*&& LinkInfo is not LinkInfo.Mega*/)
+                {
+                    Log.Warning("No filename found: {Url}", url);
+                    filename = Guid.NewGuid().ToString(); // Fallback to a random filename if none can be extracted
+                }
+                else
+                {
+                    filename = FilesystemUtility.CleanPathStem(filename);
+                }
             }
 
             return filename;
@@ -412,7 +423,15 @@ public partial class ImageLink
             }
         }
 
-        return FilesystemUtility.CleanPathStem(fileName);
+        if (fileName == ""/* && LinkInfo is not LinkInfo.Mega*/)
+        {
+            Log.Warning("No file name provided: {Url}", url);
+            return Guid.NewGuid().ToString(); // Fallback to a random filename if none can be extracted
+        }
+        else
+        {
+            return FilesystemUtility.CleanPathStem(fileName);
+        }
     }
 
     public override string ToString()

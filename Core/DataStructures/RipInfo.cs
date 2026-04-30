@@ -181,7 +181,7 @@ public class RipInfo
 
     private static string CleanDirectoryName(string directoryName)
     {
-        var name = string.IsNullOrWhiteSpace(directoryName) ? "" : FilesystemUtility.CleanPathStem(directoryName);
+        var name = string.IsNullOrWhiteSpace(directoryName) ? Guid.NewGuid().ToString() : FilesystemUtility.CleanPathStem(directoryName);
         if (name.Length <= MaxDirectoryNameLength)
         {
             return name;

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Serilog;
 
 namespace Core.Utility;
 
@@ -17,6 +18,12 @@ public static class FilesystemUtility
     /// <returns>>The cleaned path name</returns>
     public static string CleanPathStem(string pathName)
     {
+        if (pathName == "")
+        {
+            return "";
+        }
+        
+        Log.Debug("Cleaning path stem for \"{PathName}\"", pathName);
         pathName = WebUtility.HtmlDecode(pathName).Trim(' ', '\t', '\n', '\r');
         var cleanedPathStem = new StringBuilder();
         foreach (var c in pathName.Where(c => !ForbiddenChars.Contains(c)))

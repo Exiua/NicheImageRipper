@@ -28,6 +28,17 @@ public sealed class RollingLogTextSource : ILogTextSource
 
     public void Append(LogEntryModel entry)
     {
+        if (entry.RenderedMessage?.Contains(
+                "[Visual Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection+RunLoopHandler]") == true)
+        {
+            return;
+        }
+
+        if (entry.Level == "Debug")
+        {
+            return;
+        }
+        
         var rendered = Render(entry);
 
         lock (_lock)

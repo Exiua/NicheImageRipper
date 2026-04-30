@@ -9,7 +9,7 @@
     <ItemGroup>
       <PackageReference Include="Gkmo.Google.Apis.PhotosLibrary.v1" Version="1.36.1.1471" />
       <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
-      <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
       <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.13.0" />
       <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />

@@ -126,6 +126,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 if (path[0] == '/')
                 {
                     path = domainUrl + path;
+                    
+                }
+                
+                if (domainUrl.Contains("kemono"))
+                {
+                    path = path.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
                 }
 
                 // if path is not null, name should also not be null
@@ -141,6 +147,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 if (attachmentPath[0] == '/')
                 {
                     attachmentPath = domainUrl + attachmentPath;
+                }
+                
+                if (domainUrl.Contains("kemono"))
+                {
+                    attachmentPath = attachmentPath.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
                 }
 
                 var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachmentName, attachmentPath);
@@ -200,6 +211,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         {
             var domainName = new Uri(link).Host.Split('.')[0];
             var linkStr = link.ToString();
+            if (linkStr.Contains("puu.sh"))
+            {
+                // Site not responding correctly
+                continue;
+            }
+            
             if (!linkStr.Contains(domainName)) // Only native links get duplicated
             {
                 unique.Add(link);
