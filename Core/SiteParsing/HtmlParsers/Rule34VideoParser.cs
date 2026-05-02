@@ -31,17 +31,17 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
         {
-            Log.Error("CSWebDriver URI is not configured. Cannot parse rule34video.com without CSWebDriver.");
+            Logger.Error("CSWebDriver URI is not configured. Cannot parse rule34video.com without CSWebDriver.");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);
         }
         
         var client = new Client(Config.CSWebDriverUri);
         await Sleep(500);
-        Log.Debug("Searching for continue button");
+        Logger.Debug("Searching for continue button");
         var continueButton = Driver.TryFindElement(By.XPath("//input[@name='continue']"));
         if (continueButton is not null)
         {
-            Log.Debug("Clicking continue button");
+            Logger.Debug("Clicking continue button");
             try
             {
                 continueButton.Click();
@@ -49,12 +49,12 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
             catch (ElementNotInteractableException)
             {
                 // Usually occurs when cookies from the previous session are still present
-                Log.Debug("Popup probably not active");
+                Logger.Debug("Popup probably not active");
             }
         }
         else
         {
-            Log.Debug("Continue button not found");
+            Logger.Debug("Continue button not found");
         }
 
 
@@ -65,7 +65,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         var response = await client.GetPage(CurrentUrl, cookies: requestCookies);
         if (response is ErrorResponse errorResponse)
         {
-            Log.Error("Error retrieving page: {Error}", errorResponse.Error);
+            Logger.Error("Error retrieving page: {Error}", errorResponse.Error);
             throw new RipperException("Error retrieving page: " + errorResponse.Error);
         }
 
@@ -121,7 +121,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         var page = 1;
         while (true)
         {
-            Log.Information("Parsing page {Page}", page++);
+            Logger.Information("Parsing page {Page}", page++);
             var videos = soup.SelectSingleNodeOrThrow(videoXpath)
                              .SelectNodesOrThrow("./div")
                              .Select(div => div.SelectSingleNode("./a[@class='th js-open-popup']")?
@@ -130,27 +130,27 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
                              .Where(s => s is not null);
             videoPosts.AddRange(videos!);
             
-            Log.Debug("Checking if there is a blockOverlay");
+            Logger.Debug("Checking if there is a blockOverlay");
             var uiBlock = Driver.TryFindElement(By.XPath("//div[@class='blockUI blockOverlay']"));
             while (uiBlock is not null)
             {
-                Log.Debug("Waiting for blockOverlay to disappear");
+                Logger.Debug("Waiting for blockOverlay to disappear");
                 await Sleep(500);
                 uiBlock = Driver.TryFindElement(By.XPath("//div[@class='blockUI blockOverlay']"));
             }
             
-            Log.Debug("Searching for next button");
+            Logger.Debug("Searching for next button");
             var nextButtonResponse = await client.PressButtonOnPage("//div[@class='item pager next']/a");
             if (nextButtonResponse is ErrorResponse nextButtonError)
             {
-                Log.Error("Error fetching next page: {Error}", nextButtonError.Error);
+                Logger.Error("Error fetching next page: {Error}", nextButtonError.Error);
                 break;
             }
             
             var nextPageResponse = (PageResponse)nextButtonResponse;
             if (nextPageResponse.Content == "")
             {
-                Log.Debug("No more pages found");
+                Logger.Debug("No more pages found");
                 break;
             }
             
@@ -179,21 +179,21 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         {
             if (post is null)
             {
-                Log.Error("Either soup or post must be provided");
+                Logger.Error("Either soup or post must be provided");
                 throw new ArgumentException("Either soup or post must be provided");
             }
             
-            Log.Debug("Parsing post: {Post}", post);
+            Logger.Debug("Parsing post: {Post}", post);
             CurrentUrl = post;
             soup = await SolveParse();
         }
         
         var title = soup.SelectSingleNodeOrThrow("//h1[@class='title_video']").InnerText;
-        Log.Debug("Searching for video info");
+        Logger.Debug("Searching for video info");
         var videoInfo = soup.SelectSingleNodeOrThrow("//div[@id='tab_video_info']");
-        Log.Debug("Searching for downloads");
+        Logger.Debug("Searching for downloads");
         var downloads = videoInfo.SelectNodesOrThrow("./div")[^1];
-        Log.Debug("Grabbing download link");
+        Logger.Debug("Grabbing download link");
         // First link is the highest quality
         var downloadLink = downloads.SelectSingleNodeOrThrow(".//a").GetHref().DecodeUrl();
         return (downloadLink, title);

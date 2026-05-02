@@ -39,13 +39,13 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         {
             // if the iframe is loaded, we can immediately extract the video source as it's not a blob
             case "iframe":
-                Log.Debug("Extracting video from iframe");
+                Logger.Debug("Extracting video from iframe");
                 await ExtractVideoFromIframe(images, capturer);
                 break;
             // if the video tag is loaded, we can extract the source directly
             case "video":
             {
-                Log.Debug("Extracting video from video tag");
+                Logger.Debug("Extracting video from video tag");
                 var player = Driver.FindElement(By.XPath(VideoXPath));
                 var source = player.FindElement(By.XPath("./source"));
                 var url = source.GetSrc();
@@ -61,7 +61,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                     responsivePlayer = Driver.TryFindElement(By.XPath("//div[@class='responsive-player']"));
                     if (responsivePlayer is not null)
                     {
-                        Log.Debug("Extracting playlist from responsive player div");
+                        Logger.Debug("Extracting playlist from responsive player div");
                         await ExtractPlaylist(images, capturer);
                     }
                     else
@@ -71,7 +71,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 }
                 else
                 {
-                    Log.Debug("Extracting playlist from iframe");
+                    Logger.Debug("Extracting playlist from iframe");
                     await ExtractPlaylistFromIframe(images, capturer);
                 }
 
@@ -94,7 +94,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 await Sleep(250);
                 if(i % 4 == 0)
                 {
-                    Log.Debug("Refreshing page to find video link");
+                    Logger.Debug("Refreshing page to find video link");
                     Driver.Refresh();
                 }
                 
@@ -102,7 +102,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             }
 
             var video = videos[0];
-            Log.Debug("Found video URL: {url}", video);
+            Logger.Debug("Found video URL: {url}", video);
             var filename = video.Split("/")[3] + ".mp4";
             var imageLink = new ImageLink(videos[0], FilenameScheme, 0, filename: filename)
             {
@@ -149,7 +149,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 videoElement = Driver.TryFindElement(By.XPath("//div[@id='a']"));
                 if (videoElement is null)
                 {
-                    Log.Warning("Video element not found, retrying...");
+                    Logger.Warning("Video element not found, retrying...");
                 }
                 else
                 {
@@ -174,7 +174,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 await Sleep(250);
                 if (i % 4 == 0)
                 {
-                    Log.Debug("Refreshing page to find video link");
+                    Logger.Debug("Refreshing page to find video link");
                     Driver.Refresh();
                 }
                 
@@ -182,14 +182,14 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             }
 
             var video = videos[0];
-            Log.Debug("Found video URL: {url}", video);
+            Logger.Debug("Found video URL: {url}", video);
             string url;
             if (video.Contains("%3F") || video.Contains("%3f"))
             {
-                Log.Debug("Detected encoded URL, decoding");
+                Logger.Debug("Detected encoded URL, decoding");
                 var encodedUrl = UrlUtility.GetUrlParameterValue(videos[0], "mu");
                 url = Uri.UnescapeDataString(encodedUrl);
-                Log.Debug("Decoded URL: {url}", url);
+                Logger.Debug("Decoded URL: {url}", url);
             }
             else
             {
@@ -227,7 +227,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                     await Sleep(250);
                     if (i % 4 == 0)
                     {
-                        Log.Debug("Refreshing page to find video link");
+                        Logger.Debug("Refreshing page to find video link");
                         Driver.Refresh();
                     }
                     
@@ -235,7 +235,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 }
 
                 var video = videos[0];
-                Log.Debug("Found video URL: {url}", video);
+                Logger.Debug("Found video URL: {url}", video);
                 var id = UrlUtility.GetUrlParameterValue(video, "pp");
                 var filename = Uri.UnescapeDataString(id) + ".mp4";
                 var imageLink = new ImageLink(video, FilenameScheme, 0, filename: filename)

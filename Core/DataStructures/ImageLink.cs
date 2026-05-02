@@ -12,6 +12,8 @@ namespace Core.DataStructures;
 
 public partial class ImageLink
 {
+    private ILogger Logger { get; } = Log.ForContext<ImageLink>();
+    
     public string? Referer { get; set; }
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
     public string Url { get; set; } = null!;
@@ -250,7 +252,7 @@ public partial class ImageLink
             {
                 if (filename == "" /*&& LinkInfo is not LinkInfo.Mega*/)
                 {
-                    Log.Warning("No filename found: {Url}", url);
+                    Logger.Warning("No filename found: {Url}", url);
                     filename = Guid.NewGuid().ToString(); // Fallback to a random filename if none can be extracted
                 }
                 else
@@ -412,7 +414,7 @@ public partial class ImageLink
             }
             catch (UriFormatException)
             {
-                Log.Error("Invalid URL format: {Url}", url);
+                Logger.Error("Invalid URL format: {Url}", url);
                 throw;
             }
 
@@ -426,7 +428,7 @@ public partial class ImageLink
 
         if (fileName == ""/* && LinkInfo is not LinkInfo.Mega*/)
         {
-            Log.Warning("No file name provided: {Url}", url);
+            Logger.Warning("No file name provided: {Url}", url);
             return Guid.NewGuid().ToString(); // Fallback to a random filename if none can be extracted
         }
         else

@@ -46,7 +46,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            Log.Debug("Unable to find playlist or tablist, refreshing page");
+            Logger.Debug("Unable to find playlist or tablist, refreshing page");
             if (i == 3)
             {
                 throw new RipperException("Failed to load page");
@@ -59,14 +59,14 @@ public class QuatvnParser : HtmlParser, IHtmlParser
         var tablist = soup.SelectSingleNode("//ul[@role='tablist']");
         if (tablist is not null)
         {
-            Log.Debug("Parsing tabbed content");
+            Logger.Debug("Parsing tabbed content");
             var tabs = tablist.SelectNodesOrThrow("./li");
             var numTabs = tabs.Count;
             var baseTabId = tablist.ParentNode.GetAttributeValue("id");
-            Log.Debug("Found {NumTabs} tabs", numTabs);
+            Logger.Debug("Found {NumTabs} tabs", numTabs);
             for (var i = 0; i < numTabs; i++)
             {
-                Log.Debug("Parsing tab {TabNum}", i);
+                Logger.Debug("Parsing tab {TabNum}", i);
                 var videoTab = soup.SelectSingleNodeOrThrow($"//div[@id='{baseTabId}-{i}']/div");
                 var videoData = videoTab.GetAttributeValue("data-item");
                 videoData = WebUtility.HtmlDecode(videoData);
@@ -85,14 +85,14 @@ public class QuatvnParser : HtmlParser, IHtmlParser
         }
         else
         {
-            Log.Debug("Parsing non-tabbed content");
+            Logger.Debug("Parsing non-tabbed content");
             var container =
                 soup.SelectSingleNodeOrThrow(
                     "//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']");
             var gallery = container.SelectSingleNode(".//figure[@class='mace-gallery-teaser']");
             if (gallery is not null)
             {
-                Log.Debug("Parsing gallery");
+                Logger.Debug("Parsing gallery");
                 var imageData = gallery.GetAttributeValue("data-g1-gallery");
                 imageData = WebUtility.HtmlDecode(imageData);
                 var imageList = JsonSerializer.Deserialize<JsonNode>(imageData)!.AsArray();
@@ -103,7 +103,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             var videoPlaylist = container.SelectSingleNode("//div[@class='fp-playlist']");
             if (videoPlaylist is not null)
             {
-                Log.Debug("Parsing video playlist");
+                Logger.Debug("Parsing video playlist");
                 var videos = videoPlaylist.SelectNodesOrThrow("./a")
                                           .Select(a => a.GetHref())
                                           .ToStringImageLinks();

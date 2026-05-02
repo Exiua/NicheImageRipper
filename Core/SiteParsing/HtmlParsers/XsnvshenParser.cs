@@ -33,7 +33,7 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < pageCount; i++)
         {
-            Log.Information("Parsing page {Page}", i + 1);
+            Logger.Information("Parsing page {Page}", i + 1);
             var img = Driver.FindElement(By.XPath("//img[@id='bigImg']"))
                             .GetAttribute("src");
             if (img is null)

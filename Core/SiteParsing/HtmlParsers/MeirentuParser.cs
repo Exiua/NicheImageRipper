@@ -34,7 +34,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
         var counter = 1;
         while (true)
         {
-            Log.Information("Parsing page {Counter}", counter);
+            Logger.Information("Parsing page {Counter}", counter);
             counter++;
             var imgs = soup.SelectNodesOrThrow("//div[@class='content_left']//img")
                            .Select(img => img.GetSrc())

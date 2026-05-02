@@ -35,7 +35,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
             var cache = JsonUtility.Deserialize<EightSeCache>(CachePath);
             if (cache is not null)
             {
-                Log.Information("Using cached data from {CachePath}", CachePath);
+                Logger.Information("Using cached data from {CachePath}", CachePath);
                 (dirName, imageLinks, videos) = cache;
                 usingCache = true;
             }
@@ -64,7 +64,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
-            Log.Information("Parsing image page {Link}", link);
+            Logger.Information("Parsing image page {Link}", link);
             var soup = await Soupify(link, delay: 250);
             var img = soup.SelectSingleNodeOrThrow("//div[@class='container']/img").GetSrc();
             images.Add(img);
@@ -122,7 +122,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
         var counter = 1;
         while (true)
         {
-            Log.Information("Parsing video {Counter}", counter);
+            Logger.Information("Parsing video {Counter}", counter);
             counter++;
             var videoElement = contentBox.FindElement(By.TagName("video"));
             var src = videoElement.GetAttribute("src");
@@ -132,7 +132,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
             }
             else
             {
-                Log.Warning("No video source found in the video element.");
+                Logger.Warning("No video source found in the video element.");
             }
 
             var nextButton = contentBox.TryFindElement(By.XPath(".//div[@class='btn next']"));

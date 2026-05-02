@@ -28,22 +28,22 @@ public class NicheImageRipperCli : NicheImageRipper
     {
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
         {
-            Log.Warning("ffmpeg not found. Some functionality may be limited.");
+            Logger.Warning("ffmpeg not found. Some functionality may be limited.");
         }
         
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
         {
-            Log.Warning("yt-dlp not found. Some functionality may be limited.");
+            Logger.Warning("yt-dlp not found. Some functionality may be limited.");
         }
         
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
         {
-            Log.Warning("MEGAcmd not found. Some functionality may be limited.");
+            Logger.Warning("MEGAcmd not found. Some functionality may be limited.");
         }
         
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
-            Log.Warning("FlareSolverr not found. Some functionality may be limited.");
+            Logger.Warning("FlareSolverr not found. Some functionality may be limited.");
         }
         
         while (true)
@@ -170,7 +170,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     }
                     case "debug":
-                        Log.Warning("Debug mode is not yet implemented.");
+                        Logger.Warning("Debug mode is not yet implemented.");
                         //HtmlParser.SetDebugMode(true);
                         Debugging = true;
                         break;
@@ -283,7 +283,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         await Rip();
                         break;
                     case "regen":
-                        Log.Warning("Regenerating the HTML parser driver is not yet implemented.");
+                        Logger.Warning("Regenerating the HTML parser driver is not yet implemented.");
                         //HtmlParser.RegenerateDriver();
                         break;
                     case "retries":
@@ -372,7 +372,7 @@ public class NicheImageRipperCli : NicheImageRipper
             }
             catch (Exception e)
             {
-                Log.Error(e, "An unhanded exception occurred");
+                Logger.Error(e, "An unhanded exception occurred");
             }
         }
     }

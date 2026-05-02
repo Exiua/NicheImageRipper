@@ -35,7 +35,7 @@ public class NLegsParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < numPages; i++)
         {
-            Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
+            Logger.Information("Parsing page {i} of {numPages}", i + 1, numPages);
             var posts = soup.SelectSingleNodeOrThrow("//div[@class='col-md-12 col-xs-12 ']")
                             .SelectNodesOrThrow(".//a")
                             .Select(a => domain + a.GetHref())

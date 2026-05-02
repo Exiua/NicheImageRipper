@@ -12,8 +12,8 @@ using Core.History;
 using Core.SiteParsing.HtmlParsers;
 using Gui.ExtensionMethods;
 using Gui.Services;
+using Microsoft.Extensions.Logging;
 using ReactiveUI;
-using Serilog;
 
 namespace Gui.ViewModels;
 
@@ -24,9 +24,11 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public IGuiSettings GuiSettings { get; }
     public ILogTextSource LogTextSource { get; }
 
+    protected ILogger<MainWindowViewModelBase> Logger { get; }
+
     public abstract string Title { get; }
     public abstract bool IsThinClient { get; }
-
+    
     private int HistoryCount => RipperClient.GetUrlQueue().Result.Count();
 
     private bool RipInProgress { get; set; }
@@ -226,8 +228,9 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public event Action? LogTextChanged;
     
     protected MainWindowViewModelBase(IRipperClient ripperClient, IRipperSettings ripperSettings,
-                                      IGuiSettings guiSettings, ILogTextSource logTextSource)
+                                      IGuiSettings guiSettings, ILogTextSource logTextSource, ILogger<MainWindowViewModelBase> logger)
     {
+        Logger = logger;
         RipperClient = ripperClient;
 
         RipperSettings = ripperSettings;
@@ -317,7 +320,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             return Task.CompletedTask;
         }
 
-        Log.Debug("Queuing URL: {url}", input);
+        Logger.LogDebug("Queuing URL: {url}", input);
 
         UrlInput = "";
         Task.Run(() => QueueUrls(input));
@@ -339,7 +342,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
                 }
                 catch (InvalidOperationException)
                 {
-                    Log.Warning("Missing argument: <tags>");
+                    Logger.LogWarning("Missing argument: <tags>");
                     return;
                 }
             }
@@ -358,22 +361,22 @@ public abstract class MainWindowViewModelBase : ViewModelBase
                         case QueueFailureReason.None:
                             break;
                         case QueueFailureReason.AlreadyQueued:
-                            Log.Information("URL already queued: {Url}", failedUrl.Url);
+                            Logger.LogInformation("URL already queued: {Url}", failedUrl.Url);
                             break;
                         case QueueFailureReason.NotSupported:
-                            Log.Warning("URL not supported: {Url}", failedUrl.Url);
+                            Logger.LogWarning("URL not supported: {Url}", failedUrl.Url);
                             break;
                         case QueueFailureReason.PreviouslyProcessed:
-                            Log.Information("Re-rip url? {Url}", failedUrl.Url);
+                            Logger.LogInformation("Re-rip url? {Url}", failedUrl.Url);
                             var response = await ConfirmReripUrl(failedUrl.Url);
                             if (response)
                             {
-                                Log.Debug("Re-ripping URL: {Url}", failedUrl.Url);
+                                Logger.LogDebug("Re-ripping URL: {Url}", failedUrl.Url);
                                 urlsToRequeue.Add(failedUrl);
                             }
                             else
                             {
-                                Log.Debug("Skipping re-rip for URL: {Url}", failedUrl.Url);
+                                Logger.LogDebug("Skipping re-rip for URL: {Url}", failedUrl.Url);
                             }
 
                             break;
@@ -386,7 +389,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             }
         }
 
-        Log.Debug("URLS in queue: {count}", RipperClient.UrlQueueCount);
+        Logger.LogDebug("URLS in queue: {count}", RipperClient.UrlQueueCount);
 
         if (RipInProgress)
         {
@@ -507,14 +510,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(url))
         {
-            Log.Warning("Cannot re-rip an empty URL.");
+            Logger.LogWarning("Cannot re-rip an empty URL.");
             return;
         }
 
-        Log.Debug("Re-ripping URL: {url}", url);
+        Logger.LogDebug("Re-ripping URL: {url}", url);
         await RipperClient.ForceQueueUrl(url);
 
-        Log.Debug("URLS in queue: {count}", RipperClient.UrlQueueCount);
+        Logger.LogDebug("URLS in queue: {count}", RipperClient.UrlQueueCount);
 
         if (RipInProgress)
         {
@@ -534,7 +537,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
         catch (Exception e)
         {
-            Dispatcher.UIThread.Post(() => { Log.Error(e, "Error occurred while ripping"); });
+            Dispatcher.UIThread.Post(() => { Logger.LogError(e, "Error occurred while ripping"); });
             SetProgressError();
         }
         finally
@@ -556,7 +559,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             }
             catch (Exception e)
             {
-                Log.Error(e, "Error occurred while fetching url queue");
+                Logger.LogError(e, "Error occurred while fetching url queue");
             }
         });
     }
@@ -600,7 +603,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     public bool NextHistoryPageExists()
     {
-        Log.Debug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}",
+        Logger.LogDebug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}",
             CurrentHistoryPageDisplay, PageSize, HistoryCount);
         return HistoryCount - (CurrentHistoryPage * PageSize) > PageSize;
     }
@@ -625,7 +628,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public async Task LoadHistory(HistoryFilter? filter = null)
     {
         var history = await GetHistoryPage(CurrentHistoryPage - 1, PageSize, filter);
-        Log.Debug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
+        Logger.LogDebug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
         History.Update(history);
     }
 

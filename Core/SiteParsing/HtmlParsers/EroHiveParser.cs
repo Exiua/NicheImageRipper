@@ -36,7 +36,7 @@ public class EroHiveParser : HtmlParser, IHtmlParser
         var page = 0;
         while (true)
         {
-            Log.Information("Parsing page {page}", page);
+            Logger.Information("Parsing page {page}", page);
             if (page != 0)
             {
                 CurrentUrl = $"{baseUrl}?p={page}";
@@ -59,7 +59,7 @@ public class EroHiveParser : HtmlParser, IHtmlParser
         var total = posts.Count;
         foreach (var (i, post) in posts.Enumerate())
         {
-            Log.Information("Parsing post {i} of {total}", i + 1, total);
+            Logger.Information("Parsing post {i} of {total}", i + 1, total);
             CurrentUrl = post;
             await WaitForPostLoad();
             soup = await Soupify();

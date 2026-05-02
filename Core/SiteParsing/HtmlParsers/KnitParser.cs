@@ -44,7 +44,7 @@ public class KnitParser : HtmlParser, IHtmlParser
             var scrollHeight = Driver.GetScrollHeight();
             if (scrollHeight <= 650)
             {
-                Log.Debug("Page reset");
+                Logger.Debug("Page reset");
                 CleanTabs("xx.knit.bid");
                 retry++;
                 if (retry > 4)
@@ -57,7 +57,7 @@ public class KnitParser : HtmlParser, IHtmlParser
             var loadMoreButton = Driver.TryFindElement(By.XPath("//div[@class='ias_trigger']"));
             if (loadMoreButton is null)
             {
-                Log.Debug("No more images to load");
+                Logger.Debug("No more images to load");
                 break;
             }
             
@@ -71,7 +71,7 @@ public class KnitParser : HtmlParser, IHtmlParser
         var page = 1;
         while(true)
         {
-            Log.Information("Parsing page {Page}", page);
+            Logger.Information("Parsing page {Page}", page);
             var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']")
                              .SelectNodesOrThrow("./p")
                              .Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc())

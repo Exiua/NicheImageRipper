@@ -39,7 +39,7 @@ public class ToonilyParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (chapter, name) in chapterList)
         {
-            Log.Information("Parsing {ChapterName}", name);
+            Logger.Information("Parsing {ChapterName}", name);
             soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 5000, ScrollPauseTime = 1000 });
             var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!
                                 .SelectNodes("./div")!

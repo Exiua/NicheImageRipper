@@ -64,7 +64,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
                     return RipInfo.FromUrlList([], "Deleted", FilenameScheme);
                 }
     
-                Log.Error("Could not find directory name. Unable to continue.");
+                Logger.Error("Could not find directory name. Unable to continue.");
                 throw;
             }
         }

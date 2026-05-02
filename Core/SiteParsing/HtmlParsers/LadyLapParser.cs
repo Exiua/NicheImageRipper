@@ -35,7 +35,7 @@ public class LadyLapParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         for (var i = 0; i < numPages; i++)
         {
-            Log.Information("Parsing page {i} of {numPages}", i + 1, numPages);
+            Logger.Information("Parsing page {i} of {numPages}", i + 1, numPages);
             var posts = soup.SelectNodesOrThrow("//div[@class='col-md-12 col-lg-12']")[2]
                             .SelectNodesOrThrow(".//a")
                             .Select(a => domain + a.GetHref())

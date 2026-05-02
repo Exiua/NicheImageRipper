@@ -28,7 +28,7 @@ public class WnacgParser : HtmlParser, IHtmlParser
         }
         
         var soup = await SolveParseAddCookies();
-        Log.Debug("Fetching directory name");
+        Logger.Debug("Fetching directory name");
         var dirNode = soup.SelectSingleNode("//h2");
         if (dirNode is null)
         {
@@ -40,11 +40,11 @@ public class WnacgParser : HtmlParser, IHtmlParser
         var dirName = dirNode.InnerText;
         var numImages = soup.SelectSingleNodeOrThrow("//span[@class='name tb']").InnerText;
         var imageLinks = new List<string>();
-        Log.Debug("Fetching image links");
+        Logger.Debug("Fetching image links");
         var page = 1;
         while (true)
         {
-            Log.Debug("Fetching page {Page}", page);
+            Logger.Debug("Fetching page {Page}", page);
             page++;
             var imageList = soup
                             .SelectNodesOrThrow("//li[@class='li tb gallary_item']")
@@ -60,12 +60,12 @@ public class WnacgParser : HtmlParser, IHtmlParser
             soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
         }
         
-        Log.Debug("Found {NumImages} images", imageLinks.Count);
+        Logger.Debug("Found {NumImages} images", imageLinks.Count);
         var images = new List<StringImageLinkWrapper>();
         foreach (var image in imageLinks)
         {
             await JitterSleep(max: 350);
-            Log.Debug("Fetching image {Image}", image);
+            Logger.Debug("Fetching image {Image}", image);
             CurrentUrl = $"https://www.wnacg.com{image}";
             soup = await SolveParse();
             var img = soup.SelectSingleNodeOrThrow("//img[@id='picarea']");

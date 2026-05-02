@@ -41,7 +41,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
                 var links = capturer.GetNewVideoLinks();
                 if (links.Count == 0)
                 {
-                    Log.Debug("No links found, retrying...");
+                    Logger.Debug("No links found, retrying...");
                     await Sleep(1000);
                     continue;
                 }

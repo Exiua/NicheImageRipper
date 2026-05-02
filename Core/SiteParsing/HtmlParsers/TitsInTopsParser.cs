@@ -42,7 +42,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         var pageCount = 1;
         while (true)
         {
-            Log.Information("Parsing page {PageCount}", pageCount);
+            Logger.Information("Parsing page {PageCount}", pageCount);
             pageCount++;
             var posts = soup.SelectSingleNodeOrThrow("//div[@class='block-body js-replyNewMessageContainer']")
                             .SelectNodesOrThrow(".//div[@class='message-content js-messageContent']");

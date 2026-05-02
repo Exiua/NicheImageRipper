@@ -43,7 +43,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
         var page = 1;
         while (true)
         {
-            Log.Information("Parsing page {page}", page);
+            Logger.Information("Parsing page {page}", page);
             page++;
             var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']")
                                .SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space

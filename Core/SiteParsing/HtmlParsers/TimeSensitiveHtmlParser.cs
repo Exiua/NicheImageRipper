@@ -46,7 +46,7 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
             throw new ArgumentOutOfRangeException(nameof(start), "Start index is out of range.");
         }
         
-        Log.Information("Updating links from link {start} of {count}", start + 1, imageLinks.Count);
+        Logger.Information("Updating links from link {start} of {count}", start + 1, imageLinks.Count);
         var updated = 0;
         foreach (var (i, link) in imageLinks.Enumerate())
         {
@@ -63,7 +63,7 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
             var updatedLink = await UpdateLink(link);
             // Expired links will have valid filenames, while invalid links will not have filenames
             var regenFilename = links[i].IsInvalid;
-            Log.Information("Updating image link {i} of {count}", i + 1, links.Count);
+            Logger.Information("Updating image link {i} of {count}", i + 1, links.Count);
             links[i].Url = updatedLink;
             if (regenFilename)
             {
@@ -73,7 +73,7 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
             updated++;
         }
         
-        Log.Information("Updated {count} image links", updated);
+        Logger.Information("Updated {count} image links", updated);
         return links;
     }
 

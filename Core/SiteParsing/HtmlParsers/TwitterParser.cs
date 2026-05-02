@@ -89,7 +89,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
         foreach (var (i, link) in postLinks.Enumerate())
         {
             var postLink = $"https://twitter.com{link}";
-            Log.Information("Post {index}/{totalLinks}: {postLink}", i + 1, postLinks.Count, postLink);
+            Logger.Information("Post {index}/{totalLinks}: {postLink}", i + 1, postLinks.Count, postLink);
             var (links, retryUrls) = await TwitterParserHelper(postLink, false);
             var videoLinks = capturer.GetNewVideoLinks();
             images.AddRange(videoLinks.ToStringImageLinks());
@@ -114,7 +114,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
             var offset = 0;
             foreach(var (i, (index, link)) in failed.Enumerate())
             {
-                Log.Information("Retrying failed post {index}/{totalLinks}: {postLink}", i + 1, failed.Count, link);
+                Logger.Information("Retrying failed post {index}/{totalLinks}: {postLink}", i + 1, failed.Count, link);
                 var (links, retryUrls) = await TwitterParserHelper(link, true);
                 var linkTemp = links.Select(x => (StringImageLinkWrapper)x);
                 failedUrls.AddRange(retryUrls);
@@ -188,7 +188,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
                     var waitBoost = 0;
                     if (i == maxRetries - 1)
                     {
-                        Log.Warning("Failed to get media: {PostLink}", postLink);
+                        Logger.Warning("Failed to get media: {PostLink}", postLink);
                         if (logFailure)
                         {
                             LogFailedUrl(postLink);
@@ -207,7 +207,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
                     waitTime = Math.Min(baseWaitTime * (int)Math.Pow(2, i), maxWaitTime);
                     var jitter = (int)(Random.Shared.NextDouble() * waitTime);
                     waitTime += jitter + waitBoost;
-                    Log.Warning("Attempt {Attempt} failed. Retrying in {WaitTime:F2} seconds...", i + 1, waitTime / 1000.0);
+                    Logger.Warning("Attempt {Attempt} failed. Retrying in {WaitTime:F2} seconds...", i + 1, waitTime / 1000.0);
                     await Task.Delay(waitTime);
                 }
     

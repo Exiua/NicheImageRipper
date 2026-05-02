@@ -6,10 +6,11 @@ namespace Core.Driver;
 public class WebDriverSet : IDisposable
 {
     private readonly ConcurrentBag<WebDriver> _availableDrivers = [];
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly SemaphoreSlim _semaphore;
     private readonly int _maxCapacity;
     private readonly bool _headless;
+    private readonly ILogger _logger;
     
     private bool _disposed;
 
@@ -20,21 +21,22 @@ public class WebDriverSet : IDisposable
         _headless = headless;
         _maxCapacity = maxCapacity;
         _semaphore = new SemaphoreSlim(maxCapacity, maxCapacity);
+        _logger = Log.ForContext<WebDriverSet>();
     }
     
     // TODO: Fix issue in AcquireDriver/ReleaseDriver can somehow result in releasing a driver that will overflow the semaphore.
     public WebDriver AcquireDriver(bool checkHealth = true)
     {
         // Block the thread if no resources are available
-        Log.Debug("Waiting for an available WebDriver {{ headless = {Headless} }}", _headless);
+        _logger.Debug("Waiting for an available WebDriver {{ headless = {Headless} }}", _headless);
         _semaphore.Wait();
-        Log.Debug("Acquired a WebDriver {{ headless = {Headless} }}", _headless);
+        _logger.Debug("Acquired a WebDriver {{ headless = {Headless} }}", _headless);
 
         lock (_lock)
         {
             if (_availableDrivers.TryTake(out var driver))
             {
-                Log.Debug("Reusing an existing WebDriver {{ headless = {Headless} }}", _headless);
+                _logger.Debug("Reusing an existing WebDriver {{ headless = {Headless} }}", _headless);
                 if (true)
                 {
                     driver = CheckWebDriverHealth(driver);
@@ -48,11 +50,11 @@ public class WebDriverSet : IDisposable
                 {
                     // TODO: This is a warning because it is not expected to create a new driver when not checking health.
                     // TODO:    When check health is false, it is expected to reuse an existing driver to destroy in DestroyDriver().
-                    Log.Warning("CheckHealth is false when retrieving an existing driver to destroy. Probably do not want to create a new driver.");
+                    _logger.Warning("CheckHealth is false when retrieving an existing driver to destroy. Probably do not want to create a new driver.");
                 }
                 
                 CurrentCount++;
-                Log.Debug("Creating a new WebDriver {{ headless = {Headless} }}", _headless);
+                _logger.Debug("Creating a new WebDriver {{ headless = {Headless} }}", _headless);
                 try
                 {
                     return CreateFirefoxDriver(); // Create a new driver if under capacity
@@ -71,7 +73,7 @@ public class WebDriverSet : IDisposable
     
     public void ReleaseDriver(WebDriver driver)
     {
-        Log.Debug("Releasing a WebDriver {{ headless = {Headless} }}", _headless);
+        _logger.Debug("Releasing a WebDriver {{ headless = {Headless} }}", _headless);
         ArgumentNullException.ThrowIfNull(driver);
 
         lock (_lock)
@@ -81,7 +83,7 @@ public class WebDriverSet : IDisposable
 
         // Release the semaphore to unblock waiting threads
         _semaphore.Release();
-        Log.Debug("Released a WebDriver {{ headless = {Headless} }}", _headless);
+        _logger.Debug("Released a WebDriver {{ headless = {Headless} }}", _headless);
     }
 
     public void DestroyDriver()
@@ -97,7 +99,7 @@ public class WebDriverSet : IDisposable
 
     private void DestroyDriver(WebDriver driver)
     {
-        Log.Debug("Destroying a WebDriver {{ headless = {Headless} }}", _headless);
+        _logger.Debug("Destroying a WebDriver {{ headless = {Headless} }}", _headless);
         ArgumentNullException.ThrowIfNull(driver);
 
         lock (_lock)
@@ -108,10 +110,10 @@ public class WebDriverSet : IDisposable
         
         // Release the semaphore to unblock waiting threads
         _semaphore.Release();
-        Log.Debug("Destroyed a WebDriver {{ headless = {Headless} }}", _headless);
+        _logger.Debug("Destroyed a WebDriver {{ headless = {Headless} }}", _headless);
     }
     
-    private static WebDriver CheckWebDriverHealth(WebDriver driver)
+    private WebDriver CheckWebDriverHealth(WebDriver driver)
     {
         try
         {
@@ -120,7 +122,7 @@ public class WebDriverSet : IDisposable
         }
         catch (Exception e)
         {
-            Log.Error(e, "WebDriver is unreachable. Regenerating the driver.");
+            _logger.Error(e, "WebDriver is unreachable. Regenerating the driver.");
             driver.RegenerateDriver();
             return driver;
         }
@@ -148,7 +150,7 @@ public class WebDriverSet : IDisposable
             }
             catch (Exception e)
             {
-                Log.Error(e, "Failed to dispose of a WebDriver {{ headless = {Headless} }}", _headless);
+                _logger.Error(e, "Failed to dispose of a WebDriver {{ headless = {Headless} }}", _headless);
             }
         }
         

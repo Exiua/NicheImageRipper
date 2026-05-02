@@ -76,7 +76,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
                 
                 foreach (var post in posts)
                 {
-                    Log.Information("Parsing video: {post}", post);
+                    Logger.Information("Parsing video: {post}", post);
                     soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
                     var downloadLink = ExtractVideoDownloadLink(soup);
                     images.Add(downloadLink);
@@ -93,7 +93,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
                 await ExtractFromListView(baseUrl, "uploaded-pics", "streameventsday photosgrid showAll", posts);
                 foreach (var post in posts)
                 {
-                    Log.Information("Parsing gallery: {post}", post);
+                    Logger.Information("Parsing gallery: {post}", post);
                     soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs);
                     var postImages = soup.SelectSingleNodeOrThrow("//div[@class='photosgrid gallerygrid']")
                                             .SelectNodesOrThrow("./div")
@@ -116,7 +116,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
         else
         {
             var e = new RipperException("Unknown Eporner URL type");
-            Log.Error(e, "Unknown Eporner URL type: {CurrentUrl}", CurrentUrl);
+            Logger.Error(e, "Unknown Eporner URL type: {CurrentUrl}", CurrentUrl);
             throw e;
         }
         

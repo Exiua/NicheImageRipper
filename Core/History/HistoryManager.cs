@@ -10,6 +10,8 @@ public class HistoryManager : IDisposable
 {
     private const string ConnectionString = "Data Source=NicheImageRipper.db";
     
+    private static readonly ILogger Logger = Log.ForContext<HistoryManager>();
+    
     public static HistoryManager Instance { get; } = new();
     
     private readonly SQLiteConnection _connection = new(ConnectionString);
@@ -217,7 +219,7 @@ public class HistoryManager : IDisposable
                                    LIMIT @Offset OFFSET @Page;
                                    """;
         
-        Log.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
+        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
         using var selectCmd = new SQLiteCommand(selectQuery, _connection);
         selectCmd.Parameters.AddWithValue("@Offset", offset);
         selectCmd.Parameters.AddWithValue("@Page", pageId);
@@ -243,7 +245,7 @@ public class HistoryManager : IDisposable
                                    LIMIT @Offset OFFSET @Page;
                                    """;
         
-        Log.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
+        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
         using var selectCmd = new SQLiteCommand(selectQuery, _connection);
         selectCmd.Parameters.AddWithValue("@DirectoryName", $"%{nameFilter.Name}%");
         selectCmd.Parameters.AddWithValue("@Offset", offset);
@@ -270,7 +272,7 @@ public class HistoryManager : IDisposable
                                    LIMIT @Offset OFFSET @Page;
                                    """;
         
-        Log.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
+        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
         using var selectCmd = new SQLiteCommand(selectQuery, _connection);
         selectCmd.Parameters.AddWithValue("@Url", $"%{urlFilter.Url}%");
         selectCmd.Parameters.AddWithValue("@Offset", offset);
@@ -297,7 +299,7 @@ public class HistoryManager : IDisposable
                                    LIMIT @Offset OFFSET @Page;
                                    """;
 
-        Log.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
+        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
         var startDate = DateTime.MinValue;
         var endDate = DateTime.MaxValue;
         switch (dateFilter.FilterType)

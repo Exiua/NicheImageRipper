@@ -63,7 +63,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
         foreach (var (i, post) in posts.Enumerate())
         {
             var contentFound = false;
-            Log.Information("Parsing post {i} of {totalPosts}", i + 1, posts.Count);
+            Logger.Information("Parsing post {i} of {totalPosts}", i + 1, posts.Count);
             while (!contentFound)
             {
                 CurrentUrl = post;

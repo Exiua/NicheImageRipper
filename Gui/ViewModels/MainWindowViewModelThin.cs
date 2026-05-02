@@ -1,20 +1,20 @@
 using System;
 using System.Threading.Tasks;
-using Core.ExtensionMethods;
 using Gui.Models.Thin;
 using Gui.Services;
 using Gui.Services.Thin;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace Gui.ViewModels;
 
 public class MainWindowViewModelThin(
+    ILogger<MainWindowViewModelThin> logger,
     IRipperClient ripperClient,
     IRipperSettings ripperSettings,
     IGuiSettings guiSettings,
     IBackendConnector backendConnector,
     ILogTextSource logTextSource)
-    : MainWindowViewModelBase(ripperClient, ripperSettings, guiSettings, logTextSource)
+    : MainWindowViewModelBase(ripperClient, ripperSettings, guiSettings, logTextSource, logger)
 {
     private static readonly Version Version = new(1, 0, 0);
     
@@ -52,7 +52,7 @@ public class MainWindowViewModelThin(
         if (string.IsNullOrWhiteSpace(Config.ApiKey) ||
             string.IsNullOrWhiteSpace(Config.EndpointUri))
         {
-            Log.Warning("No API Key or Endpoint URI provided");
+            logger.LogWarning("No API Key or Endpoint URI provided");
             return;
         }
 
@@ -64,7 +64,7 @@ public class MainWindowViewModelThin(
             // Cheap authenticated request to verify remote is reachable.
             var remoteVersion = await backendConnector.GetCurrentVersionAsync();
 
-            Log.Information("Connected to remote backend. Core version: {Version}", remoteVersion);
+            logger.LogInformation("Connected to remote backend. Core version: {Version}", remoteVersion);
 
             await InitializeAsync();
 
@@ -79,7 +79,7 @@ public class MainWindowViewModelThin(
         {
             Active = false;
 
-            Log.Error(ex, "Failed to connect to remote backend at {EndpointUri}", Config.EndpointUri);
+            logger.LogError(ex, "Failed to connect to remote backend at {EndpointUri}", Config.EndpointUri);
 
             try
             {

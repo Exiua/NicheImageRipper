@@ -28,7 +28,7 @@ public class SexBjCamParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var iframe = soup.SelectSingleNodeOrThrow("//iframe[@allowfullscreen]");
         var iframeUrl = iframe.GetSrc();
-        Log.Debug("Navigating to iframe URL: {IframeUrl}", iframeUrl);
+        Logger.Debug("Navigating to iframe URL: {IframeUrl}", iframeUrl);
         var (capturer, b) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
         await using var bidi = b;
         CurrentUrl = iframeUrl;

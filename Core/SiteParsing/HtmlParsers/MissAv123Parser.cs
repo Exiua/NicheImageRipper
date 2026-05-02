@@ -29,7 +29,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
         {
-            Log.Error("CSWebDriver URI is not configured. Cannot parse missav123.com without CSWebDriver.");
+            Logger.Error("CSWebDriver URI is not configured. Cannot parse missav123.com without CSWebDriver.");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);
         }
         
@@ -41,7 +41,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
         var urls = await client.GetNetworkUrls(CurrentUrl);
         if (urls is ErrorResponse errorResponse)
         {
-            Log.Error("Failed to get network URLs: {Error}", errorResponse.Error);
+            Logger.Error("Failed to get network URLs: {Error}", errorResponse.Error);
             throw new RipperException($"Failed to get network URLs: {errorResponse.Error}");
         }
         
@@ -49,7 +49,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
         var playlist = successResponse.Urls.FirstOrDefault(url => url.Contains("playlist.m3u8"));
         if (playlist.IsNullOrEmpty())
         {
-            Log.Error("No playlist URL found in network URLs.");
+            Logger.Error("No playlist URL found in network URLs.");
             throw new RipperException("No playlist URL found in network URLs.");
         }
 

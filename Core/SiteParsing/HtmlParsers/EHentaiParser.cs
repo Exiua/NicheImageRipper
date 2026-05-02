@@ -61,7 +61,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
         // Links to each image page
         var imageLinks = await GetImageLinks(soup, currentUrl);
         
-        Log.Debug("Found {count} image links", imageLinks.Count);
+        Logger.Debug("Found {count} image links", imageLinks.Count);
         
         var imageLinksSave = new Dictionary<string, List<string>>
         {
@@ -78,12 +78,12 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
             // Also, E-Hentai seems to hang for too long when too many requests are made in a short period of time
             if (i >= MaxEntriesPerBatch)
             {
-                Log.Information("Skipping image {i} of {count}", i + 1, imageLinks.Count);
+                Logger.Information("Skipping image {i} of {count}", i + 1, imageLinks.Count);
                 imageUrls.Add("");
             }
             else
             {
-                Log.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
+                Logger.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
                 var img = await GetImageLink(link);
                 imageUrls.Add(img);
                 await Sleep(1000);
@@ -138,11 +138,11 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
         var pageCount = 1;
         while (true)
         {
-            Log.Information("Parsing page {pageCount}", pageCount);
+            Logger.Information("Parsing page {pageCount}", pageCount);
             var imageTags = soup.SelectNodesSafe("//div[@id='gdt']/a").GetHrefs();
             if (imageTags.Count == 0)
             {
-                Log.Warning("No image links found on page {pageCount}. Stopping parsing.", pageCount);
+                Logger.Warning("No image links found on page {pageCount}. Stopping parsing.", pageCount);
                 break;
             }
             
@@ -164,7 +164,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
             }
             catch (WebDriverTimeoutException)
             {
-                Log.Warning("Timed out. Sleeping for 10 seconds before retrying...");
+                Logger.Warning("Timed out. Sleeping for 10 seconds before retrying...");
                 await Sleep(10000);
                 CurrentUrl = nextPage;
             }

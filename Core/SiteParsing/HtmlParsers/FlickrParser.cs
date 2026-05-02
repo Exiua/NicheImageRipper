@@ -34,7 +34,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
         var pageCount = 1;
         while (true)
         {
-            Log.Information("Parsing page {pageCount}", pageCount);
+            Logger.Information("Parsing page {pageCount}", pageCount);
             pageCount += 1;
             var posts = soup
                         .SelectSingleNodeOrThrow("//div[contains(@class, 'view') and contains(@class, 'photo-list-view') and contains(@class, 'photostream')]")
@@ -60,7 +60,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
         
         foreach (var (i, post) in imagePosts.Enumerate())
         {
-            Log.Information("Parsing post {i}: {post}", i + 1, post);
+            Logger.Information("Parsing post {i}: {post}", i + 1, post);
             var delay = 100;
             soup = await Soupify(post, delay: delay);
             var script = soup.SelectSingleNodeOrThrow("//script[@class='modelExport']").InnerText;

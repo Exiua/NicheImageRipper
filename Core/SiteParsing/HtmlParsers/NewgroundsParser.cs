@@ -63,7 +63,7 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser
             var numPosts = posts.Count;
             foreach (var (i, post) in posts.Enumerate())
             {
-                Log.Information("Parsing Art Post {i}/{numPosts}", i + 1, numPosts);
+                Logger.Information("Parsing Art Post {i}/{numPosts}", i + 1, numPosts);
                 soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs, delay: 100);
                 var artImages = soup.SelectSingleNode("//div[contains(@class, 'art-images')]");
                 if (artImages is not null)
@@ -125,7 +125,7 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser
             foreach (var (i, post) in posts.Enumerate())
             {
                 await Sleep(100);
-                Log.Information("Parsing Movie Post {i}/{numPosts}", i + 1, numPosts);
+                Logger.Information("Parsing Movie Post {i}/{numPosts}", i + 1, numPosts);
                 CurrentUrl = post;
                 await LazyLoad(lazyLoadArgs);
                 var videoStart = Driver.TryFindElement(By.XPath("//div[@class='video-barrier']/child::*[2]"));

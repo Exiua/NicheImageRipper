@@ -55,7 +55,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
         var videos = soup.SelectSingleNode("//div[contains(@class, 'featured-video-episode')]");
         if (videos is null)
         {
-            Log.Debug("Single video found, extracting video link.");
+            Logger.Debug("Single video found, extracting video link.");
             var video = soup.SelectSingleNode("//video")?.GetSrc();
             if (video is null or "https://cdn.plyr.io/static/blank.mp4")
             {
@@ -66,7 +66,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
         }
         else
         {
-            Log.Debug("Multiple videos found, extracting all video links.");
+            Logger.Debug("Multiple videos found, extracting all video links.");
             var index = 1;
             while (true)
             {

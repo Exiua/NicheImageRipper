@@ -33,7 +33,7 @@ public class ManganatoParser : HtmlParser, IHtmlParser
         var counter = 1;
         while (nextChapter is not null)
         {
-            Log.Information($"Parsing Chapter {counter}");
+            Logger.Information($"Parsing Chapter {counter}");
             counter += 1;
             soup = await Soupify(nextChapter.GetHref());
             var chapterImages = soup.SelectSingleNodeOrThrow("//div[@class='container-chapter-reader']")

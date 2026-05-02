@@ -68,7 +68,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
         }
         else
         {
-            Log.Error("Unknown CyberDrop url type: {CurrentUrl}", CurrentUrl);
+            Logger.Error("Unknown CyberDrop url type: {CurrentUrl}", CurrentUrl);
             throw new RipperException("Unknown CyberDrop url type");
         }
     
@@ -77,7 +77,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
     
     private async Task<string> GetFileUrl(string url)
     {
-        Log.Debug("Parsing image: {Image}", url);
+        Logger.Debug("Parsing image: {Image}", url);
         while (true)
         {
             try
@@ -85,7 +85,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
                 var soup = await Soupify(url, delay: ParseDelay * 2, xpath: "//a[@id='downloadBtn']", xpathTimout: 120);
                 #if DEBUG
                 Driver.TakeDebugScreenshot();
-                Log.Debug("Current url: {CurrentUrl}", Driver.Url);
+                Logger.Debug("Current url: {CurrentUrl}", Driver.Url);
                 #endif
                 var link = soup.SelectSingleNodeOrThrow("//a[@id='downloadBtn']")
                                .GetHref();
@@ -94,7 +94,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
             }
             catch (AttributeNotFoundException)
             {
-                Log.Debug("Unable to find download button href");
+                Logger.Debug("Unable to find download button href");
                 await Task.Delay(ParseDelay * 2);
             }
         }

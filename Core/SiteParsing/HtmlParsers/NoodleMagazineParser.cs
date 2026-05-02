@@ -32,7 +32,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
             var src = await GetVideoUrl();
             if (src is null)
             {
-                Log.Warning("Video has been deleted: {Url}", CurrentUrl);
+                Logger.Warning("Video has been deleted: {Url}", CurrentUrl);
                 return RipInfo.Empty.WithDirectoryName(dirName);
             }
             
@@ -51,7 +51,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
                 var src = await GetVideoUrl();
                 if (src is null)
                 {
-                    Log.Warning("Video has been deleted: {Url}", url);
+                    Logger.Warning("Video has been deleted: {Url}", url);
                     continue;
                 }
 
@@ -76,17 +76,17 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
         // TODO: Remove this infinite loop; refactor to use retries
         while (true)
         {
-            Log.Debug("Starting video");
+            Logger.Debug("Starting video");
             var success =
                 await TryClickElementByXPath(
                     "//div[@class='jw-icon jw-icon-display jw-button-color jw-reset']");
             if (!success)
             {
-                Log.Debug("Could not find play button, retrying");
+                Logger.Debug("Could not find play button, retrying");
                 tries.Play++;
                 if (tries.Play > 3)
                 {
-                    Log.Debug("Could not find play button, giving up");
+                    Logger.Debug("Could not find play button, giving up");
                     tries.Play = 0;
                 }
                 else
@@ -97,18 +97,18 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
 
             await Sleep(250);
 
-            Log.Debug("Finding settings button");
+            Logger.Debug("Finding settings button");
             success = await TryClickElementByXPath(
                 "//div[@class='jw-icon jw-icon-inline jw-button-color jw-reset jw-icon-settings jw-settings-submenu-button']");
             if (!success)
             {
-                Log.Debug("Could not find settings button, retrying");
+                Logger.Debug("Could not find settings button, retrying");
                 continue;
             }
 
             await Sleep(250);
 
-            Log.Debug("Finding highest quality button");
+            Logger.Debug("Finding highest quality button");
             success = await TryClickElementByXPath(
                 "//div[@id='jw-player_box-settings-submenu-quality']//button");
             if (!success)
@@ -116,11 +116,11 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
                 tries.Quality++;
                 if (tries.Quality > 3)
                 {
-                    Log.Debug("Could not find highest quality button, giving up");
+                    Logger.Debug("Could not find highest quality button, giving up");
                     break;
                 }
 
-                Log.Debug("Could not find highest quality button, retrying");
+                Logger.Debug("Could not find highest quality button, retrying");
                 continue;
             }
 
@@ -134,7 +134,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
         var src = vid.GetSrc().DecodeUrl();
         if (!src.Contains("rs=") && !src.Contains("url="))
         {
-            Log.Warning("Video link does not contain rs=, retrying: {Src}", src);
+            Logger.Warning("Video link does not contain rs=, retrying: {Src}", src);
             Driver.Refresh();
             goto start; // TODO: Figure out a better way to handle this
         }
@@ -161,7 +161,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
                 return true;
             }
 
-            Log.Debug("Element '{XPath}' not found, retrying in {msDelay}ms", xpath, msDelay);
+            Logger.Debug("Element '{XPath}' not found, retrying in {msDelay}ms", xpath, msDelay);
             await Task.Delay(msDelay);
         }
 

@@ -19,16 +19,16 @@ public class AllBooruParser : BooruParser, IHtmlParser
     protected override async Task<RipInfo> Parse()
     {
         var tags = ExtractTagsFromUrl(GivenUrl);
-        Log.Debug("Parsing all boorus with tags: {Tags}", tags);
+        Logger.Debug("Parsing all boorus with tags: {Tags}", tags);
         var boorus = Enum.GetValues<Booru>();
         var images = new List<StringImageLinkWrapper>();
         foreach (var booru in boorus)
         {
-            //Log.Debug("Parsing {Booru}", booru);
+            //Logger.Debug("Parsing {Booru}", booru);
             var metadata = booru.GetMetadata();
             var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
             var posts = await BooruParse(booru, tags);
-            Log.Information("Found {NumUrls} images on {Booru}", posts.NumUrls, booru);
+            Logger.Information("Found {NumUrls} images on {Booru}", posts.NumUrls, booru);
             var urls = posts.Urls.Select(u =>
             {
                 u.Referer = referer;

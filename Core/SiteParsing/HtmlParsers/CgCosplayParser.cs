@@ -46,7 +46,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
             foreach (var (i, link) in videoRawLinks.Enumerate())
             {
                 var cleanLink = link.DecodeUrl();
-                Log.Debug("Video {index}: {link}", i + 1, cleanLink);
+                Logger.Debug("Video {index}: {link}", i + 1, cleanLink);
                 if (cleanLink.Contains("cgcosplay.org"))
                 {
                     images.Add(cleanLink);
@@ -68,12 +68,12 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 }
                 else if (cleanLink.Contains("late-anxiety.com"))
                 {
-                    Log.Debug("Suppressed spam link");
+                    Logger.Debug("Suppressed spam link");
                     // suppress, it's just spam
                 }
                 else
                 {
-                    Log.Warning("Link not handled: {link}", cleanLink);
+                    Logger.Warning("Link not handled: {link}", cleanLink);
                 }
             }
         }
@@ -94,7 +94,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 var playButton = Driver.TryFindElement(By.XPath("//div[@class='videoplayer_thumb']"));
                 if (playButton is null)
                 {
-                    Log.Debug("Play button not found, retrying...");
+                    Logger.Debug("Play button not found, retrying...");
                     Driver.TakeDebugScreenshot();
                     await Sleep(1000);
                     continue;
@@ -110,7 +110,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 links = capturer.GetNewVideoLinks();
                 if (links.Count == 0)
                 {
-                    Log.Debug("No links found, retrying...");
+                    Logger.Debug("No links found, retrying...");
                     await Sleep(1000);
                     continue;
                 }

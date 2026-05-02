@@ -35,7 +35,7 @@ public class CosblayParser : HtmlParser, IHtmlParser
         var pageCount = 1;
         while (true)
         {
-            Log.Information("Page {PageCount}", pageCount++);
+            Logger.Information("Page {PageCount}", pageCount++);
             var imageContainers = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p")
                                 .SelectNodes(".//img");
             if (imageContainers is null)

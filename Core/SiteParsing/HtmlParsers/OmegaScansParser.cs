@@ -41,13 +41,13 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
         await using var bidi = b;
         Driver.Refresh();
         
-        Log.Debug("Waiting for chapter list to load");
+        Logger.Debug("Waiting for chapter list to load");
         var soup = await Soupify(xpath: chapterListXpath, xpathTimout: 60, lazyLoadArgs: lazyLoadArgs);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var chapterCountStr = soup.SelectSingleNodeOrThrow("//span[normalize-space(.)='Total chapters']/following-sibling::span")
                                     .InnerText;
         var chapterCount = int.Parse(chapterCountStr.Trim().Split(' ')[0]);
-        Log.Debug("Found {chapterCount} chapters", chapterCount);
+        Logger.Debug("Found {chapterCount} chapters", chapterCount);
 
         var apiUrl = "";
         await WaitForPlaylist(capturer, links =>
@@ -58,20 +58,20 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
 
         if (apiUrl == "")
         {
-            Log.Error("No API URL found from network capture");
+            Logger.Error("No API URL found from network capture");
             throw new RipperException("Failed to capture API URL for OmegaScans.");
         }
         
-        Log.Debug("Captured API URL: {apiUrl}", apiUrl);
+        Logger.Debug("Captured API URL: {apiUrl}", apiUrl);
         var seriesId = apiUrl.Split("series_id=")[1].Split("&")[0];
-        Log.Debug("Extracted series ID: {seriesId}", seriesId);
+        Logger.Debug("Extracted series ID: {seriesId}", seriesId);
 
         using var client = new HttpClient();
         List<string> chapters = [];
         var page = 1;
         while (true)
         {
-            Log.Information("Fetching chapter list page {page}", page);
+            Logger.Information("Fetching chapter list page {page}", page);
             var response =
                 await client.GetAsync(
                     $"https://api.omegascans.org/chapter/query?page={page}&perPage=30&series_id={seriesId}");
@@ -80,13 +80,13 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             var chapterResponse = await response.Content.ReadFromJsonAsync<GetChapterResponse>();
             if (chapterResponse is null)
             {
-                Log.Error("Failed to deserialize chapter response");
+                Logger.Error("Failed to deserialize chapter response");
                 throw new RipperException("Failed to parse chapter list from OmegaScans API.");
             }
             
             if (chapterResponse.Data.Count == 0)
             {
-                Log.Information("No more chapters found, ending pagination.");
+                Logger.Information("No more chapters found, ending pagination.");
                 break;
             }
 
@@ -95,7 +95,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             if (chapterResponse.Metadata.NextPageUrl is null ||
                 chapterResponse.Metadata.CurrentPage == chapterResponse.Metadata.LastPage)
             {
-                Log.Information("Reached last page of chapters.");
+                Logger.Information("Reached last page of chapters.");
                 break;
             }
         }
@@ -104,7 +104,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, chapter) in chapters.Enumerate())
         {
-            Log.Information("Parsing chapter {i} of {chapterCount}", i + 1, chapterCount);
+            Logger.Information("Parsing chapter {i} of {chapterCount}", i + 1, chapterCount);
             while (true)
             {
                 try
@@ -114,7 +114,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
                 }
                 catch (WebDriverException)
                 {
-                    Log.Warning("WebDriverException encountered, retrying...");
+                    Logger.Warning("WebDriverException encountered, retrying...");
                     await Sleep(1000);
                     WebDriver.RegenerateDriver();
                 }
@@ -123,7 +123,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             var post = soup.SelectSingleNode("//div[@class='container']");
             if (post is null)
             {
-                Log.Warning("Post not found");
+                Logger.Warning("Post not found");
                 continue;
             }
     

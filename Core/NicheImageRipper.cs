@@ -30,6 +30,8 @@ public partial class NicheImageRipper : IDisposable
     public static Version Version { get; } = new(4, 1, 0);
 
     protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
+    
+    protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 
     public Version LatestVersion => field ??= GetLatestVersion().Result;
 
@@ -309,13 +311,13 @@ public partial class NicheImageRipper : IDisposable
     {
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
-        Log.Debug("Ripper created");
-        Log.Debug("Starting rip");
+        Logger.Debug("Ripper created");
+        Logger.Debug("Starting rip");
         while (UrlQueue.Count != 0)
         {
-            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
+            Logger.Debug("Queue size: {QueueCount}", UrlQueue.Count);
             var url = await RipUrl();
-            Log.Debug("Ripped URL: {Url:l}", url);
+            Logger.Debug("Ripped URL: {Url:l}", url);
             if (url != "")
             {
                 // If empty url is returned Ripper is also null
@@ -336,7 +338,7 @@ public partial class NicheImageRipper : IDisposable
         }
 
         var url = UrlQueue[0];
-        Log.Information("{Url:l}", url);
+        Logger.Information("{Url:l}", url);
         Interrupted = true;
 
         for (var retry = 0; retry < MaxRetries; retry++)
@@ -348,27 +350,27 @@ public partial class NicheImageRipper : IDisposable
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted =
                     $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
-                Log.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
+                Logger.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
                 //OnUrlRipComplete?.Invoke();
                 break;
             }
             catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver", "timed out") && retry < MaxRetries - 1)
             {
-                Log.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
+                Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
                 await Task.Delay(10000);
             }
             catch (Exception e)
             {
                 if (retry == MaxRetries - 1)
                 {
-                    Log.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                    Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
                     throw;
                 }
 
                 await Task.Delay(RetryDelay);
                 if (Debugging)
                 {
-                    Log.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
+                    Logger.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
                     LogMessageToFile("Press any key to continue...");
                     Console.ReadKey();
                 }
@@ -579,7 +581,7 @@ public partial class NicheImageRipper : IDisposable
         }
         else
         {
-            Log.Warning("URL {Url} is already in the queue.", normalizedUrl);
+            Logger.Warning("URL {Url} is already in the queue.", normalizedUrl);
         }
     }
 
@@ -592,7 +594,7 @@ public partial class NicheImageRipper : IDisposable
             return;
         }
 
-        Log.Debug("Re-queuing {Count} URLs", urls.Count);
+        Logger.Debug("Re-queuing {Count} URLs", urls.Count);
         var offset = 0;
         foreach (var url in urls)
         {
@@ -618,12 +620,12 @@ public partial class NicheImageRipper : IDisposable
         var duplicate = HistoryDb.GetHistoryEntryByDirectoryName(ripInfo.DirectoryName);
         if (duplicate is not null)
         {
-            Log.Debug("Duplicate found: {Url}; Updating...", url);
+            Logger.Debug("Duplicate found: {Url}; Updating...", url);
             HistoryDb.UpdateDateByUrl(url, DateTime.Now);
         }
         else
         {
-            Log.Debug("Adding to history: {Url}", url);
+            Logger.Debug("Adding to history: {Url}", url);
             var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
             HistoryDb.InsertHistoryRecord(entry);
         }

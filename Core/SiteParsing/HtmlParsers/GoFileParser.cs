@@ -38,7 +38,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         var password = soup.SelectSingleNode("//input[@type='password']");
         if (password is not null)
         {
-            Log.Warning("URL is password protected. Writing url to file...");
+            Logger.Warning("URL is password protected. Writing url to file...");
             await File.WriteAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n");
             // TODO: Find a better way to handle password protected files
             return RipInfo.Empty.WithDirectoryName("Password Protected");
@@ -47,7 +47,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         var folderNotFound = soup.SelectSingleNode("//div[@class='alert alert-secondary border border-danger text-white']");
         if (folderNotFound is not null)
         {
-            Log.Warning("Folder not found. Writing url to file...");
+            Logger.Warning("Folder not found. Writing url to file...");
             // TODO: Find a better way to indicate that data does not exist
             return RipInfo.Empty.WithDirectoryName("Folder Not Found");
         }
@@ -62,7 +62,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         {
             if (url != "")
             {
-                Log.Debug("Found nested url: {url}", url);
+                Logger.Debug("Found nested url: {url}", url);
                 CurrentUrl = url;
                 await Sleep(5000);
             }
@@ -97,8 +97,8 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                 var id = entry.GetNullableAttributeValue("id");
                 if (id is null)
                 {
-                    Log.Error("Entry has no id: {entry}", entry.InnerHtml);
-                    Log.Error("Current URL: {url}", CurrentUrl);
+                    Logger.Error("Entry has no id: {entry}", entry.InnerHtml);
+                    Logger.Error("Current URL: {url}", CurrentUrl);
                     throw new RipperException("Entry has no id");
                 }
                 
@@ -138,7 +138,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                             default:
                             {
                                 // TODO: Handle better
-                                Log.Warning("Unknown tag: {tag}", elm.Name);
+                                Logger.Warning("Unknown tag: {tag}", elm.Name);
                                 break;
                             }
                         }
@@ -161,13 +161,13 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
             await Sleep(2500);
             if (CurrentUrl == "https://gofile.io/myProfile")
             {
-                Log.Debug("Logged in to GoFile");
+                Logger.Debug("Logged in to GoFile");
                 break;
             }
             
             if (i == 3)
             {
-                Log.Warning("Failed to login to GoFile: {CurrentUrl}", CurrentUrl);
+                Logger.Warning("Failed to login to GoFile: {CurrentUrl}", CurrentUrl);
                 Driver.GetScreenshot().SaveAsFile("test2.png");
             }
         }

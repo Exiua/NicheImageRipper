@@ -50,9 +50,9 @@ public class ArtstationParser : HtmlParser
 
         while (total > 0)
         {
-            Log.Information("Page {PageCount} of {Total}", pageCount, total);
+            Logger.Information("Page {PageCount} of {Total}", pageCount, total);
             var url = $"https://www.artstation.com/users/{username}/projects.json?page={pageCount}";
-            Log.Debug("Requesting {Url}", url);
+            Logger.Debug("Requesting {Url}", url);
             var response = await client.GetAsync(url);
             var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
             var data = responseData!["data"]!.AsArray();

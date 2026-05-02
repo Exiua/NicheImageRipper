@@ -9,6 +9,8 @@ namespace Core.Managers;
 public class FlareSolverrManager(string flareSolverrUri)
 {
     private readonly FlareSolverrClient _flareSolverrClient = new(flareSolverrUri);
+    private readonly ILogger _logger = Log.ForContext<FlareSolverrManager>();
+    
     private string? _sessionId;
 
     private async Task CreateSession()
@@ -58,7 +60,7 @@ public class FlareSolverrManager(string flareSolverrUri)
     
     public async Task<Solution> GetSiteSolution(string url, List<Dictionary<string, string>>? cookies = null)
     {
-        Log.Debug("Getting site solution for {Url}", url);
+        _logger.Debug("Getting site solution for {Url}", url);
         if (_sessionId is null)
         {
             await GetSession();
@@ -71,7 +73,7 @@ public class FlareSolverrManager(string flareSolverrUri)
             throw new FailedToGetSolutionException();
         }
 
-        Log.Debug("Got site solution");
+        _logger.Debug("Got site solution");
         return requestResponse.Solution;
     }
 }

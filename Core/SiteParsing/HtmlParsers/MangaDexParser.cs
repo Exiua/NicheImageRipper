@@ -37,14 +37,14 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         }
         
         var mangaId = match.Groups[1].Value;
-        Log.Debug("Manga ID: {mangaId}", mangaId);
+        Logger.Debug("Manga ID: {mangaId}", mangaId);
         var client = new MangaDexClient();
         var response = await client.Manga.GetMetadata(mangaId);
         if (response is not MangaMetadataResponse mangaMetadata)
         {
             var errorResponse = (ErrorResponse) response;
             var exception = new RipperException("Unable to get manga metadata");
-            Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+            Logger.Error("Error: {error}", errorResponse.Errors.First().Detail);
             throw exception;
         }
         
@@ -65,7 +65,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         {
             var errorResponse = (ErrorResponse) response;
             var exception = new RipperException("Unable to get manga volume and chapter");
-            Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+            Logger.Error("Error: {error}", errorResponse.Errors.First().Detail);
             throw exception;
         }
         
@@ -74,7 +74,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         var volumes = manga.Volumes;
         foreach (var (volumeLabel, volumeData) in volumes)
         {
-            Log.Debug("Volume {volumeLabel}", volumeLabel);
+            Logger.Debug("Volume {volumeLabel}", volumeLabel);
             var chapters = volumeData.Chapters;
             foreach (var (chapterLabel, chapterData) in chapters)
             {
@@ -89,13 +89,13 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                 foreach (var chapterId in chapterIds)
                 {
                     await Task.Delay(delay);
-                    Log.Debug("Chapter {chapterLabel} ID: {chapterId}", chapterLabel, chapterId);
+                    Logger.Debug("Chapter {chapterLabel} ID: {chapterId}", chapterLabel, chapterId);
                     response = await client.Chapter.GetChapter(chapterId);
                     if (response is not ChapterResponse chapter)
                     {
                         var errorResponse = (ErrorResponse) response;
                         var exception = new RipperException("Unable to get chapter");
-                        Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+                        Logger.Error("Error: {error}", errorResponse.Errors.First().Detail);
                         throw exception;
                     }
                     
@@ -119,7 +119,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                             }
                             
                             var exception = new RipperException("Unable to get MangaDex@Home server urls");
-                            Log.Error("Error: {error}", errorResponse.Errors.First().Detail);
+                            Logger.Error("Error: {error}", errorResponse.Errors.First().Detail);
                             throw exception;
                         }
                         
@@ -149,7 +149,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                 
                 if (!found)
                 {
-                    Log.Warning("No English chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}", 
+                    Logger.Warning("No English chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}", 
                         mangaId, volumeLabel, chapterLabel);
                 }
             }

@@ -31,7 +31,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse()
     {
         var currentUrl = CurrentUrl;
-        Log.Debug("Creating resolvable url map");
+        Logger.Debug("Creating resolvable url map");
         var resolvableMap = CreateResolveMap();
         
         Cache cache;
@@ -41,18 +41,18 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         
         if (File.Exists(CacheFile))
         {
-            Log.Debug("Cache file found, loading cached data");
+            Logger.Debug("Cache file found, loading cached data");
             cache = JsonUtility.Deserialize<Cache>(CacheFile) ?? throw new RipperException("Cache file is empty");
             if (cache.Url == CurrentUrl)
             {
-                Log.Debug("Cached data loaded");
+                Logger.Debug("Cached data loaded");
                 images = cache.Images;
                 resolveLists = cache.ResolveLists;
                 dirName = cache.DirName;
             }
             else
             {
-                Log.Debug("Cached data not present for current url, parsing page");
+                Logger.Debug("Cached data not present for current url, parsing page");
                 (images, resolveLists, dirName) = await ParsePosts(resolvableMap);
 
                 cache = new Cache
@@ -67,7 +67,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         }
         else
         {
-            Log.Debug("Cache file not found, parsing page");
+            Logger.Debug("Cache file not found, parsing page");
             (images, resolveLists, dirName) = await ParsePosts(resolvableMap);
 
             cache = new Cache
@@ -90,7 +90,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
             var index = i + offset;
             foreach (var link in resolveList)
             {
-                Log.Information("Resolving link {Resolved} of {Total}: {Link}", resolved, total, link);
+                Logger.Information("Resolving link {Resolved} of {Total}: {Link}", resolved, total, link);
                 resolved++;
                 ParameterizedHtmlParser? parser = null;
                 foreach (var (urlPart, p) in resolvableMap)
@@ -111,11 +111,11 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                 try
                 {
                     info = await parser.Parse(link);
-                    Log.Debug("Found {Count} files", info.Urls.Count);
+                    Logger.Debug("Found {Count} files", info.Urls.Count);
                 }
                 catch (WebDriverTimeoutException)
                 {
-                    Log.Warning("WebDriver unresponsive, retrying");
+                    Logger.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
                     info = await ReTryParse(link, parser);
@@ -123,7 +123,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                 catch (WebDriverException e) when (e.Message.Contains(
                                                        "The HTTP request to the remote WebDriver server for URL"))
                 {
-                    Log.Warning("WebDriver unresponsive, retrying");
+                    Logger.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
                     // TODO: Find a better way to handle this
                     info = await ReTryParse(link, parser);
@@ -148,22 +148,22 @@ public class SimpCityParser : HtmlParser, IHtmlParser
             CurrentUrl = CurrentUrl.Replace("//www.", "//");
         }
 
-        Log.Debug("Getting user cookie");
+        Logger.Debug("Getting user cookie");
         var cookieValue = Config.Cookies.SimpCity;
-        Log.Debug("Solving captcha and parsing page");
+        Logger.Debug("Solving captcha and parsing page");
         var userCookie = new Dictionary<string, string>
         {
             ["name"] = "dontlikebots_user",
             ["value"] = cookieValue
         };
         var soup = await SolveParseAddCookies(cookies: [userCookie]);
-        Log.Debug("Adding cookie to driver");
+        Logger.Debug("Adding cookie to driver");
         Driver.SetCookie("dontlikebots_user", cookieValue);
         var cookieJar = Driver.GetCookieJar();
 
-        Log.Debug("Parsing page");
+        Logger.Debug("Parsing page");
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='p-title-value']").InnerText;
-        Log.Debug("Directory name: {DirName}", dirName);
+        Logger.Debug("Directory name: {DirName}", dirName);
         
         var lazyLoadArgs = new LazyLoadArgs
         {
@@ -178,7 +178,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         {
             if (Driver.Title == "SimpCity - Rate Limit")
             {
-                Log.Warning("Rate limited, waiting 30 seconds");
+                Logger.Warning("Rate limited, waiting 30 seconds");
                 await Sleep(30000);
                 Driver.Refresh();
                 continue;
@@ -212,7 +212,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                                   .ToList();
                 foreach (var link in rawLinks.Except(resolve))
                 {
-                    Log.Debug("Unhandled link: {Link}", link);
+                    Logger.Debug("Unhandled link: {Link}", link);
                 }
                 #else
                 var resolve = links.Select(link => link.GetNullableHref())
@@ -236,7 +236,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
             }
 
             var nextPageUrl = $"https://simpcity.su{nextPage.GetHref()}";
-            Log.Information("Parsing page: {NextPageUrl}", nextPageUrl);
+            Logger.Information("Parsing page: {NextPageUrl}", nextPageUrl);
             soup = await Soupify(nextPageUrl, lazyLoadArgs: lazyLoadArgs, delay: 1000, cookies: cookieJar);
         }
 

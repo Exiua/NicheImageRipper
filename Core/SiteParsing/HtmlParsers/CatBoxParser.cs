@@ -22,7 +22,7 @@ public class CatBoxParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse()
     {
-        Log.Warning("Catbox.moe support is experimental and may not work as expected");
+        Logger.Warning("Catbox.moe support is experimental and may not work as expected");
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']/h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='imagecontainer']")

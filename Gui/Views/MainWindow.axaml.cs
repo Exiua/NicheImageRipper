@@ -17,8 +17,8 @@ using Core.Enums;
 using Core.History;
 using Gui.Services;
 using Gui.ViewModels;
+using Microsoft.Extensions.Logging;
 using ReactiveUI;
-using Serilog;
 
 namespace Gui.Views;
 
@@ -35,10 +35,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     private Key _lastKeyPressed;
     private bool _copyReady;
     private IntPtr _windowHandle;
+    private readonly ILogger<MainWindow> _logger;
 
-    public MainWindow(MainWindowViewModelBase viewModel, ITaskbarProgressService taskbarProgressService)
+    public MainWindow(MainWindowViewModelBase viewModel, ITaskbarProgressService taskbarProgressService, ILogger<MainWindow> logger)
     {
         _taskbarProgressService = taskbarProgressService;
+        _logger = logger;
         DataContext = viewModel;
         
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
@@ -186,12 +188,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             }
 
             var path = Uri.UnescapeDataString(folder[0].Path.AbsolutePath);
-            Log.Debug("Selected folder: {folder}", path);
+            _logger.LogDebug("Selected folder: {folder}", path);
             ViewModel!.RipperSettings.SavePath = path;
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to open folder picker");
+            _logger.LogError(e, "Failed to open folder picker");
         }
     }
 
@@ -213,12 +215,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             }
 
             var path = Uri.UnescapeDataString(file[0].Path.AbsolutePath);
-            Log.Debug("Selected file: {file}", path);
+            _logger.LogDebug("Selected file: {file}", path);
             ViewModel!.LoadUnfinishedUrls(path);
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Failed to open file picker");
+            _logger.LogError(exception, "Failed to open file picker");
         }
     }
 
@@ -231,7 +233,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Failed to load previous history page");
+            _logger.LogError(exception, "Failed to load previous history page");
         }
     }
 
@@ -245,7 +247,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Failed to load next history page");
+            _logger.LogError(exception, "Failed to load next history page");
         }
     }
 
@@ -258,7 +260,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Failed to refresh history page");
+            _logger.LogError(exception, "Failed to refresh history page");
         }
     }
 
@@ -279,7 +281,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Failed to apply history filter");
+            _logger.LogError(exception, "Failed to apply history filter");
         }
     }
     
@@ -292,7 +294,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Failed to clear history filter");
+            _logger.LogError(exception, "Failed to clear history filter");
         }
     }
 
@@ -374,14 +376,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                 ViewModel.GuiSettings.CountWidth = dataGridLengthArgs.NewValue.Value.Value;
                 break;
             default:
-                Log.Warning("Unknown column tag: {tag}", column.Tag);
+                _logger.LogWarning("Unknown column tag: {tag}", column.Tag);
                 break;
         }
     }
     
     private void HistoryDataGrid_OnKeyUp(object? sender, KeyEventArgs e)
     {
-        Log.Debug("Key Up: {Key}", e.Key);
+        _logger.LogDebug("Key Up: {Key}", e.Key);
         if (sender is not DataGrid dataGrid)
         {
             return;
@@ -394,7 +396,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             _ => _copyReady
         };
 
-        Log.Debug("Copy Ready: {CopyReady}", _copyReady);
+        _logger.LogDebug("Copy Ready: {CopyReady}", _copyReady);
         _lastKeyPressed = e.Key;
 
         if (_copyReady)
@@ -410,7 +412,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                 var textBlock = cell.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault();
                 if (textBlock is not null)
                 {
-                    Log.Debug("Copy: {Text}", textBlock.Text);
+                    _logger.LogDebug("Copy: {Text}", textBlock.Text);
                     Clipboard?.SetTextAsync(textBlock.Text).Wait();
                 }
             }
@@ -441,7 +443,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to toggle play/pause");
+            _logger.LogError(e, "Failed to toggle play/pause");
         }
     }
 

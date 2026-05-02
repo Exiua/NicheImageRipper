@@ -105,11 +105,11 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
                 // soup = await Soupify(pageResponse.Content, urlString: false);
             }
             
-            Log.Information("Found {count} videos in profile.", videoPosts.Count);
+            Logger.Information("Found {count} videos in profile.", videoPosts.Count);
             images = [];
             foreach (var post in videoPosts)
             {
-                Log.Information("Parsing video post: {post}", post);
+                Logger.Information("Parsing video post: {post}", post);
                 CurrentUrl = post;
                 var url = await GetVideoUrl(capturer, post);
                 images.Add(url);

@@ -42,6 +42,7 @@ public abstract class HtmlParser : IDisposable
     protected FilenameScheme FilenameScheme { get; }
     protected Dictionary<string, string> RequestHeaders { get; }
     protected ApiClientManager ApiClientManager { get; }
+    protected ILogger Logger { get; init; }
 
     protected FirefoxDriver Driver => WebDriver.Driver;
 
@@ -67,11 +68,12 @@ public abstract class HtmlParser : IDisposable
         SleepTime = 0.2f;
         Jitter = 0.5f;
         GivenUrl = "";
+        Logger = Log.ForContext<HtmlParser>();
     }
 
     public async Task<RipInfo> ParseSite(string url)
     {
-        Log.Debug("Parsing {Url}", url);
+        Logger.Debug("Parsing {Url}", url);
         url = url.Replace("members.", "www.") // For HAnime
                  .Replace("exhentai.org", "e-hentai.org"); // Need to go through e-hentai first for cookies
         GivenUrl = url;
@@ -79,11 +81,11 @@ public abstract class HtmlParser : IDisposable
         // e-hentai image links expire too quickly, so we need to parse the site every time
         if (File.Exists("partial.json") && (SiteName != "e-hentai" && SiteName != "exhentai"))
         {
-            Log.Debug("Partial save file found");
+            Logger.Debug("Partial save file found");
             var saveData = ReadPartialSave();
             if (saveData.TryGetValue(url, out var value))
             {
-                Log.Debug("Partial save found for {Url}", url);
+                Logger.Debug("Partial save found for {Url}", url);
                 RequestHeaders["cookie"] = value.Cookies;
                 RequestHeaders["referer"] = value.Referer;
                 Interrupted = true;
@@ -95,21 +97,21 @@ public abstract class HtmlParser : IDisposable
             File.Delete(ImageRipper.RipIndexPath); // Not valid when no partial save
         }
 
-        Log.Debug("No partial save found for site; Parsing site");
+        Logger.Debug("No partial save found for site; Parsing site");
         if (SiteName != "booru")
         {
             CurrentUrl = url;
         }
 
-        // Log.Debug("Getting parser for {SiteName}", SiteName);
+        // Logger.Debug("Getting parser for {SiteName}", SiteName);
         // var siteParser = GetParser(SiteName);
         for (var attempt = 0; attempt < RetryCount; attempt++)
         {
             try
             {
-                Log.Debug("Executing parser for {SiteName}", SiteName);
+                Logger.Debug("Executing parser for {SiteName}", SiteName);
                 var siteInfo = await Parse();
-                Log.Debug("Saving partial save for {Url}", url);
+                Logger.Debug("Saving partial save for {Url}", url);
                 WritePartialSave(siteInfo, url);
                 //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
                 return siteInfo;
@@ -118,7 +120,7 @@ public abstract class HtmlParser : IDisposable
             {
                 if (attempt < RetryCount - 1)
                 {
-                    Log.Warning(e, "Attempt {Attempt} failed due to WebDriver, retrying...", attempt + 1);
+                    Logger.Warning(e, "Attempt {Attempt} failed due to WebDriver, retrying...", attempt + 1);
                     await Sleep(250);
                     continue;
                 }
@@ -140,7 +142,7 @@ public abstract class HtmlParser : IDisposable
     private async Task CleanupWhenFailed(Exception e)
     {
         Driver.SwitchTo().DefaultContent();
-        Log.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
+        Logger.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
         #if DEBUG
         await File.WriteAllTextAsync("test.html", Driver.PageSource);
         Driver.TakeDebugScreenshot();
@@ -397,20 +399,20 @@ public abstract class HtmlParser : IDisposable
     //  Only issue is with GoFileParser/ParameterizedHtmlParser where CurrentUrl may need to be set before login
     protected Task<bool> SiteLogin()
     {
-        Log.Debug("Checking if already logged in to {SiteName}", SiteName);
+        Logger.Debug("Checking if already logged in to {SiteName}", SiteName);
         if (IsLoggedInToSite(SiteName))
         {
-            Log.Debug("Already logged in to {SiteName}", SiteName);
+            Logger.Debug("Already logged in to {SiteName}", SiteName);
             return Task.FromResult(true);
         }
 
-        Log.Debug("Logging in to {SiteName}", SiteName);
+        Logger.Debug("Logging in to {SiteName}", SiteName);
         var loginTask = SiteLoginHelper();
 
         return loginTask.ContinueWith(task =>
         {
             WebDriver.SiteLoginStatus[SiteName] = task.Result;
-            Log.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
+            Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
             return task.Result;
         });
     }
@@ -751,7 +753,7 @@ public abstract class HtmlParser : IDisposable
         var solution = await Solve(regenerateSessionOnFailure, cookies);
         if (replaceUserAgent)
         {
-            Log.Debug("Replacing User-Agent with FlareSolverr provided User-Agent: {UserAgent}", solution.UserAgent);
+            Logger.Debug("Replacing User-Agent with FlareSolverr provided User-Agent: {UserAgent}", solution.UserAgent);
             var currentUrl = CurrentUrl;
             WebDriver.RegenerateDriver(solution.UserAgent);
             CurrentUrl = currentUrl;
@@ -761,7 +763,7 @@ public abstract class HtmlParser : IDisposable
         foreach (var cookie in solution.Cookies.Where(cookie =>
                      cookieWhitelist is null || cookieWhitelist.Contains(cookie.Name)))
         {
-            Log.Debug("Adding cookie: {@Cookie}", cookie);
+            Logger.Debug("Adding cookie: {@Cookie}", cookie);
             var seleniumCookie = cookie.ToSeleniumCookie();
             cookieJar.SetCookie(seleniumCookie);
         }
@@ -790,7 +792,7 @@ public abstract class HtmlParser : IDisposable
         {
             try
             {
-                Log.Debug("Attempting to get site solution for {CurrentUrl} (Attempt {Attempt})", CurrentUrl, i + 1);
+                Logger.Debug("Attempting to get site solution for {CurrentUrl} (Attempt {Attempt})", CurrentUrl, i + 1);
                 solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies);
                 break;
             }
@@ -802,13 +804,13 @@ public abstract class HtmlParser : IDisposable
                 }
 
                 await Sleep(250);
-                Log.Warning("Failed to get site solution for {CurrentUrl}, retrying...", CurrentUrl);
+                Logger.Warning("Failed to get site solution for {CurrentUrl}, retrying...", CurrentUrl);
             }
         }
 
         #if DEBUG
         await File.WriteAllTextAsync("test-solver.html", solution.Response);
-        Log.Debug("User-Agent: {UserAgent}", solution.UserAgent);
+        Logger.Debug("User-Agent: {UserAgent}", solution.UserAgent);
         #endif
 
         return solution;
@@ -1031,7 +1033,7 @@ public abstract class HtmlParser : IDisposable
                 i++;
                 if (i % 50 == 49)
                 {
-                    Log.Debug("No playlist links found yet, refreshing page...");
+                    Logger.Debug("No playlist links found yet, refreshing page...");
                     Driver.Refresh();
                 }
 
@@ -1066,21 +1068,21 @@ public abstract class HtmlParser : IDisposable
             CurrentUrl = givenUrl.Replace("members.", "www.");
             SiteName = TestSiteCheck(givenUrl);
 
-            Log.Debug("Testing: {SiteName}Parse", SiteName);
-            Log.Debug("URL: {CurrentUrl}", CurrentUrl);
+            Logger.Debug("Testing: {SiteName}Parse", SiteName);
+            Logger.Debug("URL: {CurrentUrl}", CurrentUrl);
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName);
             var end = DateTime.Now;
             if (data.Urls.Count == 0)
             {
-                Log.Error("No URLs found for {SiteName}Parse", SiteName);
+                Logger.Error("No URLs found for {SiteName}Parse", SiteName);
             }
             else
             {
-                Log.Debug("Referer: {Referer}", data.Urls[0].Referer);
+                Logger.Debug("Referer: {Referer}", data.Urls[0].Referer);
             }
 
-            Log.Debug("Time Elapsed: {TimeElapsed}", end - start);
+            Logger.Debug("Time Elapsed: {TimeElapsed}", end - start);
             var outData = data.Urls.Select(d => d.Url).ToList();
             JsonUtility.Serialize("test.json", outData);
             if (debug)
@@ -1093,7 +1095,7 @@ public abstract class HtmlParser : IDisposable
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
+            Logger.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
             await File.WriteAllTextAsync("test.html", Driver.PageSource);
             Driver.TakeDebugScreenshot();
             Driver.DumpCookies();
@@ -1115,7 +1117,7 @@ public abstract class HtmlParser : IDisposable
         siteName = TestSiteConverter(siteName);
         siteName = siteName[0].ToString().ToUpper() + siteName[1..];
         var className = $"{siteName}Parser";
-        Log.Debug("Parser: {ParserName}", className);
+        Logger.Debug("Parser: {ParserName}", className);
         var classType = Assembly.GetExecutingAssembly()
                                 .GetTypes()
                                 .FirstOrDefault(t =>
@@ -1129,7 +1131,7 @@ public abstract class HtmlParser : IDisposable
         }
 
         // Handle the case where the method does not exist
-        Log.Error("Parser {ParserName} not found.", className);
+        Logger.Error("Parser {ParserName} not found.", className);
         throw new InvalidOperationException();
     }
 

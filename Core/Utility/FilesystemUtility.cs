@@ -9,6 +9,7 @@ public static class FilesystemUtility
     private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*' , '\r', '\n'];
     private static readonly HashSet<char> AllowedRightPunctuation = [')', ']', '}', '】', '»', '“', '”', '’', '」', '』'];
     private static readonly HashSet<char> AllowedLeftPunctuation = ['(', '[', '{', '【', '«', '„', '“', '‘', '「', '『'];
+    private static readonly ILogger Logger = Log.ForContext(typeof(FilesystemUtility)); 
     
     /// <summary>
     ///     Clean a path name by removing forbidden characters and trimming whitespace and punctuation. Does not modify
@@ -23,7 +24,7 @@ public static class FilesystemUtility
             return "";
         }
         
-        Log.Debug("Cleaning path stem for \"{PathName}\"", pathName);
+        Logger.Debug("Cleaning path stem for \"{PathName}\"", pathName);
         pathName = WebUtility.HtmlDecode(pathName).Trim(' ', '\t', '\n', '\r');
         var cleanedPathStem = new StringBuilder();
         foreach (var c in pathName.Where(c => !ForbiddenChars.Contains(c)))

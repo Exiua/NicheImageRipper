@@ -53,7 +53,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
             var baseUrl = CurrentUrl.Split("&page=")[0];
             for(var i = 0; i < numPages; i++)
             {
-                Log.Information("Parsing page {Page}", i+1);
+                Logger.Information("Parsing page {Page}", i+1);
                 var posts = soup.SelectSingleNodeOrThrow("//div[@class='row no-gutter']")
                                 .SelectNodesOrThrow("./div")
                                 .Select(div => div.SelectSingleNodeOrThrow("./a").GetHref());
@@ -71,7 +71,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
             
             foreach (var (i, entry) in entries.Enumerate())
             {
-                Log.Information("Parsing entry {Entry} ({Index}/{Total})", entry, i+1, entries.Count);
+                Logger.Information("Parsing entry {Entry} ({Index}/{Total})", entry, i+1, entries.Count);
                 var url = await GetVideoUrl(client, entry);
                 images.Add(url);
                 await Sleep(250);

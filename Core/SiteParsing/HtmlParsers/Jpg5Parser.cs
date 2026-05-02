@@ -34,7 +34,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
         var notFound = soup.SelectSingleNode("//div[@class='page-not-found']");
         if (notFound is not null)
         {
-            Log.Warning("Image not found");
+            Logger.Warning("Image not found");
             return RipInfo.Empty.WithDirectoryName("Not Found");
         }
         
@@ -59,7 +59,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
             var page = 1;
             while (true)
             {
-                Log.Information($"Parsing page {page}");
+                Logger.Information($"Parsing page {page}");
                 page++;
                 var error = soup.SelectSingleNode("//h1");
                 if (error is not null && error.InnerText.StartsWith("500 I"))
@@ -82,7 +82,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
                 }
     
                 nextPageUrl = nextPageUrl.DecodeUrl();
-                //Log.Debug("Next page: {nextPageUrl}", nextPageUrl);
+                //Logger.Debug("Next page: {nextPageUrl}", nextPageUrl);
                 soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div");
             }
         }

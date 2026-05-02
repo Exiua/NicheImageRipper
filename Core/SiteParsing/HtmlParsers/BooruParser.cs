@@ -26,11 +26,11 @@ public abstract partial class BooruParser : HtmlParser
     {
         if (tags is null)
         {
-            Log.Debug("Parsing {SiteName}", site);
+            Logger.Debug("Parsing {SiteName}", site);
         }
         else
         {
-            Log.Debug("Parsing {SiteName} with tags: {Tags}", site, tags);
+            Logger.Debug("Parsing {SiteName} with tags: {Tags}", site, tags);
         }
         
         var metadata = site.GetMetadata();
@@ -59,7 +59,7 @@ public abstract partial class BooruParser : HtmlParser
         var querySeparator = baseUrl[^1] == '&' || baseUrl[^1] == '?' ? "" : "&";
 
         var requestUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}";
-        Log.Debug("Request URL: {RequestUrl}", requestUrl);
+        Logger.Debug("Request URL: {RequestUrl}", requestUrl);
         var response = await session.GetAsync(requestUrl);
         JsonNode? json;
         if (!response.IsSuccessStatusCode)
@@ -79,12 +79,12 @@ public abstract partial class BooruParser : HtmlParser
             }
             catch (JsonException e) when (e.Message.StartsWith("The input does not contain any JSON tokens."))
             {
-                Log.Debug("Failed to deserialize json due to empty response");
+                Logger.Debug("Failed to deserialize json due to empty response");
                 return RipInfo.Empty;
             }
         }
 
-        Log.Debug("Got Response");
+        Logger.Debug("Got Response");
         if (json is null)
         {
             throw new RipperException("Failed to deserialize json");
@@ -95,15 +95,15 @@ public abstract partial class BooruParser : HtmlParser
             json = GetUrlArray(json, jsonObjectNavigationToArray, arrayMayNotExist);
         }
 
-        Log.Debug("Got Json Array");
+        Logger.Debug("Got Json Array");
         var data = json.AsArray();
-        //Log.Debug("Data: {@Data}", data);
+        //Logger.Debug("Data: {@Data}", data);
         var images = new List<StringImageLinkWrapper>();
         var pid = startingPageIndex + 1;
         while (true)
         {
             // Extract URLs from the last page
-            Log.Debug("Parsing page {PageNumber}", pid);
+            Logger.Debug("Parsing page {PageNumber}", pid);
             var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl))
                            .OfType<string>()
                            .ToStringImageLinks();
@@ -115,7 +115,7 @@ public abstract partial class BooruParser : HtmlParser
 
             // Fetch the next page
             var pageUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}";
-            Log.Debug("Fetching next page: {PageUrl}", pageUrl);
+            Logger.Debug("Fetching next page: {PageUrl}", pageUrl);
             response = await session.GetAsync(pageUrl);
             #if DEBUG
             var responseText = await response.Content.ReadAsStringAsync();

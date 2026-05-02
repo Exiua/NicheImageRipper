@@ -38,7 +38,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         var notFound = soup.SelectSingleNode("//h1[@class='text-3xl font-bold']");
         if (notFound is not null)
         {
-            Log.Warning("Page not found: {CurrentUrl}", CurrentUrl);
+            Logger.Warning("Page not found: {CurrentUrl}", CurrentUrl);
             return RipInfo.Empty;
         }
 
@@ -81,7 +81,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                     href = $"https://bunkr.cr{href}";
                 }
 
-                Log.Debug("Post {index} of {total}: {href}", i + 1, imagePosts.Count, href);
+                Logger.Debug("Post {index} of {total}: {href}", i + 1, imagePosts.Count, href);
                 const int maxRetries = 4;
                 for (var j = 0; j < maxRetries; j++)
                 {
@@ -104,7 +104,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                             throw new RipperException("Failed to load page", e);
                         }
 
-                        Log.Debug("Failed to load page, retrying...");
+                        Logger.Debug("Failed to load page, retrying...");
                         await Task.Delay(ParseDelay * 4);
                         WebDriver.RegenerateDriver();
                     }
@@ -124,7 +124,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                 }
                 else
                 {
-                    Log.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
+                    Logger.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
                 }
 
                 if (link is not null)
@@ -148,7 +148,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         }
         else
         {
-            Log.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
+            Logger.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
         }
 
         if (link is not null)

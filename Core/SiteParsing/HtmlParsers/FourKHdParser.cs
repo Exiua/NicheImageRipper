@@ -39,7 +39,7 @@ public partial class FourKHdParser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         for (var page = 1; page <= numPages; page++)
         {
-            Log.Information("Parsing page {page} of {numPages}", page, numPages);
+            Logger.Information("Parsing page {page} of {numPages}", page, numPages);
             var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ?? soup.SelectSingleNodeOrThrow("//div[@id='basicE']");
             var imgs = baseElement.SelectNodesOrThrow("./a")
                                     .Select(a => a.GetHref().Split("?")[0])

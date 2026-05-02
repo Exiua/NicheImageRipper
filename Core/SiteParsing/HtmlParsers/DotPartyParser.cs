@@ -64,7 +64,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             {
                 dirName = siteCache.DirName;
                 posts = siteCache.Posts;
-                Log.Information("Using cached data for {Url}", CurrentUrl);
+                Logger.Information("Using cached data for {Url}", CurrentUrl);
             }
             else
             {
@@ -84,10 +84,10 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
         foreach (var (i, postResponse) in posts.Enumerate())
         {
-            Log.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
+            Logger.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
             var post = postResponse.Post;
             var id = post.Id;
-            Log.Debug("Post ID: {PostId}", id);
+            Logger.Debug("Post ID: {PostId}", id);
             var content = post.Content;
             var soup = await Soupify(content, urlString: false);
             FixLinks(soup);
@@ -322,13 +322,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var sourceSite = urlSplit[3];
         baseUrl = string.Join("/", urlSplit[3..6]).Split("?")[0];
         baseUrl = $"{domainUrl}/api/v1/{baseUrl}";
-        Log.Debug("Base URL: {BaseUrl}", baseUrl);
+        Logger.Debug("Base URL: {BaseUrl}", baseUrl);
         var profileUrl = $"{baseUrl}/profile";
-        Log.Debug("Profile URL: {ProfileUrl}", profileUrl);
+        Logger.Debug("Profile URL: {ProfileUrl}", profileUrl);
         var response = await RetryUntil(async () =>
             {
                 var r = await _httpClient.GetAsync(profileUrl);
-                Log.Debug("Profile page response: {StatusCode}", r.StatusCode);
+                Logger.Debug("Profile page response: {StatusCode}", r.StatusCode);
                 return r;
             },
             (response) => response.IsSuccessStatusCode,
@@ -340,7 +340,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
         dirName = $"{dirName} - ({sourceSite})";
-        Log.Information("Parsed profile page: {DirName}", dirName);
+        Logger.Information("Parsed profile page: {DirName}", dirName);
         var posts = new List<DotPartyPostResponse>();
         var page = 0;
         while (true)
@@ -349,14 +349,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 async () =>
                 {
                     var r = await _httpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
-                    Log.Debug("Page response: {StatusCode}", r.StatusCode);
+                    Logger.Debug("Page response: {StatusCode}", r.StatusCode);
                     return r;
                 },
                 (r) => r.IsSuccessStatusCode,
                 $"Failed to get page {page + 1}",
                 delay: 5000);
             page++;
-            Log.Debug("Retrieving page {PageNum} of size {PageSize}", page, PageSize);
+            Logger.Debug("Retrieving page {PageNum} of size {PageSize}", page, PageSize);
 
             var jsonPosts = await response.Content.ReadFromJsonAsync<List<DotPartyPostShort>>();
             if (jsonPosts is null)
@@ -368,12 +368,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             // Need to pull each post individually to get the html content body of the post
             foreach (var (i, id) in ids.Enumerate())
             {
-                Log.Debug("Retrieving post {PostId}", id);
+                Logger.Debug("Retrieving post {PostId}", id);
                 response = await RetryUntil(
                     async () =>
                     {
                         var r = await _httpClient.GetAsync($"{baseUrl}/post/{id}");
-                        Log.Debug("Post response: {StatusCode}", r.StatusCode);
+                        Logger.Debug("Post response: {StatusCode}", r.StatusCode);
                         return r;
                     },
                     (r) => r.IsSuccessStatusCode,
@@ -395,7 +395,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
             if (jsonPosts.Count < PageSize)
             {
-                Log.Debug("Reached end of posts");
+                Logger.Debug("Reached end of posts");
                 break;
             }
 
@@ -416,11 +416,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         {
             links ??= [];
             var attachmentUrl = attachmentPath.StartsWith("https://") ? attachmentPath : domainUrl + attachmentPath;
-            Log.Debug("Fetching: {AttachmentUrl}", attachmentUrl);
+            Logger.Debug("Fetching: {AttachmentUrl}", attachmentUrl);
             var response = await _httpClient.GetAsync(attachmentUrl);
             if (!response.IsSuccessStatusCode)
             {
-                Log.Warning("Failed to retrieve special case attachment at {AttachmentUrl}", attachmentUrl);
+                Logger.Warning("Failed to retrieve special case attachment at {AttachmentUrl}", attachmentUrl);
                 return null;
             }
 

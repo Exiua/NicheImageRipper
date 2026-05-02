@@ -10,33 +10,30 @@ namespace Core.DataStructures;
 
 public class RipInfo
 {
-    private const int MaxDirectoryNameLength = 200; 
+    private const int MaxDirectoryNameLength = 200;
     
-    private string _directoryName = null!; // Initialized through the property setter
+    private readonly ILogger Logger;
 
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
 
-    [UsedImplicitly]
     public List<ImageLink> Urls { get; set; } = null!;
 
-    [UsedImplicitly]
     public bool MustGenerateManually { get; set; }
 
-    [UsedImplicitly]
     public int NumUrls { get; set; }
 
-    [UsedImplicitly]
     public string DirectoryName
     {
-        get => _directoryName;
-        set => _directoryName = CleanDirectoryName(value);
-    }
+        get;
+        set => field = CleanDirectoryName(value);
+    } = null!; // Initialized through the property setter
 
     public static RipInfo Empty => new([]);
 
     [UsedImplicitly]
     public RipInfo()
     {
+        Logger = Log.ForContext<RipInfo>();
     }
 
     private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
@@ -45,6 +42,7 @@ public class RipInfo
                     string? referer = "")
     {
         // SaveRawUrls(urls);
+        Logger = Log.ForContext<RipInfo>();
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         try
@@ -53,7 +51,7 @@ public class RipInfo
         }
         catch (Exception)
         {
-            Log.Debug("Failed to convert urls to image links: {@urls}", urls);
+            Logger.Debug("Failed to convert urls to image links: {@urls}", urls);
             throw;
         }
 
@@ -63,6 +61,7 @@ public class RipInfo
 
     private RipInfo(List<ImageLink> urls, string directoryName, FilenameScheme filenameScheme)
     {
+        Logger = Log.ForContext<RipInfo>();
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         Urls = urls;
@@ -159,7 +158,7 @@ public class RipInfo
         return imageLinks;
     }
 
-    private static List<StringImageLinkWrapper> RemoveDuplicates(List<StringImageLinkWrapper> urls)
+    private List<StringImageLinkWrapper> RemoveDuplicates(List<StringImageLinkWrapper> urls)
     {
         var urlSet = new HashSet<string>();
         var newUrls = new List<StringImageLinkWrapper>();
@@ -172,14 +171,14 @@ public class RipInfo
             }
             else
             {
-                Log.Debug("Duplicate url: {Url}", url);
+                Logger.Debug("Duplicate url: {Url}", url);
             }
         }
 
         return newUrls;
     }
 
-    private static string CleanDirectoryName(string directoryName)
+    private string CleanDirectoryName(string directoryName)
     {
         var name = string.IsNullOrWhiteSpace(directoryName) ? Guid.NewGuid().ToString() : FilesystemUtility.CleanPathStem(directoryName);
         if (name.Length <= MaxDirectoryNameLength)
@@ -187,7 +186,7 @@ public class RipInfo
             return name;
         }
 
-        Log.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
+        Logger.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
             name.Length, MaxDirectoryNameLength);
         name = name[..MaxDirectoryNameLength].Trim();
 

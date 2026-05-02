@@ -31,9 +31,9 @@ public class ImgurParser : HtmlParser, IHtmlParser
         var clientId = Config.Keys.Imgur;
         if (clientId == "")
         {
-            Log.Error("Client Id not set");
-            Log.Error("Follow to generate Client Id: https://apidocs.imgur.com/#intro");
-            Log.Error("Then add Client Id to Imgur in config.json under Keys");
+            Logger.Error("Client Id not set");
+            Logger.Error("Follow to generate Client Id: https://apidocs.imgur.com/#intro");
+            Logger.Error("Then add Client Id to Imgur in config.json under Keys");
             throw new RipperCredentialException("Client Id Not Set");
         }
     
@@ -44,7 +44,7 @@ public class ImgurParser : HtmlParser, IHtmlParser
         var response = await session.SendAsync(request);
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
-            Log.Error("Client Id is incorrect");
+            Logger.Error("Client Id is incorrect");
             throw new RipperCredentialException("Client Id Incorrect");
         }
     

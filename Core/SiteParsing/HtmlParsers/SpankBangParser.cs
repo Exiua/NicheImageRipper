@@ -31,7 +31,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
 
         if (CurrentUrl.Contains("spankbang.party"))
         {
-            Log.Debug("Switching from spankbang.party to spankbang.com");
+            Logger.Debug("Switching from spankbang.party to spankbang.com");
             CurrentUrl = CurrentUrl.Replace("spankbang.party", "spankbang.com");
         }
 
@@ -52,7 +52,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
         switch (urlType)
         {
             case UrlType.Unknown:
-                Log.Error("Unknown url type: {Url}", CurrentUrl);
+                Logger.Error("Unknown url type: {Url}", CurrentUrl);
                 throw new RipperException("Unknown url type");
             case UrlType.Playlist:
             {
@@ -65,7 +65,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
                                  .Select(src => $"https://spankbang.com{src}");
                 foreach (var video in videos)
                 {
-                    Log.Information("Parsing video: {Video}", video);
+                    Logger.Information("Parsing video: {Video}", video);
                     CurrentUrl = video;
                     var src = await GetVideoUrl();
                     images.Add(src);

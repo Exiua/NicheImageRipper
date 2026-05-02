@@ -125,6 +125,7 @@ public partial class ImageRipper : IDisposable
     private WebDriverPool DriverPool { get; }
     private WebDriver WebDriver { get; set; }
     private ApiClientManager ClientManager { get; }
+    private ILogger Logger { get; }
     public bool Paused { get; set; }
 
     private bool _disposed;
@@ -158,6 +159,7 @@ public partial class ImageRipper : IDisposable
         DriverPool = driverPool;
         WebDriver = driverPool.AcquireDriver(true);
         ClientManager = new ApiClientManager();
+        Logger = Log.ForContext<ImageRipper>();
     }
 
     public async Task Rip(string url)
@@ -172,11 +174,11 @@ public partial class ImageRipper : IDisposable
         SleepTime = 0.2f; // Reset sleep time
         GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
-        Log.Debug("Site Name: {SiteName}", SiteName);
-        Log.Debug("Checking if cookies are needed for {SiteName}", SiteName);
+        Logger.Debug("Site Name: {SiteName}", SiteName);
+        Logger.Debug("Checking if cookies are needed for {SiteName}", SiteName);
         if (CookiesNeeded())
         {
-            Log.Debug("Adding cookies needed for {SiteName}", SiteName);
+            Logger.Debug("Adding cookies needed for {SiteName}", SiteName);
             AddCookies();
         }
 
@@ -190,10 +192,10 @@ public partial class ImageRipper : IDisposable
         {
             if (WebDriver.IsHeadless)
             {
-                Log.Debug("Releasing headless driver");
+                Logger.Debug("Releasing headless driver");
                 DriverPool.ReleaseDriver(WebDriver);
                 // Need non-headless driver for quatvn
-                Log.Debug("Acquiring non-headless driver");
+                Logger.Debug("Acquiring non-headless driver");
                 WebDriver = DriverPool.AcquireDriver(false);
             }
         }
@@ -201,10 +203,10 @@ public partial class ImageRipper : IDisposable
         {
             if (!WebDriver.IsHeadless)
             {
-                Log.Debug("Releasing non-headless driver");
+                Logger.Debug("Releasing non-headless driver");
                 DriverPool.ReleaseDriver(WebDriver);
                 // Can use headless driver for other sites
-                Log.Debug("Acquiring headless driver");
+                Logger.Debug("Acquiring headless driver");
                 WebDriver = DriverPool.AcquireDriver(true);
             }
         }
@@ -221,7 +223,7 @@ public partial class ImageRipper : IDisposable
             if (saveUrl == GivenUrl)
             {
                 start = int.Parse(split[1]);
-                Log.Information("Resuming from index {StartIndex}", start);
+                Logger.Information("Resuming from index {StartIndex}", start);
                 File.Delete(RipIndexPath);
             }
             else
@@ -242,17 +244,17 @@ public partial class ImageRipper : IDisposable
         LoadCorrectWebDriver();
 
         var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
-        Log.Debug("Constructed HtmlParser");
+        Logger.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl);
-        //Log.Debug("Folder Info: {@FolderInfo}", FolderInfo);
-        //Log.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
+        //Logger.Debug("Folder Info: {@FolderInfo}", FolderInfo);
+        //Logger.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
         {
             // TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
         }
 
-        Log.Debug("Dir Length: {DirLength}", fullPath.Length);
+        Logger.Debug("Dir Length: {DirLength}", fullPath.Length);
         Directory.CreateDirectory(fullPath);
 
         var start = await GetStartIndex();
@@ -268,13 +270,13 @@ public partial class ImageRipper : IDisposable
             var state = JsonUtility.Deserialize<RipState>(RipStatePath);
             if (state is null)
             {
-                Log.Error("Failed to load rip state");
+                Logger.Error("Failed to load rip state");
                 throw new RipperException("Failed to load rip state");
             }
 
             downloadStats = state.DownloadStats;
             filesHashes = IndexedHashes.Deserialize(state.FilesHashes);
-            Log.Debug("Truncating files hashes to index {StartIndex}", start);
+            Logger.Debug("Truncating files hashes to index {StartIndex}", start);
             filesHashes.TruncateToIndex(start);
         }
 
@@ -294,7 +296,7 @@ public partial class ImageRipper : IDisposable
         }
         catch (Exception e)
         {
-            Log.Debug("Saving rip state due to exception. Reason: {Message}", e.Message);
+            Logger.Debug("Saving rip state due to exception. Reason: {Message}", e.Message);
             var state = new RipState
             {
                 DownloadStats = downloadStats,
@@ -302,7 +304,7 @@ public partial class ImageRipper : IDisposable
             };
 
             JsonUtility.Serialize(RipStatePath, state);
-            Log.Debug("Saved rip state to {RipStatePath}", RipStatePath);
+            Logger.Debug("Saved rip state to {RipStatePath}", RipStatePath);
             throw;
         }
 
@@ -312,7 +314,7 @@ public partial class ImageRipper : IDisposable
         {
             var msg = $"More than {FailureThreshold * 100}% of the images failed to download";
             var e = new RipperException(msg);
-            Log.Error(e, "{msg:l}", msg);
+            Logger.Error(e, "{msg:l}", msg);
             if (SiteName == "sexbjcam")
             {
                 File.Delete("partial.json");
@@ -334,8 +336,8 @@ public partial class ImageRipper : IDisposable
         }
 
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
-        Log.Information("{Results:l}", downloadResults);
-        Log.Information("Download Complete");
+        Logger.Information("{Results:l}", downloadResults);
+        Logger.Information("Download Complete");
         OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
     }
 
@@ -385,7 +387,7 @@ public partial class ImageRipper : IDisposable
                     if (i == 3)
                     {
                         downloadStats.FailedDownloads.Add($"{imageLink.Url}{index}.{ext}]");
-                        Log.Warning("Image not found");
+                        Logger.Warning("Image not found");
                     }
                 }
             }
@@ -438,7 +440,7 @@ public partial class ImageRipper : IDisposable
                                         await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats);
                                         Interlocked.Increment(ref complete);
                                         completed[i] = true;
-                                        Log.Information("Finished downloading {Index}, {Total} remaining", i + 1,
+                                        Logger.Information("Finished downloading {Index}, {Total} remaining", i + 1,
                                             total - complete);
                                         OnProgressChanged?.Invoke(complete + 1, total + 1);
                                         break;
@@ -447,12 +449,12 @@ public partial class ImageRipper : IDisposable
                                     {
                                         if (attempt == maxAttempts - 1)
                                         {
-                                            Log.Error(e, "Error downloading {Index}, {Total} remaining: {Url}", i + 1,
+                                            Logger.Error(e, "Error downloading {Index}, {Total} remaining: {Url}", i + 1,
                                                 total - complete, link.Url);
                                         }
                                         else
                                         {
-                                            Log.Warning(
+                                            Logger.Warning(
                                                 "Error downloading {Index}, {Total} remaining: {Url}, retrying... ({Attempt}/{MaxAttempts})",
                                                 i + 1, total - complete, link.Url, attempt + 1, maxAttempts);
                                             await Sleep(1000);
@@ -484,8 +486,8 @@ public partial class ImageRipper : IDisposable
                     }
                     catch (EHentaiUrlExpiredException e)
                     {
-                        Log.Information("Refreshing EHentai links");
-                        Log.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
+                        Logger.Information("Refreshing EHentai links");
+                        Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
                         var parser = new EHentaiParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
                         var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
@@ -493,8 +495,8 @@ public partial class ImageRipper : IDisposable
                     }
                     catch (PornhubUrlExpiredException e)
                     {
-                        Log.Information("Refreshing Pornhub links");
-                        Log.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
+                        Logger.Information("Refreshing Pornhub links");
+                        Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
                         var parser = new PornhubParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
                         var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
@@ -510,7 +512,7 @@ public partial class ImageRipper : IDisposable
     private async Task DownloadSingleFromList(int index, ImageLink link, string fullPath, IndexedHashes filesHashes,
                                               DownloadStats downloadStats, bool updateProgress = false)
     {
-        Log.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
+        Logger.Debug("Index: {Index}, Total: {Total}", index, FolderInfo.NumUrls);
         if (updateProgress)
         {
             OnProgressChanged?.Invoke(index + 1, FolderInfo.NumUrls + 1);
@@ -538,7 +540,7 @@ public partial class ImageRipper : IDisposable
         }
         catch (FileNotFoundException)
         {
-            Log.Warning("File not found: {Url}", link.Url);
+            Logger.Warning("File not found: {Url}", link.Url);
             if (link.LinkInfo == LinkInfo.IframeMedia)
             {
                 downloadStats.FailedDownloads.Add(link.Url);
@@ -547,13 +549,13 @@ public partial class ImageRipper : IDisposable
         }
         catch (EHentaiUrlExpiredException e)
         {
-            Log.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
+            Logger.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
             e.ResumeIndex = index;
             throw;
         }
         catch (PornhubUrlExpiredException e)
         {
-            Log.Debug("Caught PornhubUrlExpiredException, need to refresh links");
+            Logger.Debug("Caught PornhubUrlExpiredException, need to refresh links");
             e.ResumeIndex = index;
             throw;
         }
@@ -561,12 +563,12 @@ public partial class ImageRipper : IDisposable
         {
             if (e.Message.Contains("see inner exception"))
             {
-                Log.Debug("Caught exception with inner exception while downloading {Url}: {InnerException}", link.Url,
+                Logger.Debug("Caught exception with inner exception while downloading {Url}: {InnerException}", link.Url,
                     e.InnerException?.Message);
             }
             else
             {
-                Log.Debug("Caught exception, saving progress. Reason: {ErrorMessage}", e.Message);
+                Logger.Debug("Caught exception, saving progress. Reason: {ErrorMessage}", e.Message);
             }
 
             await File.WriteAllTextAsync(RipIndexPath, GenerateSavePosition());
@@ -605,7 +607,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private static async Task<bool> DeviantArtDownload(string fullPath, string url)
+    private async Task<bool> DeviantArtDownload(string fullPath, string url)
     {
         var cmd = new[]
         {
@@ -616,7 +618,7 @@ public partial class ImageRipper : IDisposable
             endMessage: "Deviantart download finished");
         if (exitCode != 0)
         {
-            Log.Error("Failed to download from DeviantArt");
+            Logger.Error("Failed to download from DeviantArt");
         }
 
         return exitCode == 0;
@@ -652,7 +654,7 @@ public partial class ImageRipper : IDisposable
         return (FfmpegStatusCode)exitCode;
     }
 
-    private static async Task<bool> RunYtDlp(ImageLink link, string path, string startMessage, string endMessage)
+    private async Task<bool> RunYtDlp(ImageLink link, string path, string startMessage, string endMessage)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
         {
@@ -679,7 +681,7 @@ public partial class ImageRipper : IDisposable
                 $"\"{url}\"",
             ];
         //cmd = [ "--no-warnings", ..cmd ];
-        Log.Debug("yt-dlp {cmd}", string.Join(" ", cmd));
+        Logger.Debug("yt-dlp {cmd}", string.Join(" ", cmd));
         var (exitCode, output, _) = await RunSubprocess("yt-dlp", cmd, true, /* true,*/
             startMessage: startMessage, endMessage: endMessage);
 
@@ -694,12 +696,12 @@ public partial class ImageRipper : IDisposable
         {
             if (!File.Exists(YoutubeCookiesFile))
             {
-                Log.Error("Video is age-restricted but no cookies file found at {YoutubeCookiesFile}",
+                Logger.Error("Video is age-restricted but no cookies file found at {YoutubeCookiesFile}",
                     YoutubeCookiesFile);
                 return false;
             }
 
-            Log.Information("Video is age-restricted, trying again with cookies");
+            Logger.Information("Video is age-restricted, trying again with cookies");
             cmd =
             [
                 "--force-overwrites",
@@ -713,7 +715,7 @@ public partial class ImageRipper : IDisposable
                 startMessage: startMessage, endMessage: endMessage);
         }
 
-        Log.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
+        Logger.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
 
         return exitCode == 0;
     }
@@ -789,17 +791,17 @@ public partial class ImageRipper : IDisposable
         return (exitCode, outputStr, errorStr);
     }
 
-    private static async Task<bool> HandleDuplicateFile(string imagePath, IndexedHashes filesHashes, int index)
+    private async Task<bool> HandleDuplicateFile(string imagePath, IndexedHashes filesHashes, int index)
     {
         var fileHash = await FileUtility.GetFileHash(imagePath);
         if (!filesHashes.Add(fileHash, index))
         {
-            Log.Information("Duplicate file detected: {ImagePath}", imagePath);
+            Logger.Information("Duplicate file detected: {ImagePath}", imagePath);
             File.Delete(imagePath);
             return true;
         }
 
-        Log.Debug("File hash: {FileHash}", fileHash);
+        Logger.Debug("File hash: {FileHash}", fileHash);
         return false;
     }
 
@@ -820,7 +822,7 @@ public partial class ImageRipper : IDisposable
         var fullFilename = $"{filename}{ext}";
         var ripUrl = $"{url}{fullFilename}";
         var numProgress = $"({filename}/{numFiles})";
-        Log.Information("{RipUrl:l}    {NumProgress:l}", ripUrl, numProgress);
+        Logger.Information("{RipUrl:l}    {NumProgress:l}", ripUrl, numProgress);
         imageLink.Url = ripUrl;
         bool success;
         try
@@ -850,7 +852,7 @@ public partial class ImageRipper : IDisposable
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = imageLink.Url;
         var displayUrl = imageLink.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
-        Log.Information("{Url:l}    ({CurrentProgress}/{TotalProgress})", displayUrl, currentFileNum + 1, numFiles);
+        Logger.Information("{Url:l}    ({CurrentProgress}/{TotalProgress})", displayUrl, currentFileNum + 1, numFiles);
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
         if (imageLink.HasReferer)
         {
@@ -892,7 +894,7 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.Mega:
                 success = await DownloadMegaFiles(imagePath, imageLink);
-                Log.Debug("Success from Mega: {Success}", success);
+                Logger.Debug("Success from Mega: {Success}", success);
                 break;
             case LinkInfo.PixelDrain:
                 success = await DownloadPixelDrainFiles(imagePath, imageLink);
@@ -929,7 +931,7 @@ public partial class ImageRipper : IDisposable
                 break;
             default:
                 var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
-                Log.Error(e, "Unknown LinkInfo: {LinkInfo}", imageLink.LinkInfo);
+                Logger.Error(e, "Unknown LinkInfo: {LinkInfo}", imageLink.LinkInfo);
                 throw e;
         }
 
@@ -964,7 +966,7 @@ public partial class ImageRipper : IDisposable
                 continue;
             }
 
-            Log.Debug("Resolved URL: {Url}", imageUrl);
+            Logger.Debug("Resolved URL: {Url}", imageUrl);
             imageLink.Url = imageUrl;
 
             var success = await DownloadFile(path, imageLink, false, skipDownload);
@@ -986,40 +988,40 @@ public partial class ImageRipper : IDisposable
         var response = await Session.SendAsync(request, HttpCompletionOption.ResponseContentRead);
         if (!response.IsSuccessStatusCode)
         {
-            Log.Error("<Response {ErrorCode}> Failed to get download url: {Url}", response.StatusCode, url);
+            Logger.Error("<Response {ErrorCode}> Failed to get download url: {Url}", response.StatusCode, url);
             return "";
         }
 
         if (response.RequestMessage!.RequestUri!.ToString() == $"https://www.{siteName}.com/hcaptcha.aspx")
         {
-            Log.Information("Captcha detected, solving...");
+            Logger.Information("Captcha detected, solving...");
             await SolveCaptcha(url, true);
             var reRequest = RequestHeaders.ToRequest(HttpMethod.Get, url);
             response = await Session.SendAsync(reRequest, HttpCompletionOption.ResponseContentRead);
             if (!response.IsSuccessStatusCode)
             {
-                Log.Error("Failed to get download url: {Url}", url);
+                Logger.Error("Failed to get download url: {Url}", url);
                 return "";
             }
         }
 
-        Log.Information("Getting download url from {Url}", url);
+        Logger.Information("Getting download url from {Url}", url);
         var content = await response.Content.ReadAsStringAsync();
         var match = NLegsImageUrlRegex().Match(content);
         return $"https://www.{siteName}.com" + match.Groups[1].Value;
     }
 
-    private static async Task SolveCaptcha(string url, bool humanSolve)
+    private async Task SolveCaptcha(string url, bool humanSolve)
     {
         await FlareSolverrManager.GetSiteSolution(url);
         if (humanSolve)
         {
-            Log.Information("Solve the captcha and press enter to continue");
+            Logger.Information("Solve the captcha and press enter to continue");
             Console.ReadLine();
         }
     }
 
-    private static async Task<bool> DownloadMpegDashFile(string filePath, ImageLink imageLink)
+    private async Task<bool> DownloadMpegDashFile(string filePath, ImageLink imageLink)
     {
         var parent = Directory.GetParent(filePath)!.FullName;
         var filename = Path.GetFileName(filePath);
@@ -1029,7 +1031,7 @@ public partial class ImageRipper : IDisposable
         return exitCode == 0;
     }
 
-    private static async Task<bool> DownloadM3U8ToMp4(string filePath, ImageLink imageLink)
+    private async Task<bool> DownloadM3U8ToMp4(string filePath, ImageLink imageLink)
     {
         var url = imageLink.Url;
         var referer = imageLink.Referer;
@@ -1076,11 +1078,11 @@ public partial class ImageRipper : IDisposable
         }
 
         var result = await RunFfmpeg(cmd);
-        Log.Debug("Ffmpeg result: {Result}", result.GetShortErrorMessage());
+        Logger.Debug("Ffmpeg result: {Result}", result.GetShortErrorMessage());
         return result.IsSuccess();
     }
 
-    private static Task<bool> DownloadM3U8YtDlp(string filePath, ImageLink imageLink)
+    private Task<bool> DownloadM3U8YtDlp(string filePath, ImageLink imageLink)
     {
         return RunYtDlp(imageLink, filePath, startMessage: "Starting yt-dlp download",
             endMessage: "yt-dlp download finished");
@@ -1146,7 +1148,7 @@ public partial class ImageRipper : IDisposable
             throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
         }
 
-        Log.Debug("Logging in to MegaCmd");
+        Logger.Debug("Logging in to MegaCmd");
         var (email, password) = Config.Logins.Mega;
         if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
         {
@@ -1163,18 +1165,18 @@ public partial class ImageRipper : IDisposable
         if (!PersistentLogins["Mega"])
         {
             var e = new RipperException("Unable to login to MegaCmd");
-            Log.Error(e, "Unable to login to MegaCmd");
+            Logger.Error(e, "Unable to login to MegaCmd");
             throw e;
         }
 
         if (imageLink.Url.Contains("/file/"))
         {
-            Log.Debug("Downloading file from Mega: {Url}", imageLink.Url);
+            Logger.Debug("Downloading file from Mega: {Url}", imageLink.Url);
             filePath = Path.GetDirectoryName(filePath)!;
         }
         else
         {
-            Log.Debug("Downloading folder from Mega: {Url}", imageLink.Url);
+            Logger.Debug("Downloading folder from Mega: {Url}", imageLink.Url);
             Directory.CreateDirectory(filePath);
         }
 
@@ -1188,20 +1190,20 @@ public partial class ImageRipper : IDisposable
             }
             catch (OperationCanceledException)
             {
-                Log.Warning("Mega download timed out, retrying...");
+                Logger.Warning("Mega download timed out, retrying...");
             }
             catch (Exception e)
             {
-                Log.Error(e, "Failed to download from Mega: {Url}", imageLink.Url);
+                Logger.Error(e, "Failed to download from Mega: {Url}", imageLink.Url);
                 if (e.Message.Contains("No such file or directory"))
                 {
-                    Log.Error("The specified file or directory does not exist on Mega: {Url}", imageLink.Url);
+                    Logger.Error("The specified file or directory does not exist on Mega: {Url}", imageLink.Url);
                     return false;
                 }
 
                 if (e.Message.Contains("Invalid URL"))
                 {
-                    Log.Error("The provided URL is invalid: {Url}", imageLink.Url);
+                    Logger.Error("The provided URL is invalid: {Url}", imageLink.Url);
                     return false;
                 }
 
@@ -1210,7 +1212,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private static async Task<bool> DownloadPixelDrainFiles(string filePath, ImageLink imageLink)
+    private async Task<bool> DownloadPixelDrainFiles(string filePath, ImageLink imageLink)
     {
         var apiKey = Config.Keys.Pixeldrain;
         var authString = $":{apiKey}";
@@ -1238,7 +1240,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private static Task<bool> DownloadYoutubeVideo(string filePath, ImageLink imageLink)
+    private Task<bool> DownloadYoutubeVideo(string filePath, ImageLink imageLink)
     {
         return RunYtDlp(imageLink, filePath, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished");
@@ -1254,12 +1256,12 @@ public partial class ImageRipper : IDisposable
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to download image");
+            Logger.Error(e, "Failed to download image");
             return false;
         }
     }
 
-    private static async Task<bool> DownloadBase64Image(string filePath, ImageLink imageLink)
+    private async Task<bool> DownloadBase64Image(string filePath, ImageLink imageLink)
     {
         try
         {
@@ -1270,7 +1272,7 @@ public partial class ImageRipper : IDisposable
         }
         catch (FormatException e)
         {
-            Log.Error(e, "Failed to decode base64 image");
+            Logger.Error(e, "Failed to decode base64 image");
             return false;
         }
     }
@@ -1294,16 +1296,16 @@ public partial class ImageRipper : IDisposable
         {
             if (SiteName == "pornhub" && e.StatusCode is HttpStatusCode.Gone or HttpStatusCode.NotFound)
             {
-                //Log.Debug("Caught HttpRequestException with 410 Gone status code from Pornhub, need to refresh links");
+                //Logger.Debug("Caught HttpRequestException with 410 Gone status code from Pornhub, need to refresh links");
                 throw new PornhubUrlExpiredException();
             }
 
-            Log.Error(e, "Failed to download obfuscated M3U8");
+            Logger.Error(e, "Failed to download obfuscated M3U8");
             return false;
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to download obfuscated M3U8");
+            Logger.Error(e, "Failed to download obfuscated M3U8");
             return false;
         }
     }
@@ -1312,7 +1314,7 @@ public partial class ImageRipper : IDisposable
     {
         var illustId = imageLink.Url.Split("/")[4];
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
-        Log.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
+        Logger.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
         // Should contain PHPSESSID (checked in PixivParser)
         var sessionId =
             TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv);
@@ -1346,7 +1348,7 @@ public partial class ImageRipper : IDisposable
             var src = body[key]?.GetValue<string>();
             if (src is null)
             {
-                Log.Warning("Pixiv Ugoira source not found for key: {Key}", key);
+                Logger.Warning("Pixiv Ugoira source not found for key: {Key}", key);
                 if (i == keys.Length - 1)
                 {
                     RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
@@ -1360,7 +1362,7 @@ public partial class ImageRipper : IDisposable
             response = await Session.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                Log.Warning("Failed to access Pixiv Ugoira source: {Src}", src);
+                Logger.Warning("Failed to access Pixiv Ugoira source: {Src}", src);
                 if (i == keys.Length - 1)
                 {
                     RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
@@ -1374,7 +1376,7 @@ public partial class ImageRipper : IDisposable
             response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             if (!response.IsSuccessStatusCode)
             {
-                Log.Warning("Failed to download Pixiv Ugoira: {Src}", src);
+                Logger.Warning("Failed to download Pixiv Ugoira: {Src}", src);
                 if (i == keys.Length - 1)
                 {
                     RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
@@ -1393,14 +1395,14 @@ public partial class ImageRipper : IDisposable
         }
 
         await using var zipStream = await response.Content.ReadAsStreamAsync();
-        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        await using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
         using var animation = new MagickImageCollection();
         foreach (var (fileName, delay) in framesMetadata)
         {
             var entry = archive.GetEntry(fileName);
             if (entry is null)
             {
-                Log.Warning("Warning: {FileName} not found in ZIP", fileName);
+                Logger.Warning("Warning: {FileName} not found in ZIP", fileName);
                 continue;
             }
 
@@ -1420,7 +1422,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private static async Task<bool> DownloadSteamCommunity(string filePath, ImageLink imageLink)
+    private async Task<bool> DownloadSteamCommunity(string filePath, ImageLink imageLink)
     {
         var destinationFolder = Path.GetDirectoryName(filePath)!;
         Directory.CreateDirectory(destinationFolder);
@@ -1447,13 +1449,13 @@ public partial class ImageRipper : IDisposable
             }
 
             sourceFolder = ExtractDownloadPath(line);
-            Log.Debug("Downloaded file path: {Path}", sourceFolder);
+            Logger.Debug("Downloaded file path: {Path}", sourceFolder);
             break;
         }
 
         if (sourceFolder is null)
         {
-            Log.Error("Failed to find downloaded file path in steamcmd output");
+            Logger.Error("Failed to find downloaded file path in steamcmd output");
             return false;
         }
 
@@ -1480,7 +1482,7 @@ public partial class ImageRipper : IDisposable
         {
             var destPath = Path.Combine(destinationFolder, Path.GetFileName(sourceFolder));
             CopyFolder(sourceFolder, destPath);
-            Log.Debug("Moved downloaded file to: {DestPath}", destPath);
+            Logger.Debug("Moved downloaded file to: {DestPath}", destPath);
         }
 
         return true;
@@ -1612,12 +1614,12 @@ public partial class ImageRipper : IDisposable
         // If the downloaded file doesn't have an extension for some reason, search for correct ext
         if (Path.GetExtension(filePath) == "" && !skipDownload)
         {
-            Log.Debug("Finding correct extension for file: {ImagePath}", filePath);
+            Logger.Debug("Finding correct extension for file: {ImagePath}", filePath);
             var extension = FileUtility.GetCorrectExtension(filePath);
             await RenameFile(filePath, filePath + extension);
             var filename = Path.GetFileName(filePath);
             var newFilename = filename + extension;
-            Log.Debug("Renamed file {OldFilename} to {NewFilename}", filename, newFilename);
+            Logger.Debug("Renamed file {OldFilename} to {NewFilename}", filename, newFilename);
             imageLink.Filename = newFilename;
         }
         
@@ -1644,7 +1646,7 @@ public partial class ImageRipper : IDisposable
         await Task.Delay((int)(SleepTime * MillisecondsInSecond));
         var (modifiedHeader, oldCookies) = await ModifyHeaders(url, imageLink);
 
-        Log.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
+        Logger.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
         var resumeFrom = 0L;
         while (true)
         {
@@ -1655,19 +1657,19 @@ public partial class ImageRipper : IDisposable
                 if (resumeFrom > 0)
                 {
                     request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
-                    Log.Information("Resuming download from byte {Offset}", resumeFrom);
+                    Logger.Information("Resuming download from byte {Offset}", resumeFrom);
                 }
                 
                 response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             }
             catch (HttpRequestException e) when (e.InnerException is InvalidOperationException)
             {
-                Log.Error("Unable to establish a connection to {Url}", url);
+                Logger.Error("Unable to establish a connection to {Url}", url);
                 return false;
             }
             catch (HttpRequestException e) when (e.InnerException is SocketException)
             {
-                Log.Error("Unable to establish a connection to {Url}", url);
+                Logger.Error("Unable to establish a connection to {Url}", url);
                 return false;
             }
 
@@ -1685,7 +1687,7 @@ public partial class ImageRipper : IDisposable
             {
                 if (e.DownloadedBytesCount == resumeFrom)
                 {
-                    Log.Warning("No progress made during download, aborting...");
+                    Logger.Warning("No progress made during download, aborting...");
                     throw;
                 }
                 
@@ -1694,7 +1696,7 @@ public partial class ImageRipper : IDisposable
             }
             catch (Exception e)
             {
-                Log.Debug("Exception during file write: {Exception}", e);
+                Logger.Debug("Exception during file write: {Exception}", e);
                 throw;
             }
             
@@ -1724,7 +1726,7 @@ public partial class ImageRipper : IDisposable
                     return true;
                 }
 
-                Log.Warning("GoFile download failed, trying again...");
+                Logger.Warning("GoFile download failed, trying again...");
                 await AssociateGoFileCookies(imageLink.Url);
                 return false;
             }
@@ -1786,7 +1788,7 @@ public partial class ImageRipper : IDisposable
     private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink,
                                                           bool generatingManually, Box<bool> skipDownload)
     {
-        Log.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
+        Logger.Warning("<Response {ResponseStatusCode}>", response.StatusCode);
         await Sleep(500);
         
         switch (response.StatusCode)
@@ -1812,11 +1814,11 @@ public partial class ImageRipper : IDisposable
                 {
                     parts[^1] = mappedExt;
                     imageLink.Url = string.Join(".", parts);
-                    Log.Information("Trying again with .{MappedExt} extension...", mappedExt);
+                    Logger.Information("Trying again with .{MappedExt} extension...", mappedExt);
                 }
                 else
                 {
-                    Log.Warning("Unable to download Pixiv image: {URL}", imageLink.Url);
+                    Logger.Warning("Unable to download Pixiv image: {URL}", imageLink.Url);
                     skipDownload.Value = true;
                     return true; // Prevent further retries
                     // Some images may not exist, so we just log and move on
@@ -1832,10 +1834,10 @@ public partial class ImageRipper : IDisposable
                 switch (SiteName)
                 {
                     case "kemono" when !url.Contains(".psd") && url.Contains("kemono"):
-                        Log.Information("Wrong subdomain, trying again...");
+                        Logger.Information("Wrong subdomain, trying again...");
                         throw new BadSubdomainException();
                     case "e-hentai":
-                        Log.Information("E-Hentai URL expired, trying to update links...");
+                        Logger.Information("E-Hentai URL expired, trying to update links...");
                         await Task.Delay(10 * MillisecondsInSecond); // Wait for 10 seconds before retrying
                         throw new EHentaiUrlExpiredException();
                 }
@@ -1903,7 +1905,7 @@ public partial class ImageRipper : IDisposable
             case HttpStatusCode.NotExtended:
             case HttpStatusCode.NetworkAuthenticationRequired:
             default:
-                Log.Warning("Unhandled status code: {ResponseStatusCode}", response.StatusCode);
+                Logger.Warning("Unhandled status code: {ResponseStatusCode}", response.StatusCode);
                 return false;
             
             #endregion
@@ -1912,18 +1914,18 @@ public partial class ImageRipper : IDisposable
     
     private async Task AssociateGoFileCookies(string url)
     {
-        Log.Debug("Associating GoFile cookies");
+        Logger.Debug("Associating GoFile cookies");
         var siteLoginStatus = WebDriver.SiteLoginStatus;
         try
         {
             if(!siteLoginStatus.GetValueOrDefault("gofile", false))
             {
-                Log.Debug("Logging into GoFile");
+                Logger.Debug("Logging into GoFile");
                 siteLoginStatus["gofile"] = await GoFileLogin();
             }
             
             Driver.Url = url;
-            Log.Debug("Loading {CurrentUrl}", Driver.Url);
+            Logger.Debug("Loading {CurrentUrl}", Driver.Url);
             Driver.Refresh();
             await Sleep(5000);
             // TODO: Also need to get account token for requests
@@ -1931,7 +1933,7 @@ public partial class ImageRipper : IDisposable
         catch (WebDriverException)
         {
             // Ignore
-            Log.Warning("WebDriver unreachable, resetting...");
+            Logger.Warning("WebDriver unreachable, resetting...");
             WebDriver.RegenerateDriver();
         }
     }
@@ -1947,13 +1949,13 @@ public partial class ImageRipper : IDisposable
             await Sleep(2500);
             if (Driver.Url == "https://gofile.io/myProfile")
             {
-                Log.Debug("Logged in to GoFile");
+                Logger.Debug("Logged in to GoFile");
                 break;
             }
             
             if (i == 3)
             {
-                Log.Warning("Failed to login to GoFile: {CurrentUrl}", Driver.Url);
+                Logger.Warning("Failed to login to GoFile: {CurrentUrl}", Driver.Url);
                 #if DEBUG
                 Driver.TakeDebugScreenshot("gofile.png");
                 #endif
@@ -1964,7 +1966,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private static async Task RenameFile(string src, string dst)
+    private async Task RenameFile(string src, string dst)
     {
         if (!File.Exists(dst))
         {
@@ -1976,7 +1978,7 @@ public partial class ImageRipper : IDisposable
         var dstHash = await FileUtility.GetFileHash(dst);
         if (srcHash.SequenceEqual(dstHash))
         {
-            Log.Information("File already exists and is same, deleting src...");
+            Logger.Information("File already exists and is same, deleting src...");
             File.Delete(src);
         }
         else
@@ -1986,7 +1988,7 @@ public partial class ImageRipper : IDisposable
             var directory = Path.GetDirectoryName(dst)!;
             var newFilename = $"{filename} ({DateTime.Now:yyyy-MM-dd HH-mm-ss}){ext}";
             File.Move(src, Path.Combine(directory, newFilename));
-            Log.Information("File already exists but is different, renaming src...");
+            Logger.Information("File already exists but is different, renaming src...");
         }
     }
 
@@ -2011,7 +2013,7 @@ public partial class ImageRipper : IDisposable
         }
         catch (HttpRequestException)
         {
-            Log.Warning("Connection Reset, Retrying...");
+            Logger.Warning("Connection Reset, Retrying...");
             await Sleep(1000); // Wait for 1 second before retrying
             return DownloadStatus.ConnectionReset;
         }
@@ -2035,12 +2037,12 @@ public partial class ImageRipper : IDisposable
             while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
             {
                 totalSize += bytesRead;
-                //Log.Debug("Downloaded {TotalSize} bytes...", totalSize);
+                //Logger.Debug("Downloaded {TotalSize} bytes...", totalSize);
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
 
                 if (DateTime.UtcNow - lastActivity > idleTimeout)
                 {
-                    Log.Warning("Download timed out due to inactivity.");
+                    Logger.Warning("Download timed out due to inactivity.");
                     throw new DownloadTimeoutException(totalSize, "No data received for too long.");
                 }
                 
@@ -2051,23 +2053,23 @@ public partial class ImageRipper : IDisposable
         {
             if (e.Message.StartsWith("The response ended prematurely"))
             {
-                Log.Warning("Download response ended prematurely.");
+                Logger.Warning("Download response ended prematurely.");
                 throw new DownloadTimeoutException(totalSize, e.Message, e);
             }
 
             if (e.Message.StartsWith("Received an unexpected EOF or 0 bytes from the transport stream"))
             {
-                Log.Warning("Received unexpected EOF from transport stream.");
+                Logger.Warning("Received unexpected EOF from transport stream.");
                 throw new DownloadTimeoutException(totalSize, e.Message, e);
             }
 
-            Log.Error("An IO error occured: {savePath} - Reason: {Reason}", savePath, e.Message);
+            Logger.Error("An IO error occured: {savePath} - Reason: {Reason}", savePath, e.Message);
             return DownloadStatus.Failed;
         }
             
         if (totalSize < MinimumFileSize)
         {
-            Log.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
+            Logger.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
             return SiteName == "e-hentai" ? throw new EHentaiUrlExpiredException() : DownloadStatus.Failed;
         }
             
@@ -2110,7 +2112,7 @@ public partial class ImageRipper : IDisposable
         downloadStats.ArchivesExtractionFailed += error;
     }
 
-    private static (int, int) UncompressAndGetResults(string[] files, Action<string> uncompressAction)
+    private (int, int) UncompressAndGetResults(string[] files, Action<string> uncompressAction)
     {
         var count = 0;
         var error = 0;
@@ -2123,7 +2125,7 @@ public partial class ImageRipper : IDisposable
             }
             catch (Exception)
             {
-                Log.Error("Failed to extract: {file}", file);
+                Logger.Error("Failed to extract: {file}", file);
                 error++;
             }
         }
@@ -2184,7 +2186,7 @@ public partial class ImageRipper : IDisposable
     
     private void AddCookies()
     {
-        Log.Error("Method not yet implemented...");
+        Logger.Error("Method not yet implemented...");
     }
     
     private bool CookiesNeeded()

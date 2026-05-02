@@ -63,7 +63,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
                 }
                 else
                 {
-                    Log.Warning("No HD quality found, using default");
+                    Logger.Warning("No HD quality found, using default");
                 }
             }
             

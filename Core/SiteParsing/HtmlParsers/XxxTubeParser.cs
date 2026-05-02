@@ -63,7 +63,7 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                     
                     if (i == 3)
                     {
-                        Log.Error("Video element not found after waiting.");
+                        Logger.Error("Video element not found after waiting.");
                         throw new RipperException("Video element not found.");
                     }
                     
@@ -96,7 +96,7 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                                .ToStringImageLinkWrapperList();
                 if (imgs.Count != imageCount)
                 {
-                    Log.Warning("Expected {Expected} images, but found {Found} images.", imageCount, imgs.Count);
+                    Logger.Warning("Expected {Expected} images, but found {Found} images.", imageCount, imgs.Count);
                 }
                 
                 images.AddRange(imgs);

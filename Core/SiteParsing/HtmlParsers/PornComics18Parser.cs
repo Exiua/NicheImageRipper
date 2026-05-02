@@ -30,7 +30,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
         var elementName = await WaitForElement("//ul[@class='sub-chap-list']/li/a", timeout: 60);
         if (elementName is null)
         {
-            Log.Warning("No chapters found on the page."); 
+            Logger.Warning("No chapters found on the page."); 
         }
         
         var soup = await Soupify();
@@ -49,7 +49,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
         var images = new List<StringImageLinkWrapper>();
         foreach (var chapter in chapters)
         {
-            Log.Information("Parsing chapter: {ChapterUrl}", chapter);
+            Logger.Information("Parsing chapter: {ChapterUrl}", chapter);
             soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs, xpath: "//div[@class='reading-content']/img");
             var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']")
                            .SelectNodesOrThrow("./div")

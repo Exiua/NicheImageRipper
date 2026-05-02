@@ -31,13 +31,13 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.SteamCmd))
         {
-            Log.Error("SteamCmd is not available, cannot parse steamcommunity.com");
+            Logger.Error("SteamCmd is not available, cannot parse steamcommunity.com");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.SteamCmd);
         }
 
         if (Config.Cookies.SteamCommunity.IsNullOrEmpty())
         {
-            Log.Error("No cookies found for steamcommunity.com, cannot parse. Please provide cookies in the config file.");
+            Logger.Error("No cookies found for steamcommunity.com, cannot parse. Please provide cookies in the config file.");
             throw new MissingCookieException(nameof(Config.Cookies.SteamCommunity));
         }
         
@@ -53,7 +53,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
             var pageCount = 1;
             while (true)
             {
-                Log.Information("Parsing page {PageCount} of workshop items...", pageCount);
+                Logger.Information("Parsing page {PageCount} of workshop items...", pageCount);
                 pageCount++;
                 var items = soup.SelectSingleNodeOrThrow("//div[@class='workshopBrowseItems']")
                                 .SelectNodesOrThrow("./div");
@@ -71,7 +71,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
             images = [];
             foreach (var (i, post) in itemPosts.Enumerate())
             {
-                Log.Information("Parsing workshop item {ItemIndex}/{TotalItems}...", i + 1, itemPosts.Count);
+                Logger.Information("Parsing workshop item {ItemIndex}/{TotalItems}...", i + 1, itemPosts.Count);
                 soup = await Soupify(post, delay: 250);
                 var (_, url) = ExtractUrl(soup);
                 var imageLink = new ImageLink(url, FilenameScheme, 0)

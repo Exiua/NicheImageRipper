@@ -29,13 +29,13 @@ public class PixivParser : HtmlParser, IHtmlParser
         
         if (Config.Cookies.Pixiv.Length == 0)
         {
-            Log.Error("Pixiv session ID is not set. Please add your Pixiv PHPSESSID token to the config file.");
+            Logger.Error("Pixiv session ID is not set. Please add your Pixiv PHPSESSID token to the config file.");
             return RipInfo.Empty;
         }
 
         if (Config.Keys.Pixiv == "")
         {
-            Log.Error("Pixiv refresh token is not set. Please add your Pixiv refresh token to the config file.");
+            Logger.Error("Pixiv refresh token is not set. Please add your Pixiv refresh token to the config file.");
             return RipInfo.Empty;
         }
 
@@ -50,7 +50,7 @@ public class PixivParser : HtmlParser, IHtmlParser
         while(true)
         {
             page++;
-            Log.Information("Parsing page {Page}", page);
+            Logger.Information("Parsing page {Page}", page);
             foreach (var illust in userIllusts.Illusts)
             {
                 switch (illust.Type)
@@ -85,7 +85,7 @@ public class PixivParser : HtmlParser, IHtmlParser
                         break;
                     }
                     default:
-                        Log.Warning("Unknown/unsupported illustration type: {Type}", illust.Type);
+                        Logger.Warning("Unknown/unsupported illustration type: {Type}", illust.Type);
                         break;
                 }
 

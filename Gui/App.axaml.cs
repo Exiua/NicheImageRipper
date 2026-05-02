@@ -11,6 +11,9 @@ using Gui.Services.Thin;
 using Gui.ViewModels;
 using Gui.Views;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Gui;
 
@@ -52,6 +55,12 @@ public partial class App : Application
             collection.AddSingleton<MainWindowViewModelBase, MainWindowViewModelFull>();
         }
         
+        collection.AddLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddSerilog(Log.Logger, dispose: true);
+        });
+        
         collection.AddSingleton<ILogTextSource, RollingLogTextSource>();
         
         #if WINDOWS
@@ -68,17 +77,18 @@ public partial class App : Application
         
         var vm = services.GetRequiredService<MainWindowViewModelBase>();
         var taskbarProgressService = services.GetRequiredService<ITaskbarProgressService>();
+        var logger = services.GetRequiredService<ILogger<MainWindow>>();
         
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:
             {
-                desktop.MainWindow = new MainWindow(vm, taskbarProgressService);
+                desktop.MainWindow = new MainWindow(vm, taskbarProgressService, logger);
                 break;
             }
             case ISingleViewApplicationLifetime singleViewPlatform:
             {
-                singleViewPlatform.MainView = new MainWindow(vm, taskbarProgressService);
+                singleViewPlatform.MainView = new MainWindow(vm, taskbarProgressService, logger);
                 break;
             }
         }

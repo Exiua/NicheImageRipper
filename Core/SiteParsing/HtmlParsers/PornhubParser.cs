@@ -95,7 +95,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 {
                     try
                     {
-                        Log.Information("Parsing post {i}/{totalPosts}: {post}", i + 1, posts.Count, post);
+                        Logger.Information("Parsing post {i}/{totalPosts}: {post}", i + 1, posts.Count, post);
                         soup = await Soupify(post);
                         var (postImages, _, extraPosts) = await PornhubLinkExtractor(soup);
                         if (extraPosts is not null)
@@ -119,7 +119,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                     {
                         if (e.Message.EndsWith("timed out after 60 seconds."))
                         {
-                            Log.Warning("Timeout while parsing post {post}", post);
+                            Logger.Warning("Timeout while parsing post {post}", post);
                             WebDriver.RegenerateDriver();
                             await Sleep(250);
                         }
@@ -221,7 +221,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         List<string>? extraPosts = null;
         if (CurrentUrl.Contains("view_video"))
         {
-            Log.Debug("Parsing video page");
+            Logger.Debug("Parsing video page");
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").SelectSingleNodeOrThrow(".//span").InnerText;
             var player = soup.SelectSingleNodeOrThrow("//div[@id='player']").SelectSingleNodeOrThrow(".//script");
             var js = player.InnerText;
@@ -257,7 +257,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         }
         else if (CurrentUrl.Contains("/album/"))
         {
-            Log.Debug("Parsing album page");
+            Logger.Debug("Parsing album page");
             await LazyLoad(scrollBy: true);
             soup = await Soupify();
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='photoAlbumTitleV2']").InnerText.Trim();
@@ -282,7 +282,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         }
         else if(CurrentUrl.Contains("/gif/"))
         {
-            Log.Debug("Parsing gif page");
+            Logger.Debug("Parsing gif page");
             dirName = soup.SelectSingleNode("//div[@class='gifTitle']/h1")?.InnerText ?? "";
             if (dirName == "")
             {

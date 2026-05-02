@@ -31,7 +31,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         // TODO: May be able to rectify this in PostProcess by renaming files after download
         if (FilenameScheme != FilenameScheme.Original)
         {
-            Log.Warning(
+            Logger.Warning(
                 "YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
         }
 
@@ -56,7 +56,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         var (exitCode, output, error) = await RunSubprocess(args);
         if (exitCode != 0)
         {
-            Log.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
+            Logger.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
             throw new RipperException("yt-dlp subprocess failed");
         }
 

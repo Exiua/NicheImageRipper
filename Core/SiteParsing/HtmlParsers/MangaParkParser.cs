@@ -43,7 +43,7 @@ public class MangaParkParser : HtmlParser, IHtmlParser
         foreach (var chapter in chapterList)
         {
             var chapterUrl = $"https://mangapark.net{chapter}";
-            Log.Debug("Parsing chapter {ChapterUrl}", chapterUrl);
+            Logger.Debug("Parsing chapter {ChapterUrl}", chapterUrl);
             soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']");
             var pages = soup.SelectNodesOrThrow("//div[@data-name='image-item']")
                             .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())

@@ -98,6 +98,8 @@ public static partial class UrlUtility
         "https://steamcommunity.com/"
     }.ToFrozenSet();
 
+    private static readonly ILogger Logger = Log.ForContext(typeof(UrlUtility));
+    
     /// <summary>
     ///     Check the url to make sure it is from valid site
     /// </summary>
@@ -276,7 +278,7 @@ public static partial class UrlUtility
     {
         var qs = url.IndexOf('?');
         var queryStart = qs == -1 ? url.Length - 1 : qs;
-        Log.Debug("QueryStart: {QueryStart}, Length: {Length}", queryStart, url.Length);
+        Logger.Debug("QueryStart: {QueryStart}, Length: {Length}", queryStart, url.Length);
         return url[..(url.LastIndexOf('/', queryStart) + 1)];
     }
 

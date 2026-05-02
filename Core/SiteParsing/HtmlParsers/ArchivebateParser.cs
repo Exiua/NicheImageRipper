@@ -41,7 +41,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             List<string> posts;
             if (File.Exists(CachePath))
             {
-                Log.Information("Using cached post URLs from {CachePath}", CachePath);
+                Logger.Information("Using cached post URLs from {CachePath}", CachePath);
                 var temp = JsonUtility.Deserialize<Dictionary<string, List<string>>>(CachePath);
                 if (temp is null)
                 {
@@ -66,7 +66,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
 
             foreach (var (i, post) in posts.Enumerate())
             {
-                Log.Information("Parsing post {Current} of {Total}: {Url}", i + 1, posts.Count, post);
+                Logger.Information("Parsing post {Current} of {Total}: {Url}", i + 1, posts.Count, post);
                 CurrentUrl = post;
                 await Task.Delay(250);
                 await WaitForElement("//iframe[@class='ab-rounded video-frame']");
@@ -98,12 +98,12 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
 
     private async Task<List<string>> GetPageUrls(HtmlNode soup, string profileName)
     {
-        Log.Information("Getting all post URLs");
+        Logger.Information("Getting all post URLs");
         var posts = new List<string>();
         var pageCount = 1;
         while (true)
         {
-            Log.Information("Parsing page {PageCount}", pageCount);
+            Logger.Information("Parsing page {PageCount}", pageCount);
             pageCount++;
             var p = soup.SelectSingleNodeOrThrow("//div[@class='ab_grid']")
                         .SelectNodesOrThrow("./section")
@@ -143,11 +143,11 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             var h4 = Driver.TryFindElement(By.XPath("//h4"));
             if (h4?.Text.Contains("This video has been") ?? false)
             {
-                Log.Information("Video has been deleted");
+                Logger.Information("Video has been deleted");
                 return "";
             }
             
-            Log.Warning("Iframe not found, video probably unavailable");
+            Logger.Warning("Iframe not found, video probably unavailable");
             return "";
         }
         
@@ -182,7 +182,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 var h2 = Driver.TryFindElement(By.XPath("//h2"));
                 if (h2?.Text.Contains("WE ARE SORRY") ?? false)
                 {
-                    Log.Information("Video is unavailable");
+                    Logger.Information("Video is unavailable");
                     return "";
                 }
                 
@@ -191,7 +191,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 {
                     if (attempt == maxAttempts - 1)
                     {
-                        Log.Warning("VideoJS container not found, video probably unavailable");
+                        Logger.Warning("VideoJS container not found, video probably unavailable");
                         return "";
                     }
                     
@@ -204,7 +204,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 {
                     if (attempt == maxAttempts - 1)
                     {
-                        Log.Warning("Play button not found, video probably unavailable");
+                        Logger.Warning("Play button not found, video probably unavailable");
                         return "";
                     }
 
@@ -242,7 +242,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             
             if (attempt == maxAttempts - 1)
             {
-                Log.Warning("Video element not found, video probably unavailable");
+                Logger.Warning("Video element not found, video probably unavailable");
                 return "";
             }
 

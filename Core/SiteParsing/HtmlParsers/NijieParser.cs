@@ -37,7 +37,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         var count = 1;
         while (true)
         {
-            Log.Information("Parsing illustration posts page {count}", count);
+            Logger.Information("Parsing illustration posts page {count}", count);
             count++;
             var postTags = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']")
                                 .SelectNodesOrThrow(".//p[@class='nijiedao']");
@@ -61,11 +61,11 @@ public partial class NijieParser : HtmlParser, IHtmlParser
             }
         }
         
-        Log.Information("Parsing illustration posts...");
+        Logger.Information("Parsing illustration posts...");
         var images = new List<StringImageLinkWrapper>();
         foreach (var (i, post) in posts.Enumerate())
         {
-            Log.Information("Parsing illustration post {i}/{posts.Count}", i + 1, posts.Count);
+            Logger.Information("Parsing illustration post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
             IEnumerable<StringImageLinkWrapper> imgs = null!;
@@ -106,7 +106,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNodeOrThrow(".//a").GetHref()));
         foreach (var (i, post) in posts.Enumerate())
         {
-            Log.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
+            Logger.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
             IEnumerable<StringImageLinkWrapper> imgs = null!;

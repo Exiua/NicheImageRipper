@@ -10,7 +10,7 @@ public abstract class PlaylistCapturer
     
     public void CaptureHook(ResponseCompletedEventArgs e)
     {
-        //Log.Debug("New network response received: {url}", e.Response.Url);
+        //Logger.Debug("New network response received: {url}", e.Response.Url);
         if (!ResponseIsInteresting(e))
         {
             return;
@@ -18,7 +18,7 @@ public abstract class PlaylistCapturer
         
         var url = e.Response.Url;
         var id = GetId(url);
-        //Log.Debug("[{id}]: {url}", id, url);
+        //Logger.Debug("[{id}]: {url}", id, url);
         if (!_videoUrls.TryGetValue(id, out var value))
         {
             value = [];

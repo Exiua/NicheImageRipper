@@ -44,7 +44,7 @@ public class VGenParser : HtmlParser
                 var src = img.GetAttribute("src");
                 if (src is null)
                 {
-                    Log.Warning("Image src is null, skipping");
+                    Logger.Warning("Image src is null, skipping");
                     continue;
                 }
                 

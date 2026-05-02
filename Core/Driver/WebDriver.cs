@@ -9,6 +9,7 @@ public class WebDriver : IDisposable
 {
     private static GeneralConfig Config => Configuration.Config.Instance;
     private static string UserAgent => Config.UserAgent;
+    private static ILogger Logger { get; } = Log.ForContext<WebDriver>();
     
     public Dictionary<string, bool> SiteLoginStatus { get; set; } = new();
     public FirefoxDriver Driver { get; set; }
@@ -40,7 +41,7 @@ public class WebDriver : IDisposable
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to quit the WebDriver.");
+            Logger.Error(e, "Failed to quit the WebDriver.");
         }
         
         Driver = CreateFirefoxDriver(IsHeadless, userAgent);
@@ -70,11 +71,11 @@ public class WebDriver : IDisposable
             {
                 if (retry == maxRetry - 1)
                 {
-                    Log.Error(e, "Failed to create FirefoxDriver after 4 attempts.");
+                    Logger.Error(e, "Failed to create FirefoxDriver after 4 attempts.");
                     throw new Exception("Failed to create FirefoxDriver after 4 attempts.", e);
                 }
 
-                Log.Warning(e, "Failed to create FirefoxDriver. Retrying...");
+                Logger.Warning(e, "Failed to create FirefoxDriver. Retrying...");
             }
         }
         //driver.Manage().Window.Size = new Size(2560, 1440);

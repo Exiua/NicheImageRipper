@@ -8,11 +8,12 @@ namespace Core.FileDownloading;
 public static class M3U8Downloader
 {
     private static GeneralConfig Config => Configuration.Config.Instance;
+    private static ILogger Logger { get; } = Log.ForContext(typeof(M3U8Downloader));
 
     public static async Task DownloadM3U8(string url, string savePath, string outputName,
                                           string? referer = null, bool isIndex = false)
     {
-        Log.Debug("Url: {Url}, SavePath: {SavePath}, OutputName: {OutputName}, Referer: {Referer}, IsIndex: {IsIndex}",
+        Logger.Debug("Url: {Url}, SavePath: {SavePath}, OutputName: {OutputName}, Referer: {Referer}, IsIndex: {IsIndex}",
             url, savePath, outputName, referer, isIndex);
         string? tempPath = null;
         #if DEBUG
@@ -26,7 +27,7 @@ public static class M3U8Downloader
 
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("User-Agent", Config.UserAgent);
-            Log.Debug("HttpClient initialized with User-Agent: {UserAgent}", Config.UserAgent);
+            Logger.Debug("HttpClient initialized with User-Agent: {UserAgent}", Config.UserAgent);
             if (referer is not null)
             {
                 client.DefaultRequestHeaders.Add("Referer", referer);
@@ -42,7 +43,7 @@ public static class M3U8Downloader
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error downloading M3U8 segments");
+            Logger.Error(e, "Error downloading M3U8 segments");
             #if DEBUG
             success = false;
             #endif
@@ -62,7 +63,7 @@ public static class M3U8Downloader
                 #endif
             }
 
-            Log.Debug("Temporary files cleaned up.");
+            Logger.Debug("Temporary files cleaned up.");
         }
     }
 
@@ -84,7 +85,7 @@ public static class M3U8Downloader
         await ImageRipper.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation",
             endMessage: "Finished ffmpeg concatenation");
 
-        Log.Debug("Output saved to: {OutputPath}", outputPath);
+        Logger.Debug("Output saved to: {OutputPath}", outputPath);
     }
 
     private static async Task<List<string>> DownloadSegments(List<string> segments, string savePath,
@@ -94,7 +95,7 @@ public static class M3U8Downloader
         var segmentCount = 0;
         foreach (var segment in segments)
         {
-            Log.Debug("Downloading segment URL: {SegmentUrl}", segment);
+            Logger.Debug("Downloading segment URL: {SegmentUrl}", segment);
             var segmentResponse = await client.GetAsync(segment);
             segmentResponse.EnsureSuccessStatusCode();
             var data = await segmentResponse.Content.ReadAsByteArrayAsync();
@@ -105,12 +106,12 @@ public static class M3U8Downloader
             }
             catch (RipperException e)
             {
-                Log.Error(e, "Failed to extract segment data");
+                Logger.Error(e, "Failed to extract segment data");
                 continue;
             }
 
             var segmentPath = Path.Combine(savePath, $"segment_{segmentCount:D5}.ts");
-            Log.Debug("Saving segment {SegmentPath}", segmentPath);
+            Logger.Debug("Saving segment {SegmentPath}", segmentPath);
             segmentCount++;
             await File.WriteAllBytesAsync(segmentPath, segmentData);
             segmentPaths.Add(segmentPath);
@@ -121,7 +122,7 @@ public static class M3U8Downloader
 
     private static async Task<List<string>> DownloadPlaylist(string url, HttpClient client)
     {
-        Log.Debug("Downloading playlist URL: {URL}", url);
+        Logger.Debug("Downloading playlist URL: {URL}", url);
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
@@ -133,7 +134,7 @@ public static class M3U8Downloader
 
     private static async Task<string> GetPlaylistUrl(string url, HttpClient client)
     {
-        Log.Debug("Downloading M3U8 playlist from: {Url}", url);
+        Logger.Debug("Downloading M3U8 playlist from: {Url}", url);
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
@@ -144,7 +145,7 @@ public static class M3U8Downloader
         }
 
         var resolvedUrl = ResolveUrl(url, playlistUrl);
-        Log.Debug("Resolved playlist URL: {ResolvedUrl}", resolvedUrl);
+        Logger.Debug("Resolved playlist URL: {ResolvedUrl}", resolvedUrl);
         return resolvedUrl;
     }
 
