@@ -75,14 +75,14 @@ public partial class ImageLink
         Filename = newStem + ext;
     }
 
-    public void RegenerateFilename(FilenameScheme filenameScheme, int index)
-    {
-        Filename = GenerateFilename(Url, filenameScheme, index);
-    }
-
     public bool Contains(string url)
     {
         return Url.Contains(url);
+    }
+
+    public void RegenerateFilename(FilenameScheme filenameScheme, int index)
+    {
+        Filename = GenerateFilename(Url, filenameScheme, index);
     }
 
     private string ExtractUrl(string url)
@@ -161,7 +161,7 @@ public partial class ImageLink
                                     bool cleanFilename = false)
     {
         var filenameProvided = filename != "";
-        if (filename == "")
+        if (!filenameProvided)
         {
             switch (LinkInfo)
             {
@@ -175,6 +175,7 @@ public partial class ImageLink
                     break;
                 }
                 case LinkInfo.GDrive:
+                    // Filename should be provided for gdrive links (obtained through the api)
                     break;
                 case LinkInfo.None:
                 case LinkInfo.M3U8Ffmpeg:
@@ -231,8 +232,8 @@ public partial class ImageLink
                 case LinkInfo.Base64:
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
-                    break;
                 case LinkInfo.SteamCommunity:
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
