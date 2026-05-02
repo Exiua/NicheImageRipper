@@ -104,6 +104,11 @@ public class RemoteRipperClient : IRipperClient
         return _backendConnector.ClearCacheAsync();
     }
 
+    public Task<int> GetHistoryCount()
+    {
+        return _backendConnector.GetHistoryCountAsync();
+    }
+
     public void Dispose()
     {
         GC.SuppressFinalize(this);

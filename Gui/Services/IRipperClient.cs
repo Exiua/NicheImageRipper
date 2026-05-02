@@ -27,4 +27,5 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public Task<Version> GetCoreVersion();
     public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null);
     public Task ClearCache();
+    public Task<int> GetHistoryCount();
 }

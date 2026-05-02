@@ -19,7 +19,7 @@ namespace Gui;
 
 public partial class App : Application
 {
-    public static bool Thin { get; set; } = true;
+    public static bool Thin { get; set; } = false;
     
     public override void Initialize()
     {

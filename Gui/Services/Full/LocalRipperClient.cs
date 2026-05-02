@@ -99,6 +99,11 @@ public class LocalRipperClient : IRipperClient
         return Task.CompletedTask;
     }
 
+    public Task<int> GetHistoryCount()
+    {
+        return Task.FromResult(NicheImageRipper.GetHistoryCount());
+    }
+
     public void Dispose()
     {
         if (_disposed)

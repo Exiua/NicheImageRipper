@@ -29,7 +29,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public abstract string Title { get; }
     public abstract bool IsThinClient { get; }
     
-    private int HistoryCount => RipperClient.GetUrlQueue().Result.Count();
+    private int HistoryCount => RipperClient.GetHistoryCount().Result;
 
     private bool RipInProgress { get; set; }
 
