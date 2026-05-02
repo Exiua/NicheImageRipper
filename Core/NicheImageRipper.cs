@@ -13,6 +13,7 @@ using Core.Managers;
 using Core.FileDownloading;
 using Core.History;
 using Core.Utility;
+using Microsoft.AspNetCore.WebUtilities;
 using OpenQA.Selenium;
 using Serilog;
 using Serilog.Core;
@@ -275,7 +276,29 @@ public partial class NicheImageRipper : IDisposable
             return normalizedUrl;
         }
 
+        if (host.Contains("youtube.com"))
+        {
+            return NormalizeYoutubeUrl(url);
+        }
+
         return url.Split("?")[0];
+    }
+
+    private static string NormalizeYoutubeUrl(string url)
+    {
+        var uri = new Uri(url);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        var kept = new Dictionary<string, string?>();
+
+        if (query.TryGetValue("v", out var value))
+        {
+            kept["v"] = value.ToString();
+        }
+
+        var baseUrl = uri.GetLeftPart(UriPartial.Path);
+        var newUrl = QueryHelpers.AddQueryString(baseUrl, kept);
+        return newUrl;
     }
 
     private static string NormalizePornhubUrl(string url)
