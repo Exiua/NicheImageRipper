@@ -16,7 +16,7 @@ namespace Gui;
 
 public partial class App : Application
 {
-    public static bool Thin { get; set; } = false;
+    public static bool Thin { get; set; } = true;
     
     public override void Initialize()
     {
@@ -32,9 +32,6 @@ public partial class App : Application
             collection.AddSingleton(new HttpClient());
         
             collection.AddSingleton<LogEntryFormatter>();
-            /*collection.AddSingleton<ILogTextSource>(sp => new LogTextService(
-                sp.GetRequiredService<LogEntryFormatter>(),
-                maxEntries: 500));*/
         
             collection.AddSingleton<IBackendConnector, BackendConnector>();
         
@@ -43,7 +40,7 @@ public partial class App : Application
             collection.AddSingleton<IRipperClient, RemoteRipperClient>();
             collection.AddSingleton<IRipperSettings, ThinRipperSettings>();
             collection.AddSingleton<IGuiSettings, ThinGuiSettings>();
-            collection.AddSingleton<IGuiLogBridgeCoordinator, LocalGuiLogBridgeCoordinator>();
+            collection.AddSingleton<IGuiLogBridgeCoordinator, RemoteGuiLogBridgeCoordinator>();
             collection.AddSingleton<MainWindowViewModelBase, MainWindowViewModelThin>();
         }
         else

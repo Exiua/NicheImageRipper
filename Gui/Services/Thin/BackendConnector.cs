@@ -341,7 +341,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
                 {
                     case WsEventType.Log:
                     {
-                        var logEvent = envelope.Payload.Deserialize<LogEntryModel>();
+                        var logEvent = envelope.Payload.Deserialize<LogEntryModel>(options: JsonOptions);
 
                         if (logEvent is not null)
                         {

@@ -34,7 +34,7 @@ public sealed class RollingLogTextSource : ILogTextSource
             return;
         }
 
-        if (entry.Level == "Debug")
+        if (entry.Level is null or "Debug")
         {
             return;
         }

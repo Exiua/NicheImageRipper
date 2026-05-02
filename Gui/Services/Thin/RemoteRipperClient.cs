@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Core.DataStructures;
 using Core.History;
 using Core.Utility;
+using Gui.Utility;
 using Service.Models.Requests;
 
 namespace Gui.Services.Thin;
@@ -19,11 +20,12 @@ public class RemoteRipperClient : IRipperClient
     public int UrlQueueCount => _backendConnector.GetQueueCountAsync().Result;
     public bool Connected { get; set; }
 
-    public RemoteRipperClient(IBackendConnector backendConnector)
+    public RemoteRipperClient(IBackendConnector backendConnector, ILogTextSource logTextSource)
     {
         _backendConnector = backendConnector;
         _backendConnector.QueueUpdated += () => OnUrlQueueUpdated?.Invoke();
         _backendConnector.ProgressChanged += (current, total) => OnProgressChanged?.Invoke(current, total);
+        _backendConnector.LogReceived += GuiLogBridge.Publish; 
     }
     
     public Task Rip()
