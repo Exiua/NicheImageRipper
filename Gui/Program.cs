@@ -30,15 +30,17 @@ sealed class Program
         var consoleSwitch = new LoggingLevelSwitch(LogEventLevel.Information);
         var fileSwitch = new LoggingLevelSwitch(LogEventLevel.Information);
         #endif
-        
+
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .Enrich.FromLogContext()
-                    .WriteTo.Console(theme: AnsiConsoleTheme.Code, levelSwitch: consoleSwitch)
+                    .WriteTo.Console(theme: AnsiConsoleTheme.Code, levelSwitch: consoleSwitch,
+                         outputTemplate:
+                         "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext:lj}] {Message:lj}{NewLine}{Exception}")
                     .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, levelSwitch: fileSwitch)
                     .WriteTo.Gui()
                     .CreateLogger();
-        
+
         // Handle global exceptions
         AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         {

@@ -22,7 +22,7 @@ public sealed class LogEntryFormatter
             sb.Append(": ");
         }
 
-        sb.Append(entry.RenderedMessage ?? entry.MessageTemplate ?? "<no message>");
+        sb.Append(entry.Message ?? entry.MessageTemplate ?? "<no message>");
 
         if (!string.IsNullOrWhiteSpace(entry.Exception))
         {

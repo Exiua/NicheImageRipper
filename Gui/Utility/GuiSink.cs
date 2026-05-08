@@ -28,7 +28,7 @@ public sealed class GuiSink : ILogEventSink
         {
             Timestamp = logEvent.Timestamp,
             Level = logEvent.Level.ToString(),
-            RenderedMessage = logEvent.RenderMessage(_formatProvider),
+            Message = logEvent.RenderMessage(_formatProvider),
             MessageTemplate = logEvent.MessageTemplate.Text,
             Exception = logEvent.Exception?.ToString()
         };

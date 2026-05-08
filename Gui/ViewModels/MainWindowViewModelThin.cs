@@ -26,8 +26,8 @@ public class MainWindowViewModelThin(
     public override bool IsThinClient => true;
 
     private bool _initialized;
-    
-    public override async Task InitializeAsync()
+
+    protected override async Task InitializeAsync()
     {
         if (_initialized)
         {

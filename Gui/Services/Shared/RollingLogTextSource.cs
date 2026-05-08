@@ -28,7 +28,7 @@ public sealed class RollingLogTextSource : ILogTextSource
 
     public void Append(LogEntryModel entry)
     {
-        if (entry.RenderedMessage?.Contains(
+        if (entry.Message?.Contains(
                 "[Visual Avalonia.Win32.WinRT.Composition.WinUiCompositorConnection+RunLoopHandler]") == true)
         {
             return;
@@ -73,7 +73,7 @@ public sealed class RollingLogTextSource : ILogTextSource
         var level = ToShortLevel(entry.Level ?? "Information");
 
         //var line = $"[{time} {level}] {entry.RenderedMessage}";
-        var line = $"{entry.RenderedMessage}";
+        var line = $"{entry.Message}";
 
         if (!string.IsNullOrWhiteSpace(entry.Exception))
         {

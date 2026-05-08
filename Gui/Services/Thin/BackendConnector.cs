@@ -381,7 +381,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
                 {
                     Timestamp = DateTimeOffset.UtcNow,
                     Level = "Error",
-                    RenderedMessage = "Malformed WebSocket payload received",
+                    Message = "Malformed WebSocket payload received",
                     Exception = $"Raw: {json}\n\nError: {ex}"
                 });
             }

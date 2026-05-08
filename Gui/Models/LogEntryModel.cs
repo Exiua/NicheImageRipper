@@ -11,7 +11,7 @@ public sealed class LogEntryModel
     public string? Level { get; set; }
 
     [JsonPropertyName("message")]
-    public string? RenderedMessage { get; set; }
+    public string? Message { get; set; }
 
     [JsonPropertyName("MessageTemplate")]
     public string? MessageTemplate { get; set; }

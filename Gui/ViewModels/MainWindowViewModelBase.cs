@@ -262,8 +262,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     }
 
     private bool _initialized;
-    
-    public virtual async Task InitializeAsync()
+
+    protected virtual async Task InitializeAsync()
     {
         if (_initialized)
         {
