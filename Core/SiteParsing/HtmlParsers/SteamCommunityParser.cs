@@ -72,14 +72,33 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
             foreach (var (i, post) in itemPosts.Enumerate())
             {
                 Logger.Information("Parsing workshop item {ItemIndex}/{TotalItems}...", i + 1, itemPosts.Count);
-                soup = await Soupify(post, delay: 250);
-                var (_, url) = ExtractUrl(soup);
-                var imageLink = new ImageLink(url, FilenameScheme, 0)
+                const int maxAttempts = 3;
+                for (var attempt = 0; attempt < maxAttempts; attempt++)
                 {
-                    Filename = "discard",
-                    LinkInfo = LinkInfo.SteamCommunity,
-                };
-                images.Add(imageLink);
+                    try
+                    {
+                        soup = await Soupify(post, delay: 250);
+                        var (_, url) = ExtractUrl(soup);
+                        var imageLink = new ImageLink(url, FilenameScheme, 0)
+                        {
+                            Filename = "discard",
+                            LinkInfo = LinkInfo.SteamCommunity,
+                        };
+                        images.Add(imageLink);
+                        break;
+                    }
+                    catch (Common.Exceptions.ElementNotFoundException)
+                    {
+                        if (i == maxAttempts - 1)
+                        {
+                            Logger.Error("Failed to parse workshop item after {MaxAttempts} attempts", maxAttempts);
+                            throw;
+                        }
+                        
+                        Logger.Information("Rate-limit detected. Waiting...");
+                        await Sleep(10000);
+                    }
+                }
             }
         }
         else if (CurrentUrl.Contains("/sharedfiles/"))
