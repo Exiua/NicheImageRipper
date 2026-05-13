@@ -4,6 +4,7 @@ using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
+using Core.Utility;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using Serilog;
@@ -58,8 +59,9 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
                 var items = soup.SelectSingleNodeOrThrow("//div[@class='workshopBrowseItems']")
                                 .SelectNodesOrThrow("./div");
                 itemPosts.AddRange(items.Select(item => item.SelectSingleNodeOrThrow("./a").GetHref()));
-                var nextButton = Driver.FindElement(By.XPath("//div[@class='workshopBrowsePagingControls']/*[contains(@class, 'pagebtn')][last()]"));
-                if(nextButton.GetAttribute("class")!.Contains("disabled"))
+                var nextButton = Driver.TryFindElement(By.XPath("//div[@class='workshopBrowsePagingControls']/*[contains(@class, 'pagebtn')][last()]"));
+                // nextButton is null if one page
+                if(nextButton is null || nextButton.GetAttribute("class")!.Contains("disabled"))
                 {
                     break;
                 }

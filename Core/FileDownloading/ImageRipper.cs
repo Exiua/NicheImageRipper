@@ -217,12 +217,9 @@ public partial class ImageRipper : IDisposable
         int start;
         if (File.Exists(RipIndexPath))
         {
-            var savePosition = await File.ReadAllTextAsync(RipIndexPath);
-            var split = savePosition.Split("|");
-            var saveUrl = split[0];
+            (var saveUrl, start) = await CacheUtility.ReadRipIndex(RipIndexPath);
             if (saveUrl == GivenUrl)
             {
-                start = int.Parse(split[1]);
                 Logger.Information("Resuming from index {StartIndex}", start);
                 File.Delete(RipIndexPath);
             }
@@ -571,14 +568,21 @@ public partial class ImageRipper : IDisposable
                 Logger.Debug("Caught exception, saving progress. Reason: {ErrorMessage}", e.Message);
             }
 
-            await File.WriteAllTextAsync(RipIndexPath, GenerateSavePosition());
+            await SaveCurrentRipPosition();
             throw;
         }
     }
 
-    internal string GenerateSavePosition()
+    internal Task SaveCurrentRipPosition()
     {
-        return $"{GivenUrl}|{CurrentIndex}";
+        return CacheUtility.SaveRipIndex(RipIndexPath, GivenUrl, CurrentIndex);
+    }
+
+    internal static async Task IncrementCurrentRipPosition()
+    {
+        var (url, index) = await CacheUtility.ReadRipIndex(RipIndexPath);
+        index++;
+        await CacheUtility.SaveRipIndex(RipIndexPath, url, index);
     }
 
     private async Task PostProcess(ImageLink link, string imagePath, IndexedHashes filesHashes,

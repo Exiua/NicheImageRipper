@@ -25,6 +25,6 @@ public interface INicheImageRipperSingleton
     public void UpdateConfig(Config config);
     public Version GetVersion();
     public void ClearCache();
-    public void Save();
+    public Task Save();
     public void LoadUrls(List<string> urls);
 }

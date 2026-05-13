@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace Core.Utility;
 
-public class FileUtility
+public static class FileUtility
 {
     private static readonly Dictionary<ulong, string> FileSignatures = new()
     {

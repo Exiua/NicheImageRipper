@@ -79,8 +79,7 @@ public class LocalRipperClient : IRipperClient
 
     public Task SaveData()
     {
-        _ripper.SaveData();
-        return Task.CompletedTask;
+        return _ripper.SaveData();
     }
 
     public Task<Version> GetCoreVersion()
@@ -102,6 +101,11 @@ public class LocalRipperClient : IRipperClient
     public Task<int> GetHistoryCount()
     {
         return Task.FromResult(NicheImageRipper.GetHistoryCount());
+    }
+
+    public Task SkipCurrentEntry()
+    {
+        return NicheImageRipper.SkipEntry();
     }
 
     public void Dispose()

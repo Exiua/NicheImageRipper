@@ -223,6 +223,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<Unit, Task> DequeueUrlsCommand { get; }
     public ReactiveCommand<string, Task> ReRipUrlCommand { get; }
     public ReactiveCommand<Unit, Task> ConnectCommand { get; }
+    public ReactiveCommand<Unit, Task> SkipCurrentEntryCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     public event Action? LogTextChanged;
@@ -254,6 +255,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         DequeueUrlsCommand = ReactiveCommand.CreateRunInBackground(DequeueUrls);
         ReRipUrlCommand = ReactiveCommand.CreateRunInBackground<string, Task>(Rerip);
         ConnectCommand = ReactiveCommand.CreateRunInBackground(ToggleStateToRemote);
+        SkipCurrentEntryCommand = ReactiveCommand.CreateRunInBackground(RipperClient.SkipCurrentEntry);
         UrlQueue = new ObservableCollection<string>([]);
         History = new ObservableCollection<HistoryEntry>([]);
 

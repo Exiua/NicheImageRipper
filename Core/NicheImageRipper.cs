@@ -259,21 +259,7 @@ public partial class NicheImageRipper : IDisposable
         
         if (host.Contains("steamcommunity.com"))
         {
-            var parts = url.Split('?');
-            var parameters = parts.Length > 1 ? parts[1].Split('&') : [];
-            if (parameters.Length < 1)
-            {
-                throw new RipperException("Unexpected Steam Community URL format: " + url);
-            }
-
-            var appId = parameters.FirstOrDefault(p => p.StartsWith("appid"));
-            if (appId is null)
-            {
-                throw new RipperException("Unexpected Steam Community URL format: " + url);
-            }
-            
-            var normalizedUrl = $"{parts[0]}?{appId}";
-            return normalizedUrl;
+            return NormalizeSteamCommunityUrl(url);
         }
 
         if (host.Contains("youtube.com"))
@@ -284,18 +270,48 @@ public partial class NicheImageRipper : IDisposable
         return url.Split("?")[0];
     }
 
+    private static string NormalizeSteamCommunityUrl(string url)
+    {
+        var parts = url.Split('?');
+        var parameters = parts.Length > 1 ? parts[1].Split('&') : [];
+        if (parameters.Length < 1)
+        {
+            throw new RipperException("Unexpected Steam Community URL format: " + url);
+        }
+
+        var appId = parameters.FirstOrDefault(p => p.StartsWith("appid"));
+        if (appId is null)
+        {
+            throw new RipperException("Unexpected Steam Community URL format: " + url);
+        }
+            
+        var normalizedUrl = $"{parts[0]}?{appId}";
+        return normalizedUrl;
+    }
+
     private static string NormalizeYoutubeUrl(string url)
+    {
+        return NormalizeUrl(url, strict: false, "v");
+    }
+
+    private static string NormalizeUrl(string url, bool strict = true, params string[] parametersToKeep)
     {
         var uri = new Uri(url);
         var query = QueryHelpers.ParseQuery(uri.Query);
 
         var kept = new Dictionary<string, string?>();
-
-        if (query.TryGetValue("v", out var value))
+        foreach (var param in parametersToKeep)
         {
-            kept["v"] = value.ToString();
+            if (query.TryGetValue(param, out var value))
+            {
+                kept[param] = value.ToString();
+            }
+            else if (strict)
+            {
+                throw new RipperException($"Unexpected URL format: {url}; Missing parameter: {param}");
+            }
         }
-
+        
         var baseUrl = uri.GetLeftPart(UriPartial.Path);
         var newUrl = QueryHelpers.AddQueryString(baseUrl, kept);
         return newUrl;
@@ -411,14 +427,14 @@ public partial class NicheImageRipper : IDisposable
         OnProgressChanged?.Invoke(current, total);
     }
 
-    public void SaveData()
+    public async Task SaveData()
     {
         SaveUnfinishedUrls();
 
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
         {
-            File.WriteAllText(".ripIndex", Ripper.GenerateSavePosition());
+            await Ripper.SaveCurrentRipPosition();
         }
 
         Config.SaveConfig();
@@ -432,6 +448,11 @@ public partial class NicheImageRipper : IDisposable
         }
     }
 
+    public static Task SkipEntry()
+    {
+        return ImageRipper.IncrementCurrentRipPosition();
+    }
+    
     public static void ClearCache()
     {
         SilentlyRemoveFiles(".ripIndex", "partial.json", "ripState.json");

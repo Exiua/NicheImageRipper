@@ -1,0 +1,19 @@
+namespace Core.Utility;
+
+public static class CacheUtility
+{
+    public static async Task<(string, int)> ReadRipIndex(string ripIndexPath)
+    {
+        var savePosition = await File.ReadAllTextAsync(ripIndexPath);
+        var split = savePosition.Split("|");
+        var saveUrl = split[0];
+        var start = int.Parse(split[1]);
+        return (saveUrl, start);
+    }
+
+    public static async Task SaveRipIndex(string ripIndexPath, string saveUrl, int start)
+    {
+        var position = $"{saveUrl}|{start}";
+        await File.WriteAllTextAsync(ripIndexPath, position);
+    }
+}

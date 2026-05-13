@@ -368,9 +368,9 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         NicheImageRipper.ClearCache();
     }
 
-    public void Save()
+    public Task Save()
     {
-        _ripper.SaveData();
+        return _ripper.SaveData();
     }
 
     public void LoadUrls(List<string> urls)

@@ -93,15 +93,7 @@ public static class SeleniumExtensionMethods
     public static void SetCookie(this ICookieJar cookieJar, string cookieName, string newCookieValue)
     {
         var newCookie = new Cookie(cookieName, newCookieValue);
-        var cookie = cookieJar.GetCookieNamed(cookieName);
-        if (cookie is not null)
-        {
-            cookieJar.DeleteCookie(cookie);
-            newCookie = new Cookie(cookieName, newCookieValue, cookie.Domain, cookie.Path, cookie.Expiry, cookie.Secure,
-                cookie.IsHttpOnly, cookie.SameSite);
-        }
-        
-        cookieJar.AddCookie(newCookie);
+        cookieJar.SetCookie(newCookie);
     }
     
     public static void SetCookie(this ICookieJar cookieJar, Cookie cookie)
@@ -111,6 +103,8 @@ public static class SeleniumExtensionMethods
         {
             Log.Debug("Replacing existing cookie: {CookieName}", cookie.Name);
             cookieJar.DeleteCookie(existingCookie);
+            cookie = new Cookie(cookie.Name, cookie.Value, existingCookie.Domain, existingCookie.Path, existingCookie.Expiry, existingCookie.Secure,
+                existingCookie.IsHttpOnly, existingCookie.SameSite);
         }
         else
         {
@@ -118,6 +112,29 @@ public static class SeleniumExtensionMethods
         }
         
         cookieJar.AddCookie(cookie);
+    }
+
+    public static void SetOrUpdateCookie(this IWebDriver driver, string cookieName, string cookieValue)
+    {
+        var cookieJar = driver.GetCookieJar();
+        var existingCookie = cookieJar.GetCookieNamed(cookieName);
+        if (existingCookie is not null)
+        {
+            var existingValue = existingCookie.Value;
+            if (existingValue != cookieValue)
+            {
+                Log.Debug("Replacing existing cookie: {CookieName}", cookieName);
+                cookieJar.SetCookie(cookieName, cookieValue);
+            }
+            else
+            {
+                Log.Debug("Cookie already has correct value");
+            }
+        }
+        else
+        {
+            cookieJar.AddCookie(cookieName, cookieValue);
+        }
     }
     
     public static string GetSrc(this IWebElement element)

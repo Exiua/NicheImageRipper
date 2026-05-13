@@ -109,6 +109,11 @@ public class RemoteRipperClient : IRipperClient
         return _backendConnector.GetHistoryCountAsync();
     }
 
+    public Task SkipCurrentEntry()
+    {
+        throw new NotImplementedException();
+    }
+
     public void Dispose()
     {
         GC.SuppressFinalize(this);

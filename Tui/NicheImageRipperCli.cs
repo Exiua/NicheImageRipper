@@ -273,7 +273,7 @@ public class NicheImageRipperCli : NicheImageRipper
                         break;
                     case "q" or "quit":
                         LogMessageToFile("Exiting...");
-                        SaveData();
+                        await SaveData();
                         //HtmlParser.Dispose();
                         return;
                     case "queue":
@@ -306,7 +306,7 @@ public class NicheImageRipperCli : NicheImageRipper
 
                         break;
                     case "save":
-                        SaveData();
+                        await SaveData();
                         LogMessageToFile("Data saved");
                         break;
                     case "skip":
