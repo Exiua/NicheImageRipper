@@ -11,4 +11,8 @@
       <PackageReference Include="SteamKit2" Version="3.4.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Common\Common.csproj" />
+    </ItemGroup>
+
 </Project>

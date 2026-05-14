@@ -2,6 +2,7 @@
 using SteamKit2;
 using SteamKit2.Authentication;
 using SteamKit2.Internal;
+using Common.ExtensionMethods;
 
 namespace SteamApiClient;
 
@@ -15,21 +16,22 @@ public class SteamApiClient
     private readonly SteamUser _steamUser;
     private readonly SteamApps _steamApps;
     private readonly SteamUnifiedMessages _steamUnifiedMessages;
-    private readonly string _username;
-    private readonly string _password;
+    private readonly SteamKit2.CDN.Client _cdnClient;
     private readonly TaskCompletionSource _loginTcs = new();
+    
+    private string _username = "";
+    private string _password = "";
 
     private string? _previouslyStoredGuardData;
 
-    public SteamApiClient(string username, string password)
+    public SteamApiClient()
     {
-        _username = username;
-        _password = password;
         _steamClient = new SteamClient();
         _manager = new CallbackManager(_steamClient);
         _steamUser = _steamClient.GetHandler<SteamUser>()!;
         _steamApps = _steamClient.GetHandler<SteamApps>()!;
         _steamUnifiedMessages = _steamClient.GetHandler<SteamUnifiedMessages>()!;
+        _cdnClient = new SteamKit2.CDN.Client(_steamClient);
 
         _manager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
         _manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
@@ -38,11 +40,19 @@ public class SteamApiClient
         _manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
     }
 
-    public async Task LoginAsync(CancellationToken cancellationToken)
+    public async Task LoginAsync(string username, string password, CancellationToken cancellationToken = default)
     {
+        if (_username == username)
+        {
+            // _username can only be set via this method, so if set to provided username, must already be logged in
+            return;
+        }
+        
+        _username = username;
+        _password = password;
+        
         _steamClient.Connect();
 
-        // Pump callbacks only until login completes
         await Task.Run(() =>
         {
             while (!_loginTcs.Task.IsCompleted)
@@ -51,7 +61,8 @@ public class SteamApiClient
             }
         }, cancellationToken);
 
-        await _loginTcs.Task.WaitAsync(cancellationToken);
+        // Propagate any login exception
+        await _loginTcs.Task;
     }
 
     private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -60,7 +71,7 @@ public class SteamApiClient
         {
             Logger.Warning("Steam requested another CM; reconnecting...");
             _steamClient.Disconnect();
-            Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ => _steamClient.Connect());
+            //Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ => _steamClient.Connect());
             return;
         }
 
@@ -83,13 +94,18 @@ public class SteamApiClient
 
         if (!_loginTcs.Task.IsCompleted)
         {
-            _loginTcs.SetException(new InvalidOperationException("Disconnected before login completed."));
+            _steamClient.Connect();
         }
     }
 
     public async Task DownloadWorkshopFileAsync(ulong publishedFileId, string outputPath,
                                                 CancellationToken cancellationToken = default)
     {
+        if (_username.IsNullOrEmpty())
+        {
+            throw new InvalidOperationException("Must call LoginAsync before downloading workshop file.");
+        }
+        
         Logger.Information("Downloading workshop file {PublishedFileId}", publishedFileId);
 
         var service = _steamUnifiedMessages.CreateService<PublishedFile>();
@@ -97,21 +113,10 @@ public class SteamApiClient
         var detailsResponse = await service.GetDetails(
             new CPublishedFile_GetDetails_Request
             {
-                publishedfileids =
-                {
-                    publishedFileId
-                },
-                includetags = false,
+                publishedfileids = { publishedFileId },
                 includeadditionalpreviews = true,
                 includechildren = true,
-                includevotes = false,
-                includekvtags = false,
                 short_description = true,
-                includeforsaledata = false,
-                includemetadata = false,
-                language = 0,
-                return_playtime_stats = 0,
-                //appid = 0,
                 strip_description_bbcode = false,
             });
 
@@ -226,9 +231,7 @@ public class SteamApiClient
 
         Logger.Information("Manifest request code: {Code}", manifestCodeResponse.Body.manifest_request_code);
 
-        var cdnClient = new SteamKit2.CDN.Client(_steamClient);
-
-        var manifest = await cdnClient.DownloadManifestAsync(
+        var manifest = await _cdnClient.DownloadManifestAsync(
             depotId: target.AppId,
             manifestId: target.ManifestId,
             manifestRequestCode: manifestCodeResponse.Body.manifest_request_code,
@@ -268,7 +271,7 @@ public class SteamApiClient
 
                 var destination = new byte[chunk.UncompressedLength];
 
-                await cdnClient.DownloadDepotChunkAsync(
+                await _cdnClient.DownloadDepotChunkAsync(
                     target.AppId, chunk, target.Server, destination, target.DepotKey);
 
                 fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
@@ -332,6 +335,7 @@ public class SteamApiClient
         catch (Exception e)
         {
             Logger.Error(e, "Error while connecting to Steam");
+            _loginTcs.TrySetException(e);
         }
     }
 

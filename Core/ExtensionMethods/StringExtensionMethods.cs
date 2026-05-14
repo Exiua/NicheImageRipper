@@ -82,11 +82,6 @@ public static class StringExtensionMethods
         }
     }
 
-    public static bool IsNullOrEmpty([NotNullWhen(false)]this string? s)
-    {
-        return string.IsNullOrEmpty(s);
-    }
-
     public static string JoinWith(this IEnumerable<string> values, string separator)
     {
         return string.Join(separator, values);

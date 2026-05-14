@@ -7,7 +7,7 @@ using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
 using Core.Managers;
-using Serilog;
+using Common.ExtensionMethods;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
