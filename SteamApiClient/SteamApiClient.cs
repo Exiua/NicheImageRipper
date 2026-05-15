@@ -98,7 +98,7 @@ public class SteamApiClient
         }
     }
 
-    public async Task DownloadWorkshopFileAsync(ulong publishedFileId, string outputPath,
+    public async Task DownloadWorkshopFileAsync(ulong publishedFileId, string outputBaseDirectory,
                                                 CancellationToken cancellationToken = default)
     {
         if (_username.IsNullOrEmpty())
@@ -129,6 +129,8 @@ public class SteamApiClient
             details.filename,
             details.file_size,
             details.hcontent_file);
+
+        var outputPath = Path.Combine(outputBaseDirectory, publishedFileId.ToString());
 
         if (!string.IsNullOrEmpty(details.file_url))
         {
@@ -282,6 +284,90 @@ public class SteamApiClient
         Logger.Information("Download complete. output={OutputPath}", outputPath);
     }
 
+    public async Task<IReadOnlyList<PublishedFileDetails>> GetUserWorkshopItemsAsync(
+        ulong steamId,
+        uint appId,
+        CancellationToken cancellationToken = default)
+    {
+        Logger.Information(
+            "Getting workshop items for user {SteamId}, app {AppId}",
+            steamId, appId);
+
+        var service = _steamUnifiedMessages.CreateService<PublishedFile>();
+
+        const uint pageSize = 100;
+        var results = new List<PublishedFileDetails>();
+        uint page = 1;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var response = await service.GetUserFiles(
+                new CPublishedFile_GetUserFiles_Request
+                {
+                    steamid   = steamId,
+                    appid     = appId,
+                    page      = page,
+                    numperpage = pageSize,
+                    sortmethod = "lastupdated",
+                });
+
+            var files = response.Body.publishedfiledetails;
+
+            if (files.Count == 0)
+            {
+                break;
+            }
+
+            results.AddRange(files);
+
+            Logger.Information(
+                "Fetched page {Page}, got {Count} items, total so far {Total}",
+                page, files.Count, results.Count);
+
+            if (results.Count >= (int)response.Body.total)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        Logger.Information(
+            "Found {Total} workshop items for user {SteamId}, app {AppId}",
+            results.Count, steamId, appId);
+
+        return results;
+    } 
+    
+    public async Task<string> GetPersonaNameAsync(
+        ulong steamId,
+        CancellationToken cancellationToken = default)
+    {
+        Logger.Information("Getting persona name for {SteamId}", steamId);
+
+        var service = _steamUnifiedMessages.CreateService<Player>();
+
+        var response = await service.GetPlayerLinkDetails(
+            new CPlayer_GetPlayerLinkDetails_Request
+            {
+                steamids = { steamId }
+            });
+
+        var name = response.Body.accounts.Single().public_data.persona_name;
+
+        if (string.IsNullOrEmpty(name))
+        {
+            Logger.Warning("Persona name was empty for SteamID {SteamId}", steamId);
+            return steamId.ToString();
+        }
+
+        Logger.Information("Resolved persona name: {Name}", name);
+
+        return name;
+    }
+    
     private async void OnConnected(SteamClient.ConnectedCallback callback)
     {
         try

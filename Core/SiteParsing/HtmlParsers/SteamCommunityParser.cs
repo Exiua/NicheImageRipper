@@ -42,7 +42,8 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
             throw new MissingCookieException(nameof(Config.Cookies.SteamCommunity));
         }
         
-        Driver.SetCookie("steamLoginSecure", Config.Cookies.SteamCommunity);
+        //Driver.SetCookie("steamLoginSecure", Config.Cookies.SteamCommunity, secure: true);
+        Driver.ExecuteScript($"document.cookie='steamLoginSecure={Config.Cookies.SteamCommunity};'");
         Driver.Refresh();
         var soup = await Soupify();
         string dirName;

@@ -16,7 +16,7 @@ public static class SeleniumExtensionMethods
             return null;
         }
     }
-    
+
     public static IWebElement? TryFindElement(this IWebElement webElement, By by)
     {
         try
@@ -28,7 +28,7 @@ public static class SeleniumExtensionMethods
             return null;
         }
     }
-    
+
     /// <summary>
     ///     Alias for <see cref="IWebDriver.Navigate().Refresh()"/>.
     ///     This method refreshes the current page in the browser.
@@ -39,19 +39,19 @@ public static class SeleniumExtensionMethods
     {
         if (hardRefresh)
         {
-            ((WebDriver) driver).ExecuteScript("location.reload(true);");
+            ((WebDriver)driver).ExecuteScript("location.reload(true);");
         }
         else
         {
             driver.Navigate().Refresh();
         }
     }
-    
+
     public static ICookieJar GetCookieJar(this IWebDriver driver)
     {
         return driver.Manage().Cookies;
     }
-    
+
     public static void ClearCookies(this IWebDriver driver)
     {
         driver.GetCookieJar().DeleteAllCookies();
@@ -66,7 +66,7 @@ public static class SeleniumExtensionMethods
     /// <param name="cookieValue">Value of the cookie</param>
     public static void AddCookie(this IWebDriver driver, string cookieName, string cookieValue)
     {
-        driver.GetCookieJar().AddCookie(new Cookie(cookieName, cookieValue));   
+        driver.GetCookieJar().AddCookie(new Cookie(cookieName, cookieValue));
     }
 
     /// <summary>
@@ -79,23 +79,27 @@ public static class SeleniumExtensionMethods
     {
         driver.GetCookieJar().AddCookie(cookie);
     }
-    
+
     public static void AddCookie(this ICookieJar cookieJar, string cookieName, string cookieValue)
     {
         cookieJar.AddCookie(new Cookie(cookieName, cookieValue));
     }
 
-    public static void SetCookie(this IWebDriver driver, string cookieName, string cookieValue)
+    public static void SetCookie(this IWebDriver driver, string cookieName, string cookieValue,
+                                 string? domain = null, string? path = null, DateTime? expiry = null,
+                                 bool secure = false, bool httpOnly = false, string? sameSite = null)
     {
-        driver.GetCookieJar().SetCookie(cookieName, cookieValue);
+        driver.GetCookieJar().SetCookie(cookieName, cookieValue, domain, path, expiry, secure, httpOnly, sameSite);
     }
 
-    public static void SetCookie(this ICookieJar cookieJar, string cookieName, string newCookieValue)
+    public static void SetCookie(this ICookieJar cookieJar, string cookieName, string newCookieValue,
+                                 string? domain = null, string? path = null, DateTime? expiry = null,
+                                 bool secure = false, bool httpOnly = false, string? sameSite = null)
     {
-        var newCookie = new Cookie(cookieName, newCookieValue);
+        var newCookie = new Cookie(cookieName, newCookieValue, domain, path, expiry, secure, httpOnly, sameSite);
         cookieJar.SetCookie(newCookie);
     }
-    
+
     public static void SetCookie(this ICookieJar cookieJar, Cookie cookie)
     {
         var existingCookie = cookieJar.GetCookieNamed(cookie.Name);
@@ -103,14 +107,15 @@ public static class SeleniumExtensionMethods
         {
             Log.Debug("Replacing existing cookie: {CookieName}", cookie.Name);
             cookieJar.DeleteCookie(existingCookie);
-            cookie = new Cookie(cookie.Name, cookie.Value, existingCookie.Domain, existingCookie.Path, existingCookie.Expiry, existingCookie.Secure,
+            cookie = new Cookie(cookie.Name, cookie.Value, existingCookie.Domain, existingCookie.Path,
+                existingCookie.Expiry, existingCookie.Secure,
                 existingCookie.IsHttpOnly, existingCookie.SameSite);
         }
         else
         {
             Log.Debug("Adding new cookie: {CookieName}", cookie.Name);
         }
-        
+
         cookieJar.AddCookie(cookie);
     }
 
@@ -136,7 +141,7 @@ public static class SeleniumExtensionMethods
             cookieJar.AddCookie(cookieName, cookieValue);
         }
     }
-    
+
     public static string GetSrc(this IWebElement element)
     {
         var src = element.GetDomAttribute("src");
@@ -144,10 +149,10 @@ public static class SeleniumExtensionMethods
         {
             throw new NoSuchElementException("Element does not have a src attribute.");
         }
-        
+
         return src;
     }
-    
+
     public static string GetHref(this IWebElement element)
     {
         var href = element.GetDomAttribute("href");
@@ -155,28 +160,28 @@ public static class SeleniumExtensionMethods
         {
             throw new NoSuchElementException("Element does not have a href attribute.");
         }
-        
+
         return href;
     }
-    
+
     public static void ScrollElementIntoView(this IWebDriver driver, IWebElement element)
     {
-        ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
+        ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
     }
 
     public static void Click(this IWebDriver driver, IWebElement element)
     {
-        ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].click();", element);
+        ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", element);
     }
-    
+
     public static void RemoveElement(this IWebDriver driver, IWebElement element)
     {
-        ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].remove();", element);
+        ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].remove();", element);
     }
-    
+
     public static long GetScrollHeight(this IWebDriver driver)
     {
-        var height = ((IJavaScriptExecutor) driver).ExecuteScript("return window.pageYOffset;");
+        var height = ((IJavaScriptExecutor)driver).ExecuteScript("return window.pageYOffset;");
         return height switch
         {
             long l => l,
@@ -188,11 +193,12 @@ public static class SeleniumExtensionMethods
     public static Cookie ToSeleniumCookie(this FlareSolverrIntegration.Responses.Cookie cookie)
     {
         var expiration = DateTimeOffset.FromUnixTimeSeconds(cookie.Expiry).UtcDateTime;
-        var seleniumCookie = new Cookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path, expiration, cookie.Secure, 
+        var seleniumCookie = new Cookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path, expiration,
+            cookie.Secure,
             cookie.HttpOnly, cookie.SameSite);
         return seleniumCookie;
     }
-    
+
     public static bool DoElementsOverlap(this IWebDriver driver, IWebElement element1, IWebElement element2)
     {
         var rect1 = element1.Location;
