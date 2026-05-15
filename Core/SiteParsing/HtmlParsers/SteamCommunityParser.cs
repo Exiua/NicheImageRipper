@@ -3,9 +3,11 @@ using Core.DataStructures;
 using Core.Enums;
 using Core.Exceptions;
 using Core.ExtensionMethods;
+using Core.FileDownloading;
 using Core.Managers;
 using Core.Utility;
 using HtmlAgilityPack;
+using Microsoft.AspNetCore.WebUtilities;
 using OpenQA.Selenium;
 using Serilog;
 using NotSupportedException = Core.Exceptions.NotSupportedException;
@@ -30,106 +32,53 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse()
     {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.SteamCmd))
+        var (username, password) = Config.Logins.SteamCommunity;
+        if (username.IsNullOrEmpty())
         {
-            Logger.Error("SteamCmd is not available, cannot parse steamcommunity.com");
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.SteamCmd);
+            throw new RipperException(
+                "No username found for steamcommunity.com, cannot parse. Please provide a username in the config file.");
         }
 
-        if (Config.Cookies.SteamCommunity.IsNullOrEmpty())
-        {
-            Logger.Error("No cookies found for steamcommunity.com, cannot parse. Please provide cookies in the config file.");
-            throw new MissingCookieException(nameof(Config.Cookies.SteamCommunity));
-        }
-        
-        //Driver.SetCookie("steamLoginSecure", Config.Cookies.SteamCommunity, secure: true);
-        Driver.ExecuteScript($"document.cookie='steamLoginSecure={Config.Cookies.SteamCommunity};'");
-        Driver.Refresh();
-        var soup = await Soupify();
+        var client = ImageRipper.ClientManager.SteamApiClient;
+        await client.LoginAsync(username, password);
+        ulong steamId;
         string dirName;
-        List<StringImageLinkWrapper> images;
-        if (CurrentUrl.Contains("/myworkshopfiles/"))
+        if (CurrentUrl.Contains("/profiles/"))
         {
-            dirName  = soup.SelectSingleNodeOrThrow("//span[@id='HeaderUserInfoName']/a").InnerText;
-            var itemPosts = new List<string>();
-            var pageCount = 1;
-            while (true)
-            {
-                Logger.Information("Parsing page {PageCount} of workshop items...", pageCount);
-                pageCount++;
-                var items = soup.SelectSingleNodeOrThrow("//div[@class='workshopBrowseItems']")
-                                .SelectNodesOrThrow("./div");
-                itemPosts.AddRange(items.Select(item => item.SelectSingleNodeOrThrow("./a").GetHref()));
-                var nextButton = Driver.TryFindElement(By.XPath("//div[@class='workshopBrowsePagingControls']/*[contains(@class, 'pagebtn')][last()]"));
-                // nextButton is null if one page
-                if(nextButton is null || nextButton.GetAttribute("class")!.Contains("disabled"))
-                {
-                    break;
-                }
-                
-                nextButton.Click();
-                soup = await Soupify(delay: 500);
-            }
-
-            images = [];
-            foreach (var (i, post) in itemPosts.Enumerate())
-            {
-                Logger.Information("Parsing workshop item {ItemIndex}/{TotalItems}...", i + 1, itemPosts.Count);
-                const int maxAttempts = 3;
-                for (var attempt = 0; attempt < maxAttempts; attempt++)
-                {
-                    try
-                    {
-                        soup = await Soupify(post, delay: 250);
-                        var (_, url) = ExtractUrl(soup);
-                        var imageLink = new ImageLink(url, FilenameScheme, 0)
-                        {
-                            Filename = "discard",
-                            LinkInfo = LinkInfo.SteamCommunity,
-                        };
-                        images.Add(imageLink);
-                        break;
-                    }
-                    catch (Common.Exceptions.ElementNotFoundException)
-                    {
-                        if (i == maxAttempts - 1)
-                        {
-                            Logger.Error("Failed to parse workshop item after {MaxAttempts} attempts", maxAttempts);
-                            throw;
-                        }
-                        
-                        Logger.Information("Rate-limit detected. Waiting...");
-                        await Sleep(10000);
-                    }
-                }
-            }
+            var idString = CurrentUrl.Split("/")[4];
+            steamId = ulong.Parse(idString);
+            dirName = await client.GetPersonaNameAsync(steamId);
         }
-        else if (CurrentUrl.Contains("/sharedfiles/"))
+        else if (CurrentUrl.Contains("/id/"))
         {
-            (dirName, var url) = ExtractUrl(soup);
-            var imageLink = new ImageLink(url, FilenameScheme, 0)
-            {
-                Filename = "discard",
-                LinkInfo = LinkInfo.SteamCommunity,
-            };
-            images = [imageLink];
+            var vanityName = CurrentUrl.Split("/")[4];
+            steamId = await client.ResolveVanityUrlAsync(vanityName);
+            dirName = vanityName;
         }
         else
         {
-            throw new NotSupportedException("SteamCommunityParser", $"Url not supported: {CurrentUrl}");
+            throw new RipperException($"Unknown url format provided: {CurrentUrl}");
         }
+
+        var uri = new Uri(CurrentUrl);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        if (!query.TryGetValue("appid", out var appIdString))
+        {
+            appIdString =
+                "431960"; // This is mainly for getting Wallpaper Engine items, other types are not really supported atm
+        }
+
+        var appId = uint.Parse(appIdString!);
+        var files = await client.GetUserWorkshopItemsAsync(steamId, appId);
+        var images = files.Select(file => file.publishedfileid)
+                          .Select(fileId => FormatSteamWorkshopDownloadUrl(appId.ToString(), fileId.ToString()))
+                          .Select(url => new ImageLink(url, FilenameScheme, 0)
+                               { Filename = "discard", LinkInfo = LinkInfo.SteamCommunity, })
+                          .Select(imageLink => (StringImageLinkWrapper)imageLink).ToList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private (string, string) ExtractUrl(HtmlNode soup)
-    {
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='workshopItemTitle']").InnerText;
-        var appId = soup.SelectSingleNodeOrThrow("//div[@class='breadcrumbs']/a").GetHref().Split("/")[^1];
-        var fileId = CurrentUrl.Split("id=")[^1].Split("&")[0];
-        return (dirName, FormatSteamWorkshopDownloadUrl(appId, fileId));
-    }
-    
     private static string FormatSteamWorkshopDownloadUrl(string appId, string fileId)
     {
         // The URL doesn't matter, the extractor will use the appId and fileId to download the file using steamcmd.
