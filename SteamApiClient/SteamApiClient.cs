@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using System.Net.Http.Json;
+using System.Text.Json;
+using Serilog;
 using SteamKit2;
 using SteamKit2.Authentication;
 using SteamKit2.Internal;
@@ -366,6 +368,34 @@ public class SteamApiClient
         Logger.Information("Resolved persona name: {Name}", name);
 
         return name;
+    }
+    
+    public async Task<ulong> ResolveVanityUrlAsync(
+        string vanityUrl,
+        CancellationToken cancellationToken = default)
+    {
+        Logger.Information("Resolving vanity URL {VanityUrl}", vanityUrl);
+
+        var response = await Http.GetAsync(
+            $"https://steamcommunity.com/id/{Uri.EscapeDataString(vanityUrl)}/?xml=1",
+            cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        var doc = System.Xml.Linq.XDocument.Parse(content);
+        var steamIdElement = doc.Root?.Element("steamID64");
+
+        if (steamIdElement == null)
+        {
+            throw new InvalidOperationException(
+                $"Failed to resolve vanity URL '{vanityUrl}': profile not found");
+        }
+
+        var steamId = ulong.Parse(steamIdElement.Value);
+
+        Logger.Information("Resolved {VanityUrl} -> {SteamId}", vanityUrl, steamId);
+
+        return steamId;
     }
     
     private async void OnConnected(SteamClient.ConnectedCallback callback)
