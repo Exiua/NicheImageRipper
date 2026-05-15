@@ -1434,59 +1434,18 @@ public partial class ImageRipper : IDisposable
         var ids = url.Split('/')[^1].Split('|');
         var appId = ids[0];
         var fileId = ids[1];
-        var username = Config.Custom.SteamCommunity.Username;
+        var (username, password) = Config.Logins.SteamCommunity;
 
-        var (exitCode, stdout, _) = await RunSubprocess("steamcmd",
-            ["+login", username, "+workshop_download_item", appId, fileId, "+quit"], captureOutput: true);
-
-        if (exitCode != 0)
+        var client = ClientManager.SteamApiClient;
+        try
         {
+            await client.LoginAsync(username, password);
+            await client.DownloadWorkshopFileAsync(ulong.Parse(fileId), destinationFolder);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Failed to download Steam Community file");
             return false;
-        }
-
-        string? sourceFolder = null;
-        foreach (var line in stdout!.Split("\n"))
-        {
-            if (!line.StartsWith("Success. Downloaded item"))
-            {
-                continue;
-            }
-
-            sourceFolder = ExtractDownloadPath(line);
-            Logger.Debug("Downloaded file path: {Path}", sourceFolder);
-            break;
-        }
-
-        if (sourceFolder is null)
-        {
-            Logger.Error("Failed to find downloaded file path in steamcmd output");
-            return false;
-        }
-
-        var wallpaperEngineOverride = true;
-        if (appId == "431960" && wallpaperEngineOverride)
-        {
-            foreach (var file in Directory.EnumerateFiles(
-                         sourceFolder,
-                         "*",
-                         SearchOption.AllDirectories))
-            {
-                var ext = Path.GetExtension(file);
-                if (!MediaExtensions.Contains(ext))
-                {
-                    continue;
-                }
-
-                CopyWithIncrement(file, destinationFolder);
-            }
-
-            Directory.Delete(sourceFolder, true);
-        }
-        else
-        {
-            var destPath = Path.Combine(destinationFolder, Path.GetFileName(sourceFolder));
-            CopyFolder(sourceFolder, destPath);
-            Logger.Debug("Moved downloaded file to: {DestPath}", destPath);
         }
 
         return true;

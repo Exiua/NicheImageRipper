@@ -4,15 +4,13 @@ public class CustomConfig
 {
     public V2PHConfig V2PH { get; set; } = null!;
     public GoFileConfig GoFile { get; set; } = null!;
-    public SteamCommunityConfig SteamCommunity { get; set; } = null!;
     
     public static CustomConfig New()
     {
         return new CustomConfig
         {
             V2PH = V2PHConfig.New(),
-            GoFile = GoFileConfig.New(),
-            SteamCommunity = SteamCommunityConfig.New()
+            GoFile = GoFileConfig.New()
         };
     }
     
@@ -46,20 +44,6 @@ public class CustomConfig
             {
                 AccountToken = "",
                 LoginLink = ""
-            };
-        }
-    }
-    
-    public class SteamCommunityConfig
-    {
-        public required string Username { get; set; }
-        
-        // ReSharper disable once MemberHidesStaticFromOuterClass
-        public static SteamCommunityConfig New()
-        {
-            return new SteamCommunityConfig
-            {
-                Username = "",
             };
         }
     }

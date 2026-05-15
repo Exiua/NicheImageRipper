@@ -15,6 +15,7 @@ public class LoginConfig
     public Credentials? E621 { get; set; }
     [JsonPropertyName("E-Hentai")]
     public Credentials? EHentai { get; set; }
+    public Credentials? SteamCommunity { get; set; }
 
     public static LoginConfig FromCoreLoginConfig(Core.Configuration.LoginConfig generalConfigLogins)
     {
@@ -29,7 +30,8 @@ public class LoginConfig
             Rule34 = Credentials.FromCoreCredentials(generalConfigLogins.Rule34),
             Yandere = Credentials.FromCoreCredentials(generalConfigLogins.Yandere),
             E621 = Credentials.FromCoreCredentials(generalConfigLogins.E621),
-            EHentai = Credentials.FromCoreCredentials(generalConfigLogins.EHentai)
+            EHentai = Credentials.FromCoreCredentials(generalConfigLogins.EHentai),
+            SteamCommunity = Credentials.FromCoreCredentials(generalConfigLogins.SteamCommunity),
         };
         return config;
     }

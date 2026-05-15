@@ -6,4 +6,5 @@ namespace Core.Managers;
 public class ApiClientManager
 {
     public PixivApiClient PixivClient { get; set; } = new();
+    public SteamApiClient.SteamApiClient SteamApiClient { get; set; } = new();
 }

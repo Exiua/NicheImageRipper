@@ -4,7 +4,6 @@ public class CustomConfig
 {
     public V2PHConfig? V2PH { get; set; }
     public GoFileConfig? GoFile { get; set; }
-    public SteamCommunityConfig? SteamCommunity { get; set; }
     
     public class V2PHConfig
     {
@@ -17,11 +16,6 @@ public class CustomConfig
     {
         public string? AccountToken { get; set; }
         public string? LoginLink { get; set; }
-    }
-    
-    public class SteamCommunityConfig
-    {
-        public string? Username { get; set; }
     }
 
     public static CustomConfig FromCoreCustomConfig(Core.Configuration.CustomConfig generalConfigCustom)
@@ -38,10 +32,6 @@ public class CustomConfig
             {
                 AccountToken = generalConfigCustom.GoFile.AccountToken,
                 LoginLink = generalConfigCustom.GoFile.LoginLink,
-            },
-            SteamCommunity = new SteamCommunityConfig
-            {
-                Username = generalConfigCustom.SteamCommunity.Username,
             }
         };
         return config;

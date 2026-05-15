@@ -31,6 +31,7 @@
       <ProjectReference Include="..\FlareSolverrIntegration\FlareSolverrIntegration.csproj" />
       <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
       <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
+      <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>

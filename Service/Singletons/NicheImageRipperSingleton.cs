@@ -218,6 +218,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             existingLogins.Yandere.UpdateCredentials(logins.Yandere);
             existingLogins.E621.UpdateCredentials(logins.E621);
             existingLogins.EHentai.UpdateCredentials(logins.EHentai);
+            existingLogins.SteamCommunity.UpdateCredentials(logins.SteamCommunity);
         }
 
         if (config.Keys is not null)
@@ -322,15 +323,6 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
                 if (goFile.LoginLink is not null)
                 {
                     existingCustom.GoFile.LoginLink = goFile.LoginLink;
-                }
-            }
-            
-            if (custom.SteamCommunity is not null)
-            {
-                var steamCommunity = custom.SteamCommunity;
-                if (steamCommunity.Username is not null)
-                {
-                    existingCustom.SteamCommunity.Username = steamCommunity.Username;
                 }
             }
         }
