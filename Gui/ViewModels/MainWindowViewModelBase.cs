@@ -539,8 +539,11 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
         catch (Exception e)
         {
-            Dispatcher.UIThread.Post(() => { Logger.LogError(e, "Error occurred while ripping"); });
-            SetProgressError();
+            Dispatcher.UIThread.Post(() =>
+            {
+                Logger.LogError(e, "Error occurred while ripping");
+                SetProgressError();
+            });
         }
         finally
         {

@@ -164,7 +164,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 
     private bool _paused;
 
-    public void OnLogTextChanged()
+    private void OnLogTextChanged()
     {
         Dispatcher.UIThread.Post(() =>
         {
