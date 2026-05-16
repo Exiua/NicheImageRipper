@@ -193,12 +193,12 @@ public class SteamApiClient
         var response = await directory.CallAsync(HttpMethod.Get, "GetServersForSteamPipe", 1,
             new Dictionary<string, object?>
             {
-                ["cell_id"] = 0,
+                ["cell_id"] = _steamClient.CellID ?? 0,
                 ["max_servers"] = 20,
             });
 
         var server = response["servers"].Children
-                                        .Where(s => s["type"].AsString() is "SteamCache")
+                                        .Where(s => s["type"].AsString() is "SteamCache" or "CDN")
                                         .Where(s => s["https_support"].AsString() == "mandatory")
                                         .Select(s => (SteamKit2.CDN.Server)new System.Net.DnsEndPoint(
                                              s["vhost"].AsString() ?? s["host"].AsString()!, 443))

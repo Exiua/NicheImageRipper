@@ -42,6 +42,8 @@ public partial class ImageRipper : IDisposable
     private const int MillisecondsInSecond = 1000;
     private const int MinimumFileSize = 1024; // 1KB minimum file size
 
+    internal static ApiClientManager ClientManager { get; } = new();
+    
     private static readonly string[] MediaExtensions =
     [
         ".jpg",
@@ -124,7 +126,6 @@ public partial class ImageRipper : IDisposable
     private double FailureThreshold { get; set; } = 0.5;
     private WebDriverPool DriverPool { get; }
     private WebDriver WebDriver { get; set; }
-    private ApiClientManager ClientManager { get; }
     private ILogger Logger { get; }
     public bool Paused { get; set; }
 
@@ -158,7 +159,6 @@ public partial class ImageRipper : IDisposable
         CurrentIndex = 0;
         DriverPool = driverPool;
         WebDriver = driverPool.AcquireDriver(true);
-        ClientManager = new ApiClientManager();
         Logger = Log.ForContext<ImageRipper>();
     }
 
@@ -1441,6 +1441,12 @@ public partial class ImageRipper : IDisposable
         {
             await client.LoginAsync(username, password);
             await client.DownloadWorkshopFileAsync(ulong.Parse(fileId), destinationFolder);
+        }
+        catch (SteamKit2.SteamKitWebRequestException e) when (e.Message.Contains("503"))
+        {
+            Logger.Warning(e, "Steam Community is currently unavailable (503), retrying...");
+            await Sleep(2500);
+            return false;
         }
         catch (Exception e)
         {
