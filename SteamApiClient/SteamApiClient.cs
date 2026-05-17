@@ -160,15 +160,22 @@ public class SteamApiClient
         uint AppId,
         ulong ManifestId,
         byte[] DepotKey,
-        SteamKit2.CDN.Server Server
+        List<SteamKit2.CDN.Server> Servers
     );
+    
+    private sealed class ServerSelector(IReadOnlyList<SteamKit2.CDN.Server> servers)
+    {
+        private int _index;
+        public SteamKit2.CDN.Server Current => servers[_index % servers.Count];
+        public void Rotate() => _index++;
+    }
 
     private async Task<DepotDownloadTarget> ResolveDepotTargetAsync(
         uint appId,
         ulong hcontentFile,
         CancellationToken cancellationToken)
     {
-        Logger.Information(
+        Logger.Debug(
             "Resolving depot target. app={AppId}, hcontent={HContent}",
             appId, hcontentFile);
 
@@ -197,20 +204,18 @@ public class SteamApiClient
                 ["max_servers"] = 20,
             });
 
-        var server = response["servers"].Children
-                                        .Where(s => s["type"].AsString() is "SteamCache" or "CDN")
-                                        .Where(s => s["https_support"].AsString() == "mandatory")
-                                        .Select(s => (SteamKit2.CDN.Server)new System.Net.DnsEndPoint(
-                                             s["vhost"].AsString() ?? s["host"].AsString()!, 443))
-                                        .First();
-
-        Logger.Information("Selected CDN server: {Host}", server.Host);
+        var servers = response["servers"].Children
+                                         .Where(s => s["type"].AsString() is "SteamCache" or "CDN")
+                                         .Where(s => s["https_support"].AsString() == "mandatory")
+                                         .Select(s => (SteamKit2.CDN.Server)new System.Net.DnsEndPoint(
+                                              s["vhost"].AsString() ?? s["host"].AsString()!, 443))
+                                         .ToList();
 
         return new DepotDownloadTarget(
             AppId: appId,
             ManifestId: hcontentFile,
             DepotKey: depotKeyResult.DepotKey,
-            Server: server);
+            Servers: servers);
     }
 
     private async Task DownloadDepotTargetAsync(
@@ -218,8 +223,9 @@ public class SteamApiClient
         string outputPath,
         CancellationToken cancellationToken)
     {
-        Logger.Information(
-            "Downloading depot target. app={AppId}, manifest={ManifestId}, output={OutputPath}",
+        Logger.Information("Downloading depot target");
+        Logger.Debug(
+            "App: {AppId}, Manifest: {ManifestId}, Output: {OutputPath}",
             target.AppId, target.ManifestId, outputPath);
 
         var contentService = _steamUnifiedMessages.CreateService<ContentServerDirectory>();
@@ -233,16 +239,18 @@ public class SteamApiClient
                 app_branch = "public",
             });
 
-        Logger.Information("Manifest request code: {Code}", manifestCodeResponse.Body.manifest_request_code);
+        Logger.Debug("Manifest request code: {Code}", manifestCodeResponse.Body.manifest_request_code);
 
+        var serverSelector = new ServerSelector(target.Servers);
+        
         var manifest = await _cdnClient.DownloadManifestAsync(
             depotId: target.AppId,
             manifestId: target.ManifestId,
             manifestRequestCode: manifestCodeResponse.Body.manifest_request_code,
-            server: target.Server,
+            server: serverSelector.Current,
             depotKey: target.DepotKey);
 
-        Logger.Information("Manifest resolved. Files={Count}", manifest.Files!.Count);
+        Logger.Information("Manifest resolved. Found {Count} files.", manifest.Files!.Count);
 
         Directory.CreateDirectory(outputPath);
 
@@ -273,17 +281,54 @@ public class SteamApiClient
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var destination = new byte[chunk.UncompressedLength];
-
-                await _cdnClient.DownloadDepotChunkAsync(
-                    target.AppId, chunk, target.Server, destination, target.DepotKey);
-
-                fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                await fs.WriteAsync(destination, cancellationToken);
+                await DownloadChunkWithRetryAsync(target, chunk, fs, serverSelector, cancellationToken);
             }
         }
 
-        Logger.Information("Download complete. output={OutputPath}", outputPath);
+        Logger.Information("Download complete");
+    }
+    
+    private async Task DownloadChunkWithRetryAsync(
+        DepotDownloadTarget target,
+        DepotManifest.ChunkData chunk,
+        FileStream fs,
+        ServerSelector serverSelector,
+        CancellationToken cancellationToken)
+    {
+        const int maxRetries = 5;
+        var delay = TimeSpan.FromSeconds(30);
+        var destination = new byte[chunk.UncompressedLength];
+
+        for (var attempt = 0; attempt < maxRetries; attempt++)
+        {
+            try
+            {
+                await _cdnClient.DownloadDepotChunkAsync(
+                    target.AppId, chunk, serverSelector.Current, destination, target.DepotKey);
+
+                fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                await fs.WriteAsync(destination, cancellationToken);
+                return;
+            }
+            catch (SteamKitWebRequestException ex) when (ex.StatusCode is
+                                                             System.Net.HttpStatusCode.ServiceUnavailable or
+                                                             System.Net.HttpStatusCode.TooManyRequests or
+                                                             System.Net.HttpStatusCode.InternalServerError)
+            {
+                if (attempt == maxRetries - 1)
+                {
+                    throw;
+                }
+
+                Logger.Warning(
+                    "CDN request failed with {Status} on {Host}, rotating server and retrying in {Delay}s (attempt {Attempt}/{Max})",
+                    ex.StatusCode, serverSelector.Current.Host, delay.TotalSeconds, attempt + 1, maxRetries);
+
+                //serverSelector.Rotate();
+                await Task.Delay(delay, cancellationToken);
+                delay *= 2;
+            }
+        }
     }
 
     public async Task<IReadOnlyList<PublishedFileDetails>> GetUserWorkshopItemsAsync(

@@ -227,6 +227,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     public event Action? LogTextChanged;
+    public event Action<int, int>? ProgressChanged;
+    public event Action? ProgressErrored;
     
     protected MainWindowViewModelBase(IRipperClient ripperClient, IRipperSettings ripperSettings,
                                       IGuiSettings guiSettings, ILogTextSource logTextSource, ILogger<MainWindowViewModelBase> logger)
@@ -571,8 +573,9 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private void OnProgressChanged(int current, int total)
     {
-        ProgressCurrent = (ulong)current;
-        ProgressTotal = (ulong)total;
+        // ProgressCurrent = (ulong)current;
+        // ProgressTotal = (ulong)total;
+        ProgressChanged?.Invoke(current, total);
     }
 
     public void LoadUnfinishedUrls(string path)
@@ -685,6 +688,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private void SetProgressError()
     {
-        ProgressHasError = true;
+        //ProgressHasError = true;
+        ProgressErrored?.Invoke();
     }
 }

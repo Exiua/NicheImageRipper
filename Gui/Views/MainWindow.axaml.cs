@@ -53,6 +53,46 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
         
         viewModel.LogTextChanged += OnLogTextChanged;
+        viewModel.ProgressChanged += (current, total) =>
+        {
+            if (_windowHandle == IntPtr.Zero)
+            {
+                return;
+            }
+
+            if (total == 0)
+            {
+                _taskbarProgressService.ClearProgress(_windowHandle);
+            }
+            else
+            {
+                _taskbarProgressService.SetProgress(_windowHandle, (ulong)current, (ulong)total);
+            }
+        };
+        viewModel.ProgressErrored += () =>
+        {
+            if (_windowHandle == IntPtr.Zero)
+            {
+                return;
+            }
+
+            _taskbarProgressService.SetError(_windowHandle);
+            // if (ViewModel.ProgressTotal == 0)
+            // {
+            //     _taskbarProgressService.ClearProgress(_windowHandle);
+            // }
+            // else if (ViewModel.ProgressIsPaused)
+            // {
+            //     _taskbarProgressService.SetPaused(_windowHandle);
+            // }
+            // else
+            // {
+            //     _taskbarProgressService.SetProgress(
+            //         _windowHandle,
+            //         ViewModel.ProgressCurrent,
+            //         ViewModel.ProgressTotal);
+            // }
+        };
         
         Closing += OnClosing;
         Opened += OnOpened;
@@ -62,81 +102,81 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             ViewModel!.ShowConfirmationDialog.RegisterHandler(DoShowDialogAsync).DisposeWith(disposables);
         });
         
-        this.WhenActivated(disposables =>
-        {
-            ViewModel!.WhenAnyValue(x => x.ProgressCurrent, x => x.ProgressTotal)
-                .Subscribe(tuple =>
-                {
-                    var (current, total) = tuple;
-
-                    if (_windowHandle == IntPtr.Zero)
-                    {
-                        return;
-                    }
-
-                    if (total == 0)
-                    {
-                        _taskbarProgressService.ClearProgress(_windowHandle);
-                    }
-                    else
-                    {
-                        _taskbarProgressService.SetProgress(_windowHandle, current, total);
-                    }
-                })
-                .DisposeWith(disposables);
-
-            ViewModel!.WhenAnyValue(x => x.ProgressHasError)
-                .Subscribe(hasError =>
-                {
-                    if (_windowHandle == IntPtr.Zero)
-                    {
-                        return;
-                    }
-
-                    if (hasError)
-                    {
-                        _taskbarProgressService.SetError(_windowHandle);
-                    }
-                    else if (ViewModel.ProgressTotal == 0)
-                    {
-                        _taskbarProgressService.ClearProgress(_windowHandle);
-                    }
-                    else if (ViewModel.ProgressIsPaused)
-                    {
-                        _taskbarProgressService.SetPaused(_windowHandle);
-                    }
-                    else
-                    {
-                        _taskbarProgressService.SetProgress(
-                            _windowHandle,
-                            ViewModel.ProgressCurrent,
-                            ViewModel.ProgressTotal);
-                    }
-                })
-                .DisposeWith(disposables);
-
-            ViewModel!.WhenAnyValue(x => x.ProgressIsPaused)
-                .Subscribe(isPaused =>
-                {
-                    if (_windowHandle == IntPtr.Zero || ViewModel.ProgressTotal == 0 || ViewModel.ProgressHasError)
-                    {
-                        return;
-                    }
-
-                    if (isPaused)
-                    {
-                        _taskbarProgressService.SetPaused(_windowHandle);
-                    }
-                    else
-                    {
-                        _taskbarProgressService.SetProgress(
-                            _windowHandle,
-                            ViewModel.ProgressCurrent,
-                            ViewModel.ProgressTotal);
-                    }
-                })
-                .DisposeWith(disposables);
-        });
+        // this.WhenActivated(disposables =>
+        // {
+        //     ViewModel!.WhenAnyValue(x => x.ProgressCurrent, x => x.ProgressTotal)
+        //         .Subscribe(tuple =>
+        //         {
+        //             var (current, total) = tuple;
+        //
+        //             if (_windowHandle == IntPtr.Zero)
+        //             {
+        //                 return;
+        //             }
+        //
+        //             if (total == 0)
+        //             {
+        //                 _taskbarProgressService.ClearProgress(_windowHandle);
+        //             }
+        //             else
+        //             {
+        //                 _taskbarProgressService.SetProgress(_windowHandle, current, total);
+        //             }
+        //         })
+        //         .DisposeWith(disposables);
+        //
+        //     ViewModel!.WhenAnyValue(x => x.ProgressHasError)
+        //         .Subscribe(hasError =>
+        //         {
+        //             if (_windowHandle == IntPtr.Zero)
+        //             {
+        //                 return;
+        //             }
+        //
+        //             if (hasError)
+        //             {
+        //                 _taskbarProgressService.SetError(_windowHandle);
+        //             }
+        //             else if (ViewModel.ProgressTotal == 0)
+        //             {
+        //                 _taskbarProgressService.ClearProgress(_windowHandle);
+        //             }
+        //             else if (ViewModel.ProgressIsPaused)
+        //             {
+        //                 _taskbarProgressService.SetPaused(_windowHandle);
+        //             }
+        //             else
+        //             {
+        //                 _taskbarProgressService.SetProgress(
+        //                     _windowHandle,
+        //                     ViewModel.ProgressCurrent,
+        //                     ViewModel.ProgressTotal);
+        //             }
+        //         })
+        //         .DisposeWith(disposables);
+        //
+        //     ViewModel!.WhenAnyValue(x => x.ProgressIsPaused)
+        //         .Subscribe(isPaused =>
+        //         {
+        //             if (_windowHandle == IntPtr.Zero || ViewModel.ProgressTotal == 0 || ViewModel.ProgressHasError)
+        //             {
+        //                 return;
+        //             }
+        //
+        //             if (isPaused)
+        //             {
+        //                 _taskbarProgressService.SetPaused(_windowHandle);
+        //             }
+        //             else
+        //             {
+        //                 _taskbarProgressService.SetProgress(
+        //                     _windowHandle,
+        //                     ViewModel.ProgressCurrent,
+        //                     ViewModel.ProgressTotal);
+        //             }
+        //         })
+        //         .DisposeWith(disposables);
+        // });
     }
     
     private void OnOpened(object? sender, EventArgs e)
