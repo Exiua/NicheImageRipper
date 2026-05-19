@@ -99,6 +99,7 @@ public partial class NicheImageRipper : IDisposable
 
     protected bool Debugging { get; set; }
 
+    private Exception? _lastException;
     private bool _disposed;
 
     static NicheImageRipper()
@@ -391,6 +392,7 @@ public partial class NicheImageRipper : IDisposable
                     $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
                 Logger.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
                 //OnUrlRipComplete?.Invoke();
+                _lastException = null;
                 break;
             }
             catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver", "timed out") && retry < MaxRetries - 1)
@@ -402,6 +404,7 @@ public partial class NicheImageRipper : IDisposable
             {
                 if (retry == MaxRetries - 1)
                 {
+                    _lastException = e;
                     Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
                     throw;
                 }

@@ -28,6 +28,7 @@ using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
+using SteamKit2;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.FileDownloading;
@@ -1442,10 +1443,22 @@ public partial class ImageRipper : IDisposable
             await client.LoginAsync(username, password);
             await client.DownloadWorkshopFileAsync(ulong.Parse(fileId), destinationFolder);
         }
-        catch (SteamKit2.SteamKitWebRequestException e) when (e.Message.Contains("503"))
+        catch (SteamKitWebRequestException e) when (e.Message.Contains("503"))
         {
             Logger.Warning(e, "Steam Community is currently unavailable (503), retrying...");
             await Sleep(2500);
+            return false;
+        }
+        catch (AsyncJobFailedException e)
+        {
+            Logger.Warning(e, "Failed to download Steam Community file, retrying...");
+            await client.LogoutAsync();
+            return false;
+        }
+        catch (HttpRequestException e) when (e.InnerException is IOException { InnerException: SocketException } ex)
+        {
+            Logger.Warning(ex, "Network error while trying to download Steam Community: {Url}", url);
+            await client.LogoutAsync();
             return false;
         }
         catch (Exception e)

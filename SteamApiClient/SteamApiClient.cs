@@ -47,9 +47,11 @@ public class SteamApiClient
         if (_username == username)
         {
             // _username can only be set via this method, so if set to provided username, must already be logged in
+            Logger.Debug("Already logged in");
             return;
         }
         
+        Logger.Debug("Logging in as {Username}", username);
         _username = username;
         _password = password;
         
@@ -65,6 +67,16 @@ public class SteamApiClient
 
         // Propagate any login exception
         await _loginTcs.Task;
+    }
+
+    public Task LogoutAsync(CancellationToken cancellationToken = default)
+    {
+        Logger.Information("Logging out");
+        _steamClient.Disconnect();
+        
+        _username = "";
+        _password = "";
+        return Task.CompletedTask;
     }
 
     private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -324,7 +336,7 @@ public class SteamApiClient
                     "CDN request failed with {Status} on {Host}, rotating server and retrying in {Delay}s (attempt {Attempt}/{Max})",
                     ex.StatusCode, serverSelector.Current.Host, delay.TotalSeconds, attempt + 1, maxRetries);
 
-                //serverSelector.Rotate();
+                serverSelector.Rotate();
                 await Task.Delay(delay, cancellationToken);
                 delay *= 2;
             }
