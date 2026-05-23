@@ -21,6 +21,9 @@ public class SteamApiClient
     private readonly SteamUnifiedMessages _steamUnifiedMessages;
     private readonly SteamKit2.CDN.Client _cdnClient;
     private readonly TaskCompletionSource _loginTcs = new();
+    private readonly
+        ConcurrentDictionary<(uint DepotId, string Host), (TaskCompletionSource<string> Tcs, long ExpiryUnix)>
+        _cdnAuthTokens = new();
 
     private string _username = "";
     private string _password = "";
@@ -113,10 +116,6 @@ public class SteamApiClient
         }
     }
 
-    private readonly
-        ConcurrentDictionary<(uint DepotId, string Host), (TaskCompletionSource<string> Tcs, long ExpiryUnix)>
-        _cdnAuthTokens = new();
-
     private async Task<string?> GetCdnAuthTokenAsync(uint depotId, string host)
     {
         var key = (depotId, host);
@@ -136,7 +135,7 @@ public class SteamApiClient
 
         if (!_cdnAuthTokens.TryAdd(key, placeholder))
         {
-            // Lost the race to another thread — use theirs
+            // Lost the race to another thread - use theirs
             return await _cdnAuthTokens[key].Tcs.Task;
         }
 
@@ -165,7 +164,7 @@ public class SteamApiClient
             Logger.Debug("Got CDN auth token for {Host}, expires {Expiry}",
                 host, DateTimeOffset.FromUnixTimeSeconds(response.Body.expiration_time));
 
-            // Update the entry with the real expiry now that we have it
+            // Update the entry with the real expiry
             _cdnAuthTokens[key] = (tcs, response.Body.expiration_time);
             tcs.SetResult(response.Body.token);
             return response.Body.token;
@@ -234,57 +233,6 @@ public class SteamApiClient
         await input.CopyToAsync(output, cancellationToken);
     }
 
-    private sealed record DepotDownloadTarget(
-        uint AppId,
-        ulong ManifestId,
-        byte[] DepotKey,
-        CdnServerPool ServerPool
-    );
-
-    private sealed class CdnServerPool
-    {
-        private readonly ConcurrentBag<SteamKit2.CDN.Server> _available;
-        private readonly ConcurrentBag<SteamKit2.CDN.Server> _broken;
-        private readonly ILogger _logger = Log.ForContext<CdnServerPool>();
-
-        public CdnServerPool(IReadOnlyList<SteamKit2.CDN.Server> servers)
-        {
-            _available = new ConcurrentBag<SteamKit2.CDN.Server>(servers);
-            _broken = new ConcurrentBag<SteamKit2.CDN.Server>();
-        }
-
-        public bool TryRent(out SteamKit2.CDN.Server server)
-        {
-            if (_available.TryTake(out server!))
-            {
-                return true;
-            }
-
-            // All servers exhausted — try recycling broken ones as last resort
-            if (_broken.TryTake(out server!))
-            {
-                _logger.Warning("All healthy servers exhausted, retrying broken server {Host}", server.Host);
-                return true;
-            }
-
-            return false;
-        }
-
-        public void Return(SteamKit2.CDN.Server server)
-        {
-            _available.Add(server);
-        }
-
-        public void MarkBroken(SteamKit2.CDN.Server server)
-        {
-            _logger.Warning("Marking server {Host} as broken", server.Host);
-            _broken.Add(server);
-        }
-
-        public int AvailableCount => _available.Count;
-        public int BrokenCount => _broken.Count;
-    }
-
     private async Task<DepotDownloadTarget> ResolveDepotTargetAsync(
         uint appId,
         ulong hcontentFile,
@@ -333,13 +281,6 @@ public class SteamApiClient
             DepotKey: depotKeyResult.DepotKey,
             ServerPool: new CdnServerPool(servers));
     }
-
-    private sealed record ChunkDownloadRequest(
-        DepotDownloadTarget Target,
-        DepotManifest.ChunkData Chunk,
-        FileStream FileStream,
-        SemaphoreSlim FileLock
-    );
 
     private async Task DownloadDepotTargetAsync(
         DepotDownloadTarget target,
