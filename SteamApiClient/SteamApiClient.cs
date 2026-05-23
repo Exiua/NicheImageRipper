@@ -1,5 +1,4 @@
-﻿using System.Net.Http.Json;
-using System.Text.Json;
+﻿using System.Collections.Concurrent;
 using Serilog;
 using SteamKit2;
 using SteamKit2.Authentication;
@@ -20,7 +19,7 @@ public class SteamApiClient
     private readonly SteamUnifiedMessages _steamUnifiedMessages;
     private readonly SteamKit2.CDN.Client _cdnClient;
     private readonly TaskCompletionSource _loginTcs = new();
-    
+
     private string _username = "";
     private string _password = "";
 
@@ -50,11 +49,11 @@ public class SteamApiClient
             Logger.Debug("Already logged in");
             return;
         }
-        
+
         Logger.Debug("Logging in as {Username}", username);
         _username = username;
         _password = password;
-        
+
         _steamClient.Connect();
 
         await Task.Run(() =>
@@ -73,7 +72,7 @@ public class SteamApiClient
     {
         Logger.Information("Logging out");
         _steamClient.Disconnect();
-        
+
         _username = "";
         _password = "";
         return Task.CompletedTask;
@@ -119,7 +118,7 @@ public class SteamApiClient
         {
             throw new InvalidOperationException("Must call LoginAsync before downloading workshop file.");
         }
-        
+
         Logger.Information("Downloading workshop file {PublishedFileId}", publishedFileId);
 
         var service = _steamUnifiedMessages.CreateService<PublishedFile>();
@@ -174,7 +173,7 @@ public class SteamApiClient
         byte[] DepotKey,
         List<SteamKit2.CDN.Server> Servers
     );
-    
+
     private sealed class ServerSelector(IReadOnlyList<SteamKit2.CDN.Server> servers)
     {
         private int _index;
@@ -213,7 +212,7 @@ public class SteamApiClient
             new Dictionary<string, object?>
             {
                 ["cell_id"] = _steamClient.CellID ?? 0,
-                ["max_servers"] = 20,
+                ["max_servers"] = 100,
             });
 
         var servers = response["servers"].Children
@@ -229,6 +228,13 @@ public class SteamApiClient
             DepotKey: depotKeyResult.DepotKey,
             Servers: servers);
     }
+
+    private sealed record ChunkDownloadRequest(
+        DepotDownloadTarget Target,
+        DepotManifest.ChunkData Chunk,
+        FileStream FileStream,
+        SemaphoreSlim FileLock
+    );
 
     private async Task DownloadDepotTargetAsync(
         DepotDownloadTarget target,
@@ -254,7 +260,7 @@ public class SteamApiClient
         Logger.Debug("Manifest request code: {Code}", manifestCodeResponse.Body.manifest_request_code);
 
         var serverSelector = new ServerSelector(target.Servers);
-        
+
         var manifest = await _cdnClient.DownloadManifestAsync(
             depotId: target.AppId,
             manifestId: target.ManifestId,
@@ -266,60 +272,101 @@ public class SteamApiClient
 
         Directory.CreateDirectory(outputPath);
 
-        foreach (var file in manifest.Files)
+        // Phase 1: pre-allocate all files and enqueue chunks
+        var chunkQueue = new ConcurrentQueue<ChunkDownloadRequest>();
+        var fileStreams = new Dictionary<string, (FileStream Stream, SemaphoreSlim Lock)>();
+
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var filePath = Path.Combine(outputPath,
-                file.FileName.Replace('/', Path.DirectorySeparatorChar));
-
-            if (file.Flags.HasFlag(EDepotFileFlag.Directory))
-            {
-                Directory.CreateDirectory(filePath);
-                continue;
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-
-            Logger.Information("Downloading {FileName} ({Size} bytes)", file.FileName, file.TotalSize);
-
-            await using var fs = new FileStream(
-                filePath, FileMode.Create, FileAccess.Write,
-                FileShare.None, bufferSize: 81920, useAsync: true);
-
-            fs.SetLength((long)file.TotalSize);
-
-            foreach (var chunk in file.Chunks.OrderBy(c => c.Offset))
+            foreach (var file in manifest.Files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await DownloadChunkWithRetryAsync(target, chunk, fs, serverSelector, cancellationToken);
+                var filePath = Path.Combine(outputPath,
+                    file.FileName.Replace('/', Path.DirectorySeparatorChar));
+
+                if (file.Flags.HasFlag(EDepotFileFlag.Directory))
+                {
+                    Directory.CreateDirectory(filePath);
+                    continue;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+                Logger.Information("Pre-allocating {FileName} ({Size} bytes)", file.FileName, file.TotalSize);
+
+                var fs = new FileStream(
+                    filePath, FileMode.Create, FileAccess.Write,
+                    FileShare.None, bufferSize: 81920, useAsync: true);
+
+                fs.SetLength((long)file.TotalSize);
+
+                var fileLock = new SemaphoreSlim(1, 1);
+                fileStreams[file.FileName] = (fs, fileLock);
+
+                foreach (var chunk in file.Chunks)
+                {
+                    chunkQueue.Enqueue(new ChunkDownloadRequest(target, chunk, fs, fileLock));
+                }
+            }
+
+            // Phase 2: download all chunks in parallel
+            Logger.Information("Downloading {Count} chunks across {Files} files",
+                chunkQueue.Count, fileStreams.Count);
+
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 10,
+                CancellationToken = cancellationToken,
+            };
+
+            await Parallel.ForEachAsync(chunkQueue, parallelOptions,
+                async (request, ct) => { await DownloadChunkWithRetryAsync(request, serverSelector, ct); });
+        }
+        finally
+        {
+            // Ensure all streams are closed even if download fails partway through
+            foreach (var (fs, fileLock) in fileStreams.Values)
+            {
+                await fs.DisposeAsync();
+                fileLock.Dispose();
             }
         }
 
         Logger.Information("Download complete");
     }
-    
+
     private async Task DownloadChunkWithRetryAsync(
-        DepotDownloadTarget target,
-        DepotManifest.ChunkData chunk,
-        FileStream fs,
+        ChunkDownloadRequest request,
         ServerSelector serverSelector,
         CancellationToken cancellationToken)
     {
         const int maxRetries = 5;
         var delay = TimeSpan.FromSeconds(30);
-        var destination = new byte[chunk.UncompressedLength];
+        var destination = new byte[request.Chunk.UncompressedLength];
 
         for (var attempt = 0; attempt < maxRetries; attempt++)
         {
             try
             {
                 await _cdnClient.DownloadDepotChunkAsync(
-                    target.AppId, chunk, serverSelector.Current, destination, target.DepotKey);
+                    request.Target.AppId,
+                    request.Chunk,
+                    serverSelector.Current,
+                    destination,
+                    request.Target.DepotKey);
 
-                fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                await fs.WriteAsync(destination, cancellationToken);
+                await request.FileLock.WaitAsync(cancellationToken);
+                try
+                {
+                    request.FileStream.Seek((long)request.Chunk.Offset, SeekOrigin.Begin);
+                    await request.FileStream.WriteAsync(destination, cancellationToken);
+                }
+                finally
+                {
+                    request.FileLock.Release();
+                }
+
                 return;
             }
             catch (SteamKitWebRequestException ex) when (ex.StatusCode is
@@ -365,9 +412,9 @@ public class SteamApiClient
             var response = await service.GetUserFiles(
                 new CPublishedFile_GetUserFiles_Request
                 {
-                    steamid   = steamId,
-                    appid     = appId,
-                    page      = page,
+                    steamid = steamId,
+                    appid = appId,
+                    page = page,
                     numperpage = pageSize,
                     sortmethod = "lastupdated",
                 });
@@ -398,8 +445,8 @@ public class SteamApiClient
             results.Count, steamId, appId);
 
         return results;
-    } 
-    
+    }
+
     public async Task<string> GetPersonaNameAsync(
         ulong steamId,
         CancellationToken cancellationToken = default)
@@ -426,7 +473,7 @@ public class SteamApiClient
 
         return name;
     }
-    
+
     public async Task<ulong> ResolveVanityUrlAsync(
         string vanityUrl,
         CancellationToken cancellationToken = default)
@@ -454,7 +501,7 @@ public class SteamApiClient
 
         return steamId;
     }
-    
+
     private async void OnConnected(SteamClient.ConnectedCallback callback)
     {
         try
