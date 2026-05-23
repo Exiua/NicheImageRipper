@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
+using System.Net;
 using Serilog;
 using SteamKit2;
 using SteamKit2.Authentication;
@@ -111,6 +113,71 @@ public class SteamApiClient
         }
     }
 
+    private readonly
+        ConcurrentDictionary<(uint DepotId, string Host), (TaskCompletionSource<string> Tcs, long ExpiryUnix)>
+        _cdnAuthTokens = new();
+
+    private async Task<string?> GetCdnAuthTokenAsync(uint depotId, string host)
+    {
+        var key = (depotId, host);
+
+        // If we have a valid non-expired token, return it
+        if (_cdnAuthTokens.TryGetValue(key, out var existing) &&
+            DateTimeOffset.UtcNow.ToUnixTimeSeconds() < existing.ExpiryUnix - 60)
+        {
+            return await existing.Tcs.Task;
+        }
+
+        // Remove stale/expired entry if present
+        _cdnAuthTokens.TryRemove(key, out _);
+
+        var tcs = new TaskCompletionSource<string>();
+        var placeholder = (tcs, ExpiryUnix: long.MaxValue); // placeholder expiry until we know the real one
+
+        if (!_cdnAuthTokens.TryAdd(key, placeholder))
+        {
+            // Lost the race to another thread — use theirs
+            return await _cdnAuthTokens[key].Tcs.Task;
+        }
+
+        try
+        {
+            Logger.Debug("Requesting CDN auth token for depot {DepotId} host {Host}", depotId, host);
+
+            var contentService = _steamUnifiedMessages.CreateService<ContentServerDirectory>();
+
+            var response = await contentService.GetCDNAuthToken(
+                new CContentServerDirectory_GetCDNAuthToken_Request
+                {
+                    depot_id = depotId,
+                    host_name = host,
+                    app_id = depotId,
+                });
+
+            if (response.Result != EResult.OK)
+            {
+                Logger.Warning("CDN auth token request failed for {Host}: {Result}", host, response.Result);
+                _cdnAuthTokens.TryRemove(key, out _);
+                tcs.SetResult(string.Empty);
+                return null;
+            }
+
+            Logger.Debug("Got CDN auth token for {Host}, expires {Expiry}",
+                host, DateTimeOffset.FromUnixTimeSeconds(response.Body.expiration_time));
+
+            // Update the entry with the real expiry now that we have it
+            _cdnAuthTokens[key] = (tcs, response.Body.expiration_time);
+            tcs.SetResult(response.Body.token);
+            return response.Body.token;
+        }
+        catch (Exception ex)
+        {
+            _cdnAuthTokens.TryRemove(key, out _);
+            tcs.TrySetException(ex);
+            throw;
+        }
+    }
+
     public async Task DownloadWorkshopFileAsync(ulong publishedFileId, string outputBaseDirectory,
                                                 CancellationToken cancellationToken = default)
     {
@@ -171,14 +238,51 @@ public class SteamApiClient
         uint AppId,
         ulong ManifestId,
         byte[] DepotKey,
-        List<SteamKit2.CDN.Server> Servers
+        CdnServerPool ServerPool
     );
 
-    private sealed class ServerSelector(IReadOnlyList<SteamKit2.CDN.Server> servers)
+    private sealed class CdnServerPool
     {
-        private int _index;
-        public SteamKit2.CDN.Server Current => servers[_index % servers.Count];
-        public void Rotate() => _index++;
+        private readonly ConcurrentBag<SteamKit2.CDN.Server> _available;
+        private readonly ConcurrentBag<SteamKit2.CDN.Server> _broken;
+        private readonly ILogger _logger = Log.ForContext<CdnServerPool>();
+
+        public CdnServerPool(IReadOnlyList<SteamKit2.CDN.Server> servers)
+        {
+            _available = new ConcurrentBag<SteamKit2.CDN.Server>(servers);
+            _broken = new ConcurrentBag<SteamKit2.CDN.Server>();
+        }
+
+        public bool TryRent(out SteamKit2.CDN.Server server)
+        {
+            if (_available.TryTake(out server!))
+            {
+                return true;
+            }
+
+            // All servers exhausted — try recycling broken ones as last resort
+            if (_broken.TryTake(out server!))
+            {
+                _logger.Warning("All healthy servers exhausted, retrying broken server {Host}", server.Host);
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Return(SteamKit2.CDN.Server server)
+        {
+            _available.Add(server);
+        }
+
+        public void MarkBroken(SteamKit2.CDN.Server server)
+        {
+            _logger.Warning("Marking server {Host} as broken", server.Host);
+            _broken.Add(server);
+        }
+
+        public int AvailableCount => _available.Count;
+        public int BrokenCount => _broken.Count;
     }
 
     private async Task<DepotDownloadTarget> ResolveDepotTargetAsync(
@@ -218,15 +322,16 @@ public class SteamApiClient
         var servers = response["servers"].Children
                                          .Where(s => s["type"].AsString() is "SteamCache" or "CDN")
                                          .Where(s => s["https_support"].AsString() == "mandatory")
-                                         .Select(s => (SteamKit2.CDN.Server)new System.Net.DnsEndPoint(
+                                         .Select(s => (SteamKit2.CDN.Server)new DnsEndPoint(
                                               s["vhost"].AsString() ?? s["host"].AsString()!, 443))
+                                         .Where(s => s.Host is not null)
                                          .ToList();
 
         return new DepotDownloadTarget(
             AppId: appId,
             ManifestId: hcontentFile,
             DepotKey: depotKeyResult.DepotKey,
-            Servers: servers);
+            ServerPool: new CdnServerPool(servers));
     }
 
     private sealed record ChunkDownloadRequest(
@@ -259,14 +364,28 @@ public class SteamApiClient
 
         Logger.Debug("Manifest request code: {Code}", manifestCodeResponse.Body.manifest_request_code);
 
-        var serverSelector = new ServerSelector(target.Servers);
+        if (!target.ServerPool.TryRent(out var manifestServer))
+        {
+            throw new InvalidOperationException("No CDN servers available to download manifest.");
+        }
 
-        var manifest = await _cdnClient.DownloadManifestAsync(
-            depotId: target.AppId,
-            manifestId: target.ManifestId,
-            manifestRequestCode: manifestCodeResponse.Body.manifest_request_code,
-            server: serverSelector.Current,
-            depotKey: target.DepotKey);
+        DepotManifest manifest;
+        try
+        {
+            manifest = await _cdnClient.DownloadManifestAsync(
+                depotId: target.AppId,
+                manifestId: target.ManifestId,
+                manifestRequestCode: manifestCodeResponse.Body.manifest_request_code,
+                server: manifestServer,
+                depotKey: target.DepotKey);
+        }
+        catch
+        {
+            target.ServerPool.MarkBroken(manifestServer);
+            throw;
+        }
+
+        target.ServerPool.Return(manifestServer);
 
         Logger.Information("Manifest resolved. Found {Count} files.", manifest.Files!.Count);
 
@@ -321,7 +440,7 @@ public class SteamApiClient
             };
 
             await Parallel.ForEachAsync(chunkQueue, parallelOptions,
-                async (request, ct) => { await DownloadChunkWithRetryAsync(request, serverSelector, ct); });
+                async (request, ct) => { await DownloadChunkWithRetryAsync(request, ct); });
         }
         finally
         {
@@ -338,55 +457,109 @@ public class SteamApiClient
 
     private async Task DownloadChunkWithRetryAsync(
         ChunkDownloadRequest request,
-        ServerSelector serverSelector,
         CancellationToken cancellationToken)
     {
         const int maxRetries = 5;
         var delay = TimeSpan.FromSeconds(30);
-        var destination = new byte[request.Chunk.UncompressedLength];
+        var pool = request.Target.ServerPool;
 
-        for (var attempt = 0; attempt < maxRetries; attempt++)
+        var destination = ArrayPool<byte>.Shared.Rent((int)request.Chunk.UncompressedLength);
+        try
         {
-            try
+            for (var attempt = 0; attempt < maxRetries; attempt++)
             {
-                await _cdnClient.DownloadDepotChunkAsync(
-                    request.Target.AppId,
-                    request.Chunk,
-                    serverSelector.Current,
-                    destination,
-                    request.Target.DepotKey);
+                if (!pool.TryRent(out var server))
+                {
+                    throw new InvalidOperationException(
+                        $"No CDN servers available for chunk at offset {request.Chunk.Offset}.");
+                }
 
-                await request.FileLock.WaitAsync(cancellationToken);
                 try
                 {
-                    request.FileStream.Seek((long)request.Chunk.Offset, SeekOrigin.Begin);
-                    await request.FileStream.WriteAsync(destination, cancellationToken);
-                }
-                finally
-                {
-                    request.FileLock.Release();
-                }
+                    string? cdnToken = null;
+                    if (_cdnAuthTokens.TryGetValue((request.Target.AppId, server.Host!), out var entry))
+                    {
+                        cdnToken = await entry.Tcs.Task;
+                    }
 
-                return;
-            }
-            catch (SteamKitWebRequestException ex) when (ex.StatusCode is
-                                                             System.Net.HttpStatusCode.ServiceUnavailable or
-                                                             System.Net.HttpStatusCode.TooManyRequests or
-                                                             System.Net.HttpStatusCode.InternalServerError)
-            {
-                if (attempt == maxRetries - 1)
+                    await _cdnClient.DownloadDepotChunkAsync(
+                        request.Target.AppId,
+                        request.Chunk,
+                        server,
+                        destination,
+                        request.Target.DepotKey,
+                        cdnAuthToken: cdnToken);
+
+                    pool.Return(server);
+
+                    await request.FileLock.WaitAsync(cancellationToken);
+                    try
+                    {
+                        request.FileStream.Seek((long)request.Chunk.Offset, SeekOrigin.Begin);
+                        await request.FileStream.WriteAsync(
+                            destination.AsMemory(0, (int)request.Chunk.UncompressedLength),
+                            cancellationToken);
+                    }
+                    finally
+                    {
+                        request.FileLock.Release();
+                    }
+
+                    return;
+                }
+                catch (SteamKitWebRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
                 {
+                    var key = (request.Target.AppId, server.Host!);
+
+                    if (!_cdnAuthTokens.TryGetValue(key, out var existingEntry) ||
+                        existingEntry.Tcs.Task.IsCompleted)
+                    {
+                        _cdnAuthTokens.TryRemove(key, out _);
+
+                        Logger.Warning("Got 403 from {Host}, requesting CDN auth token", server.Host);
+                        await GetCdnAuthTokenAsync(request.Target.AppId, server.Host!);
+
+                        // Return server to pool — it may work now with a token
+                        pool.Return(server);
+                        attempt--;
+                        continue;
+                    }
+
+                    // Token is in-flight, await it and return server to try again
+                    await existingEntry.Tcs.Task;
+                    pool.Return(server);
+                }
+                catch (SteamKitWebRequestException ex) when (ex.StatusCode is
+                                                                 HttpStatusCode.ServiceUnavailable or
+                                                                 HttpStatusCode.TooManyRequests or
+                                                                 HttpStatusCode.InternalServerError)
+                {
+                    pool.MarkBroken(server);
+
+                    if (attempt == maxRetries - 1)
+                    {
+                        throw;
+                    }
+
+                    Logger.Warning(
+                        "CDN request failed with {Status} on {Host}, server marked broken, retrying in {Delay}s (attempt {Attempt}/{Max})",
+                        ex.StatusCode, server.Host, delay.TotalSeconds, attempt + 1, maxRetries);
+
+                    await Task.Delay(delay, cancellationToken);
+                    delay *= 2;
+                }
+                catch
+                {
+                    // For any unexpected exception, return the server rather than
+                    // permanently evicting it — we don't know if it's the server's fault
+                    pool.Return(server);
                     throw;
                 }
-
-                Logger.Warning(
-                    "CDN request failed with {Status} on {Host}, rotating server and retrying in {Delay}s (attempt {Attempt}/{Max})",
-                    ex.StatusCode, serverSelector.Current.Host, delay.TotalSeconds, attempt + 1, maxRetries);
-
-                serverSelector.Rotate();
-                await Task.Delay(delay, cancellationToken);
-                delay *= 2;
             }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(destination);
         }
     }
 
