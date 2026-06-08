@@ -21,6 +21,7 @@ public class SteamApiClient
     private readonly SteamUnifiedMessages _steamUnifiedMessages;
     private readonly SteamKit2.CDN.Client _cdnClient;
     private readonly TaskCompletionSource _loginTcs = new();
+    private TaskCompletionSource _reconnectTcs = new();
     private readonly
         ConcurrentDictionary<(uint DepotId, string Host), (TaskCompletionSource<string> Tcs, long ExpiryUnix)>
         _cdnAuthTokens = new();
@@ -89,7 +90,6 @@ public class SteamApiClient
         {
             Logger.Warning("Steam requested another CM; reconnecting...");
             _steamClient.Disconnect();
-            //Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ => _steamClient.Connect());
             return;
         }
 
@@ -97,13 +97,29 @@ public class SteamApiClient
         {
             Logger.Error("Unable to logon to Steam: {Result} / {ExtendedResult}",
                 callback.Result, callback.ExtendedResult);
-            _loginTcs.SetException(new InvalidOperationException(
-                $"Steam login failed: {callback.Result}"));
+            var ex = new InvalidOperationException($"Steam login failed: {callback.Result}");
+
+            if (!_loginTcs.Task.IsCompleted)
+            {
+                _loginTcs.SetException(ex);
+            }
+            else if (!_reconnectTcs.Task.IsCompleted)
+            {
+                _reconnectTcs.SetException(ex);
+            }
+
             return;
         }
 
         Logger.Information("Successfully logged on!");
-        _loginTcs.SetResult();
+        if (!_loginTcs.Task.IsCompleted)
+        {
+            _loginTcs.SetResult();
+        }
+        else if (!_reconnectTcs.Task.IsCompleted)
+        {
+            _reconnectTcs.SetResult();
+        }
     }
 
     private void OnDisconnected(SteamClient.DisconnectedCallback callback)
@@ -112,8 +128,12 @@ public class SteamApiClient
 
         if (!_loginTcs.Task.IsCompleted)
         {
-            _steamClient.Connect();
+            _loginTcs.SetException(new InvalidOperationException("Disconnected before login completed."));
+            return;
         }
+
+        // Reconnect attempt — OnConnected will fire and re-authenticate
+        _steamClient.Connect();
     }
 
     private async Task<string?> GetCdnAuthTokenAsync(uint depotId, string host)
@@ -185,41 +205,51 @@ public class SteamApiClient
             throw new InvalidOperationException("Must call LoginAsync before downloading workshop file.");
         }
 
-        Logger.Information("Downloading workshop file {PublishedFileId}", publishedFileId);
-
-        var service = _steamUnifiedMessages.CreateService<PublishedFile>();
-
-        var detailsResponse = await service.GetDetails(
-            new CPublishedFile_GetDetails_Request
-            {
-                publishedfileids = { publishedFileId },
-                includeadditionalpreviews = true,
-                includechildren = true,
-                short_description = true,
-                strip_description_bbcode = false,
-            });
-
-        var details = detailsResponse.Body.publishedfiledetails.Single();
-
-        Logger.Information(
-            "Workshop item: {Title}, App: {ConsumerAppId}, File: {FileName}, Size: {Size}, HFile: {HFile}",
-            details.title,
-            details.consumer_appid,
-            details.filename,
-            details.file_size,
-            details.hcontent_file);
-
-        var outputPath = Path.Combine(outputBaseDirectory, publishedFileId.ToString());
-
-        if (!string.IsNullOrEmpty(details.file_url))
+        try
         {
-            Logger.Information("File has direct URL, downloading directly...");
-            await DownloadDirectAsync(details.file_url, outputPath, cancellationToken);
-            return;
-        }
+            Logger.Information("Downloading workshop file {PublishedFileId}", publishedFileId);
 
-        var target = await ResolveDepotTargetAsync(details.consumer_appid, details.hcontent_file, cancellationToken);
-        await DownloadDepotTargetAsync(target, outputPath, cancellationToken);
+            var service = _steamUnifiedMessages.CreateService<PublishedFile>();
+
+            var detailsResponse = await service.GetDetails(
+                new CPublishedFile_GetDetails_Request
+                {
+                    publishedfileids = { publishedFileId },
+                    includeadditionalpreviews = true,
+                    includechildren = true,
+                    short_description = true,
+                    strip_description_bbcode = false,
+                });
+
+            var details = detailsResponse.Body.publishedfiledetails.Single();
+
+            Logger.Information(
+                "Workshop item: {Title}, App: {ConsumerAppId}, File: {FileName}, Size: {Size}, HFile: {HFile}",
+                details.title,
+                details.consumer_appid,
+                details.filename,
+                details.file_size,
+                details.hcontent_file);
+
+            var outputPath = Path.Combine(outputBaseDirectory, publishedFileId.ToString());
+
+            if (!string.IsNullOrEmpty(details.file_url))
+            {
+                Logger.Information("File has direct URL, downloading directly...");
+                await DownloadDirectAsync(details.file_url, outputPath, cancellationToken);
+                return;
+            }
+
+            var target =
+                await ResolveDepotTargetAsync(details.consumer_appid, details.hcontent_file, cancellationToken);
+            await DownloadDepotTargetAsync(target, outputPath, cancellationToken);
+        }
+        catch (AsyncJobFailedException)
+        {
+            Logger.Warning("Steam session is no longer valid, reconnecting...");
+            await ReconnectAsync(cancellationToken);
+            throw;
+        }
     }
 
     private static async Task DownloadDirectAsync(
@@ -282,6 +312,17 @@ public class SteamApiClient
             ServerPool: new CdnServerPool(servers));
     }
 
+    public async Task ReconnectAsync(CancellationToken cancellationToken)
+    {
+        _reconnectTcs = new TaskCompletionSource();
+    
+        _steamClient.Disconnect();
+
+        // OnDisconnected will fire, then OnConnected, then OnLoggedOn
+        // which will complete _reconnectTcs
+        await _reconnectTcs.Task.WaitAsync(cancellationToken);
+    }
+    
     private async Task DownloadDepotTargetAsync(
         DepotDownloadTarget target,
         string outputPath,
@@ -447,6 +488,23 @@ public class SteamApiClient
                     }
 
                     return;
+                }
+                catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // This is an HttpClient timeout, not the caller cancelling
+                    pool.MarkBroken(server);
+
+                    if (attempt == maxRetries - 1)
+                    {
+                        throw;
+                    }
+
+                    Logger.Warning(
+                        "CDN request timed out on {Host}, server marked broken, retrying in {Delay}s (attempt {Attempt}/{Max})",
+                        server.Host, delay.TotalSeconds, attempt + 1, maxRetries);
+
+                    await Task.Delay(delay, cancellationToken);
+                    delay *= 2;
                 }
                 catch (SteamKitWebRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
                 {
