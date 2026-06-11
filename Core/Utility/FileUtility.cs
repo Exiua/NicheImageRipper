@@ -105,14 +105,14 @@ public static class FileUtility
     /// </summary>
     /// <param name="filepath">The path to the file to hash.</param>
     /// <returns>The SHA-256 hash of the file.</returns>
-    public static async Task<byte[]> GetFileHash(string filepath)
+    public static async Task<byte[]> GetFileHash(string filepath, CancellationToken cancellationToken = default)
     {
         var sha256 = SHA256.Create();
         await using var stream = await TryOpenFile(filepath);
         return await sha256.ComputeHashAsync(stream);
     }
 
-    private static async Task<FileStream> TryOpenFile(string filepath, int maxAttempts = 3, int delayMs = 250)
+    private static async Task<FileStream> TryOpenFile(string filepath, int maxAttempts = 3, int delayMs = 250, CancellationToken cancellationToken = default)
     {
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {

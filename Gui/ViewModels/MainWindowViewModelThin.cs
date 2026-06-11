@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Gui.Models.Thin;
 using Gui.Services;
@@ -27,7 +28,7 @@ public class MainWindowViewModelThin(
 
     private bool _initialized;
 
-    protected override async Task InitializeAsync()
+    protected override async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_initialized)
         {
@@ -35,14 +36,14 @@ public class MainWindowViewModelThin(
         }
         
         _initialized = true;
-        await base.InitializeAsync();
-        await backendConnector.InitializeAsync();
-        var coreVersion = await backendConnector.GetCurrentVersionAsync();
+        await base.InitializeAsync(cancellationToken);
+        await backendConnector.InitializeAsync(cancellationToken);
+        var coreVersion = await backendConnector.GetCurrentVersionAsync(cancellationToken);
         _title = $"GuiThin v{Version} - Core v{coreVersion}";
         Active = false;
     }
 
-    protected override async Task ConnectToRemote()
+    protected override async Task ConnectToRemote(CancellationToken cancellationToken = default)
     {
         if (Active)
         {
@@ -62,13 +63,13 @@ public class MainWindowViewModelThin(
             backendConnector.EndpointUri = Config.EndpointUri;
 
             // Cheap authenticated request to verify remote is reachable.
-            var remoteVersion = await backendConnector.GetCurrentVersionAsync();
+            var remoteVersion = await backendConnector.GetCurrentVersionAsync(cancellationToken);
 
             logger.LogInformation("Connected to remote backend. Core version: {Version}", remoteVersion);
 
-            await InitializeAsync();
+            await InitializeAsync(cancellationToken);
 
-            await backendConnector.ConnectWebSocketAsync();
+            await backendConnector.ConnectWebSocketAsync(cancellationToken);
 
             Active = true;
             ConnectButtonDisplay = "Disconnect";
@@ -83,7 +84,7 @@ public class MainWindowViewModelThin(
 
             try
             {
-                await backendConnector.DisconnectWebSocketAsync();
+                await backendConnector.DisconnectWebSocketAsync(cancellationToken);
             }
             catch
             {

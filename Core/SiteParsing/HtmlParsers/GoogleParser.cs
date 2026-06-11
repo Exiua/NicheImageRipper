@@ -19,7 +19,7 @@ public class GoogleParser : HtmlParser, IHtmlParser
     ///     Query the Google Drive API to get file information to download
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return await GoogleParse("");
     }
@@ -29,7 +29,7 @@ public class GoogleParser : HtmlParser, IHtmlParser
     /// </summary>
     /// <param name="gdriveUrl">The url to parse (default: CurrentUrl)</param>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private Task<RipInfo> GoogleParse(string gdriveUrl)
+    private Task<RipInfo> GoogleParse(string gdriveUrl, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(gdriveUrl))
         {

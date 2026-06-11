@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reactive.Disposables;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -95,7 +96,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         
         this.WhenActivated(disposables =>
         {
-            ViewModel!.ShowConfirmationDialog.RegisterHandler(DoShowDialogAsync).DisposeWith(disposables);
+            ViewModel!.ShowConfirmationDialog.RegisterHandler((vm) => DoShowDialogAsync(vm)).DisposeWith(disposables);
         });
         
         // this.WhenActivated(disposables =>
@@ -334,7 +335,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    private async Task LoadHistory(HistoryFilter? filter = null)
+    private async Task LoadHistory(HistoryFilter? filter = null, CancellationToken cancellationToken = default)
     {
         await ViewModel!.LoadHistory(filter);
         PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
@@ -361,7 +362,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    private async Task DoShowDialogAsync(IInteractionContext<ConfirmationViewModel, ConfirmationViewModel?> interaction)
+    private async Task DoShowDialogAsync(IInteractionContext<ConfirmationViewModel, ConfirmationViewModel?> interaction, CancellationToken cancellationToken = default)
     {
         var dialog = new ConfirmationWindow
         {
@@ -483,7 +484,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    private async Task Play()
+    private async Task Play(CancellationToken cancellationToken = default)
     {
         var iconFound = this.TryGetResource("PauseButtonIcon", out var icon);
         if (iconFound)
@@ -504,7 +505,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         _paused = !playing;
     }
 
-    private async Task Pause()
+    private async Task Pause(CancellationToken cancellationToken = default)
     {
         var iconFound = this.TryGetResource("PlayButtonIcon", out var icon);
         if (iconFound)

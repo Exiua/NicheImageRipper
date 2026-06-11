@@ -360,7 +360,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         NicheImageRipper.ClearCache();
     }
 
-    public Task Save()
+    public Task Save(CancellationToken cancellationToken = default)
     {
         return _ripper.SaveData();
     }

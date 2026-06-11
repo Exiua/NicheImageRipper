@@ -20,7 +20,7 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
     ///     Parses the html for simply-cosplay.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         await Sleep(5000);
         var viewButton = Driver.TryFindElement(By.XPath("//button[@class='btn btn-default']"));

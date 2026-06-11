@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Core.Configuration;
 using Core.Enums;
@@ -133,7 +134,7 @@ public class ThinRipperSettings : IRipperSettings
         }
     }
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_initialized)
         {
@@ -144,7 +145,7 @@ public class ThinRipperSettings : IRipperSettings
 
         try
         {
-            _config = await _backendConnector.GetConfigAsync();
+            _config = await _backendConnector.GetConfigAsync(cancellationToken);
             _initialized = true;
         }
         finally
@@ -163,11 +164,11 @@ public class ThinRipperSettings : IRipperSettings
         _ = UpdateRemoteConfigAsync(configPatch);
     }
 
-    private async Task UpdateRemoteConfigAsync(Config configPatch)
+    private async Task UpdateRemoteConfigAsync(Config configPatch, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _backendConnector.UpdateConfigAsync(configPatch);
+            await _backendConnector.UpdateConfigAsync(configPatch, cancellationToken);
         }
         catch (Exception ex)
         {

@@ -53,7 +53,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     /// </summary>
     /// <param name="domainUrl">The domain url of the site</param>
     /// <returns></returns>
-    protected async Task<RipInfo> DotPartyParse(string domainUrl)
+    protected async Task<RipInfo> DotPartyParse(string domainUrl, CancellationToken cancellationToken = default)
     {
         string dirName;
         List<DotPartyPostResponse> posts;

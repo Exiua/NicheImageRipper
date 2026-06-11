@@ -20,7 +20,7 @@ public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
     ///     Parses the html for sxchinesegirlz01.xyz and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
@@ -33,7 +33,7 @@ public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
         {
             if (i != 0)
             {
-                soup = await Soupify($"{baseUrl}{i + 1}/");
+                soup = await Soupify($"{baseUrl}{i + 1}/", cancellationToken: cancellationToken);
             }
     
             var imageList = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridlane-clearfix']")

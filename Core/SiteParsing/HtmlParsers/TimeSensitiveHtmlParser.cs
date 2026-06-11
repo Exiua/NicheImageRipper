@@ -77,7 +77,7 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
         return links;
     }
 
-    protected abstract Task<string> UpdateLink(string link);
+    protected abstract Task<string> UpdateLink(string link, CancellationToken cancellationToken = default);
     
     protected void StoreLastLink(string url)
     {

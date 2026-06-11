@@ -25,7 +25,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     {
     }
 
-    protected override async Task<bool> SiteLoginHelper()
+    protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         const string loginUrl = "https://forums.e-hentai.org/index.php?act=Login&CODE=00";
         var (username, password) = Config.Logins.EHentai;
@@ -50,7 +50,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     ///     Parses the html for e-hentai.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         await SiteLogin();
         CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org"); // Redirect to exhentai
@@ -99,14 +99,14 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
         return RipInfo.GenerateWithInvalid(images, dirName, FilenameScheme);
     }
 
-    private async Task<string> GetImageLink(string link)
+    private async Task<string> GetImageLink(string link, CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(link);
         var img = soup.SelectSingleNodeOrThrow("//img[@id='img']").GetSrc();
         return img;
     }
     
-    protected override Task<string> UpdateLink(string link)
+    protected override Task<string> UpdateLink(string link, CancellationToken cancellationToken = default)
     {
         return GetImageLink(link);
     }
@@ -133,7 +133,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
         return imageLinks;
     }
     
-    private async Task ExtractImageLinks(HtmlNode soup, List<string> imageLinks)
+    private async Task ExtractImageLinks(HtmlNode soup, List<string> imageLinks, CancellationToken cancellationToken = default)
     {
         var pageCount = 1;
         while (true)

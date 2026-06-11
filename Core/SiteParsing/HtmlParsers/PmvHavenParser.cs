@@ -27,7 +27,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
     ///     Parses the html for pmvhaven.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         //var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
         var (capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>();
@@ -124,7 +124,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<ImageLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl)
+    private async Task<ImageLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl, CancellationToken cancellationToken = default)
     {
         postUrl = postUrl.Split("?")[0];
         ImageLink? imageLink = null;

@@ -24,7 +24,7 @@ public class NicheImageRipperCli : NicheImageRipper
         }
     }
     
-    public async Task Run()
+    public async Task Run(CancellationToken cancellationToken = default)
     {
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
         {

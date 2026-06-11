@@ -19,7 +19,7 @@ public class SexyNakedsParser : HtmlParser, IHtmlParser
     ///     Parses the html for sexynakeds.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return GenericBabesHtmlParser("(//div[@class='box']//h1)[2]", "//div[@class='post_tn']");
     }

@@ -21,7 +21,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
     ///     Parses the html for noodlemagazine.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await SolveParseAddCookies();
         var images = new List<StringImageLinkWrapper>();
@@ -62,7 +62,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<string?> GetVideoUrl()
+    private async Task<string?> GetVideoUrl(CancellationToken cancellationToken = default)
     {
         start:
         await SolveParseAddCookies();
@@ -142,7 +142,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
         return src;
     }
 
-    private async Task<bool> TryClickElementByXPath(string xpath, int msDelay = 250)
+    private async Task<bool> TryClickElementByXPath(string xpath, int msDelay = 250, CancellationToken cancellationToken = default)
     {
         for (var i = 0; i < 4; i++)
         {

@@ -22,7 +22,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
     ///     Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url)
+    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
     {
         if (url != "")
         {
@@ -150,7 +150,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         }
     }
 
-    protected override async Task<bool> SiteLoginHelper()
+    protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
         var loginLink = Config.Custom.GoFile.LoginLink;

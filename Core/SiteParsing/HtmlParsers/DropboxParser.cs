@@ -22,7 +22,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
     ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return await Parse("");
     }
@@ -32,7 +32,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
     /// </summary>
     /// <param name="dropboxUrl"></param>
     /// <returns></returns>
-    internal async Task<RipInfo> Parse(string dropboxUrl)
+    internal async Task<RipInfo> Parse(string dropboxUrl, CancellationToken cancellationToken = default)
     {
         var internalUse = false;
         if (!string.IsNullOrEmpty(dropboxUrl))

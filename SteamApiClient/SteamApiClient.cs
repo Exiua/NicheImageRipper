@@ -22,6 +22,7 @@ public class SteamApiClient
     private readonly SteamKit2.CDN.Client _cdnClient;
     private readonly TaskCompletionSource _loginTcs = new();
     private TaskCompletionSource _reconnectTcs = new();
+
     private readonly
         ConcurrentDictionary<(uint DepotId, string Host), (TaskCompletionSource<string> Tcs, long ExpiryUnix)>
         _cdnAuthTokens = new();
@@ -136,7 +137,8 @@ public class SteamApiClient
         _steamClient.Connect();
     }
 
-    private async Task<string?> GetCdnAuthTokenAsync(uint depotId, string host)
+    private async Task<string?> GetCdnAuthTokenAsync(uint depotId, string host,
+                                                     CancellationToken cancellationToken = default)
     {
         var key = (depotId, host);
 
@@ -254,8 +256,7 @@ public class SteamApiClient
 
     private static async Task DownloadDirectAsync(
         string url,
-        string outputPath,
-        CancellationToken cancellationToken)
+        string outputPath, CancellationToken cancellationToken = default)
     {
         await using var input = await Http.GetStreamAsync(url, cancellationToken);
         await using var output = File.Create(outputPath);
@@ -265,8 +266,7 @@ public class SteamApiClient
 
     private async Task<DepotDownloadTarget> ResolveDepotTargetAsync(
         uint appId,
-        ulong hcontentFile,
-        CancellationToken cancellationToken)
+        ulong hcontentFile, CancellationToken cancellationToken = default)
     {
         Logger.Debug(
             "Resolving depot target. app={AppId}, hcontent={HContent}",
@@ -315,18 +315,17 @@ public class SteamApiClient
     public async Task ReconnectAsync(CancellationToken cancellationToken)
     {
         _reconnectTcs = new TaskCompletionSource();
-    
+
         _steamClient.Disconnect();
 
         // OnDisconnected will fire, then OnConnected, then OnLoggedOn
         // which will complete _reconnectTcs
         await _reconnectTcs.Task.WaitAsync(cancellationToken);
     }
-    
+
     private async Task DownloadDepotTargetAsync(
         DepotDownloadTarget target,
-        string outputPath,
-        CancellationToken cancellationToken)
+        string outputPath, CancellationToken cancellationToken = default)
     {
         Logger.Information("Downloading depot target");
         Logger.Debug(
@@ -438,8 +437,7 @@ public class SteamApiClient
     }
 
     private async Task DownloadChunkWithRetryAsync(
-        ChunkDownloadRequest request,
-        CancellationToken cancellationToken)
+        ChunkDownloadRequest request, CancellationToken cancellationToken = default)
     {
         const int maxRetries = 5;
         var delay = TimeSpan.FromSeconds(30);
@@ -620,8 +618,7 @@ public class SteamApiClient
     }
 
     public async Task<string> GetPersonaNameAsync(
-        ulong steamId,
-        CancellationToken cancellationToken = default)
+        ulong steamId, CancellationToken cancellationToken = default)
     {
         Logger.Information("Getting persona name for {SteamId}", steamId);
 
@@ -647,8 +644,7 @@ public class SteamApiClient
     }
 
     public async Task<ulong> ResolveVanityUrlAsync(
-        string vanityUrl,
-        CancellationToken cancellationToken = default)
+        string vanityUrl, CancellationToken cancellationToken = default)
     {
         Logger.Information("Resolving vanity URL {VanityUrl}", vanityUrl);
 

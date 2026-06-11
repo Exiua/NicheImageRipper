@@ -220,12 +220,12 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = "Connect";
 
-    public ReactiveCommand<Unit, Task> RipCommand { get; }
-    public ReactiveCommand<Unit, Task> ClearCacheCommand { get; }
-    public ReactiveCommand<Unit, Task> DequeueUrlsCommand { get; }
-    public ReactiveCommand<string, Task> ReRipUrlCommand { get; }
-    public ReactiveCommand<Unit, Task> ConnectCommand { get; }
-    public ReactiveCommand<Unit, Task> SkipCurrentEntryCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> RipCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> ClearCacheCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> DequeueUrlsCommand { get; }
+    public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> ConnectCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> SkipCurrentEntryCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
 
     public event Action? LogTextChanged;
@@ -256,12 +256,12 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         LogText = LogTextSource.CurrentText;
         LogTextSource.LogTextChanged += OnLogTextChanged;
 
-        RipCommand = ReactiveCommand.CreateRunInBackground(QueueAndRip);
-        ClearCacheCommand = ReactiveCommand.CreateRunInBackground(ClearCache);
-        DequeueUrlsCommand = ReactiveCommand.CreateRunInBackground(DequeueUrls);
-        ReRipUrlCommand = ReactiveCommand.CreateRunInBackground<string, Task>(Rerip);
-        ConnectCommand = ReactiveCommand.CreateRunInBackground(ToggleStateToRemote);
-        SkipCurrentEntryCommand = ReactiveCommand.CreateRunInBackground(RipperClient.SkipCurrentEntry);
+        RipCommand = ReactiveCommand.CreateFromTask<CancellationToken>(QueueAndRip);
+        ClearCacheCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ClearCache);
+        DequeueUrlsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(DequeueUrls);
+        ReRipUrlCommand = ReactiveCommand.CreateFromTask<string>(Rerip);
+        ConnectCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ToggleStateToRemote);
+        SkipCurrentEntryCommand = ReactiveCommand.CreateFromTask<CancellationToken>(RipperClient.SkipCurrentEntry);
         UrlQueue = new ObservableCollection<string>([]);
         History = new ObservableCollection<HistoryEntry>([]);
 
@@ -271,7 +271,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private bool _initialized;
 
-    protected virtual async Task InitializeAsync()
+    protected virtual async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_initialized)
         {
@@ -286,22 +286,22 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         History.Update(history);
     }
 
-    private Task ToggleStateToRemote()
+    private Task ToggleStateToRemote(CancellationToken cancellationToken = default)
     {
         return Active ? DisconnectFromRemote() : ConnectToRemote();
     }
 
-    protected virtual Task ConnectToRemote()
+    protected virtual Task ConnectToRemote(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    protected virtual Task DisconnectFromRemote()
+    protected virtual Task DisconnectFromRemote(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    private Task ClearCache()
+    private Task ClearCache(CancellationToken cancellationToken = default)
     {
         return RipperClient.ClearCache();
     }
@@ -315,12 +315,12 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         LogTextChanged?.Invoke();
     }
 
-    private Task DequeueUrls()
+    private Task DequeueUrls(CancellationToken cancellationToken = default)
     {
         return RipperClient.DequeueUrls(SelectedUrls);
     }
 
-    private Task QueueAndRip()
+    private Task QueueAndRip(CancellationToken cancellationToken = default)
     {
         var input = UrlInput;
         if (string.IsNullOrWhiteSpace(input) && RipperClient.UrlQueueCount == 0)
@@ -335,7 +335,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         return Task.CompletedTask;
     }
 
-    private async Task QueueUrls(string input)
+    private async Task QueueUrls(string input, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(input))
         {
@@ -406,10 +406,10 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             return;
         }
 
-        await Task.Run(Rip);
+        await Task.Run(() => Rip(cancellationToken), cancellationToken);
     }
 
-    private async Task<bool> ConfirmReripUrl(string url)
+    private async Task<bool> ConfirmReripUrl(string url, CancellationToken cancellationToken = default)
     {
         var confirmationViewModel = new ConfirmationViewModel
         {
@@ -519,7 +519,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         return urls;
     }
 
-    private async Task Rerip(string url)
+    private async Task Rerip(string url, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -537,15 +537,15 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             return;
         }
 
-        await Task.Run(Rip);
+        await Task.Run(() => Rip(cancellationToken), cancellationToken);
     }
 
-    private async Task Rip()
+    private async Task Rip(CancellationToken cancellationToken = default)
     {
         RipInProgress = true;
         try
         {
-            await RipperClient.Rip();
+            await RipperClient.Rip(cancellationToken);
             ClearProgressState();
         }
         catch (Exception e)
@@ -642,7 +642,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         HistoryFilterText = "";
     }
 
-    public async Task LoadHistory(HistoryFilter? filter = null)
+    public async Task LoadHistory(HistoryFilter? filter = null, CancellationToken cancellationToken = default)
     {
         var history = await GetHistoryPage(CurrentHistoryPage - 1, PageSize, filter);
         Logger.LogDebug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
@@ -673,14 +673,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     }
 
-    public async Task<bool> Resume()
+    public async Task<bool> Resume(CancellationToken cancellationToken = default)
     {
         var stateChanged = await RipperClient.Resume();
         ProgressIsPaused = false;
         return stateChanged;
     }
 
-    public async Task<bool> Pause()
+    public async Task<bool> Pause(CancellationToken cancellationToken = default)
     {
         var stateChanged = await RipperClient.Pause();
         ProgressIsPaused = true;

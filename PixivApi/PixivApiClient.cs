@@ -63,7 +63,7 @@ public class PixivApiClient
                                                         Dictionary<string, string>? headers = null,
                                                         Dictionary<string, string>? parameters = null,
                                                         HttpContent? data = null,
-                                                        bool stream = false)
+                                                        bool stream = false, CancellationToken cancellationToken = default)
     {
         // Make a copy of the dictionary
         var mergedHeaders = Headers.ToDictionary();
@@ -106,7 +106,7 @@ public class PixivApiClient
         RefreshToken = refreshToken;
     }
 
-    public Task<AuthResponse> Login(string username, string password)
+    public Task<AuthResponse> Login(string username, string password, CancellationToken cancellationToken = default)
     {
         return Auth(username, password);
     }
@@ -128,7 +128,7 @@ public class PixivApiClient
         return new FormUrlEncodedContent(payload);
     }
 
-    public Task<AuthResponse> Auth(string username, string password, Dictionary<string, string>? headers = null)
+    public Task<AuthResponse> Auth(string username, string password, Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default)
     {
         var data = new Dictionary<string, string>
         {
@@ -140,7 +140,7 @@ public class PixivApiClient
         return Auth(data, headers);
     }
 
-    public Task<AuthResponse> Auth(string? refreshToken = null, Dictionary<string, string>? headers = null)
+    public Task<AuthResponse> Auth(string? refreshToken = null, Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default)
     {
         var token = refreshToken ?? AccessToken;
         if (token is null)
@@ -157,7 +157,7 @@ public class PixivApiClient
         return Auth(data, headers);
     }
     
-    private async Task<AuthResponse> Auth(Dictionary<string, string> data, Dictionary<string, string>? headers = null)
+    private async Task<AuthResponse> Auth(Dictionary<string, string> data, Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default)
     {
         var localTime = DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss+00:00");
         var _headers = headers ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -238,7 +238,7 @@ public class PixivApiClient
                                string? path = null,
                                string? name = null,
                                bool replace = false,
-                               string referer = "https://app-api.pixiv.net/")
+                               string referer = "https://app-api.pixiv.net/", CancellationToken cancellationToken = default)
     {
         path ??= Directory.GetCurrentDirectory();
         var filename = prefix + (name ?? Path.GetFileName((new Uri(url)).LocalPath));
@@ -268,7 +268,7 @@ public class PixivApiClient
                                                         Dictionary<string, string>? headers = null,
                                                         Dictionary<string, string>? parameters = null,
                                                         HttpContent? data = null,
-                                                        bool reqAuth = true)
+                                                        bool reqAuth = true, CancellationToken cancellationToken = default)
     {
         var _headers = headers ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (Hosts != "https://app-api.pixiv.net")
@@ -301,7 +301,7 @@ public class PixivApiClient
                                                      RequestType type = RequestType.Illust,
                                                      RequestFilter filter = RequestFilter.ForIos,
                                                      int offset = 0,
-                                                     bool reqAuth = true)
+                                                     bool reqAuth = true, CancellationToken cancellationToken = default)
     {
         var url = $"{Hosts}/v1/user/illusts";
         var parameters = new Dictionary<string, string>
@@ -336,7 +336,7 @@ public class PixivApiClient
     
     // illust_follow
     
-    public async Task<IllustrationInfo> IllustDetail(string illustId, bool reqAuth = true)
+    public async Task<IllustrationInfo> IllustDetail(string illustId, bool reqAuth = true, CancellationToken cancellationToken = default)
     {
         var url = $"{Hosts}/v1/illust/detail";
         var parameters = new Dictionary<string, string>
@@ -396,7 +396,7 @@ public class PixivApiClient
     
     // user_list
     
-    public async Task<UgoiraMetadata> UgoiraMetadata(string illustId, bool reqAuth = true)
+    public async Task<UgoiraMetadata> UgoiraMetadata(string illustId, bool reqAuth = true, CancellationToken cancellationToken = default)
     {
         var url = $"{Hosts}/v1/ugoira/metadata";
         var parameters = new Dictionary<string, string>

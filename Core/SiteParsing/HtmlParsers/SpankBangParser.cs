@@ -24,7 +24,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
     ///     Parses the html for spankbang.com and spankbang.party and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const string playlistXPath = "//div[contains(concat(' ', @class, ' '), ' video-list ') and " +
                                      "contains(concat(' ', @class, ' '), ' video-rotate ')]";
@@ -104,7 +104,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<string> GetVideoUrl()
+    private async Task<string> GetVideoUrl(CancellationToken cancellationToken = default)
     {
         while (true)
         {

@@ -28,7 +28,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
     ///     Parses the html for hanime1.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         string dirName;
         List<StringImageLinkWrapper> images = [];
@@ -85,7 +85,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<string> GetVideoUrl(Client client, string url)
+    private async Task<string> GetVideoUrl(Client client, string url, CancellationToken cancellationToken = default)
     {
         url = url.Replace("watch?", "download?");
         var response = await client.GetPage(url, waitForXPath: "//a[@download]");

@@ -21,7 +21,7 @@ public class Client
     /// <param name="url">The URL of the page to analyze</param>
     /// <param name="timeoutSeconds">The time in seconds to wait for the page to load</param>
     /// <returns>>A BaseResponse containing either a GetNetworkUrlsResponse or an ErrorResponse</returns>
-    public async Task<BaseResponse> GetNetworkUrls(string url, double timeoutSeconds = 5.0)
+    public async Task<BaseResponse> GetNetworkUrls(string url, double timeoutSeconds = 5.0, CancellationToken cancellationToken = default)
     {
         var request = new GetNetworkUrlsRequest(url, timeoutSeconds);
         return await PostRequest<GetNetworkUrlsRequest, GetNetworkUrlsResponse>("get_network_urls", request);
@@ -35,7 +35,7 @@ public class Client
     /// <param name="cookies">Optional cookies to include in the request</param>
     /// <param name="waitForXPath">Optional XPath to wait for before considering the page loaded</param>
     /// <returns>>A BaseResponse containing either a PageResponse or an ErrorResponse</returns>
-    public Task<BaseResponse> GetPage(string url, double timeoutSeconds = 5.0, Dictionary<string, string>? cookies = null, string waitForXPath = "")
+    public Task<BaseResponse> GetPage(string url, double timeoutSeconds = 5.0, Dictionary<string, string>? cookies = null, string waitForXPath = "", CancellationToken cancellationToken = default)
     {
         var request = new GetPageRequest(url, timeoutSeconds, cookies, waitForXPath);
         return PostRequest<GetPageRequest, PageResponse>("get_page", request);
@@ -47,13 +47,13 @@ public class Client
     /// <param name="buttonXPath">The XPath of the button to press</param>
     /// <param name="timeoutSeconds">The time in seconds to wait for the action to complete</param>
     /// <returns>>A BaseResponse containing either a PageResponse or an ErrorResponse</returns>
-    public Task<BaseResponse> PressButtonOnPage(string buttonXPath, double timeoutSeconds = 5.0)
+    public Task<BaseResponse> PressButtonOnPage(string buttonXPath, double timeoutSeconds = 5.0, CancellationToken cancellationToken = default)
     {
         var request = new PressButtonOnPageRequest(buttonXPath, timeoutSeconds);
         return PostRequest<PressButtonOnPageRequest, PageResponse>("press_button_on_page", request);
     }
     
-    private async Task<BaseResponse> PostRequest<TRequest, TResponse>(string endpoint, TRequest request)
+    private async Task<BaseResponse> PostRequest<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         where TResponse : BaseResponse
     {
         var response = await _client.PostAsJsonAsync($"{_endpoint}/{endpoint}", request);

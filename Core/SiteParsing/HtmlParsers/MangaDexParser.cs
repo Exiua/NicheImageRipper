@@ -24,7 +24,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
     ///     Parses the html for mangadex.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const int delay = 250;
         const int maxRetries = 4;

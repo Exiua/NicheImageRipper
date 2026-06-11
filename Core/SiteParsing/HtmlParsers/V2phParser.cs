@@ -18,7 +18,7 @@ public class V2phParser : HtmlParser
     ///     Parses the html for v2ph.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         // TODO: Work on bypassing cloudflare
         // The parser works, but when changing pages, the cf_clearance cookie gets refreshed in a way that causes issues

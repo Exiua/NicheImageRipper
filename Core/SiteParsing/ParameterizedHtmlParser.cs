@@ -11,10 +11,10 @@ public abstract class ParameterizedHtmlParser : HtmlParser
     {
     }
 
-    protected override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return Parse("");
     }
 
-    public abstract Task<RipInfo> Parse(string url);
+    public abstract Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default);
 }

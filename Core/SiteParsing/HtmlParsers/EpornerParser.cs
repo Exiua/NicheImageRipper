@@ -23,7 +23,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
     ///     Parses the html for eporner.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const string domainUrl = "https://www.eporner.com";
         
@@ -161,7 +161,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
             return link;
         }
     
-        async Task ExtractFromListView(string baseUrl, string section, string divClass, List<string> posts)
+        async Task ExtractFromListView(string baseUrl, string section, string divClass, List<string> posts, CancellationToken cancellationToken = default)
         {
             // ReSharper disable once VariableHidesOuterVariable
             var soup = await Soupify($"{baseUrl}/{section}/", lazyLoadArgs: lazyLoadArgs);

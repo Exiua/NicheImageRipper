@@ -24,7 +24,7 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     }
 
     [HttpPost("save")]
-    public Task<IActionResult> Save()
+    public Task<IActionResult> Save(CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving");
         nicheImageRipperSingleton.Save();
@@ -76,7 +76,7 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     }
 
     [HttpPost("clear-cache")]
-    public Task<IActionResult> ClearCache()
+    public Task<IActionResult> ClearCache(CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Clearing cache");
         nicheImageRipperSingleton.ClearCache();

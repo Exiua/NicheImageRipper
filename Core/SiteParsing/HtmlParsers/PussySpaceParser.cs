@@ -22,7 +22,7 @@ public class PussySpaceParser : HtmlParser, IHtmlParser
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("-")[1];
         var (capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>();

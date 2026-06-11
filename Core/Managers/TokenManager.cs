@@ -37,7 +37,7 @@ public class TokenManager
         JsonUtility.Serialize(TokenPath, TokenState);
     }
 
-    public async Task<Token> GetToken(TokenKey key)
+    public async Task<Token> GetToken(TokenKey key, CancellationToken cancellationToken = default)
     {
         if (TokenState.Tokens.TryGetValue(key, out var token) && token?.Expiration >= DateTime.Now)
         {

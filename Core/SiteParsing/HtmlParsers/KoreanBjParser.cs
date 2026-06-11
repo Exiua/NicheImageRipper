@@ -27,7 +27,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
     ///     Parses the html for ww1.koreanbj.club and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var (capturer, b) = await ConfigureNetworkCapture<KoreanBjVideoCapturer>();
         await using var bidi = b;
@@ -82,7 +82,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task ExtractPlaylist(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer)
+    private async Task ExtractPlaylist(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
     {
         var i = 0;
         while (true)
@@ -115,7 +115,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         }
     }
 
-    private async Task ExtractPlaylistFromIframe(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer)
+    private async Task ExtractPlaylistFromIframe(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
     {
         var closeButton = Driver.TryFindElement(By.XPath("//button[normalize-space(.)='Close']"));
         if (closeButton is not null)
@@ -208,7 +208,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         }
     }
 
-    private async Task ExtractVideoFromIframe(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer)
+    private async Task ExtractVideoFromIframe(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
     {
         var iframe = Driver.FindElement(By.XPath(IframeXPath));
         var iframeSrc = iframe.GetAttribute("src")!;

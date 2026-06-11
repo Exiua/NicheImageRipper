@@ -20,8 +20,8 @@ public class E621Parser : BooruParser, IHtmlParser
     ///     Parses the html for e621.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Booru.E621);
+        return BooruParse(Booru.E621, cancellationToken: cancellationToken);
     }
 }

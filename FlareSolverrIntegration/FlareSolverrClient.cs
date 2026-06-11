@@ -15,7 +15,7 @@ public class FlareSolverrClient
         _flareSolverrUri = flareSolverrUri;
     }
 
-    public async Task<BaseResponse> CreateSession(string? sessionId = null, Dictionary<string, string>? proxy = null)
+    public async Task<BaseResponse> CreateSession(string? sessionId = null, Dictionary<string, string>? proxy = null, CancellationToken cancellationToken = default)
     {
         var payload = new CreateSessionPayload
         {
@@ -37,7 +37,7 @@ public class FlareSolverrClient
         return responseData ?? throw new Exception("Failed to create session");
     }
     
-    public async Task<BaseResponse> ListSessions()
+    public async Task<BaseResponse> ListSessions(CancellationToken cancellationToken = default)
     {
         var payload = new ListSessionsPayload();
         
@@ -55,7 +55,7 @@ public class FlareSolverrClient
         return responseData ?? throw new Exception("Failed to list sessions");
     }
     
-    public async Task<BaseResponse> DeleteSession(string sessionId)
+    public async Task<BaseResponse> DeleteSession(string sessionId, CancellationToken cancellationToken = default)
     {
         var payload = new DeleteSessionPayload
         {
@@ -66,7 +66,7 @@ public class FlareSolverrClient
         return await response.Content.ReadFromJsonAsync<BaseResponse>() ?? throw new Exception("Failed to close session");
     }
     
-    public async Task<BaseResponse> GetRequest(GetRequestPayload payload)
+    public async Task<BaseResponse> GetRequest(GetRequestPayload payload, CancellationToken cancellationToken = default)
     {
         var response = await _client.PostAsJsonAsync(_flareSolverrUri, payload);
         BaseResponse? responseData;
@@ -82,7 +82,7 @@ public class FlareSolverrClient
         return responseData ?? throw new Exception("Failed to make GET request");
     }
     
-    public async Task<BaseResponse> PostRequest(PostRequestPayload payload)
+    public async Task<BaseResponse> PostRequest(PostRequestPayload payload, CancellationToken cancellationToken = default)
     {
         var response = await _client.PostAsJsonAsync(_flareSolverrUri, payload);
         BaseResponse? responseData;

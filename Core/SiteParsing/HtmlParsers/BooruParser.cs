@@ -14,15 +14,18 @@ namespace Core.SiteParsing.HtmlParsers;
 
 public abstract partial class BooruParser : HtmlParser
 {
-    protected BooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    protected BooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
-    
+
     /// <summary>
     ///     Make requests to booru-like sites and extract image links
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected async Task<RipInfo> BooruParse(Booru site, string? tags = null)
+    protected async Task<RipInfo> BooruParse(Booru site, string? tags = null,
+                                             CancellationToken cancellationToken = default)
     {
         if (tags is null)
         {
@@ -32,7 +35,7 @@ public abstract partial class BooruParser : HtmlParser
         {
             Logger.Debug("Parsing {SiteName} with tags: {Tags}", site, tags);
         }
-        
+
         var metadata = site.GetMetadata();
         var siteName = metadata.SiteName;
         var baseUrl = metadata.GetFullBaseUrl();
@@ -60,11 +63,11 @@ public abstract partial class BooruParser : HtmlParser
 
         var requestUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={startingPageIndex}&{tags}";
         Logger.Debug("Request URL: {RequestUrl}", requestUrl);
-        var response = await session.GetAsync(requestUrl);
+        var response = await session.GetAsync(requestUrl, cancellationToken);
         JsonNode? json;
         if (!response.IsSuccessStatusCode)
         {
-            var solution = await FlareSolverrManager.GetSiteSolution(requestUrl);
+            var solution = await FlareSolverrManager.GetSiteSolution(requestUrl, cancellationToken: cancellationToken);
             var rawJson = solution.Response;
             var start = rawJson.IndexOf('[');
             var end = rawJson.LastIndexOf(']');
@@ -75,7 +78,7 @@ public abstract partial class BooruParser : HtmlParser
         {
             try
             {
-                json = await response.Content.ReadFromJsonAsync<JsonNode>();
+                json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             }
             catch (JsonException e) when (e.Message.StartsWith("The input does not contain any JSON tokens."))
             {
@@ -116,11 +119,11 @@ public abstract partial class BooruParser : HtmlParser
             // Fetch the next page
             var pageUrl = $"{baseUrl}{querySeparator}limit={limit}&{pageParameterName}={pid}&{tags}";
             Logger.Debug("Fetching next page: {PageUrl}", pageUrl);
-            response = await session.GetAsync(pageUrl);
+            response = await session.GetAsync(pageUrl, cancellationToken);
             #if DEBUG
-            var responseText = await response.Content.ReadAsStringAsync();
+            var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
             #endif
-            json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             if (jsonObjectNavigationToArray is not null)
             {
                 json = GetUrlArray(json!, jsonObjectNavigationToArray, arrayMayNotExist);
@@ -128,16 +131,16 @@ public abstract partial class BooruParser : HtmlParser
 
             data = json!.AsArray();
             pid++;
-            
+
             if (delay > 0)
             {
-                await Task.Delay(delay);
+                await Task.Delay(delay, cancellationToken);
             }
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
-    
+
     private static string? GetUrl(JsonNode json, string[] jsonNavigation)
     {
         json = jsonNavigation.Aggregate(json, (current, nav) => current[nav]!);
@@ -159,13 +162,13 @@ public abstract partial class BooruParser : HtmlParser
 
                 throw new RipperException($"Failed to find json object: {name}");
             }
-                
+
             json = json[name]!;
         }
 
         return json;
     }
-    
+
     /// <summary>
     ///     Extracts tags from a booru-like URL. Tags will have the format "tags=tag1+tag2+tag3"
     /// </summary>

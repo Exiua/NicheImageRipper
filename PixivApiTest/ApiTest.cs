@@ -11,8 +11,8 @@ public class ApiTest
     public async Task GetUgoiraMetadata()
     {
         var client = new PixivApiClient();
-        _ = await client.Auth(RefreshToken);
-        var metadata = await client.UgoiraMetadata("73453365");
+        _ = await client.Auth(RefreshToken, cancellationToken: TestContext.Current.CancellationToken);
+        var metadata = await client.UgoiraMetadata("73453365", cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(metadata.Error);
         Assert.NotNull(metadata.Body);
     }
@@ -22,11 +22,11 @@ public class ApiTest
     {
         const string userId = "186899";
         var client = new PixivApiClient();
-        _ = await client.Auth(RefreshToken);
-        var illusts = await client.UserIllusts(userId);
+        _ = await client.Auth(RefreshToken, cancellationToken: TestContext.Current.CancellationToken);
+        var illusts = await client.UserIllusts(userId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(illusts.Illusts.Count == 0);
         var seen = illusts.Illusts.Select(illust => illust.Id).ToHashSet();
-        var illusts2 = await client.UserIllusts(userId, offset: 30);
+        var illusts2 = await client.UserIllusts(userId, offset: 30, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(illusts2.Illusts.Count == 0);
         Assert.True(illusts2.Illusts.All(illust => !seen.Contains(illust.Id)));
     }
@@ -36,15 +36,15 @@ public class ApiTest
     {
         const string userId = "186899";
         var client = new PixivApiClient();
-        _ = await client.Auth(RefreshToken);
-        var illusts = await client.UserIllusts(userId);
+        _ = await client.Auth(RefreshToken, cancellationToken: TestContext.Current.CancellationToken);
+        var illusts = await client.UserIllusts(userId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(illusts.Illusts.Count == 0);
         var firstIllust = illusts.Illusts[0];
         var imageUrl = firstIllust.MetaPages[0].ImageUrls.Large.ToOriginalUrl();
-        var imageData = await client.Download(imageUrl, path: "./", name: $"test_{userId}.jpg");
+        var imageData = await client.Download(imageUrl, path: "./", name: $"test_{userId}.jpg", cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(imageData);
         var imageUrl2 = firstIllust.MetaPages[1].ImageUrls.Large.ToOriginalUrl();
-        var imageData2 = await client.Download(imageUrl2, path: "./", name: $"test_{userId}_2.jpg");
+        var imageData2 = await client.Download(imageUrl2, path: "./", name: $"test_{userId}_2.jpg", cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(imageData2);
     }
 
@@ -53,8 +53,8 @@ public class ApiTest
     {
         const string illustId = "135732445";
         var client = new PixivApiClient();
-        _ = await client.Auth(RefreshToken);
-        var illustDetail = await client.IllustDetail(illustId);
+        _ = await client.Auth(RefreshToken, cancellationToken: TestContext.Current.CancellationToken);
+        var illustDetail = await client.IllustDetail(illustId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(illustId, illustDetail.Id.ToString());
     }
 
@@ -63,12 +63,12 @@ public class ApiTest
     {
         const string userId = "14395837";
         var client = new PixivApiClient();
-        _ = await client.Auth(RefreshToken);
-        var illusts = await client.UserIllusts(userId);
+        _ = await client.Auth(RefreshToken, cancellationToken: TestContext.Current.CancellationToken);
+        var illusts = await client.UserIllusts(userId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(illusts.Illusts.Count == 0);
         var ugoiraIllust = illusts.Illusts.FirstOrDefault(illust => illust.Type == "ugoira");
         Assert.NotNull(ugoiraIllust);
-        var metadata = await client.UgoiraMetadata(ugoiraIllust.Id.ToString());
+        var metadata = await client.UgoiraMetadata(ugoiraIllust.Id.ToString(), cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(metadata.Error);
         Assert.True(metadata.Body is not null || metadata.BodyReal is not null);
     }
@@ -78,12 +78,12 @@ public class ApiTest
     {
         const string userId = "70470754";
         var client = new PixivApiClient();
-        _ = await client.Auth(RefreshToken);
-        var illusts = await client.UserIllusts(userId);
+        _ = await client.Auth(RefreshToken, cancellationToken: TestContext.Current.CancellationToken);
+        var illusts = await client.UserIllusts(userId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(illusts.Illusts.Count == 0);
         var ugoiraIllust = illusts.Illusts.FirstOrDefault(illust => illust.Type == "ugoira");
         Assert.NotNull(ugoiraIllust);
-        var metadata = await client.UgoiraMetadata(ugoiraIllust.Id.ToString());
+        var metadata = await client.UgoiraMetadata(ugoiraIllust.Id.ToString(), cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(metadata.Error);
         Assert.True(metadata.Body is not null || metadata.BodyReal is not null);
     }

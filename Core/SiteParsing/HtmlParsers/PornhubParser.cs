@@ -23,7 +23,9 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
     protected override string ParserKey => "pornhub";
 
 
-    public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornhubParser>(filenameScheme))
+    public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<PornhubParser>(filenameScheme))
     {
     }
 
@@ -31,7 +33,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
     ///     Parses the html for pornhub.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var cookie = Config.Cookies.Pornhub;
         var cookieJar = Driver.GetCookieJar();
@@ -50,7 +52,8 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
             List<string> posts;
             if (File.Exists(ImageLinksFileName))
             {
-                var deserializedCachedLinks = JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
+                var deserializedCachedLinks =
+                    JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
                 if (deserializedCachedLinks is null)
                 {
                     posts = await GetLinks();
@@ -58,7 +61,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                     {
                         [CurrentUrl] = posts
                     };
-                    
+
                     JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
                 }
                 else
@@ -112,7 +115,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                         {
                             await Sleep(5000);
                         }
-                        
+
                         break;
                     }
                     catch (WebDriverException e)
@@ -126,7 +129,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                     }
                 }
             }
-            
+
             // Allows of replacement of albums with each individual photo link
             if (cachePosts.Count > posts.Count)
             {
@@ -149,12 +152,12 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
             }
         }
-        
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
-    
+
     // albums should never be passed to this method
-    protected override async Task<string> UpdateLink(string link)
+    protected override async Task<string> UpdateLink(string link, CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(link);
         var (images, _, _) = await PornhubLinkExtractor(soup);
@@ -167,7 +170,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         var baseUrl = CurrentUrl.Split("/")[..5].Join("/");
         var soup = await Soupify($"{baseUrl}/photos/public");
         var postNodes = soup.SelectNodes("//ul[@id='moreData']//a");
-        if(postNodes is not null)
+        if (postNodes is not null)
         {
             posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
         }
@@ -185,26 +188,26 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         {
             posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
         }
-        
-        while(true)
+
+        while (true)
         {
             postNodes = soup.SelectNodes("//ul[@id='mostRecentVideosSection']//a");
             if (postNodes is null)
             {
                 break;
             }
-            
+
             posts.AddRange(postNodes.Select(postNode => $"https://www.pornhub.com{postNode.GetHref()}"));
             var nextPage = soup.SelectSingleNode("//li[@class='page_next omega']");
             if (nextPage is null)
             {
                 break;
             }
-            
+
             var nextPageUrl = nextPage.SelectSingleNodeOrThrow("./a").GetHref();
             soup = await Soupify($"https://www.pornhub.com{nextPageUrl}");
         }
-        
+
         posts = posts.Where(post => !post.Contains("/channels/")
                                     && !post.Contains("/pornstar/")
                                     && !post.Contains("/model/")).ToList();
@@ -212,7 +215,8 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         return posts;
     }
 
-    private async Task<(List<StringImageLinkWrapper> images, string dirName, List<string>? extraPosts)> PornhubLinkExtractor(HtmlNode soup)
+    private async Task<(List<StringImageLinkWrapper> images, string dirName, List<string>? extraPosts)>
+        PornhubLinkExtractor(HtmlNode soup, CancellationToken cancellationToken = default)
     {
         // First parse may have expired links as we need to get number of links per post
         //  This mainly is due to albums as videos and gifs only have one link per post
@@ -239,7 +243,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 {
                     continue;
                 }
-                
+
                 var quality = qualityJson.Deserialize<string>()!.ParseInt();
                 if (quality > highestQuality)
                 {
@@ -248,7 +252,8 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 }
             }
 
-            var imageLink = new ImageLink(highestQualityUrl, FilenameScheme, 0, filename: $"{dirName}.mp4", cleanFilename: true)
+            var imageLink = new ImageLink(highestQualityUrl, FilenameScheme, 0, filename: $"{dirName}.mp4",
+                cleanFilename: true)
             {
                 LinkInfo = LinkInfo.ObfuscatedM3U8,
                 Referer = "https://pornhub.com/"
@@ -271,7 +276,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 var url = await ExtractPhoto(post);
                 images.Add(url);
             }
-            
+
             extraPosts = posts;
         }
         else if (CurrentUrl.Contains("/photo/"))
@@ -280,7 +285,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
             var url = await ExtractPhoto();
             images = [url];
         }
-        else if(CurrentUrl.Contains("/gif/"))
+        else if (CurrentUrl.Contains("/gif/"))
         {
             Logger.Debug("Parsing gif page");
             dirName = soup.SelectSingleNode("//div[@class='gifTitle']/h1")?.InnerText ?? "";
@@ -289,7 +294,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                 var id = CurrentUrl.Split("/")[4];
                 dirName = $"Pornhub Gif {id}";
             }
-            
+
             await WaitForElement("//video[@id='gifWebmPlayer']/source", timeout: 60);
             soup = await Soupify();
             var url = soup.SelectSingleNodeOrThrow("//video[@id='gifWebmPlayer']/source").GetSrc();
@@ -303,7 +308,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         return (images, dirName, extraPosts);
     }
 
-    private async Task<string> ExtractPhoto(string post = "")
+    private async Task<string> ExtractPhoto(string post = "", CancellationToken cancellationToken = default)
     {
         HtmlNode soup;
         if (post != "")
@@ -316,8 +321,8 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         }
 
         var imageNode = soup.SelectSingleNode("//div[@id='photoImageSection']//img");
-        var url = imageNode is not null 
-            ? imageNode.GetSrc() 
+        var url = imageNode is not null
+            ? imageNode.GetSrc()
             : soup.SelectSingleNodeOrThrow("//video[@class='centerImageVid']/source").GetSrc();
 
         return url;

@@ -19,7 +19,7 @@ public class CamwhoresParser : HtmlParser, IHtmlParser
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return CamwhoresParse("");
     }
@@ -28,7 +28,7 @@ public class CamwhoresParser : HtmlParser, IHtmlParser
     ///     Parses the html for camwhores.tv and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> CamwhoresParse(string url)
+    private async Task<RipInfo> CamwhoresParse(string url, CancellationToken cancellationToken = default)
     {
         if (url != "")
         {

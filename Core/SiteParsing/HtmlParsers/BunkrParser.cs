@@ -27,7 +27,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
     ///     Parses the html for bunkr.si and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url)
+    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
     {
         if (url != "")
         {
@@ -160,7 +160,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
     }
 
 
-    private async Task<ImageLink> GetVideoLink(HtmlNode soup)
+    private async Task<ImageLink> GetVideoLink(HtmlNode soup, CancellationToken cancellationToken = default)
     {
         var videoDownloadNode = soup.SelectSingleNode("//a[@id='czmDownloadz']");
         string videoDownload;
@@ -194,7 +194,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         return img.GetSrc();
     }
 
-    private async Task<string> GetDownloadLink(HtmlNode soup)
+    private async Task<string> GetDownloadLink(HtmlNode soup, CancellationToken cancellationToken = default)
     {
         var downloadLinkNode =
             soup.SelectSingleNode(

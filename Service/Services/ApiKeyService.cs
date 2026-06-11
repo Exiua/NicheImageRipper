@@ -8,7 +8,7 @@ namespace Service.Services;
 
 public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
 {
-    public async Task<CreateApiKeyResult> CreateAsync(string name, string? ownerId, DateTime? expiresUtc)
+    public async Task<CreateApiKeyResult> CreateAsync(string name, string? ownerId, DateTime? expiresUtc, CancellationToken cancellationToken = default)
     {
         var (prefix, rawKey) = ApiKeyGenerator.Generate();
         var hash = ApiKeyHasher.Hash(rawKey);
@@ -37,7 +37,7 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
         };
     }
 
-    public async Task<ApiKeyValidationResult?> ValidateAsync(string rawApiKey)
+    public async Task<ApiKeyValidationResult?> ValidateAsync(string rawApiKey, CancellationToken cancellationToken = default)
     {
         var dotIndex = rawApiKey.IndexOf('.');
         if (dotIndex <= 0)
@@ -82,7 +82,7 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
         };
     }
 
-    public async Task<bool> RevokeAsync(Guid id)
+    public async Task<bool> RevokeAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await context.ApiKeys.FirstOrDefaultAsync(x => x.Id == id);
         if (entity == null)

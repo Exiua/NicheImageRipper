@@ -16,7 +16,7 @@ public class AllBooruParser : BooruParser, IHtmlParser
     {
     }
 
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var tags = ExtractTagsFromUrl(GivenUrl);
         Logger.Debug("Parsing all boorus with tags: {Tags}", tags);

@@ -20,7 +20,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
     ///     Parses the html for thothub.lol and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const string sessionCookieName = "PHPSESSID";
         var cookieJar = Driver.GetCookieJar();

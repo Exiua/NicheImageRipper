@@ -28,7 +28,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
     ///     Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         await SiteLogin();
         var cookies = Driver.GetCookieJar();
@@ -107,7 +107,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    protected override async Task<bool> SiteLoginHelper()
+    protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
         var (username, password) = Config.Logins.TitsInTops;

@@ -25,8 +25,7 @@ public interface IBackendConnector : IAsyncInitialization
 
     public Task<RejectedUrlsInfo> QueueUrlsAsync(
         string urls,
-        bool force = false,
-        CancellationToken cancellationToken = default);
+        bool force = false, CancellationToken cancellationToken = default);
 
     public Task DequeueUrlsAsync(
         string[] urls,

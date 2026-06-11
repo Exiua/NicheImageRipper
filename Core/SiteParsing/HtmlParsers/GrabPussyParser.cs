@@ -19,7 +19,7 @@ public class GrabPussyParser : HtmlParser, IHtmlParser
     ///     Parses the html for grabpussy.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse()
+    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return GenericBabesHtmlParser("(//div[@class='c-title'])[2]//h1",
             "//div[@class='gal own-gallery-images']/a");

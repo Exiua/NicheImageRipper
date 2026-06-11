@@ -28,7 +28,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
     ///     Parses the html for simpcity.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var currentUrl = CurrentUrl;
         Logger.Debug("Creating resolvable url map");
@@ -284,7 +284,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         return $"https://simp2.saint2.pk/api/download.php?file={id}";
     }
 
-    private Task<RipInfo> ReTryParse(string link, ParameterizedHtmlParser parser)
+    private Task<RipInfo> ReTryParse(string link, ParameterizedHtmlParser parser, CancellationToken cancellationToken = default)
     {
         WebDriver.RegenerateDriver();
         // Driver.Url = link;

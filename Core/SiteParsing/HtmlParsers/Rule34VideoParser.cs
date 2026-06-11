@@ -27,7 +27,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     ///     Parses the html for rule34video.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
         {
@@ -173,7 +173,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         return images;
     }
 
-    private async Task<(string, string)> GetVideoDownloadUrl(HtmlNode? soup = null, string? post = null)
+    private async Task<(string, string)> GetVideoDownloadUrl(HtmlNode? soup = null, string? post = null, CancellationToken cancellationToken = default)
     {
         if (soup is null)
         {

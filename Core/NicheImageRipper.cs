@@ -347,7 +347,7 @@ public partial class NicheImageRipper : IDisposable
         };
     }
 
-    public async Task Rip()
+    public async Task Rip(CancellationToken cancellationToken = default)
     {
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
@@ -369,7 +369,7 @@ public partial class NicheImageRipper : IDisposable
         }
     }
 
-    private async Task<string> RipUrl()
+    private async Task<string> RipUrl(CancellationToken cancellationToken = default)
     {
         if (UrlQueue.Count == 0)
         {
@@ -398,7 +398,7 @@ public partial class NicheImageRipper : IDisposable
             catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver", "timed out") && retry < MaxRetries - 1)
             {
                 Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
-                await Task.Delay(10000);
+                await Task.Delay(10000, cancellationToken);
             }
             catch (Exception e)
             {
@@ -409,7 +409,7 @@ public partial class NicheImageRipper : IDisposable
                     throw;
                 }
 
-                await Task.Delay(RetryDelay);
+                await Task.Delay(RetryDelay, cancellationToken);
                 if (Debugging)
                 {
                     Logger.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
@@ -430,7 +430,7 @@ public partial class NicheImageRipper : IDisposable
         OnProgressChanged?.Invoke(current, total);
     }
 
-    public async Task SaveData()
+    public async Task SaveData(CancellationToken cancellationToken = default)
     {
         SaveUnfinishedUrls();
 
@@ -451,7 +451,7 @@ public partial class NicheImageRipper : IDisposable
         }
     }
 
-    public static Task SkipEntry()
+    public static Task SkipEntry(CancellationToken cancellationToken = default)
     {
         return ImageRipper.IncrementCurrentRipPosition();
     }
@@ -507,7 +507,7 @@ public partial class NicheImageRipper : IDisposable
     ///     Retrieve the latest version of the NicheImageRipper from the remote git repo
     /// </summary>
     /// <returns>Latest version of the NicheImageRipper or 0.0.0 if unable to connect to the repo</returns>
-    private static async Task<Version> GetLatestVersion()
+    private static async Task<Version> GetLatestVersion(CancellationToken cancellationToken = default)
     {
         var client = new HttpClient();
         client.DefaultRequestHeaders.Add("User-Agent",

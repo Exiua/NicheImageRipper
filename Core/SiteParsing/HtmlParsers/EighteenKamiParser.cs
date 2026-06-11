@@ -19,7 +19,7 @@ public class EighteenKamiParser : HtmlParser, IHtmlParser
     ///     Parses the html for 18kami.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var url = CurrentUrl.Split("/")[..5].Join("/").Replace("/album/", "/photo/");
         var soup = await Soupify(url, lazyLoadArgs: new LazyLoadArgs

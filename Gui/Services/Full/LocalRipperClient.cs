@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Core;
 using Core.DataStructures;
@@ -27,83 +28,83 @@ public class LocalRipperClient : IRipperClient
         _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
     }
     
-    public Task Rip()
+    public Task Rip(CancellationToken cancellationToken = default)
     {
         return _ripper.Rip();
     }
 
-    public Task<bool> Resume()
+    public Task<bool> Resume(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_ripper.Resume());
     }
 
-    public Task<bool> Pause()
+    public Task<bool> Pause(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_ripper.Pause());
     }
 
-    public Task<IEnumerable<string>> GetUrlQueue()
+    public Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IEnumerable<string>>(_ripper.UrlQueue);
     }
 
-    public Task<RejectedUrlsInfo> QueueUrls(string url)
+    public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_ripper.QueueUrls(url));
     }
 
-    public Task DequeueUrls(IEnumerable<string> url)
+    public Task DequeueUrls(IEnumerable<string> url, CancellationToken cancellationToken = default)
     {
         _ripper.DequeueUrls(url);
         return Task.CompletedTask;
     }
 
-    public Task ForceQueueUrl(string url)
+    public Task ForceQueueUrl(string url, CancellationToken cancellationToken = default)
     {
         _ripper.ForceQueueUrls(url);
         return Task.CompletedTask;
     }
 
-    public Task RequeueUrls(RejectedUrlsInfo rejectedUrls)
+    public Task RequeueUrls(RejectedUrlsInfo rejectedUrls, CancellationToken cancellationToken = default)
     {
         _ripper.RequeueUrls(rejectedUrls);
         return Task.CompletedTask;
     }
 
-    public Task LoadUrlFile(string path)
+    public Task LoadUrlFile(string path, CancellationToken cancellationToken = default)
     {
         var loadedUrls = JsonUtility.Deserialize<List<string>>(path)!;
         _ripper.LoadUrls(loadedUrls);
         return Task.CompletedTask;
     }
 
-    public Task SaveData()
+    public Task SaveData(CancellationToken cancellationToken = default)
     {
         return _ripper.SaveData();
     }
 
-    public Task<Version> GetCoreVersion()
+    public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.Version);
     }
     
-    public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
+    public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.GetHistoryPage(start, offset, filter));
     }
 
-    public Task ClearCache()
+    public Task ClearCache(CancellationToken cancellationToken = default)
     {
         NicheImageRipper.ClearCache();
         return Task.CompletedTask;
     }
 
-    public Task<int> GetHistoryCount()
+    public Task<int> GetHistoryCount(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.GetHistoryCount());
     }
 
-    public Task SkipCurrentEntry()
+    public Task SkipCurrentEntry(CancellationToken cancellationToken = default)
     {
         return NicheImageRipper.SkipEntry();
     }

@@ -205,7 +205,7 @@ public partial class BunnyVideoDrm
         Session.Send(requestMessage);
     }
 
-    public async Task Download()
+    public async Task Download(CancellationToken cancellationToken = default)
     {
         var resolution = PrepareDl();
         string[] url =
@@ -213,7 +213,7 @@ public partial class BunnyVideoDrm
         await DownloadVideoAsync(url[0]);
     }
 
-    private async Task DownloadVideoAsync(string url)
+    private async Task DownloadVideoAsync(string url, CancellationToken cancellationToken = default)
     {
         var startInfo = new ProcessStartInfo
         {

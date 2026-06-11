@@ -26,7 +26,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
     ///     Parses the html for archivebate.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse()
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var verifyButton = Driver.FindElement(By.Id("verify"));
         Driver.Click(verifyButton);
@@ -135,7 +135,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
         return posts;
     }
 
-    private async Task<string> GetVideoUrl()
+    private async Task<string> GetVideoUrl(CancellationToken cancellationToken = default)
     {
         var iframe = Driver.TryFindElement(By.XPath("//iframe[@class='ab-rounded video-frame']"));
         if (iframe is null)

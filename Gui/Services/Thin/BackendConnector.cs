@@ -115,8 +115,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
     private async Task<TResponse> SendAsync<TRequest, TResponse>(
         HttpMethod method,
         string path,
-        TRequest payload,
-        CancellationToken cancellationToken = default)
+        TRequest payload, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(method, path, payload);
         using var response = await httpClient.SendAsync(request, cancellationToken);
@@ -139,8 +138,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
 
     public async Task<RejectedUrlsInfo> QueueUrlsAsync(
         string urls,
-        bool force = false,
-        CancellationToken cancellationToken = default)
+        bool force = false, CancellationToken cancellationToken = default)
     {
         var request = new QueueRequest
         {
@@ -150,8 +148,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
         return await SendAsync<QueueRequest, RejectedUrlsInfo>(
             HttpMethod.Post,
             $"api/queue?force={force}",
-            request,
-            cancellationToken);
+            request);
     }
 
     public Task<int> GetQueueCountAsync(CancellationToken cancellationToken = default)
@@ -168,7 +165,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
             return;
         }
 
-        await SendAsync<string[], Unit>(HttpMethod.Delete, "api/queue", urls, cancellationToken);
+        await SendAsync<string[], Unit>(HttpMethod.Delete, "api/queue", urls);
         // using var request = CreateRequest(HttpMethod.Delete, "api/queue", urls);
         // using var response = await httpClient.SendAsync(request, cancellationToken);
         //
@@ -178,7 +175,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
     public Task LoadUrlsAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default)
     {
         var urlList = urls as string[] ?? urls.ToArray();
-        return SendAsync<string[], Unit>(HttpMethod.Post, "api/queue/load", urlList, cancellationToken);
+        return SendAsync<string[], Unit>(HttpMethod.Post, "api/queue/load", urlList);
     }
 
     public Task<bool> RipAsync(CancellationToken cancellationToken = default)
@@ -232,7 +229,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
 
     public async Task UpdateConfigAsync(Config config, CancellationToken cancellationToken = default)
     {
-        await SendAsync<Config, Unit>(HttpMethod.Patch, "api/settings", config, cancellationToken);
+        await SendAsync<Config, Unit>(HttpMethod.Patch, "api/settings", config);
     }
 
     public async Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default)

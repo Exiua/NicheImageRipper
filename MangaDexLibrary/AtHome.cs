@@ -12,7 +12,7 @@ public class AtHome
         _client = client;
     }
     
-    public async Task<MangaDexResponse> GetServerUrls(Guid chapterId)
+    public async Task<MangaDexResponse> GetServerUrls(Guid chapterId, CancellationToken cancellationToken = default)
     {
         var url = $"https://api.mangadex.org/at-home/server/{chapterId}";
         var response = await _client.GetAsync(url);

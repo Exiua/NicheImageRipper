@@ -71,7 +71,7 @@ public abstract class HtmlParser : IDisposable
         Logger = Log.ForContext<HtmlParser>();
     }
 
-    public async Task<RipInfo> ParseSite(string url)
+    public async Task<RipInfo> ParseSite(string url, CancellationToken cancellationToken = default)
     {
         Logger.Debug("Parsing {Url}", url);
         url = url.Replace("members.", "www.") // For HAnime
@@ -139,7 +139,7 @@ public abstract class HtmlParser : IDisposable
         throw new RipperException("Retry count cannot be less than 1");
     }
 
-    private async Task CleanupWhenFailed(Exception e)
+    private async Task CleanupWhenFailed(Exception e, CancellationToken cancellationToken = default)
     {
         Driver.SwitchTo().DefaultContent();
         Logger.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
@@ -397,7 +397,7 @@ public abstract class HtmlParser : IDisposable
     // TODO: Make private and call from ParseSite so children only need to implement SiteLoginHelper instead of worrying
     //  about calling SiteLogin as well
     //  Only issue is with GoFileParser/ParameterizedHtmlParser where CurrentUrl may need to be set before login
-    protected Task<bool> SiteLogin()
+    protected Task<bool> SiteLogin(CancellationToken cancellationToken = default)
     {
         Logger.Debug("Checking if already logged in to {SiteName}", SiteName);
         if (IsLoggedInToSite(SiteName))
@@ -407,17 +407,17 @@ public abstract class HtmlParser : IDisposable
         }
 
         Logger.Debug("Logging in to {SiteName}", SiteName);
-        var loginTask = SiteLoginHelper();
+        var loginTask = SiteLoginHelper(cancellationToken);
 
         return loginTask.ContinueWith(task =>
         {
             WebDriver.SiteLoginStatus[SiteName] = task.Result;
-            Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
+            Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result, cancellationToken);
             return task.Result;
-        });
+        }, cancellationToken);
     }
 
-    protected virtual Task<bool> SiteLoginHelper()
+    protected virtual Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         throw new Exception("Site authentication not implemented");
     }
@@ -428,7 +428,7 @@ public abstract class HtmlParser : IDisposable
         return !siteLoginStatus.TryAdd(siteName, false) && siteLoginStatus[siteName];
     }
 
-    protected abstract Task<RipInfo> Parse();
+    protected abstract Task<RipInfo> Parse(CancellationToken cancellationToken = default);
 
     #region Generic Site Parsers
 
@@ -436,7 +436,7 @@ public abstract class HtmlParser : IDisposable
     ///     
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath)
+    protected async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath, CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow(dirNameXpath)
@@ -450,7 +450,7 @@ public abstract class HtmlParser : IDisposable
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    protected Task<RipInfo> GenericHtmlParser(string siteName)
+    protected Task<RipInfo> GenericHtmlParser(string siteName, CancellationToken cancellationToken = default)
     {
         return siteName switch
         {
@@ -466,7 +466,7 @@ public abstract class HtmlParser : IDisposable
     ///     
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GenericHtmlParserHelper1()
+    private async Task<RipInfo> GenericHtmlParserHelper1(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//img[@title='Click To Enlarge!']")
@@ -485,7 +485,7 @@ public abstract class HtmlParser : IDisposable
     ///     
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GenericHtmlParserHelper2()
+    private async Task<RipInfo> GenericHtmlParserHelper2(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
         var imageList = soup.SelectSingleNodeOrThrow("//ul[@class='list-gallery static css has-data']")
@@ -503,7 +503,7 @@ public abstract class HtmlParser : IDisposable
     ///     
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GenericHtmlParserHelper3()
+    private async Task<RipInfo> GenericHtmlParserHelper3(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//header[@id='top']").SelectSingleNodeOrThrow(".//h1").InnerText;
@@ -576,7 +576,7 @@ public abstract class HtmlParser : IDisposable
     /// <param name="xpathTimout">Timeout (in seconds) for waiting for the XPath element</param>
     /// <returns>>Parsed HtmlNode object</returns>
     protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "",
-                                           int xpathTimout = 10)
+                                           int xpathTimout = 10, CancellationToken cancellationToken = default)
     {
         if (delay > 0)
         {
@@ -611,7 +611,7 @@ public abstract class HtmlParser : IDisposable
     /// <returns>>Parsed HtmlNode object</returns>
     protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
                                            string xpath = "", bool urlString = true, ICookieJar? cookies = null,
-                                           int xpathTimout = 10)
+                                           int xpathTimout = 10, CancellationToken cancellationToken = default)
     {
         if (!urlString)
         {
@@ -639,7 +639,7 @@ public abstract class HtmlParser : IDisposable
     /// </summary>
     /// <param name="response">HttpResponseMessage to parse</param>
     /// <returns>>Parsed HtmlNode object</returns>
-    protected static async Task<HtmlNode> Soupify(HttpResponseMessage response)
+    protected static async Task<HtmlNode> Soupify(HttpResponseMessage response, CancellationToken cancellationToken = default)
     {
         var content = await response.Content.ReadAsStringAsync();
         var htmlDocument = new HtmlDocument();
@@ -647,7 +647,7 @@ public abstract class HtmlParser : IDisposable
         return htmlDocument.DocumentNode;
     }
 
-    protected async Task<HtmlNode> Soupify(CSWebDriverClient.Models.Responses.BaseResponse baseResponse)
+    protected async Task<HtmlNode> Soupify(CSWebDriverClient.Models.Responses.BaseResponse baseResponse, CancellationToken cancellationToken = default)
     {
         return baseResponse switch
         {
@@ -667,7 +667,7 @@ public abstract class HtmlParser : IDisposable
     /// </summary>
     /// <param name="solution">FlareSolverr Solution to parse</param>
     /// <returns>>Parsed HtmlNode object</returns>
-    private static Task<HtmlNode> Soupify(Solution solution)
+    private static Task<HtmlNode> Soupify(Solution solution, CancellationToken cancellationToken = default)
     {
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(solution.Response);
@@ -681,7 +681,7 @@ public abstract class HtmlParser : IDisposable
     /// <param name="delay">Delay between each check</param>
     /// <param name="timeout">Timeout (in seconds) for the wait (-1 for no timeout)</param>
     /// <returns>True if the element exists, false if the timeout is reached</returns>
-    protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10)
+    protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10, CancellationToken cancellationToken = default)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
         var startTime = DateTime.Now;
@@ -748,7 +748,7 @@ public abstract class HtmlParser : IDisposable
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
                                                         List<Dictionary<string, string>>? cookies = null,
                                                         List<string>? cookieWhitelist = null,
-                                                        bool replaceUserAgent = false)
+                                                        bool replaceUserAgent = false, CancellationToken cancellationToken = default)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies);
         if (replaceUserAgent)
@@ -772,14 +772,14 @@ public abstract class HtmlParser : IDisposable
     }
 
     protected async Task<HtmlNode> SolveParse(bool regenerateSessionOnFailure = false,
-                                              List<Dictionary<string, string>>? cookies = null)
+                                              List<Dictionary<string, string>>? cookies = null, CancellationToken cancellationToken = default)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies);
         return await Soupify(solution);
     }
 
     private async Task<Solution> Solve(bool regenerateSessionOnFailure = false,
-                                       List<Dictionary<string, string>>? cookies = null)
+                                       List<Dictionary<string, string>>? cookies = null, CancellationToken cancellationToken = default)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
@@ -816,19 +816,19 @@ public abstract class HtmlParser : IDisposable
         return solution;
     }
 
-    protected static Task JitterSleep(int min = 250, int max = 2500)
+    protected static Task JitterSleep(int min = 250, int max = 2500, CancellationToken cancellationToken = default)
     {
         var jitter = Random.Shared.Next(min, max);
         return Task.Delay(jitter);
     }
 
-    protected static Task Sleep(int milliseconds)
+    protected static Task Sleep(int milliseconds, CancellationToken cancellationToken = default)
     {
         return Task.Delay(milliseconds);
     }
 
     protected static async Task<T> RetryUntil<T>(Func<Task<T>> func, Func<T, bool> successCondition,
-                                                 string errorMessage, int delay = 250)
+                                                 string errorMessage, int delay = 250, CancellationToken cancellationToken = default)
     {
         const int maxAttempts = 4;
         T value = default!;
@@ -852,7 +852,7 @@ public abstract class HtmlParser : IDisposable
         return value;
     }
 
-    protected static async Task<T> DeserializeCache<T>(string cachePath, Func<Task<T>> fetchFunc) where T : class
+    protected static async Task<T> DeserializeCache<T>(string cachePath, Func<Task<T>> fetchFunc, CancellationToken cancellationToken = default) where T : class
     {
         T data;
         if (File.Exists(cachePath))
@@ -875,7 +875,7 @@ public abstract class HtmlParser : IDisposable
         return data;
     }
 
-    protected async Task<(T, IBiDi)> ConfigureNetworkCapture<T>() where T : PlaylistCapturer, new()
+    protected async Task<(T, IBiDi)> ConfigureNetworkCapture<T>(CancellationToken cancellationToken = default) where T : PlaylistCapturer, new()
     {
         var capturer = new T();
         var bidi = await Driver.AsBiDiAsync();
@@ -933,7 +933,7 @@ public abstract class HtmlParser : IDisposable
     ///     Scrolls through the page to lazy load images
     /// </summary>
     /// <param name="args">Arguments for lazy loading</param>
-    protected Task LazyLoad(LazyLoadArgs args)
+    protected Task LazyLoad(LazyLoadArgs args, CancellationToken cancellationToken = default)
     {
         return args.StopElement is not null && Driver.TryFindElement(args.StopElement) is not null
             ? LazyLoad(args.StopElement)
@@ -949,7 +949,7 @@ public abstract class HtmlParser : IDisposable
     /// <param name="scrollBack">Distance to scroll back by after reaching the bottom of the page</param>
     /// <param name="rescroll">Whether scrolling through the page again</param>
     protected async Task LazyLoad(bool scrollBy = false, int increment = 2500, int scrollPauseTime = 500,
-                                  int scrollBack = 0, bool rescroll = false)
+                                  int scrollBack = 0, bool rescroll = false, CancellationToken cancellationToken = default)
     {
         var lastHeight = Driver.GetScrollHeight();
         if (rescroll)
@@ -995,7 +995,7 @@ public abstract class HtmlParser : IDisposable
         }
     }
 
-    protected async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500)
+    protected async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500, CancellationToken cancellationToken = default)
     {
         var scrollScript = $"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});";
         while (true)
@@ -1022,7 +1022,7 @@ public abstract class HtmlParser : IDisposable
         Driver.ExecuteScript("window.scrollTo(0, 0);");
     }
 
-    protected async Task WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback)
+    protected async Task WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback, CancellationToken cancellationToken = default)
     {
         var i = 0;
         while (true)
@@ -1053,7 +1053,7 @@ public abstract class HtmlParser : IDisposable
 
     #region Parser Testing
 
-    public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite)
+    public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -1112,7 +1112,7 @@ public abstract class HtmlParser : IDisposable
         }
     }
 
-    private Task<RipInfo> EvaluateParser(string siteName)
+    private Task<RipInfo> EvaluateParser(string siteName, CancellationToken cancellationToken = default)
     {
         siteName = TestSiteConverter(siteName);
         siteName = siteName[0].ToString().ToUpper() + siteName[1..];

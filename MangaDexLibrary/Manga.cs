@@ -12,12 +12,12 @@ public class Manga
         _client = client;
     }
 
-    public  Task<MangaDexResponse> GetVolumeAndChapter(Guid mangaId)
+    public  Task<MangaDexResponse> GetVolumeAndChapter(Guid mangaId, CancellationToken cancellationToken = default)
     {
         return GetVolumeAndChapter(mangaId.ToString());
     }
 
-    public async Task<MangaDexResponse> GetMetadata(string mangaId)
+    public async Task<MangaDexResponse> GetMetadata(string mangaId, CancellationToken cancellationToken = default)
     {
         var url = $"https://api.mangadex.org/manga/{mangaId}";
         var response = await _client.GetAsync(url);
@@ -37,7 +37,7 @@ public class Manga
         return manga;
     }
     
-    public async Task<MangaDexResponse> GetVolumeAndChapter(string mangaId)
+    public async Task<MangaDexResponse> GetVolumeAndChapter(string mangaId, CancellationToken cancellationToken = default)
     {
         var url = $"https://api.mangadex.org/manga/{mangaId}/aggregate";
         var response = await _client.GetAsync(url);

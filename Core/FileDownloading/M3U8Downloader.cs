@@ -11,7 +11,7 @@ public static class M3U8Downloader
     private static ILogger Logger { get; } = Log.ForContext(typeof(M3U8Downloader));
 
     public static async Task DownloadM3U8(string url, string savePath, string outputName,
-                                          string? referer = null, bool isIndex = false)
+                                          string? referer = null, bool isIndex = false, CancellationToken cancellationToken = default)
     {
         Logger.Debug("Url: {Url}, SavePath: {SavePath}, OutputName: {OutputName}, Referer: {Referer}, IsIndex: {IsIndex}",
             url, savePath, outputName, referer, isIndex);
@@ -67,7 +67,7 @@ public static class M3U8Downloader
         }
     }
 
-    private static async Task ConcatenateSegments(List<string> segmentPaths, string tempPath, string outputPath)
+    private static async Task ConcatenateSegments(List<string> segmentPaths, string tempPath, string outputPath, CancellationToken cancellationToken = default)
     {
         var pathEntries = new List<string>(segmentPaths.Count);
         pathEntries.AddRange(segmentPaths.Select(path => $"file '{path.Replace("'", "'\\''")}'"));
@@ -132,7 +132,7 @@ public static class M3U8Downloader
                      .Select(line => ResolveUrl(url, line.Trim()))).ToList();
     }
 
-    private static async Task<string> GetPlaylistUrl(string url, HttpClient client)
+    private static async Task<string> GetPlaylistUrl(string url, HttpClient client, CancellationToken cancellationToken = default)
     {
         Logger.Debug("Downloading M3U8 playlist from: {Url}", url);
         var response = await client.GetAsync(url);

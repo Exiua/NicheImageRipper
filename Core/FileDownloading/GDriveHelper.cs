@@ -10,7 +10,7 @@ namespace Core.FileDownloading;
 
 public static class GDriveHelper
 {
-    public static async Task<DriveService> AuthenticateGDrive()
+    public static async Task<DriveService> AuthenticateGDrive(CancellationToken cancellationToken = default)
     {
         var creds = await TokenManager.GDriveAuthenticate();
         return new DriveService(new BaseClientService.Initializer
