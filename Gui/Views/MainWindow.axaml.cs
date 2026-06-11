@@ -4,6 +4,7 @@ using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Notifications;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -16,6 +17,7 @@ using Core;
 using Core.Enums;
 using Core.History;
 using Gui.Services;
+using Gui.Services.Shared;
 using Gui.ViewModels;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
@@ -36,9 +38,17 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     private bool _copyReady;
     private IntPtr _windowHandle;
     private readonly ILogger<MainWindow> _logger;
+    private readonly ISnackbar _snackbar;
 
     public MainWindow(MainWindowViewModelBase viewModel, ITaskbarProgressService taskbarProgressService, ILogger<MainWindow> logger)
     {
+        var manager = new WindowNotificationManager(this)
+        {
+            Position = NotificationPosition.BottomCenter,
+            MaxItems = 3,
+        };
+        
+        _snackbar = new Snackbar(manager);
         _taskbarProgressService = taskbarProgressService;
         _logger = logger;
         DataContext = viewModel;
@@ -51,7 +61,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
         UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
-        
+
+        viewModel.OnNotification += Show;
         viewModel.LogTextChanged += OnLogTextChanged;
         viewModel.ProgressChanged += (current, total) =>
         {
@@ -77,21 +88,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             }
 
             _taskbarProgressService.SetError(_windowHandle);
-            // if (ViewModel.ProgressTotal == 0)
-            // {
-            //     _taskbarProgressService.ClearProgress(_windowHandle);
-            // }
-            // else if (ViewModel.ProgressIsPaused)
-            // {
-            //     _taskbarProgressService.SetPaused(_windowHandle);
-            // }
-            // else
-            // {
-            //     _taskbarProgressService.SetProgress(
-            //         _windowHandle,
-            //         ViewModel.ProgressCurrent,
-            //         ViewModel.ProgressTotal);
-            // }
         };
         
         Closing += OnClosing;
@@ -527,5 +523,14 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         
         _paused = paused;
+    }
+
+    private void Show(string message, string title = "Snackbar", NotificationType type = NotificationType.Information,
+                      long expirationMs = 3000)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            _snackbar.Show(message, title, type, expirationMs);
+        });
     }
 }
