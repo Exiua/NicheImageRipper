@@ -210,7 +210,7 @@ public partial class BunnyVideoDrm
         var resolution = PrepareDl();
         string[] url =
             [$"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm?contextId={ContextId}"];
-        await DownloadVideoAsync(url[0]);
+        await DownloadVideoAsync(url[0], cancellationToken);
     }
 
     private async Task DownloadVideoAsync(string url, CancellationToken cancellationToken = default)
@@ -232,7 +232,7 @@ public partial class BunnyVideoDrm
         process.Start();
         process.BeginOutputReadLine();
         
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync(cancellationToken);
     }
 
     private string BuildArguments(string url)

@@ -1411,7 +1411,7 @@ public partial class ImageRipper : IDisposable
                 continue;
             }
 
-            await using var entryStream = entry.Open();
+            await using var entryStream = await entry.OpenAsync();
             var img = new MagickImage(entryStream)
             {
                 AnimationDelay = (uint)(delay / 10) // Convert milliseconds to centiseconds
@@ -2180,15 +2180,15 @@ public partial class ImageRipper : IDisposable
     {
         Driver.Url = url;
         var b64Img = (string?)Driver.ExecuteScript("""
-                                                  var img = document.getElementsByTagName("img")[0];
-                                                  var canvas = document.createElement("canvas");
-                                                  canvas.width = img.naturalWidth;
-                                                  canvas.height = img.naturalHeight;
-                                                  var ctx = canvas.getContext("2d");
-                                                  ctx.drawImage(img, 0, 0);
-                                                  var dataURL = canvas.toDataURL("image/png");
-                                                  return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
-                                                  """);
+                                                          const img = document.getElementsByTagName("img")[0];
+                                                          const canvas = document.createElement("canvas");
+                                                          canvas.width = img.naturalWidth;
+                                                          canvas.height = img.naturalHeight;
+                                                          const ctx = canvas.getContext("2d");
+                                                          ctx.drawImage(img, 0, 0);
+                                                          const dataURL = canvas.toDataURL("image/png");
+                                                          return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+                                                          """);
         var bytes = Convert.FromBase64String(b64Img!);
         return bytes;
     }

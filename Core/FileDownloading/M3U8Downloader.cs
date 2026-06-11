@@ -35,11 +35,11 @@ public static class M3U8Downloader
                 client.DefaultRequestHeaders.Add("Origin", origin);
             }
 
-            var playlistUrl = await GetPlaylistUrl(url, client);
+            var playlistUrl = await GetPlaylistUrl(url, client, cancellationToken);
             var segments = await DownloadPlaylist(playlistUrl, client);
             var segmentPaths = await DownloadSegments(segments, tempPath, client);
             var outputPath = Path.Combine(savePath, outputName);
-            await ConcatenateSegments(segmentPaths, tempPath, outputPath);
+            await ConcatenateSegments(segmentPaths, tempPath, outputPath, cancellationToken);
         }
         catch (Exception e)
         {
@@ -73,7 +73,7 @@ public static class M3U8Downloader
         pathEntries.AddRange(segmentPaths.Select(path => $"file '{path.Replace("'", "'\\''")}'"));
 
         var listPath = Path.Combine(tempPath, "segments.txt");
-        await File.WriteAllLinesAsync(listPath, pathEntries);
+        await File.WriteAllLinesAsync(listPath, pathEntries, cancellationToken);
         var cmd = new[]
         {
             "-f", "concat",
@@ -135,9 +135,9 @@ public static class M3U8Downloader
     private static async Task<string> GetPlaylistUrl(string url, HttpClient client, CancellationToken cancellationToken = default)
     {
         Logger.Debug("Downloading M3U8 playlist from: {Url}", url);
-        var response = await client.GetAsync(url);
+        var response = await client.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var playlistUrl = GetHighestQualityVideoPlaylist(content);
         if (playlistUrl is null)
         {

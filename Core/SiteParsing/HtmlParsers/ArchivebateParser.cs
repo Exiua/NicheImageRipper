@@ -7,7 +7,6 @@ using Core.Managers;
 using Core.Utility;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
-using Serilog;
 using WebDriver = Core.Driver.WebDriver;
 
 namespace Core.SiteParsing.HtmlParsers;
