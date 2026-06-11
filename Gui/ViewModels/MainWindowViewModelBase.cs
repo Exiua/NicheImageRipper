@@ -4,7 +4,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using Core.DataStructures;
 using Core.Enums;
@@ -28,7 +30,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     public abstract string Title { get; }
     public abstract bool IsThinClient { get; }
-    
+
     private int HistoryCount => RipperClient.GetHistoryCount().Result;
 
     private bool RipInProgress { get; set; }
@@ -200,7 +202,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             RipperSettings.SkipFailedDownloads = value;
         }
     }
-    
+
     public bool Active { get; set; }
 
     public ObservableCollection<string> UrlQueue { get; }
@@ -229,9 +231,11 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public event Action? LogTextChanged;
     public event Action<int, int>? ProgressChanged;
     public event Action? ProgressErrored;
-    
+    public event Action<string, string, NotificationType, long>? OnNotification;
+
     protected MainWindowViewModelBase(IRipperClient ripperClient, IRipperSettings ripperSettings,
-                                      IGuiSettings guiSettings, ILogTextSource logTextSource, ILogger<MainWindowViewModelBase> logger)
+                                      IGuiSettings guiSettings, ILogTextSource logTextSource,
+                                      ILogger<MainWindowViewModelBase> logger)
     {
         Logger = logger;
         RipperClient = ripperClient;
@@ -366,9 +370,11 @@ public abstract class MainWindowViewModelBase : ViewModelBase
                             break;
                         case QueueFailureReason.AlreadyQueued:
                             Logger.LogInformation("URL already queued: {Url}", failedUrl.Url);
+                            Notify($"URL already queued: {failedUrl.Url}", "Queue URL", NotificationType.Warning);
                             break;
                         case QueueFailureReason.NotSupported:
                             Logger.LogWarning("URL not supported: {Url}", failedUrl.Url);
+                            Notify($"URL not supported: {failedUrl.Url}", "Queue URL", NotificationType.Error);
                             break;
                         case QueueFailureReason.PreviouslyProcessed:
                             Logger.LogInformation("Re-rip url? {Url}", failedUrl.Url);
@@ -410,7 +416,10 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             Message = $"Are you sure you want to re-rip this URL?\n{url}"
         };
 
-        var result = await ShowConfirmationDialog.Handle(confirmationViewModel);
+        var result = await Dispatcher.UIThread.InvokeAsync(async () =>
+        
+            await ShowConfirmationDialog.Handle(confirmationViewModel)
+        );
         return result?.Confirmed ?? false;
     }
 
@@ -690,5 +699,11 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     {
         //ProgressHasError = true;
         ProgressErrored?.Invoke();
+    }
+
+    private void Notify(string message, string title = "Snackbar", NotificationType type = NotificationType.Information,
+                        long expirationMs = 3000)
+    {
+        OnNotification?.Invoke(message, title, type, expirationMs);
     }
 }
