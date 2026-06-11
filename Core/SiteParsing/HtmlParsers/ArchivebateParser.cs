@@ -23,20 +23,20 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for archivebate.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for archivebate.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var verifyButton = Driver.FindElement(By.Id("verify"));
         Driver.Click(verifyButton);
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         string dirName;
         var images = new List<StringImageLinkWrapper>();
         if (CurrentUrl.Contains("/profile/"))
         {
             var profileName = CurrentUrl.Split("/")[4];
-            soup = await Soupify(xpath: "//p[@class='mt-3 text-white mb-0']");
+            soup = await Soupify(xpath: "//p[@class='mt-3 text-white mb-0']", cancellationToken: cancellationToken);
             dirName = soup.SelectSingleNodeOrThrow("//p[@class='mt-3 text-white mb-0']").InnerText;
             List<string> posts;
             if (File.Exists(CachePath))
@@ -68,9 +68,9 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             {
                 Logger.Information("Parsing post {Current} of {Total}: {Url}", i + 1, posts.Count, post);
                 CurrentUrl = post;
-                await Task.Delay(250);
-                await WaitForElement("//iframe[@class='ab-rounded video-frame']");
-                var url = await GetVideoUrl();
+                await Task.Delay(250, cancellationToken);
+                await WaitForElement("//iframe[@class='ab-rounded video-frame']", cancellationToken: cancellationToken);
+                var url = await GetVideoUrl(cancellationToken);
                 if (!url.IsNullOrEmpty())
                 {
                     images.Add(url);
@@ -83,7 +83,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             title = CompactSpaces(title);
             var performer = soup.SelectSingleNodeOrThrow("//div[@class='info d-flex align-items-center']//a").InnerText;
             dirName = $"{performer} - {title}";
-            var url = await GetVideoUrl();
+            var url = await GetVideoUrl(cancellationToken);
             if (!url.IsNullOrEmpty())
             {
                 images.Add(url);
@@ -166,12 +166,12 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             }
             catch (StaleElementReferenceException)
             {
-                await Sleep(250);
+                await Sleep(250, cancellationToken);
             }
         }
             
         const int maxAttempts = 4;
-        await Task.Delay(250);
+        await Task.Delay(250, cancellationToken);
         IWebElement? video = null;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
@@ -195,7 +195,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                         return "";
                     }
                     
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken);
                     continue;
                 }
                 
@@ -208,7 +208,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                         return "";
                     }
 
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken);
                     continue;
                 }
                 
@@ -228,12 +228,12 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                     }
 
                     Driver.ScrollElementIntoView(playButton);
-                    await Sleep(5000);
+                    await Sleep(5000, cancellationToken);
                     continue;
                 }
             }
         
-            await Task.Delay(250);
+            await Task.Delay(250, cancellationToken);
             video = Driver.TryFindElement(By.XPath("//video[@src]"));
             if (video is not null)
             {
@@ -246,7 +246,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 return "";
             }
 
-            await Sleep(1000);
+            await Sleep(1000, cancellationToken);
         }
         
         var url = video!.GetAttribute("src")!;
