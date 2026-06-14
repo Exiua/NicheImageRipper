@@ -356,7 +356,7 @@ public partial class NicheImageRipper : IDisposable
         while (UrlQueue.Count != 0)
         {
             Logger.Debug("Queue size: {QueueCount}", UrlQueue.Count);
-            var url = await RipUrl();
+            var url = await RipUrl(cancellationToken);
             Logger.Debug("Ripped URL: {Url:l}", url);
             if (url != "")
             {
@@ -514,13 +514,13 @@ public partial class NicheImageRipper : IDisposable
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
         try
         {
-            var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest");
+            var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return new Version(0, 0, 0);
             }
 
-            var jsonString = await response.Content.ReadAsStringAsync();
+            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
             var json = JsonSerializer.Deserialize<JsonNode>(jsonString);
             if (json is null)
             {

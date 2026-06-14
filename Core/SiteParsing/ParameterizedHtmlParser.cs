@@ -13,7 +13,7 @@ public abstract class ParameterizedHtmlParser : HtmlParser
 
     protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return Parse("");
+        return Parse("", cancellationToken);
     }
 
     public abstract Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default);

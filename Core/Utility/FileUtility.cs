@@ -108,8 +108,8 @@ public static class FileUtility
     public static async Task<byte[]> GetFileHash(string filepath, CancellationToken cancellationToken = default)
     {
         var sha256 = SHA256.Create();
-        await using var stream = await TryOpenFile(filepath);
-        return await sha256.ComputeHashAsync(stream);
+        await using var stream = await TryOpenFile(filepath, cancellationToken: cancellationToken);
+        return await sha256.ComputeHashAsync(stream, cancellationToken);
     }
 
     private static async Task<FileStream> TryOpenFile(string filepath, int maxAttempts = 3, int delayMs = 250, CancellationToken cancellationToken = default)
@@ -122,7 +122,7 @@ public static class FileUtility
             }
             catch (IOException)
             {
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs, cancellationToken);
             }
         }
         

@@ -1,7 +1,6 @@
 ﻿using System.Data.SQLite;
 using Core.DataStructures;
 using Core.ExtensionMethods;
-using Core.Managers;
 using Serilog;
 
 namespace Core.History;

@@ -110,7 +110,7 @@ public abstract class HtmlParser : IDisposable
             try
             {
                 Logger.Debug("Executing parser for {SiteName}", SiteName);
-                var siteInfo = await Parse();
+                var siteInfo = await Parse(cancellationToken);
                 Logger.Debug("Saving partial save for {Url}", url);
                 WritePartialSave(siteInfo, url);
                 //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
@@ -121,16 +121,16 @@ public abstract class HtmlParser : IDisposable
                 if (attempt < RetryCount - 1)
                 {
                     Logger.Warning(e, "Attempt {Attempt} failed due to WebDriver, retrying...", attempt + 1);
-                    await Sleep(250);
+                    await Sleep(250, cancellationToken);
                     continue;
                 }
 
-                await CleanupWhenFailed(e);
+                await CleanupWhenFailed(e, cancellationToken);
                 throw;
             }
             catch (Exception e)
             {
-                await CleanupWhenFailed(e);
+                await CleanupWhenFailed(e, cancellationToken);
                 throw;
             }
         }
@@ -144,7 +144,7 @@ public abstract class HtmlParser : IDisposable
         Driver.SwitchTo().DefaultContent();
         Logger.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
         #if DEBUG
-        await File.WriteAllTextAsync("test.html", Driver.PageSource);
+        await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
         Driver.TakeDebugScreenshot();
         #endif
     }
@@ -412,7 +412,7 @@ public abstract class HtmlParser : IDisposable
         return loginTask.ContinueWith(task =>
         {
             WebDriver.SiteLoginStatus[SiteName] = task.Result;
-            Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result, cancellationToken);
+            Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
             return task.Result;
         }, cancellationToken);
     }
@@ -438,7 +438,7 @@ public abstract class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath, CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow(dirNameXpath)
                           .InnerText;
         var images = soup.SelectNodesOrThrow(imageContainerXpath)
@@ -454,10 +454,10 @@ public abstract class HtmlParser : IDisposable
     {
         return siteName switch
         {
-            "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(),
-            "elitebabes" => GenericHtmlParserHelper2(),
+            "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(cancellationToken),
+            "elitebabes" => GenericHtmlParserHelper2(cancellationToken),
             "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub"
-                or "metarthunter" or "pmatehunter" or "xarthunter" => GenericHtmlParserHelper3(),
+                or "metarthunter" or "pmatehunter" or "xarthunter" => GenericHtmlParserHelper3(cancellationToken),
             _ => throw new RipperException($"Invalid site name: {siteName}")
         };
     }
@@ -468,7 +468,7 @@ public abstract class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> GenericHtmlParserHelper1(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//img[@title='Click To Enlarge!']")
                           .GetAttributeValue("alt")
                           .Split(" ")
@@ -487,7 +487,7 @@ public abstract class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> GenericHtmlParserHelper2(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var imageList = soup.SelectSingleNodeOrThrow("//ul[@class='list-gallery static css has-data']")
                             .SelectNodesOrThrow(".//a");
         var images = imageList.Select(image => image.GetHref())
@@ -505,7 +505,7 @@ public abstract class HtmlParser : IDisposable
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private async Task<RipInfo> GenericHtmlParserHelper3(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//header[@id='top']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var images = soup
                     .SelectSingleNodeOrThrow(
@@ -574,23 +574,25 @@ public abstract class HtmlParser : IDisposable
     /// <param name="lazyLoadArgs">Arguments for lazy loading elements on the page</param>
     /// <param name="xpath">XPath of an element to wait for before parsing</param>
     /// <param name="xpathTimout">Timeout (in seconds) for waiting for the XPath element</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>>Parsed HtmlNode object</returns>
     protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "",
                                            int xpathTimout = 10, CancellationToken cancellationToken = default)
     {
         if (delay > 0)
         {
-            await Task.Delay(delay);
+            await Task.Delay(delay, cancellationToken);
         }
 
         if (xpath != "")
         {
-            await WaitForElement(xpath, timeout: xpathTimout);
+            await WaitForElement(xpath, timeout: xpathTimout, cancellationToken: cancellationToken);
         }
 
         if (lazyLoadArgs is not null)
         {
-            await LazyLoad(lazyLoadArgs);
+            await LazyLoad(lazyLoadArgs, cancellationToken);
+
         }
 
         var doc = new HtmlDocument();
@@ -608,6 +610,7 @@ public abstract class HtmlParser : IDisposable
     /// <param name="urlString">Indicates whether the 'url' parameter is a URL (true) or an HTML string (false)</param>
     /// <param name="cookies">Cookies to add before loading the page</param>
     /// <param name="xpathTimout">Timeout (in seconds) for waiting for the XPath element</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>>Parsed HtmlNode object</returns>
     protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
                                            string xpath = "", bool urlString = true, ICookieJar? cookies = null,
@@ -631,7 +634,7 @@ public abstract class HtmlParser : IDisposable
             }
         }
 
-        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimout: xpathTimout);
+        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimout: xpathTimout, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -641,7 +644,7 @@ public abstract class HtmlParser : IDisposable
     /// <returns>>Parsed HtmlNode object</returns>
     protected static async Task<HtmlNode> Soupify(HttpResponseMessage response, CancellationToken cancellationToken = default)
     {
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(content);
         return htmlDocument.DocumentNode;
@@ -655,7 +658,7 @@ public abstract class HtmlParser : IDisposable
                 errorResponse.Details is not null
                     ? throw new RipperException($"{errorResponse.Error}: {errorResponse.Details}")
                     : throw new RipperException(errorResponse.Error),
-            CSWebDriverClient.Models.Responses.PageResponse pageResponse => await Soupify(pageResponse.Content, urlString: false),
+            CSWebDriverClient.Models.Responses.PageResponse pageResponse => await Soupify(pageResponse.Content, urlString: false, cancellationToken: cancellationToken),
             CSWebDriverClient.Models.Responses.GetNetworkUrlsResponse =>
                 throw new RipperException("Incorrect response type: GetNetworkUrlsResponse"),
             _ => throw new RipperException($"Unknown response type: {baseResponse}")
@@ -688,7 +691,7 @@ public abstract class HtmlParser : IDisposable
         var found = Driver.FindElements(By.XPath(xpath));
         while (found.Count == 0)
         {
-            await Task.Delay((int)(delay * 1000));
+            await Task.Delay((int)(delay * 1000), cancellationToken);
             var currTime = DateTime.Now;
             // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (timeout == -1)
@@ -750,7 +753,7 @@ public abstract class HtmlParser : IDisposable
                                                         List<string>? cookieWhitelist = null,
                                                         bool replaceUserAgent = false, CancellationToken cancellationToken = default)
     {
-        var solution = await Solve(regenerateSessionOnFailure, cookies);
+        var solution = await Solve(regenerateSessionOnFailure, cookies, cancellationToken);
         if (replaceUserAgent)
         {
             Logger.Debug("Replacing User-Agent with FlareSolverr provided User-Agent: {UserAgent}", solution.UserAgent);
@@ -768,14 +771,14 @@ public abstract class HtmlParser : IDisposable
             cookieJar.SetCookie(seleniumCookie);
         }
 
-        return await Soupify(solution);
+        return await Soupify(solution, cancellationToken: cancellationToken);
     }
 
     protected async Task<HtmlNode> SolveParse(bool regenerateSessionOnFailure = false,
                                               List<Dictionary<string, string>>? cookies = null, CancellationToken cancellationToken = default)
     {
-        var solution = await Solve(regenerateSessionOnFailure, cookies);
-        return await Soupify(solution);
+        var solution = await Solve(regenerateSessionOnFailure, cookies, cancellationToken);
+        return await Soupify(solution, cancellationToken: cancellationToken);
     }
 
     private async Task<Solution> Solve(bool regenerateSessionOnFailure = false,
@@ -793,7 +796,7 @@ public abstract class HtmlParser : IDisposable
             try
             {
                 Logger.Debug("Attempting to get site solution for {CurrentUrl} (Attempt {Attempt})", CurrentUrl, i + 1);
-                solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies);
+                solution = await FlareSolverrManager.GetSiteSolution(CurrentUrl, cookies, cancellationToken);
                 break;
             }
             catch (FailedToGetSolutionException)
@@ -803,13 +806,13 @@ public abstract class HtmlParser : IDisposable
                     throw;
                 }
 
-                await Sleep(250);
+                await Sleep(250, cancellationToken);
                 Logger.Warning("Failed to get site solution for {CurrentUrl}, retrying...", CurrentUrl);
             }
         }
 
         #if DEBUG
-        await File.WriteAllTextAsync("test-solver.html", solution.Response);
+        await File.WriteAllTextAsync("test-solver.html", solution.Response, cancellationToken);
         Logger.Debug("User-Agent: {UserAgent}", solution.UserAgent);
         #endif
 
@@ -819,12 +822,12 @@ public abstract class HtmlParser : IDisposable
     protected static Task JitterSleep(int min = 250, int max = 2500, CancellationToken cancellationToken = default)
     {
         var jitter = Random.Shared.Next(min, max);
-        return Task.Delay(jitter);
+        return Task.Delay(jitter, cancellationToken);
     }
 
     protected static Task Sleep(int milliseconds, CancellationToken cancellationToken = default)
     {
-        return Task.Delay(milliseconds);
+        return Task.Delay(milliseconds, cancellationToken);
     }
 
     protected static async Task<T> RetryUntil<T>(Func<Task<T>> func, Func<T, bool> successCondition,
@@ -842,7 +845,7 @@ public abstract class HtmlParser : IDisposable
                     throw new RipperException(errorMessage);
                 }
 
-                await Sleep(delay);
+                await Sleep(delay, cancellationToken);
                 continue;
             }
 
@@ -878,8 +881,8 @@ public abstract class HtmlParser : IDisposable
     protected async Task<(T, IBiDi)> ConfigureNetworkCapture<T>(CancellationToken cancellationToken = default) where T : PlaylistCapturer, new()
     {
         var capturer = new T();
-        var bidi = await Driver.AsBiDiAsync();
-        await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
+        var bidi = await Driver.AsBiDiAsync(cancellationToken: cancellationToken);
+        await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook, cancellationToken: cancellationToken);
         return (capturer, bidi);
     }
 
@@ -933,11 +936,12 @@ public abstract class HtmlParser : IDisposable
     ///     Scrolls through the page to lazy load images
     /// </summary>
     /// <param name="args">Arguments for lazy loading</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     protected Task LazyLoad(LazyLoadArgs args, CancellationToken cancellationToken = default)
     {
         return args.StopElement is not null && Driver.TryFindElement(args.StopElement) is not null
-            ? LazyLoad(args.StopElement)
-            : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll);
+            ? LazyLoad(args.StopElement, cancellationToken: cancellationToken)
+            : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll, cancellationToken);
     }
 
     /// <summary>
@@ -948,6 +952,7 @@ public abstract class HtmlParser : IDisposable
     /// <param name="scrollPauseTime">Seconds to wait between each scroll</param>
     /// <param name="scrollBack">Distance to scroll back by after reaching the bottom of the page</param>
     /// <param name="rescroll">Whether scrolling through the page again</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     protected async Task LazyLoad(bool scrollBy = false, int increment = 2500, int scrollPauseTime = 500,
                                   int scrollBack = 0, bool rescroll = false, CancellationToken cancellationToken = default)
     {
@@ -973,7 +978,7 @@ public abstract class HtmlParser : IDisposable
         while (true)
         {
             Driver.ExecuteScript(scrollScript);
-            await Task.Delay(scrollPauseTime);
+            await Task.Delay(scrollPauseTime, cancellationToken);
             var newHeight = Convert.ToInt64(Driver.ExecuteScript(heightCheckScript));
             if (newHeight == lastHeight)
             {
@@ -982,10 +987,10 @@ public abstract class HtmlParser : IDisposable
                     for (var i = 0; i < scrollBack; i++)
                     {
                         Driver.ExecuteScript($"window.scrollBy({{top: {-increment}, left: 0, behavior: 'smooth'}});");
-                        await Task.Delay(scrollPauseTime);
+                        await Task.Delay(scrollPauseTime, cancellationToken);
                     }
 
-                    await Task.Delay(scrollPauseTime);
+                    await Task.Delay(scrollPauseTime, cancellationToken);
                 }
 
                 break;
@@ -1001,7 +1006,7 @@ public abstract class HtmlParser : IDisposable
         while (true)
         {
             Driver.ExecuteScript(scrollScript);
-            await Task.Delay(scrollPauseTime);
+            await Task.Delay(scrollPauseTime, cancellationToken);
             var element = Driver.FindElement(elementToFind);
             if (element.Displayed)
             {
@@ -1037,7 +1042,7 @@ public abstract class HtmlParser : IDisposable
                     Driver.Refresh();
                 }
 
-                await Sleep(250);
+                await Sleep(250, cancellationToken);
                 continue;
             }
 
@@ -1071,7 +1076,7 @@ public abstract class HtmlParser : IDisposable
             Logger.Debug("Testing: {SiteName}Parse", SiteName);
             Logger.Debug("URL: {CurrentUrl}", CurrentUrl);
             var start = DateTime.Now;
-            var data = await EvaluateParser(SiteName);
+            var data = await EvaluateParser(SiteName, cancellationToken);
             var end = DateTime.Now;
             if (data.Urls.Count == 0)
             {
@@ -1096,7 +1101,7 @@ public abstract class HtmlParser : IDisposable
         catch (Exception e)
         {
             Logger.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
-            await File.WriteAllTextAsync("test.html", Driver.PageSource);
+            await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
             Driver.TakeDebugScreenshot();
             Driver.DumpCookies();
             throw;
@@ -1105,7 +1110,7 @@ public abstract class HtmlParser : IDisposable
         {
             if (printSite)
             {
-                await File.WriteAllTextAsync("test.html", Driver.PageSource);
+                await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
             }
 
             //await FlareSolverrManager.DeleteSession();
@@ -1127,7 +1132,7 @@ public abstract class HtmlParser : IDisposable
             var ripper =
                 (HtmlParser)Activator.CreateInstance(classType, WebDriver, ApiClientManager, RequestHeaders,
                     FilenameScheme)!;
-            return ripper.Parse();
+            return ripper.Parse(cancellationToken);
         }
 
         // Handle the case where the method does not exist
