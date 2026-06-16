@@ -386,7 +386,7 @@ public partial class NicheImageRipper : IDisposable
             try
             {
                 var start = DateTime.Now;
-                await Ripper!.Rip(url);
+                await Ripper!.Rip(url, cancellationToken);
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted =
                     $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
