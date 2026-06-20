@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Common.ExtensionMethods;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;

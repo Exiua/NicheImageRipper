@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Common.ExtensionMethods;
+using NicheImageRipper.Common.ExtensionMethods;
 using PixivApi.Exceptions;
 using PixivApi.Models;
 

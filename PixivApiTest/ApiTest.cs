@@ -1,4 +1,4 @@
-using Common.ExtensionMethods;
+using NicheImageRipper.Common.ExtensionMethods;
 using PixivApi;
 
 namespace PixivApiTest;

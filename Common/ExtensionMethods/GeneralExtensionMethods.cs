@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Common.ExtensionMethods;
+namespace NicheImageRipper.Common.ExtensionMethods;
 
 public static class GeneralExtensionMethods
 {

@@ -1,7 +1,7 @@
-﻿using Common.Exceptions;
-using HtmlAgilityPack;
+﻿using HtmlAgilityPack;
+using NicheImageRipper.Common.Exceptions;
 
-namespace Common.ExtensionMethods;
+namespace NicheImageRipper.Common.ExtensionMethods;
 
 public static class HtmlAgilityPackExtensionMethods
 {

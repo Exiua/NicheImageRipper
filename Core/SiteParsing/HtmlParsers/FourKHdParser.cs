@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Common.ExtensionMethods;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;

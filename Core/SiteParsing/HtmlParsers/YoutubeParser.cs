@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text;
-using Common.ExtensionMethods;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;

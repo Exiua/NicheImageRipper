@@ -1,7 +1,7 @@
-using Common.ExtensionMethods;
 using CSWebDriverClient;
 using CSWebDriverClient.Models.Responses;
 using HtmlAgilityPack;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;

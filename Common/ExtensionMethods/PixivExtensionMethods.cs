@@ -1,4 +1,4 @@
-namespace Common.ExtensionMethods;
+namespace NicheImageRipper.Common.ExtensionMethods;
 
 public static class PixivExtensionMethods
 {

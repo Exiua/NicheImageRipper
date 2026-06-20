@@ -1,11 +1,11 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
+using NicheImageRipper.Common.ExtensionMethods;
 using Serilog;
 using SteamKit2;
 using SteamKit2.Authentication;
 using SteamKit2.Internal;
-using Common.ExtensionMethods;
 
 namespace SteamApiClient;
 

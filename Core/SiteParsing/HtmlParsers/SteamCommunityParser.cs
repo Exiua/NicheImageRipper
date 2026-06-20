@@ -1,5 +1,5 @@
-using Common.ExtensionMethods;
 using Microsoft.AspNetCore.WebUtilities;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;

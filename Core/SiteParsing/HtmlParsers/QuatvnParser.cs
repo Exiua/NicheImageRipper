@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Common.ExtensionMethods;
 using HtmlAgilityPack;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;

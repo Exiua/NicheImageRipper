@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Web;
-using Common.ExtensionMethods;
 using JetBrains.Annotations;
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.Utility;

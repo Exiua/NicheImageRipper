@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Common.ExtensionMethods;
+namespace NicheImageRipper.Common.ExtensionMethods;
 
 public static class StringExtensionMethods
 {

@@ -1,4 +1,4 @@
-namespace Common.Exceptions;
+namespace NicheImageRipper.Common.Exceptions;
 
 public class ElementNotFoundException : CommonException
 {
