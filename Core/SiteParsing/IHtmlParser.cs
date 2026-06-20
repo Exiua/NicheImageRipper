@@ -1,7 +1,7 @@
-using Core.Configuration;
-using Core.Enums;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.Enums;
 
-namespace Core.SiteParsing;
+namespace NicheImageRipper.Core.SiteParsing;
 
 public interface IHtmlParser
 {

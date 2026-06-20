@@ -1,4 +1,4 @@
-using Core.Enums;
+using NicheImageRipper.Core.Enums;
 
 namespace Gui.Services;
 

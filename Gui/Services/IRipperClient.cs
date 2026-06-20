@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Core.DataStructures;
 using Core.History;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.History;
 
 namespace Gui.Services;
 

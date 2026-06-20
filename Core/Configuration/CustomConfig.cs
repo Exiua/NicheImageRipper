@@ -1,4 +1,4 @@
-namespace Core.Configuration;
+namespace NicheImageRipper.Core.Configuration;
 
 public class CustomConfig
 {

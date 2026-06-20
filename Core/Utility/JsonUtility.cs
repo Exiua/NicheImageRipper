@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Core.Utility;
+namespace NicheImageRipper.Core.Utility;
 
 public static class JsonUtility
 {

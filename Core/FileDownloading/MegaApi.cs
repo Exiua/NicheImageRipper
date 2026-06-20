@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 public static class MegaApi
 {

@@ -3,24 +3,24 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Driver;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Core.FileDownloading;
-using Core.History;
-using Core.Utility;
 using Microsoft.AspNetCore.WebUtilities;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Driver;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.Core.History;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using File = System.IO.File;
 
-namespace Core;
+namespace NicheImageRipper.Core;
 
 public partial class NicheImageRipper : IDisposable
 {

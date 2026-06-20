@@ -1,7 +1,7 @@
-﻿using Core.DataStructures;
-using Core.SiteParsing;
+﻿using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.SiteParsing;
 
-namespace Core.ExtensionMethods;
+namespace NicheImageRipper.Core.ExtensionMethods;
 
 public static class ExtensionMethods
 {

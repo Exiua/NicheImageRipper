@@ -1,6 +1,6 @@
 using OpenQA.Selenium.BiDi.Network;
 
-namespace Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
 
 public class VkVideoCapturer : PlaylistCapturer
 {

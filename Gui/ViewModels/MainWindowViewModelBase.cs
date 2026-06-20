@@ -9,12 +9,15 @@ using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using Core.DataStructures;
-using Core.Enums;
 using Core.History;
 using Core.SiteParsing.HtmlParsers;
 using Gui.ExtensionMethods;
 using Gui.Services;
 using Microsoft.Extensions.Logging;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.History;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using ReactiveUI;
 
 namespace Gui.ViewModels;

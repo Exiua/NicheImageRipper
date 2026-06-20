@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Core.History;
+namespace NicheImageRipper.Core.History;
 
 public abstract partial class HistoryFilter
 {

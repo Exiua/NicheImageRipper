@@ -1,6 +1,6 @@
-using Core.Utility;
+using NicheImageRipper.Core.Utility;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 public static class MpdDownloader
 {

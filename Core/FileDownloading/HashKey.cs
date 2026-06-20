@@ -1,4 +1,4 @@
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 public class HashKey(byte[] hash)
 {

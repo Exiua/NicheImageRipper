@@ -1,7 +1,9 @@
 using System.Reflection;
 using Core.DataStructures;
-using Core.Enums;
 using Core.FileDownloading;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.FileDownloading;
 
 namespace CoreTest;
 

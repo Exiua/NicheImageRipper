@@ -1,7 +1,7 @@
-﻿using Core.DataStructures;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
+using NicheImageRipper.Core.DataStructures;
 
-namespace Core.SiteParsing;
+namespace NicheImageRipper.Core.SiteParsing;
 
 public class PartialSaveEntry
 {

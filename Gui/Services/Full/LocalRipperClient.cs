@@ -6,12 +6,15 @@ using Core;
 using Core.DataStructures;
 using Core.History;
 using Core.Utility;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.History;
+using NicheImageRipper.Core.Utility;
 
 namespace Gui.Services.Full;
 
 public class LocalRipperClient : IRipperClient
 {
-    private readonly NicheImageRipper _ripper;
+    private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
 
     public int UrlQueueCount => _ripper.UrlQueue.Count;
     public bool Connected => true;
@@ -23,7 +26,7 @@ public class LocalRipperClient : IRipperClient
 
     public LocalRipperClient()
     {
-        _ripper = new NicheImageRipper();
+        _ripper = new NicheImageRipper.Core.NicheImageRipper();
         _ripper.OnUrlQueueUpdated += () => OnUrlQueueUpdated?.Invoke();
         _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
     }
@@ -85,28 +88,28 @@ public class LocalRipperClient : IRipperClient
 
     public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(NicheImageRipper.Version);
+        return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.Version);
     }
     
     public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(NicheImageRipper.GetHistoryPage(start, offset, filter));
+        return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.GetHistoryPage(start, offset, filter));
     }
 
     public Task ClearCache(CancellationToken cancellationToken = default)
     {
-        NicheImageRipper.ClearCache();
+        NicheImageRipper.Core.NicheImageRipper.ClearCache();
         return Task.CompletedTask;
     }
 
     public Task<int> GetHistoryCount(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(NicheImageRipper.GetHistoryCount());
+        return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.GetHistoryCount());
     }
 
     public Task SkipCurrentEntry(CancellationToken cancellationToken = default)
     {
-        return NicheImageRipper.SkipEntry();
+        return NicheImageRipper.Core.NicheImageRipper.SkipEntry();
     }
 
     public void Dispose()

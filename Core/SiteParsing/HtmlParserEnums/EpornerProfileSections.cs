@@ -1,4 +1,4 @@
-namespace Core.SiteParsing.HtmlParserEnums;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParserEnums;
 
 [Flags]
 public enum EpornerProfileSections

@@ -18,7 +18,7 @@ public class CustomConfig
         public string? LoginLink { get; set; }
     }
 
-    public static CustomConfig FromCoreCustomConfig(Core.Configuration.CustomConfig generalConfigCustom)
+    public static CustomConfig FromCoreCustomConfig(NicheImageRipper.Core.Configuration.CustomConfig generalConfigCustom)
     {
         var config = new CustomConfig
         {

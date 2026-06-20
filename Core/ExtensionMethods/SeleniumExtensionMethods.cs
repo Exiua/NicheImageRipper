@@ -1,7 +1,7 @@
 ﻿using OpenQA.Selenium;
 using Serilog;
 
-namespace Core.ExtensionMethods;
+namespace NicheImageRipper.Core.ExtensionMethods;
 
 public static class SeleniumExtensionMethods
 {

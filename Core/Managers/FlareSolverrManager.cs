@@ -1,10 +1,10 @@
-﻿using Core.Exceptions;
-using FlareSolverrIntegration;
+﻿using FlareSolverrIntegration;
 using FlareSolverrIntegration.Payloads;
 using FlareSolverrIntegration.Responses;
+using NicheImageRipper.Core.Exceptions;
 using Serilog;
 
-namespace Core.Managers;
+namespace NicheImageRipper.Core.Managers;
 
 public class FlareSolverrManager(string flareSolverrUri)
 {

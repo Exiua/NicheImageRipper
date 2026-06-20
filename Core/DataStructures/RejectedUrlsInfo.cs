@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public class RejectedUrlsInfo(int startIndex)
 {

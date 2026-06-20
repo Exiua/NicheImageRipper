@@ -1,4 +1,4 @@
-﻿namespace Core.ArgParse;
+﻿namespace NicheImageRipper.Core.ArgParse;
 
 public enum RunMode
 {

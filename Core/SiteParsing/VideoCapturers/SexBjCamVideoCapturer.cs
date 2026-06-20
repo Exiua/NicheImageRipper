@@ -1,7 +1,6 @@
-using Core.Utility;
 using OpenQA.Selenium.BiDi.Network;
 
-namespace Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
 
 public class SexBjCamVideoCapturer : PlaylistCapturer
 {

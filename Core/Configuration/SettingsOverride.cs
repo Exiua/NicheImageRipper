@@ -1,6 +1,6 @@
-using Core.Enums;
+using NicheImageRipper.Core.Enums;
 
-namespace Core.Configuration;
+namespace NicheImageRipper.Core.Configuration;
 
 public class SettingsOverride
 {

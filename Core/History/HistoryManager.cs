@@ -1,9 +1,9 @@
 ﻿using System.Data.SQLite;
-using Core.DataStructures;
-using Core.ExtensionMethods;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.ExtensionMethods;
 using Serilog;
 
-namespace Core.History;
+namespace NicheImageRipper.Core.History;
 
 public class HistoryManager : IDisposable
 {

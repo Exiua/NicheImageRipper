@@ -1,11 +1,10 @@
 using Common.ExtensionMethods;
-using Core.DataStructures;
-using Core.Enums;
-using Core.ExtensionMethods;
-using Core.Managers;
-using WebDriver = Core.Driver.WebDriver;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Managers;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class HentaiHandParser : HtmlParser, IHtmlParser
 {

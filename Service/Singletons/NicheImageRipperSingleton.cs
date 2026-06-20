@@ -1,17 +1,19 @@
 using Core;
-using Core.Configuration;
 using Core.DataStructures;
 using Core.History;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.History;
 using Service.Utilities.ExtensionMethods;
 using Service.Models.Dtos;
 using Config = Service.Models.Configs.Config;
-using SettingsOverride = Core.Configuration.SettingsOverride;
+using SettingsOverride = NicheImageRipper.Core.Configuration.SettingsOverride;
 
 namespace Service.Singletons;
 
 public class NicheImageRipperSingleton : INicheImageRipperSingleton
 {
-    private readonly NicheImageRipper _ripper;
+    private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
     private readonly Lock _ripperLock = new();
     private readonly ILogger<NicheImageRipperSingleton> _logger;
     
@@ -23,7 +25,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
     public NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger)
     {
         _logger = logger;
-        _ripper = new NicheImageRipper();
+        _ripper = new NicheImageRipper.Core.NicheImageRipper();
         _ripper.OnProgressChanged += (current, total) => ProgressChanged?.Invoke(current, total);
         _ripper.OnUrlQueueUpdated += () => QueueUpdated?.Invoke();
     }
@@ -113,22 +115,22 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null)
     {
-        return NicheImageRipper.GetHistoryPage(start, offset, filter);
+        return NicheImageRipper.Core.NicheImageRipper.GetHistoryPage(start, offset, filter);
     }
 
     public int GetHistoryCount()
     {
-        return NicheImageRipper.GetHistoryCount();
+        return NicheImageRipper.Core.NicheImageRipper.GetHistoryCount();
     }
 
     public GeneralConfig GetConfig()
     {
-        return NicheImageRipper.Config;
+        return NicheImageRipper.Core.NicheImageRipper.Config;
     }
 
     public void UpdateConfig(Config config)
     {
-        var existingConfig = NicheImageRipper.Config;
+        var existingConfig = NicheImageRipper.Core.NicheImageRipper.Config;
         if (config.UserAgent is not null)
         {
             existingConfig.UserAgent = config.UserAgent;
@@ -352,12 +354,12 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public Version GetVersion()
     {
-        return NicheImageRipper.Version;
+        return NicheImageRipper.Core.NicheImageRipper.Version;
     }
 
     public void ClearCache()
     {
-        NicheImageRipper.ClearCache();
+        NicheImageRipper.Core.NicheImageRipper.ClearCache();
     }
 
     public Task Save(CancellationToken cancellationToken = default)

@@ -1,16 +1,16 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Enums;
-using Core.Utility;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.PhotosLibrary.v1;
 using Google.Apis.Util.Store;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Utility;
 
-namespace Core.Managers;
+namespace NicheImageRipper.Core.Managers;
 
 /// <summary>
 ///     Class for managing tokens that are dynamically generated (e.g., redgif tokens)

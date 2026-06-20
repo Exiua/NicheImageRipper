@@ -1,12 +1,12 @@
 ﻿using System.Text;
-using Core.DataStructures;
-using Core.Enums;
-using Core.Managers;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Managers;
 using File = Google.Apis.Drive.v3.Data.File;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 public static class GDriveHelper
 {

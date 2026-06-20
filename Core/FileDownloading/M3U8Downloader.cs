@@ -1,9 +1,9 @@
-using Core.Configuration;
-using Core.Exceptions;
-using Core.ExtensionMethods;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.ExtensionMethods;
 using Serilog;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 public static class M3U8Downloader
 {

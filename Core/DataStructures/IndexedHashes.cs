@@ -1,6 +1,6 @@
-using Core.FileDownloading;
+using NicheImageRipper.Core.FileDownloading;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public class IndexedHashes
 {

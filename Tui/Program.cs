@@ -1,12 +1,14 @@
 ﻿using System.Text;
 using Core;
-using Core.ArgParse;
-using Core.Configuration;
-using Core.Driver;
 using Core.History;
-using Core.Managers;
 using Core.SiteParsing;
 using Core.Utility;
+using NicheImageRipper.Core.ArgParse;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.Driver;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Utility;
 using Tui;
 using Serilog;
 using Serilog.Events;
@@ -14,12 +16,12 @@ using Serilog.Events;
 Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .Enrich.FromLogContext()
-            .WriteTo.Console(levelSwitch: NicheImageRipper.ConsoleLoggingLevelSwitch)
+            .WriteTo.Console(levelSwitch: NicheImageRipper.Core.NicheImageRipper.ConsoleLoggingLevelSwitch)
             .WriteTo.File("Logs/app.log", rollingInterval: RollingInterval.Day, restrictedToMinimumLevel: LogEventLevel.Debug)
             .CreateLogger();
 
 #if DEBUG
-NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
+NicheImageRipper.Core.NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
 #endif
 
 PrintUtility.PrintFunction = Log.Information;

@@ -17,7 +17,7 @@ public class LoginConfig
     public Credentials? EHentai { get; set; }
     public Credentials? SteamCommunity { get; set; }
 
-    public static LoginConfig FromCoreLoginConfig(Core.Configuration.LoginConfig generalConfigLogins)
+    public static LoginConfig FromCoreLoginConfig(NicheImageRipper.Core.Configuration.LoginConfig generalConfigLogins)
     {
         var config = new LoginConfig
         {

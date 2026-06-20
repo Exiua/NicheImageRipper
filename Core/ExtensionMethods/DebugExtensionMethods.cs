@@ -1,6 +1,6 @@
-﻿using Core.Utility;
+﻿using NicheImageRipper.Core.Utility;
 
-namespace Core.ExtensionMethods;
+namespace NicheImageRipper.Core.ExtensionMethods;
 
 public static class DebugExtensionMethods
 {

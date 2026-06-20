@@ -1,15 +1,14 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Web;
-using Core.Enums;
-using Core.Exceptions;
-using JetBrains.Annotations;
-using Core.ExtensionMethods;
-using Core.Utility;
-using Serilog;
 using Common.ExtensionMethods;
+using JetBrains.Annotations;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.Utility;
+using Serilog;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public partial class ImageLink
 {

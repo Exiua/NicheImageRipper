@@ -1,11 +1,11 @@
-using Core.Enums;
 using Gui.Models;
+using NicheImageRipper.Core.Enums;
 
 namespace Gui.Services.Full;
 
 public class FullRipperSettings : IRipperSettings
 {
-    private static GuiConfig Config => (GuiConfig) Core.Configuration.Config.Instance;
+    private static GuiConfig Config => (GuiConfig) NicheImageRipper.Core.Configuration.Config.Instance;
     
     public string SavePath
     {

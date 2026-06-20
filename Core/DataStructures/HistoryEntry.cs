@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public class HistoryEntry
 {

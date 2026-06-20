@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Core.Configuration;
-using Core.Enums;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.Enums;
 using Config = Service.Models.Configs.Config;
 
 namespace Gui.Services.Thin;

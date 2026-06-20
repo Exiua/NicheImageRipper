@@ -1,4 +1,4 @@
-﻿namespace Core.DataStructures;
+﻿namespace NicheImageRipper.Core.DataStructures;
 
 public class Token(string value, DateTime expiration)
 {

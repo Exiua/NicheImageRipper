@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using Core.JsonConverters;
+using NicheImageRipper.Core.JsonConverters;
 
 namespace Service.Models.Configs;
 
@@ -16,7 +16,7 @@ public class CookieConfig
     public string[]? Pixiv { get; set; }
     public string? SteamCommunity { get; set; }
 
-    public static CookieConfig FromCoreCookieConfig(Core.Configuration.CookieConfig generalConfigCookies)
+    public static CookieConfig FromCoreCookieConfig(NicheImageRipper.Core.Configuration.CookieConfig generalConfigCookies)
     {
         var config = new CookieConfig
         {

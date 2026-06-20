@@ -1,18 +1,16 @@
-using Common.ExtensionMethods;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Serilog;
-using WebDriver = Core.Driver.WebDriver;
+using Common.ExtensionMethods;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class ImgurParser : HtmlParser, IHtmlParser
 {

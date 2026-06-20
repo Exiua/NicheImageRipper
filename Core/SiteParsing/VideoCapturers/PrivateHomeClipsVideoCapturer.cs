@@ -1,8 +1,7 @@
-using Core.ExtensionMethods;
-using Core.Managers;
+using NicheImageRipper.Core.ExtensionMethods;
 using OpenQA.Selenium.BiDi.Network;
 
-namespace Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
 
 public class PrivateHomeClipsVideoCapturer : PlaylistCapturer
 {

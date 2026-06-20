@@ -1,9 +1,9 @@
-using Core.Configuration;
+using NicheImageRipper.Core.Configuration;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 using Serilog;
 
-namespace Core.Driver;
+namespace NicheImageRipper.Core.Driver;
 
 public class WebDriver : IDisposable
 {

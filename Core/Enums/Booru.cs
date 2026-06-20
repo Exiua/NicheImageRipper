@@ -1,7 +1,7 @@
-using Core.Configuration;
-using Core.Exceptions;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.Exceptions;
 
-namespace Core.Enums;
+namespace NicheImageRipper.Core.Enums;
 
 public enum Booru
 {

@@ -1,6 +1,6 @@
-﻿using Core.Utility;
+﻿using NicheImageRipper.Core.Utility;
 
-namespace Core.Configuration;
+namespace NicheImageRipper.Core.Configuration;
 
 public static class Config
 {

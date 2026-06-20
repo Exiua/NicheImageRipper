@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
-using Core.Enums;
+using NicheImageRipper.Core.Enums;
 
-namespace Core.Exceptions;
+namespace NicheImageRipper.Core.Exceptions;
 
 public class FeatureNotAvailableException : RipperException
 {

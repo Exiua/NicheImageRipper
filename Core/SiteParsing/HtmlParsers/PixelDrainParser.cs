@@ -1,16 +1,13 @@
-using Common.ExtensionMethods;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
-using WebDriver = Core.Driver.WebDriver;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.Managers;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
 {

@@ -1,7 +1,6 @@
-﻿using Core.ExtensionMethods;
-using Core.Managers;
+﻿using NicheImageRipper.Core.ExtensionMethods;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 internal class OrderedHashSet<T>
 {

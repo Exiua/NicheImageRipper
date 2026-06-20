@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Serilog;
 
-namespace Core.Driver;
+namespace NicheImageRipper.Core.Driver;
 
 public class WebDriverSet : IDisposable
 {

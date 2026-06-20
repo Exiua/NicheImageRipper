@@ -1,6 +1,7 @@
 using Core.DataStructures;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NicheImageRipper.Core.DataStructures;
 using Service.Models.Requests;
 using Service.Singletons;
 

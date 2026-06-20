@@ -1,7 +1,7 @@
 ﻿using Serilog;
 using Serilog.Events;
 
-namespace Core.Utility;
+namespace NicheImageRipper.Core.Utility;
 
 public static class PrintUtility
 {

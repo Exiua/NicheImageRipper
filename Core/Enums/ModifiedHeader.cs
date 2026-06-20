@@ -1,4 +1,4 @@
-namespace Core.Enums;
+namespace NicheImageRipper.Core.Enums;
 
 [Flags]
 public enum ModifiedHeader

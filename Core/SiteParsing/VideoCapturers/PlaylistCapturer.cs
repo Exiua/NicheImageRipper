@@ -1,7 +1,6 @@
 using OpenQA.Selenium.BiDi.Network;
-using Serilog;
 
-namespace Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
 
 public abstract class PlaylistCapturer
 {

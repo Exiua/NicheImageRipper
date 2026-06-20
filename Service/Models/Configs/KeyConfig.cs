@@ -8,7 +8,7 @@ public class KeyConfig
     public string? Pixeldrain { get; set; }
     public string? Pixiv { get; set; } // Refresh token for Pixiv API
 
-    public static KeyConfig FromCoreKeyConfig(Core.Configuration.KeyConfig generalConfigKeys)
+    public static KeyConfig FromCoreKeyConfig(NicheImageRipper.Core.Configuration.KeyConfig generalConfigKeys)
     {
         var config = new KeyConfig
         {

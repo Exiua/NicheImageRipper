@@ -1,18 +1,16 @@
 using Common.ExtensionMethods;
-using Core.DataStructures;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
 using CSWebDriverClient;
-using CSWebDriverClient.Models.Responses;
 using HtmlAgilityPack;
-using Serilog;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
 using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
-using NotSupportedException = Core.Exceptions.NotSupportedException;
-using WebDriver = Core.Driver.WebDriver;
+using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class Hanime1Parser : HtmlParser, IHtmlParser
 {

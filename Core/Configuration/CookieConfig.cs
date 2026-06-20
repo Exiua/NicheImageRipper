@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
-using Core.JsonConverters;
+using NicheImageRipper.Core.JsonConverters;
 
-namespace Core.Configuration;
+namespace NicheImageRipper.Core.Configuration;
 
 public class CookieConfig
 {

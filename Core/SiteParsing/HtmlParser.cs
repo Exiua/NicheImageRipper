@@ -1,26 +1,26 @@
 ﻿using System.Reflection;
 using Common.ExtensionMethods;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Core.FileDownloading;
-using Core.SiteParsing.HtmlParsers;
-using Core.SiteParsing.VideoCapturers;
-using Core.Utility;
 using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using NicheImageRipper.Core.SiteParsing.VideoCapturers;
+using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Manager;
 using Serilog;
 using Serilog.Events;
-using WebDriver = Core.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing;
+namespace NicheImageRipper.Core.SiteParsing;
 
 public abstract class HtmlParser : IDisposable
 {

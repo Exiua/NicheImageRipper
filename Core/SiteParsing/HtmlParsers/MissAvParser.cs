@@ -1,14 +1,13 @@
 using Common.ExtensionMethods;
-using Core.DataStructures;
-using Core.Enums;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Core.SiteParsing.VideoCapturers;
-using Serilog;
-using NotSupportedException = Core.Exceptions.NotSupportedException;
-using WebDriver = Core.Driver.WebDriver;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing.VideoCapturers;
+using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class MissAvParser : HtmlParser, IHtmlParser
 {

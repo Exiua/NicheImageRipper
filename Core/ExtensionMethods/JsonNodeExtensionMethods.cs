@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Core.ExtensionMethods;
+namespace NicheImageRipper.Core.ExtensionMethods;
 
 public static class JsonNodeExtensionMethods
 {

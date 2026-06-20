@@ -1,12 +1,12 @@
-﻿using Core.Enums;
-using Core.FileDownloading;
-using Core.SiteParsing;
-using Core.Utility;
-using Google;
+﻿using Google;
 using JetBrains.Annotations;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Utility;
 using Serilog;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public class RipInfo
 {

@@ -1,10 +1,10 @@
 using System.Linq.Expressions;
-using Core.Driver;
-using Core.Enums;
-using Core.Exceptions;
-using Core.Managers;
+using NicheImageRipper.Core.Driver;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.Managers;
 
-namespace Core.SiteParsing;
+namespace NicheImageRipper.Core.SiteParsing;
 
 using HtmlParserCtor = Func<WebDriver, ApiClientManager, Dictionary<string, string>, FilenameScheme, HtmlParser>;
 

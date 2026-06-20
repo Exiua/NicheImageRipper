@@ -1,4 +1,4 @@
-namespace Core.Driver;
+namespace NicheImageRipper.Core.Driver;
 
 public class WebDriverPool : IDisposable
 {

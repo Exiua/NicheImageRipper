@@ -1,15 +1,15 @@
 using System.Text.RegularExpressions;
 using Common.ExtensionMethods;
-using Core.DataStructures;
-using Core.Enums;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Core.Utility;
 using HtmlAgilityPack;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
-using WebDriver = Core.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public partial class ArchivebateParser : HtmlParser, IHtmlParser
 {

@@ -1,7 +1,6 @@
-﻿using Core.ExtensionMethods;
-using Core.Managers;
+﻿using NicheImageRipper.Core.ExtensionMethods;
 
-namespace Core.ArgParse;
+namespace NicheImageRipper.Core.ArgParse;
 
 public static class ArgumentParser
 {

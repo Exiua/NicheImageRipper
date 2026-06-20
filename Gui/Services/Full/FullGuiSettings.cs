@@ -4,7 +4,7 @@ namespace Gui.Services.Full;
 
 public class FullGuiSettings : IGuiSettings
 {
-    private static GuiConfig Config => (GuiConfig) Core.Configuration.Config.Instance;
+    private static GuiConfig Config => (GuiConfig) NicheImageRipper.Core.Configuration.Config.Instance;
     
     public double NameWidth
     {

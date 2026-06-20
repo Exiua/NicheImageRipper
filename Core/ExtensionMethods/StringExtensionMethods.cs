@@ -1,8 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Web;
-using Core.SiteParsing;
+using NicheImageRipper.Core.SiteParsing;
 
-namespace Core.ExtensionMethods;
+namespace NicheImageRipper.Core.ExtensionMethods;
 
 public static class StringExtensionMethods
 {

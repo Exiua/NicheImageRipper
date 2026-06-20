@@ -1,4 +1,4 @@
-﻿namespace Core.Exceptions;
+﻿namespace NicheImageRipper.Core.Exceptions;
 
 public class WrongExtensionException : RipperException
 {

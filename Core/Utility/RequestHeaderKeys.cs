@@ -1,4 +1,4 @@
-namespace Core.Utility;
+namespace NicheImageRipper.Core.Utility;
 
 public static class RequestHeaderKeys
 {

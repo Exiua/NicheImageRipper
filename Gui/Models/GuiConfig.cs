@@ -1,5 +1,5 @@
-using Core.Configuration;
 using JetBrains.Annotations;
+using NicheImageRipper.Core.Configuration;
 
 namespace Gui.Models;
 

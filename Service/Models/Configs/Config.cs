@@ -1,4 +1,5 @@
-using Core.Enums;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.Enums;
 
 namespace Service.Models.Configs;
 
@@ -25,7 +26,7 @@ public class Config
     public CustomConfig? Custom { get; set; }
     public Dictionary<string, SettingsOverride>? ParserSpecificSettingsOverrides { get; set; }
 
-    public static Config FromCoreConfig(Core.Configuration.GeneralConfig generalConfig)
+    public static Config FromCoreConfig(GeneralConfig generalConfig)
     {
         var config = new Config
         {

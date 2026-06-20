@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using Core.DataStructures;
-using Core.Exceptions;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Exceptions;
 
-namespace Core.SiteParsing;
+namespace NicheImageRipper.Core.SiteParsing;
 
 public struct StringImageLinkWrapper
 {

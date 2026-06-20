@@ -1,15 +1,16 @@
 ﻿using Core;
 using Core.DataStructures;
-using Core.Enums;
-using Core.ExtensionMethods;
-using Core.Managers;
 using Core.Utility;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Utility;
 using Serilog;
 using Serilog.Events;
 
 namespace Tui;
 
-public class NicheImageRipperCli : NicheImageRipper
+public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
 {
     private void PrintHistory()
     {

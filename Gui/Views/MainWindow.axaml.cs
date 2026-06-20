@@ -15,12 +15,13 @@ using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Core;
-using Core.Enums;
 using Core.History;
 using Gui.Services;
 using Gui.Services.Shared;
 using Gui.ViewModels;
 using Microsoft.Extensions.Logging;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.History;
 using ReactiveUI;
 
 namespace Gui.Views;
@@ -59,9 +60,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         Focusable = true;
         UrlQueue.ItemsSource = ViewModel!.UrlQueue;
         FilenameSchemeComboBox.ItemsSource = Enum.GetValues<FilenameScheme>();
-        FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.FilenameScheme;
+        FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.Core.NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
-        UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.UnzipProtocol;
+        UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.Core.NicheImageRipper.UnzipProtocol;
 
         viewModel.OnNotification += Show;
         viewModel.LogTextChanged += OnLogTextChanged;
@@ -216,7 +217,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
                 Title = "Select Directory",
-                SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.SavePath)
+                SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.Core.NicheImageRipper.SavePath)
             });
 
             if (folder.Count == 0)

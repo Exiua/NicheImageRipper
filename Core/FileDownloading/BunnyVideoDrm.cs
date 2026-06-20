@@ -4,10 +4,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using Common.ExtensionMethods;
-using Core.ExtensionMethods;
-using Core.Managers;
+using NicheImageRipper.Core.ExtensionMethods;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 /// <summary>
 ///    Class for downloading videos from BunnyVideo CDN with DRM protection. This is a C# port of the Python script:

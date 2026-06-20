@@ -1,4 +1,4 @@
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public class Box<T>(T value)
 {

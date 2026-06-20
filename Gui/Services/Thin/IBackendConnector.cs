@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Core.Configuration;
 using Core.DataStructures;
 using Gui.Models;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
 using Service.Models.Requests;
 using Config = Service.Models.Configs.Config;
 

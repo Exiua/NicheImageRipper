@@ -1,9 +1,9 @@
 ﻿using System.Collections.Frozen;
 using System.Text.RegularExpressions;
-using Core.Exceptions;
+using NicheImageRipper.Core.Exceptions;
 using Serilog;
 
-namespace Core.Utility;
+namespace NicheImageRipper.Core.Utility;
 
 public static partial class UrlUtility
 {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Core.Utility;
+namespace NicheImageRipper.Core.Utility;
 
 public class IndexedContainer<T>
 {

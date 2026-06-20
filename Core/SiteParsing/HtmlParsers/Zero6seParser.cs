@@ -1,14 +1,12 @@
 using Common.ExtensionMethods;
-using Core.DataStructures;
-using Core.Enums;
-using Core.ExtensionMethods;
-using Core.Managers;
 using HtmlAgilityPack;
-using OpenQA.Selenium;
-using Serilog;
-using WebDriver = Core.Driver.WebDriver;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.SiteParsing.HtmlParsers;
+namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class Zero6SeParser : HtmlParser, IHtmlParser
 {

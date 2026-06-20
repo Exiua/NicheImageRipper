@@ -45,7 +45,7 @@ public class NicheImageRipperTest
     [MemberData(nameof(Urls))]
     public void NormalizeUrlTest(string link, string expected)
     {
-        var actual = NicheImageRipper.NormalizeUrl(link);
+        var actual = NicheImageRipper.Core.NicheImageRipper.NormalizeUrl(link);
         Assert.Equal(expected, actual);
     }
 }

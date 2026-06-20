@@ -1,6 +1,6 @@
-using Core.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NicheImageRipper.Core.Configuration;
 using Service.Singletons;
 using Config = Service.Models.Configs.Config;
 

@@ -8,19 +8,19 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Common.ExtensionMethods;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Driver;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Core.SiteParsing;
-using Core.SiteParsing.HtmlParsers;
-using Core.Utility;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using ImageMagick;
+using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Driver;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 using Serilog;
@@ -29,9 +29,9 @@ using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
 using SteamKit2;
-using WebDriver = Core.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 public partial class ImageRipper : IDisposable
 {

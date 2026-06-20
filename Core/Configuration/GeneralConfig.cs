@@ -1,10 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Core.Enums;
-using Core.Utility;
-using JetBrains.Annotations;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Utility;
 
-namespace Core.Configuration;
+namespace NicheImageRipper.Core.Configuration;
 
 public class GeneralConfig
 {
