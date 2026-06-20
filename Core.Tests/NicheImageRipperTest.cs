@@ -1,6 +1,4 @@
-using Core;
-
-namespace CoreTest;
+namespace NicheImageRipper.Core.Tests;
 
 public class NicheImageRipperTest
 {
@@ -45,7 +43,7 @@ public class NicheImageRipperTest
     [MemberData(nameof(Urls))]
     public void NormalizeUrlTest(string link, string expected)
     {
-        var actual = NicheImageRipper.Core.NicheImageRipper.NormalizeUrl(link);
+        var actual = global::NicheImageRipper.Core.NicheImageRipper.NormalizeUrl(link);
         Assert.Equal(expected, actual);
     }
 }

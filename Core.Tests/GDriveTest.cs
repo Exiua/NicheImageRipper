@@ -1,11 +1,9 @@
 using System.Reflection;
-using Core.DataStructures;
-using Core.FileDownloading;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.FileDownloading;
 
-namespace CoreTest;
+namespace NicheImageRipper.Core.Tests;
 
 public class GDriveTest
 {

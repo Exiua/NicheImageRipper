@@ -1,7 +1,6 @@
-using Core.Utility;
 using NicheImageRipper.Core.Utility;
 
-namespace CoreTest;
+namespace NicheImageRipper.Core.Tests;
 
 public class UrlUtilityTest
 {
