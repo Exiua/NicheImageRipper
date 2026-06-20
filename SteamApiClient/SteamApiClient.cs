@@ -298,11 +298,11 @@ public class SteamApiClient
             });
 
         var servers = response["servers"].Children
-                                         .Where(s => s["type"].AsString() is "SteamCache" or "CDN")
+                                         .Where(s => s["type"].AsString() is "SteamCache")
                                          .Where(s => s["https_support"].AsString() == "mandatory")
+                                         .Where(s => (s["vhost"].AsString() ?? s["host"].AsString()!).EndsWith("steamcontent.com"))
                                          .Select(s => (SteamKit2.CDN.Server)new DnsEndPoint(
                                               s["vhost"].AsString() ?? s["host"].AsString()!, 443))
-                                         .Where(s => s.Host is not null)
                                          .ToList();
 
         return new DepotDownloadTarget(

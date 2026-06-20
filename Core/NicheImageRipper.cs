@@ -99,6 +99,7 @@ public partial class NicheImageRipper : IDisposable
 
     protected bool Debugging { get; set; }
 
+    private CancellationTokenSource _cancellationTokenSource = new();
     private Exception? _lastException;
     private bool _disposed;
 
@@ -349,6 +350,7 @@ public partial class NicheImageRipper : IDisposable
 
     public async Task Rip(CancellationToken cancellationToken = default)
     {
+        
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
         Logger.Debug("Ripper created");
@@ -437,7 +439,7 @@ public partial class NicheImageRipper : IDisposable
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
         {
-            await Ripper.SaveCurrentRipPosition();
+            await Ripper.SaveCurrentRipPosition(cancellationToken);
         }
 
         Config.SaveConfig();
@@ -453,7 +455,7 @@ public partial class NicheImageRipper : IDisposable
 
     public static Task SkipEntry(CancellationToken cancellationToken = default)
     {
-        return ImageRipper.IncrementCurrentRipPosition();
+        return ImageRipper.IncrementCurrentRipPosition(cancellationToken);
     }
     
     public static void ClearCache()
