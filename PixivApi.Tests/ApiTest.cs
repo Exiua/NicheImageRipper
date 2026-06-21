@@ -1,7 +1,7 @@
 using NicheImageRipper.Common.ExtensionMethods;
 using PixivApi;
 
-namespace PixivApiTest;
+namespace PixivApi.Tests;
 
 public class ApiTest
 {

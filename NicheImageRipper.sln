@@ -18,7 +18,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi", "PixivApi\PixivApi.csproj", "{D0226B1D-9A25-4CE0-94B3-77EA32A95E58}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApiTest", "PixivApiTest\PixivApiTest.csproj", "{DB704CED-F61B-4401-8C00-C7101B081319}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Tests", "PixivApi.Tests\PixivApi.Tests.csproj", "{DB704CED-F61B-4401-8C00-C7101B081319}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSWebDriverClient", "CSWebDriverClient\CSWebDriverClient.csproj", "{0FDDA1DF-2CFA-4905-BEFF-8A171538164D}"
 EndProject
