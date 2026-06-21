@@ -3,13 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Core.DataStructures;
-using Core.History;
-using Core.Utility;
-using Gui.Utility;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
+using Gui.Utility;
 using Service.Models.Requests;
 
 namespace Gui.Services.Thin;

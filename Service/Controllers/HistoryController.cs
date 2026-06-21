@@ -1,10 +1,7 @@
-using Core.DataStructures;
-using Core.History;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
-using Service.Models.Requests;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Service.Singletons;
 
 namespace Service.Controllers;

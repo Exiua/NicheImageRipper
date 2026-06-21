@@ -1,5 +1,4 @@
 using System.Web;
-using Core.History;
 using NicheImageRipper.Core.History;
 
 namespace Service.Models.Requests;

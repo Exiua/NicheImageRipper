@@ -14,14 +14,12 @@ using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Core;
-using Core.History;
+using NicheImageRipper.Core.History;
 using Gui.Services;
 using Gui.Services.Shared;
 using Gui.ViewModels;
 using Microsoft.Extensions.Logging;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.History;
 using ReactiveUI;
 
 namespace Gui.Views;

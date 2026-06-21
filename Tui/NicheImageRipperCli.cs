@@ -1,6 +1,6 @@
-﻿using Core;
-using Core.DataStructures;
-using Core.Utility;
+﻿using NicheImageRipper.Core;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;

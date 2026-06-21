@@ -1,6 +1,7 @@
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
@@ -20,7 +21,7 @@ public class GirlsReleasedParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(delay: 5000);
+        var soup = await Soupify(delay: 5000, cancellationToken: cancellationToken);
         var metadata = soup.SelectNodesOrThrow("//a[@class='separate']");
         var siteName = metadata[0].InnerText.Split(".")[0].ToTitle();
         var modelName = metadata[1].InnerText;

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Core.Utility;
 using NicheImageRipper.Core.Utility;
 
 namespace Gui.Models.Thin;

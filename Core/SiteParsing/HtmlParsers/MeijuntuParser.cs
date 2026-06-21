@@ -1,6 +1,7 @@
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
@@ -20,7 +21,7 @@ public class MeijuntuParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
         var pageCount = soup.SelectSingleNodeOrThrow("//div[@id='pages']")
                             .SelectNodesOrThrow("./a")[^2]
@@ -34,10 +35,10 @@ public class MeijuntuParser : HtmlParser, IHtmlParser
             images.Add(img);
             if (i != pageCount - 1)
             {
-                soup = await Soupify($"{baseUrl}-{i+2}.html");
+                soup = await Soupify($"{baseUrl}-{i+2}.html", cancellationToken: cancellationToken);
             }
             
-            await Sleep(250);
+            await Sleep(250, cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

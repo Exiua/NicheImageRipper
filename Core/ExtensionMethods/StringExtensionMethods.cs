@@ -41,11 +41,6 @@ public static class StringExtensionMethods
         {
             return [new StringImageLinkWrapper(s)];
         }
-
-        public string Remove(string toRemove)
-        {
-            return s.Replace(toRemove, string.Empty);
-        }
         
         public int ParseInt()
         {

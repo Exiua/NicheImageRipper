@@ -1,8 +1,8 @@
 ﻿using System.Text;
-using Core;
-using Core.History;
-using Core.SiteParsing;
-using Core.Utility;
+using NicheImageRipper.Core;
+using NicheImageRipper.Core.History;
+using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Core.ArgParse;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Driver;

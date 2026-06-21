@@ -1,11 +1,7 @@
-using Core;
-using Core.DataStructures;
-using Core.History;
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
+using NicheImageRipper.Core.Configuration;
 using Service.Utilities.ExtensionMethods;
-using Service.Models.Dtos;
 using Config = Service.Models.Configs.Config;
 using SettingsOverride = NicheImageRipper.Core.Configuration.SettingsOverride;
 

@@ -44,7 +44,7 @@ public sealed class WebSocketLogSink : ILogEventSink
             {
                 await broadcaster.BroadcastAsync(envelope);
             }
-            catch(Exception e)
+            catch(Exception)
             {
                 //_broadcaster.Logger.LogError(e, "Error broadcasting log event");
             }

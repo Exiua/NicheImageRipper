@@ -146,7 +146,7 @@ public sealed class WebSocketBroadcaster
             {
                 socket.Dispose();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //Logger.LogError(e, "Error broadcasting log event");
             }

@@ -13,4 +13,9 @@ public static class StringExtensionMethods
     {
         return string.IsNullOrWhiteSpace(s);
     }
+
+    public static string Remove([NotNull] this string s, [NotNull] string toRemove)
+    {
+        return s.Replace(toRemove, string.Empty);
+    }
 }

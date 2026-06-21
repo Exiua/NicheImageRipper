@@ -1,6 +1,7 @@
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
@@ -24,7 +25,7 @@ public class HentaiHandParser : HtmlParser, IHtmlParser
         {
             ScrollBy = true
         };
-        var soup = await Soupify(xpath: "//div[@class='gallery-image col-6 col-md-3 py-3']//img", lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(xpath: "//div[@class='gallery-image col-6 col-md-3 py-3']//img", lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h5[@class='comic-title font-weight-bold mb-2']").InnerText;
         var pageCount = soup.SelectSingleNodeOrThrow("//h6[@class='box-header mb-2']")
                             .InnerText

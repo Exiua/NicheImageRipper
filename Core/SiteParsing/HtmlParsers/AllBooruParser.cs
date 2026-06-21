@@ -1,3 +1,4 @@
+using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
@@ -25,7 +26,7 @@ public class AllBooruParser : BooruParser, IHtmlParser
             //Logger.Debug("Parsing {Booru}", booru);
             var metadata = booru.GetMetadata();
             var referer = metadata.BaseUrl.Split("/")[..3].Join("/") + "/";
-            var posts = await BooruParse(booru, tags);
+            var posts = await BooruParse(booru, tags, cancellationToken);
             Logger.Information("Found {NumUrls} images on {Booru}", posts.NumUrls, booru);
             var urls = posts.Urls.Select(u =>
             {
