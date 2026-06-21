@@ -1,4 +1,4 @@
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public class ApplicationState
 {

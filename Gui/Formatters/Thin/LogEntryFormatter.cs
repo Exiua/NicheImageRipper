@@ -1,7 +1,7 @@
 using System.Text;
-using Gui.Models;
+using NicheImageRipper.Gui.Models;
 
-namespace Gui.Formatters.Thin;
+namespace NicheImageRipper.Gui.Formatters.Thin;
 
 public sealed class LogEntryFormatter
 {

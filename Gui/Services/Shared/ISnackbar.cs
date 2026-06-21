@@ -1,6 +1,6 @@
 using Avalonia.Controls.Notifications;
 
-namespace Gui.Services.Shared;
+namespace NicheImageRipper.Gui.Services.Shared;
 
 public interface ISnackbar
 {

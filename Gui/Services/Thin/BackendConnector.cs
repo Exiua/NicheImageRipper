@@ -10,16 +10,16 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Utility;
-using Gui.Models;
-using Gui.Models.Thin;
-using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Gui.Models;
+using NicheImageRipper.Gui.Models.Thin;
 using Service.Models.Requests;
 using Service.Models.WebSocket;
 using Config = Service.Models.Configs.Config;
 
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDisposable
 {

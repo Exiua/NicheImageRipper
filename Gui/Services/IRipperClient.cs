@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 
-namespace Gui.Services;
+namespace NicheImageRipper.Gui.Services;
 
 public interface IRipperClient : IAsyncInitialization, IDisposable
 {

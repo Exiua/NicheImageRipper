@@ -1,6 +1,6 @@
 using System;
 
-namespace Gui.Services.Shared;
+namespace NicheImageRipper.Gui.Services.Shared;
 
 public sealed class NullTaskbarProgressService : ITaskbarProgressService
 {

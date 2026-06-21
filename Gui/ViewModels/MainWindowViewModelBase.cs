@@ -8,16 +8,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
 using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using Gui.ExtensionMethods;
-using Gui.Services;
-using Microsoft.Extensions.Logging;
-using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Gui.ExtensionMethods;
+using NicheImageRipper.Gui.Services;
 using ReactiveUI;
 
-namespace Gui.ViewModels;
+namespace NicheImageRipper.Gui.ViewModels;
 
 public abstract class MainWindowViewModelBase : ViewModelBase
 {

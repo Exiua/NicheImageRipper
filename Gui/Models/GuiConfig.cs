@@ -1,7 +1,6 @@
-using JetBrains.Annotations;
 using NicheImageRipper.Core.Configuration;
 
-namespace Gui.Models;
+namespace NicheImageRipper.Gui.Models;
 
 public class GuiConfig : GeneralConfig
 {

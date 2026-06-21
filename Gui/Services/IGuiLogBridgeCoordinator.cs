@@ -1,6 +1,6 @@
 using System;
 
-namespace Gui.Services;
+namespace NicheImageRipper.Gui.Services;
 
 public interface IGuiLogBridgeCoordinator : IDisposable
 {

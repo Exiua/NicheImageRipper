@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Gui.Services;
+namespace NicheImageRipper.Gui.Services;
 
 public interface IAsyncInitialization
 {

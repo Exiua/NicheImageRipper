@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Gui.Models;
+namespace NicheImageRipper.Gui.Models;
 
 public sealed class LogEntryModel
 {

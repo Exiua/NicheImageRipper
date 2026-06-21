@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using NicheImageRipper.Core.Utility;
 
-namespace Gui.Models.Thin;
+namespace NicheImageRipper.Gui.Models.Thin;
 
 public class GuiThinConfig
 {

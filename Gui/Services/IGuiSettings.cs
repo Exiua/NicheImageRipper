@@ -1,4 +1,4 @@
-namespace Gui.Services;
+namespace NicheImageRipper.Gui.Services;
 
 public interface IGuiSettings : IAsyncInitialization
 {

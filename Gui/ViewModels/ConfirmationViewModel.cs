@@ -1,4 +1,4 @@
-namespace Gui.ViewModels;
+namespace NicheImageRipper.Gui.ViewModels;
 
 public class ConfirmationViewModel : ViewModelBase
 {

@@ -2,20 +2,19 @@ using System.Net.Http;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Gui.Formatters.Thin;
-using Gui.Services;
-using Gui.Services.Full;
-using Gui.Services.Shared;
-using Gui.Services.Shared.Windows;
-using Gui.Services.Thin;
-using Gui.ViewModels;
-using Gui.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NicheImageRipper.Gui.Formatters.Thin;
+using NicheImageRipper.Gui.Services;
+using NicheImageRipper.Gui.Services.Full;
+using NicheImageRipper.Gui.Services.Shared;
+using NicheImageRipper.Gui.Services.Shared.Windows;
+using NicheImageRipper.Gui.Services.Thin;
+using NicheImageRipper.Gui.ViewModels;
+using NicheImageRipper.Gui.Views;
 using Serilog;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace Gui;
+namespace NicheImageRipper.Gui;
 
 public partial class App : Application
 {

@@ -1,6 +1,6 @@
-using Gui.Models;
+using NicheImageRipper.Gui.Models;
 
-namespace Gui.Services.Full;
+namespace NicheImageRipper.Gui.Services.Full;
 
 public class FullGuiSettings : IGuiSettings
 {

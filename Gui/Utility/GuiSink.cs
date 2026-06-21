@@ -1,12 +1,11 @@
 using System;
-using Gui.Models;
-using Gui.Views;
+using NicheImageRipper.Gui.Models;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
 
-namespace Gui.Utility;
+namespace NicheImageRipper.Gui.Utility;
 
 public sealed class GuiSink : ILogEventSink
 {

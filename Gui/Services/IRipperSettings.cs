@@ -1,6 +1,6 @@
 using NicheImageRipper.Core.Enums;
 
-namespace Gui.Services;
+namespace NicheImageRipper.Gui.Services;
 
 public interface IRipperSettings : IAsyncInitialization
 {

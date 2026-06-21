@@ -1,8 +1,8 @@
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Logging;
-using System.Collections.Generic;
 
-namespace Gui;
+namespace NicheImageRipper.Gui;
 
 public static class LogExtensions
 {

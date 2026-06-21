@@ -1,8 +1,8 @@
 ﻿using System;
-using Gui.Services;
 using Microsoft.Extensions.Logging;
+using NicheImageRipper.Gui.Services;
 
-namespace Gui.ViewModels;
+namespace NicheImageRipper.Gui.ViewModels;
 
 public class MainWindowViewModelFull(
     ILogger<MainWindowViewModelFull> logger,

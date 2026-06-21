@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Gui.Models;
+using NicheImageRipper.Gui.Models;
 
-namespace Gui.Services.Shared;
+namespace NicheImageRipper.Gui.Services.Shared;
 
 public sealed class RollingLogTextSource : ILogTextSource
 {

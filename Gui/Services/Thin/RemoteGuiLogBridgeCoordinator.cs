@@ -1,8 +1,8 @@
 using System;
-using Gui.Models;
-using Gui.Utility;
+using NicheImageRipper.Gui.Models;
+using NicheImageRipper.Gui.Utility;
 
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public class RemoteGuiLogBridgeCoordinator: IGuiLogBridgeCoordinator
 {

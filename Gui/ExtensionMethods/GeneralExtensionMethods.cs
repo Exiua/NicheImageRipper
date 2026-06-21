@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
 
-namespace Gui.ExtensionMethods;
+namespace NicheImageRipper.Gui.ExtensionMethods;
 
 public static class GeneralExtensionMethods
 {

@@ -1,6 +1,6 @@
 ﻿using ReactiveUI;
 
-namespace Gui.ViewModels;
+namespace NicheImageRipper.Gui.ViewModels;
 
 public class ViewModelBase : ReactiveObject
 {

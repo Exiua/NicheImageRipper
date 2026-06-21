@@ -1,17 +1,16 @@
-﻿using Avalonia;
-using Avalonia.ReactiveUI;
-using System;
-using System.Threading;
+﻿using System;
 using System.Threading.Tasks;
-using Gui.Utility;
-using Gui.Models;
+using Avalonia;
+using Avalonia.ReactiveUI;
 using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Gui.Models;
+using NicheImageRipper.Gui.Utility;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 
-namespace Gui;
+namespace NicheImageRipper.Gui;
 
 sealed class Program
 {

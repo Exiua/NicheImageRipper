@@ -6,7 +6,7 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 
-namespace Gui.Services.Full;
+namespace NicheImageRipper.Gui.Services.Full;
 
 public class LocalRipperClient : IRipperClient
 {

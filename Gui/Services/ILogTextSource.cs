@@ -1,7 +1,7 @@
 using System;
-using Gui.Models;
+using NicheImageRipper.Gui.Models;
 
-namespace Gui.Services;
+namespace NicheImageRipper.Gui.Services;
 
 public interface ILogTextSource
 {

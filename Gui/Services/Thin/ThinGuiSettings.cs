@@ -1,6 +1,6 @@
-using Gui.Models.Thin;
+using NicheImageRipper.Gui.Models.Thin;
 
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public class ThinGuiSettings : IGuiSettings
 {

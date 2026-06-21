@@ -1,12 +1,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Gui.Models.Thin;
-using Gui.Services;
-using Gui.Services.Thin;
 using Microsoft.Extensions.Logging;
+using NicheImageRipper.Gui.Models.Thin;
+using NicheImageRipper.Gui.Services;
+using NicheImageRipper.Gui.Services.Thin;
 
-namespace Gui.ViewModels;
+namespace NicheImageRipper.Gui.ViewModels;
 
 public class MainWindowViewModelThin(
     ILogger<MainWindowViewModelThin> logger,

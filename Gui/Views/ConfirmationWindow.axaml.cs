@@ -1,10 +1,8 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
-using Gui.ViewModels;
+using NicheImageRipper.Gui.ViewModels;
 
-namespace Gui.Views;
+namespace NicheImageRipper.Gui.Views;
 
 public partial class ConfirmationWindow : Window
 {

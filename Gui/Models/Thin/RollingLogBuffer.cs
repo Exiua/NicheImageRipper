@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Gui.Models.Thin;
+namespace NicheImageRipper.Gui.Models.Thin;
 
 public sealed class RollingLogBuffer
 {

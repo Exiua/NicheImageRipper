@@ -5,7 +5,7 @@ using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Enums;
 using Config = Service.Models.Configs.Config;
 
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public class ThinRipperSettings : IRipperSettings
 {

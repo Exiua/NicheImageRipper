@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Gui.Models;
+using NicheImageRipper.Gui.Models;
 
-namespace Gui.Utility;
+namespace NicheImageRipper.Gui.Utility;
 
 public static class GuiLogBridge
 {

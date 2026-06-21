@@ -1,9 +1,9 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Gui.ViewModels;
+using NicheImageRipper.Gui.ViewModels;
 
-namespace Gui;
+namespace NicheImageRipper.Gui;
 
 public class ViewLocator : IDataTemplate
 {

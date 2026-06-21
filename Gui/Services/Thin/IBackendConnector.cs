@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using NicheImageRipper.Core.DataStructures;
-using Gui.Models;
 using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Gui.Models;
 using Service.Models.Requests;
 using Config = Service.Models.Configs.Config;
 
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public interface IBackendConnector : IAsyncInitialization
 {

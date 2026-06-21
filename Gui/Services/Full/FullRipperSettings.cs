@@ -1,7 +1,7 @@
-using Gui.Models;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Gui.Models;
 
-namespace Gui.Services.Full;
+namespace NicheImageRipper.Gui.Services.Full;
 
 public class FullRipperSettings : IRipperSettings
 {

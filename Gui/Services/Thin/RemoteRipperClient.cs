@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
-using Gui.Utility;
+using NicheImageRipper.Gui.Utility;
 using Service.Models.Requests;
 
-namespace Gui.Services.Thin;
+namespace NicheImageRipper.Gui.Services.Thin;
 
 public class RemoteRipperClient : IRipperClient
 {

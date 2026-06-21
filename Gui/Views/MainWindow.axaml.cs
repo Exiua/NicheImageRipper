@@ -14,15 +14,15 @@ using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using NicheImageRipper.Core.History;
-using Gui.Services;
-using Gui.Services.Shared;
-using Gui.ViewModels;
 using Microsoft.Extensions.Logging;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.History;
+using NicheImageRipper.Gui.Services;
+using NicheImageRipper.Gui.Services.Shared;
+using NicheImageRipper.Gui.ViewModels;
 using ReactiveUI;
 
-namespace Gui.Views;
+namespace NicheImageRipper.Gui.Views;
 
 public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 {

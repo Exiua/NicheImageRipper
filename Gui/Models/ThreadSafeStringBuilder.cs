@@ -1,7 +1,7 @@
 using System.Text;
 using System.Threading;
 
-namespace Gui.Models;
+namespace NicheImageRipper.Gui.Models;
 
 public class ThreadSafeStringBuilder
 {

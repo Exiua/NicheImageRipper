@@ -1,7 +1,7 @@
 using System;
 using Avalonia.Controls.Notifications;
 
-namespace Gui.Services.Shared;
+namespace NicheImageRipper.Gui.Services.Shared;
 
 public class Snackbar(WindowNotificationManager manager) : ISnackbar
 {

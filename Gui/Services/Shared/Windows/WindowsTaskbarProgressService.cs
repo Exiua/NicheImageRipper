@@ -3,7 +3,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Gui.Services.Shared.Windows;
+namespace NicheImageRipper.Gui.Services.Shared.Windows;
 
 public class WindowsTaskbarProgressService : ITaskbarProgressService
 {
