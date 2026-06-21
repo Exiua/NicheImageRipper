@@ -1,6 +1,6 @@
 using NicheImageRipper.Core.Enums;
 
-namespace Service.Models.Dtos;
+namespace NicheImageRipper.Service.Models.Dtos;
 
 public class RejectedUrlInfoDto(string url, QueueFailureReason reason)
 {

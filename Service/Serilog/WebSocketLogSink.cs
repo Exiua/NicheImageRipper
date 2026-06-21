@@ -1,12 +1,12 @@
 using System.Text.Json;
+using NicheImageRipper.Service.Models.WebSocket;
+using NicheImageRipper.Service.Singletons;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
-using Service.Models.WebSocket;
-using Service.Singletons;
 
-namespace Service.Serilog;
+namespace NicheImageRipper.Service.Serilog;
 
 public sealed class WebSocketLogSink : ILogEventSink
 {

@@ -1,6 +1,6 @@
-using Service.Models;
+using NicheImageRipper.Service.Models;
 
-namespace Service.Utilities.ExtensionMethods;
+namespace NicheImageRipper.Service.Utilities.ExtensionMethods;
 
 public static class CoreConfigExtensionMethods
 {

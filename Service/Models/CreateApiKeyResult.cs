@@ -1,4 +1,4 @@
-namespace Service.Models;
+namespace NicheImageRipper.Service.Models;
 
 public sealed class CreateApiKeyResult
 {

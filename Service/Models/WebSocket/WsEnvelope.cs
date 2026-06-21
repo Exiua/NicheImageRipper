@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Service.Models.WebSocket;
+namespace NicheImageRipper.Service.Models.WebSocket;
 
 public sealed class WsEnvelope
 {

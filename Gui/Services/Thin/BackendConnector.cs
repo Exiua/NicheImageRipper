@@ -15,9 +15,9 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Gui.Models.Thin;
-using Service.Models.Requests;
-using Service.Models.WebSocket;
-using Config = Service.Models.Configs.Config;
+using NicheImageRipper.Service.Models.Requests;
+using NicheImageRipper.Service.Models.WebSocket;
+using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Gui.Services.Thin;
 

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Service.Models.Configs;
+namespace NicheImageRipper.Service.Models.Configs;
 
 public class LoginConfig
 {

@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Service.Contexts;
-using Service.Models;
+using NicheImageRipper.Service.Contexts;
+using NicheImageRipper.Service.Models;
 
-namespace Service.Services;
+namespace NicheImageRipper.Service.Services;
 
 public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
 {

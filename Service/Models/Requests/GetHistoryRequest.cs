@@ -1,7 +1,7 @@
 using System.Web;
 using NicheImageRipper.Core.History;
 
-namespace Service.Models.Requests;
+namespace NicheImageRipper.Service.Models.Requests;
 
 public class GetHistoryRequest
 {

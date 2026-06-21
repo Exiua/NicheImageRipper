@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Service.Models;
+namespace NicheImageRipper.Service.Models;
 
 public class ApiKey
 {

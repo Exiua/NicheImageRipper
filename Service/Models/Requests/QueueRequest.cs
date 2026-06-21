@@ -1,4 +1,4 @@
-namespace Service.Models.Requests;
+namespace NicheImageRipper.Service.Models.Requests;
 
 public class QueueRequest
 {

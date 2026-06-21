@@ -1,6 +1,6 @@
 using NicheImageRipper.Core.Enums;
 
-namespace Service.Models.Configs;
+namespace NicheImageRipper.Service.Models.Configs;
 
 public class SettingsOverride
 {

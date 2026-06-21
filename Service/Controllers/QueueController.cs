@@ -1,10 +1,10 @@
-using NicheImageRipper.Core.DataStructures;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Service.Models.Requests;
-using Service.Singletons;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Service.Models.Requests;
+using NicheImageRipper.Service.Singletons;
 
-namespace Service.Controllers;
+namespace NicheImageRipper.Service.Controllers;
 
 [Authorize(AuthenticationSchemes = "ApiKey")]
 [ApiController]

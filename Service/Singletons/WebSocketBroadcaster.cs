@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
-using Service.Models.WebSocket;
+using NicheImageRipper.Service.Models.WebSocket;
 
-namespace Service.Singletons;
+namespace NicheImageRipper.Service.Singletons;
 
 public sealed class WebSocketBroadcaster
 {

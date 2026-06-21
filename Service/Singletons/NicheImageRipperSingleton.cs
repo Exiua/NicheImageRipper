@@ -1,11 +1,11 @@
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
-using NicheImageRipper.Core.Configuration;
-using Service.Utilities.ExtensionMethods;
-using Config = Service.Models.Configs.Config;
+using NicheImageRipper.Service.Utilities.ExtensionMethods;
+using Config = NicheImageRipper.Service.Models.Configs.Config;
 using SettingsOverride = NicheImageRipper.Core.Configuration.SettingsOverride;
 
-namespace Service.Singletons;
+namespace NicheImageRipper.Service.Singletons;
 
 public class NicheImageRipperSingleton : INicheImageRipperSingleton
 {

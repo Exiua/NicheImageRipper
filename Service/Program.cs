@@ -1,11 +1,11 @@
-using Service.Contexts;
-using Service.Handlers;
-using Service.Serilog;
-using Service.Services;
-using Service.Singletons;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using NicheImageRipper.Service.Contexts;
+using NicheImageRipper.Service.Handlers;
+using NicheImageRipper.Service.Serilog;
+using NicheImageRipper.Service.Services;
+using NicheImageRipper.Service.Singletons;
 using Serilog;
 using Serilog.Events;
 

@@ -2,9 +2,9 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-using Service.Services;
+using NicheImageRipper.Service.Services;
 
-namespace Service.Handlers;
+namespace NicheImageRipper.Service.Handlers;
 
 public class ApiKeyAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,

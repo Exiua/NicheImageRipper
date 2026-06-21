@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Service.Models;
+using NicheImageRipper.Service.Models;
 
-namespace Service.Contexts;
+namespace NicheImageRipper.Service.Contexts;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {

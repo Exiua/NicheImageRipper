@@ -1,4 +1,4 @@
-namespace Service.Models.WebSocket;
+namespace NicheImageRipper.Service.Models.WebSocket;
 
 public enum WsEventType : int
 {

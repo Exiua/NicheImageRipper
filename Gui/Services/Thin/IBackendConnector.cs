@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Gui.Models;
-using Service.Models.Requests;
-using Config = Service.Models.Configs.Config;
+using NicheImageRipper.Service.Models.Requests;
+using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Gui.Services.Thin;
 

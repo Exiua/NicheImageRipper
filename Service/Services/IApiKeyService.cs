@@ -1,6 +1,6 @@
-using Service.Models;
+using NicheImageRipper.Service.Models;
 
-namespace Service.Services;
+namespace NicheImageRipper.Service.Services;
 
 public interface IApiKeyService
 {

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Service.Singletons;
+using NicheImageRipper.Service.Singletons;
 
-namespace Service.Controllers;
+namespace NicheImageRipper.Service.Controllers;
 
 [Authorize(AuthenticationSchemes = "ApiKey")]
 [ApiController]

@@ -1,7 +1,7 @@
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Enums;
 
-namespace Service.Models.Configs;
+namespace NicheImageRipper.Service.Models.Configs;
 
 public class Config
 {

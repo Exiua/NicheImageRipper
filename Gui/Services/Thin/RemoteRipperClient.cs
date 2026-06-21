@@ -7,7 +7,7 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Gui.Utility;
-using Service.Models.Requests;
+using NicheImageRipper.Service.Models.Requests;
 
 namespace NicheImageRipper.Gui.Services.Thin;
 
