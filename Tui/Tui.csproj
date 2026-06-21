@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <SelfContained>True</SelfContained>
         <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>NicheImageRipper.Tui</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

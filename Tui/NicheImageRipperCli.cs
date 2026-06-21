@@ -1,14 +1,10 @@
-﻿using NicheImageRipper.Core;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Utility;
-using NicheImageRipper.Core.DataStructures;
+﻿using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Utility;
-using Serilog;
 using Serilog.Events;
 
-namespace Tui;
+namespace NicheImageRipper.Tui;
 
 public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
 {

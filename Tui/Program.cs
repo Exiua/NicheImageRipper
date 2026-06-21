@@ -9,7 +9,7 @@ using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Utility;
-using Tui;
+using NicheImageRipper.Tui;
 using Serilog;
 using Serilog.Events;
 
