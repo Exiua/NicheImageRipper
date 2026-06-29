@@ -211,4 +211,9 @@ public static class SeleniumExtensionMethods
                  rect1.Y > rect2.Y + size2.Height ||
                  rect1.Y + size1.Height < rect2.Y);
     }
+
+    public static void SetLocalStorageItem(this IWebDriver driver, string key, string value)
+    {
+        ((IJavaScriptExecutor)driver).ExecuteScript("localStorage.setItem(arguments[0], arguments[1]);", key, value);
+    }
 }

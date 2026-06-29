@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
+using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Common.ExtensionMethods;
 using Serilog;
 using SteamKit2;
@@ -422,6 +423,11 @@ public class SteamApiClient
 
             await Parallel.ForEachAsync(chunkQueue, parallelOptions,
                 async (request, ct) => { await DownloadChunkWithRetryAsync(request, ct); });
+        }
+        catch (IOException e) when (e.Message.Contains("There is not enough space on the disk"))
+        {
+            Logger.Error(e, "Disk full while downloading depot target");
+            throw new NotEnoughDiskSpaceException(e);
         }
         finally
         {

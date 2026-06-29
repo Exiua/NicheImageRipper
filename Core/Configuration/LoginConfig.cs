@@ -16,6 +16,7 @@ public class LoginConfig
     [JsonPropertyName("E-Hentai")]
     public required Credentials EHentai { get; set; }
     public required Credentials SteamCommunity { get; set; }
+    public required Credentials Iwara { get; set; }
 
     public static LoginConfig New()
     {
@@ -32,6 +33,7 @@ public class LoginConfig
             E621 = Credentials.New(),
             EHentai = Credentials.New(),
             SteamCommunity = Credentials.New(),
+            Iwara = Credentials.New(),
         };
     }
 }
