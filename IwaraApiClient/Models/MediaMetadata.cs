@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace NicheImageRipper.Core.Clients.Iwara.Models;
+namespace IwaraApiClient.Models;
 
 public class MediaMetadata
 {
@@ -17,9 +17,9 @@ public class MediaMetadata
     [JsonPropertyName("size")]
     public required int Size { get; set; }
     [JsonPropertyName("width")]
-    public required int Width { get; set; }
+    public required int? Width { get; set; }
     [JsonPropertyName("height")]
-    public required int Height { get; set; }
+    public required int? Height { get; set; }
     [JsonPropertyName("duration")]
     public required int? Duration { get; set; }
     [JsonPropertyName("numThumbnails")]

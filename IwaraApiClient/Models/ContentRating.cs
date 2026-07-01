@@ -1,4 +1,4 @@
-namespace NicheImageRipper.Core.Clients.Iwara.Models;
+namespace IwaraApiClient.Models;
 
 public enum ContentRating
 {

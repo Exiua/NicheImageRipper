@@ -7,6 +7,7 @@ public static class JsonUtility
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
+        AllowTrailingCommas = true,
     };
     
     public static void Serialize(string filepath, object obj)
@@ -18,6 +19,6 @@ public static class JsonUtility
     public static T? Deserialize<T>(string filepath)
     {
         var json = File.ReadAllText(filepath);
-        return JsonSerializer.Deserialize<T>(json);
+        return JsonSerializer.Deserialize<T>(json, Options);
     }
 }

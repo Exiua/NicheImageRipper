@@ -30,6 +30,7 @@
       <ProjectReference Include="..\Common\Common.csproj" />
       <ProjectReference Include="..\CSWebDriverClient\CSWebDriverClient.csproj" />
       <ProjectReference Include="..\FlareSolverrIntegration\FlareSolverrIntegration.csproj" />
+      <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
       <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
       <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
       <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
@@ -39,6 +40,10 @@
       <Reference Include="Microsoft.AspNetCore.WebUtilities">
         <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.7\Microsoft.AspNetCore.WebUtilities.dll</HintPath>
       </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Clients\Iwara\" />
     </ItemGroup>
 
 </Project>

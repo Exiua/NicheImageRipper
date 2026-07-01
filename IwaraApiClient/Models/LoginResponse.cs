@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace NicheImageRipper.Core.Clients.Iwara.Models;
+namespace IwaraApiClient.Models;
 
 public class LoginResponse
 {
