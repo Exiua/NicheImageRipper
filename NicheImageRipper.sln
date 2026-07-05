@@ -30,6 +30,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamApiClient", "SteamApiC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IwaraApiClient", "IwaraApiClient\IwaraApiClient.csproj", "{EFCFE304-C845-4A27-A1A1-F280E6B31998}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImpersonateClient", "ImpersonateClient\ImpersonateClient.csproj", "{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,5 +98,9 @@ Global
 		{EFCFE304-C845-4A27-A1A1-F280E6B31998}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EFCFE304-C845-4A27-A1A1-F280E6B31998}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EFCFE304-C845-4A27-A1A1-F280E6B31998}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

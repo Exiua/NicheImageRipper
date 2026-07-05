@@ -47,7 +47,7 @@ public class Video
     [JsonPropertyName("updatedAt")]
     public required DateTime UpdatedAt { get; set; }
     [JsonPropertyName("fileUrl")]
-    public required string? FileUrl { get; set; }
+    public string? FileUrl { get; set; }
 }
 
 public class Tag
