@@ -15,20 +15,9 @@ public sealed class ImpersonateHttpResponseMessage : IDisposable
 
     public ImpersonateHttpHeaders Headers { get; init; } = new();
 
-    public byte[] Content { get; init; } = [];
+    public HttpContent Content { get; init; } = new ByteArrayContent([]);
 
     public bool IsSuccessStatusCode => StatusCode is >= 200 and <= 299;
-
-    public string ReadAsString(Encoding? encoding = null)
-    {
-        encoding ??= DetectEncoding() ?? Encoding.UTF8;
-        return encoding.GetString(Content);
-    }
-
-    public T? ReadFromJson<T>(JsonSerializerOptions? options = null)
-    {
-        return JsonSerializer.Deserialize<T>(Content, options);
-    }
 
     public void EnsureSuccessStatusCode()
     {

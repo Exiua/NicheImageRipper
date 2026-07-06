@@ -6,6 +6,11 @@ internal static partial class NativeMethods
 {
     private const string LibraryName = "libcurl-impersonate";
 
+    static NativeMethods()
+    {
+        NativeLibraryResolver.Register();
+    }
+    
     [LibraryImport(
         LibraryName,
         EntryPoint = "curl_easy_impersonate",

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using ImpersonateClient;
 using IwaraApiClient.Models;
 using Serilog;
 using ILogger = Serilog.ILogger;
@@ -13,28 +14,22 @@ public class IwaraClient
     private readonly ILogger _logger = Log.ForContext<IwaraClient>();
     private readonly string _username;
     private readonly string _password;
-    private readonly HttpClient _httpClient;
+    private readonly ImpersonateHttpClient _httpClient;
 
     private string _token = "";
     private DateTime _expiration = DateTime.MinValue;
 
     public IwaraClient(string username, string password)
     {
-        _httpClient = new HttpClient
-        {
-            DefaultRequestVersion = HttpVersion.Version20,
-            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-        };
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "NicheImageRipper/1.0");
-        // _httpClient.DefaultRequestHeaders.Add("Origin", "iwara.tv");
-        // _httpClient.DefaultRequestHeaders.Add("Referer", "https://iwara.tv/");
+        _httpClient = ImpersonateHttpClient.Builder()
+            .WithBrowser("chrome".IntoImpersonateTarget())
+            .Build();
         _username = username;
         _password = password;
     }
 
     private async Task<bool> CheckToken(CancellationToken cancellationToken = default)
     {
-        return true;
         if (_token == "" || DateTime.UtcNow >= _expiration)
         {
             return await Login(cancellationToken);
@@ -59,6 +54,7 @@ public class IwaraClient
             cancellationToken: cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            _logger.Warning("Login failed.");
             return false;
         }
 
@@ -66,14 +62,13 @@ public class IwaraClient
             await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: cancellationToken);
         if (loginResponse is null)
         {
+            _logger.Warning("Login failed.");
             return false;
         }
 
         _token = loginResponse.Token;
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(_token);
         _expiration = jwt.ValidTo;
-
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token);
 
         _logger.Debug("Successfully logged in.");
         return true;

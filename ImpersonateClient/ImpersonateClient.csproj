@@ -7,12 +7,16 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <EffectiveRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</EffectiveRuntimeIdentifier>
+        <EffectiveRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">win-x64</EffectiveRuntimeIdentifier>
+    </PropertyGroup>
+
     <ItemGroup>
-        <None Include="runtimes\win-x64\native\*.dll"
+        <None Include="runtimes\$(EffectiveRuntimeIdentifier)\native\*.dll"
+              Pack="true"
               CopyToOutputDirectory="PreserveNewest" />
-
-        <None Include="runtimes\win-x64\native\cacert.pem"
-              CopyToOutputDirectory="PreserveNewest" />
+        <EmbeddedResource Include="Resources\cacert.pem" />
     </ItemGroup>
-
+    
 </Project>
