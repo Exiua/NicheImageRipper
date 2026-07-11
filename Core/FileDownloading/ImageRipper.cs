@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using ImageMagick;
+using IwaraApiClient;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
@@ -45,6 +46,7 @@ public partial class ImageRipper : IDisposable
 
     internal static ApiClientManager ClientManager { get; } = new();
 
+    // ReSharper disable once UnusedMember.Local
     private static readonly string[] MediaExtensions =
     [
         ".jpg",
@@ -402,7 +404,12 @@ public partial class ImageRipper : IDisposable
         {
             case "deviantart":
                 // Delegated to external tool
-                await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url, cancellationToken);
+                var success = await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url, cancellationToken);
+                if (!success)
+                {
+                    // TODO
+                }
+                
                 break;
             // Probably need to extract parts into separate methods
             default:
@@ -946,6 +953,9 @@ public partial class ImageRipper : IDisposable
             case LinkInfo.SteamCommunity:
                 success = await DownloadSteamCommunity(imagePath, imageLink, cancellationToken);
                 break;
+            case LinkInfo.Iwara:
+                success = await DownloadIwara(imagePath, imageLink, cancellationToken);
+                break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
                 success = await DownloadFile(imagePath, imageLink, false, skipDownload, cancellationToken);
@@ -1209,11 +1219,13 @@ public partial class ImageRipper : IDisposable
 
         while (true)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             // TODO: Need better way to check if megacmd has timeout or is just downloading large amounts of data
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
             try
             {
-                return await MegaApi.DownloadAsync(imageLink.Url, filePath, CancellationToken.None);
+                return await MegaApi.DownloadAsync(imageLink.Url, filePath, cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -1463,7 +1475,7 @@ public partial class ImageRipper : IDisposable
         Directory.CreateDirectory(destinationFolder);
         var url = imageLink.Url;
         var ids = url.Split('/')[^1].Split('|');
-        var appId = ids[0];
+        //var appId = ids[0];
         var fileId = ids[1];
         var (username, password) = Config.Logins.SteamCommunity;
 
@@ -1500,6 +1512,17 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
+    private async Task<bool> DownloadIwara(string filePath, ImageLink imageLink,
+                                           CancellationToken cancellationToken = default)
+    {
+        var client = ClientManager.IwaraClient;
+        var url = imageLink.Url;
+        var videoId = url.Split('/')[^1];
+        var success = await client.DownloadVideo(videoId, filePath, cancellationToken);
+        await HtmlParser.JitterSleep(cancellationToken: cancellationToken);
+        return success;
+    }
+    
     public static void CopyFolder(string sourceFolder, string destinationRoot)
     {
         if (!Directory.Exists(sourceFolder))
@@ -1561,7 +1584,7 @@ public partial class ImageRipper : IDisposable
         return destinationPath;
     }
 
-    private static string ExtractDownloadPath(string line)
+    /*private static string ExtractDownloadPath(string line)
     {
         var inPath = false;
         var path = "";
@@ -1598,7 +1621,7 @@ public partial class ImageRipper : IDisposable
         }
 
         return path;
-    }
+    }*/
 
     private async Task<bool> DownloadFile(string filePath, ImageLink imageLink, bool generatingManually,
                                           Box<bool> skipDownload, CancellationToken cancellationToken = default)
@@ -2240,7 +2263,7 @@ public partial class ImageRipper : IDisposable
         writer.WriteLine(url);
     }
 
-    private static void PrintDebugInfo(string title, string fd = "output.txt", bool clear = false, params object[] data)
+    /*private static void PrintDebugInfo(string title, string fd = "output.txt", bool clear = false, params object[] data)
     {
         using var writer = new StreamWriter(fd, !clear, Encoding.Unicode);
         writer.WriteLine($"[{title}]");
@@ -2248,7 +2271,7 @@ public partial class ImageRipper : IDisposable
         {
             writer.WriteLine($"\t{d.ToString()?.Trim()}");
         }
-    }
+    }*/
 
     public void Dispose()
     {

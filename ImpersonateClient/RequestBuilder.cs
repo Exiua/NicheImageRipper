@@ -238,11 +238,11 @@ public sealed class RequestBuilder
             Curl.SetString(easy, CurlOption.Username, auth.User);
             Curl.SetString(easy, CurlOption.Password, auth.Password);
         }
-        else
+        /*else
         {
             Curl.SetString(easy, CurlOption.Username, "");
             Curl.SetString(easy, CurlOption.Password, "");
-        }
+        }*/
     }
 
     private static void ConfigureMethodAndBody(nint easy, ResolvedRequest request)
@@ -301,7 +301,7 @@ public sealed class RequestBuilder
 
     private static void ConfigureHeaders(CurlEasyHandle handle, ResolvedRequest request)
     {
-        foreach (string header in request.Headers)
+        foreach (var header in request.Headers)
         {
             handle.AppendHeader(header);
         }

@@ -95,7 +95,7 @@ public static partial class UrlUtility
         "https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/", "https://e621.net/",
         "https://missav123.com/", "https://porncomics18.com/", "https://www.porncomic.io/", "https://hmvmania.com/",
         "https://pmvhaven.com/", "https://www.youtube.com/", "https://hanime1.me/", "https://missav.ws/",
-        "https://steamcommunity.com/"
+        "https://steamcommunity.com/", "https://www.iwara.tv/"
     }.ToFrozenSet();
 
     private static readonly ILogger Logger = Log.ForContext(typeof(UrlUtility));

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Web;
 using ImpersonateClient;
 using IwaraApiClient.Models;
 using Serilog;
@@ -22,8 +23,8 @@ public class IwaraClient
     public IwaraClient(string username, string password)
     {
         _httpClient = ImpersonateHttpClient.Builder()
-            .WithBrowser("chrome".IntoImpersonateTarget())
-            .Build();
+                                           .WithBrowser("chrome".IntoImpersonateTarget())
+                                           .Build();
         _username = username;
         _password = password;
     }
@@ -54,7 +55,7 @@ public class IwaraClient
             cancellationToken: cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.Warning("Login failed.");
+            _logger.Warning("Login failed. Response Status Code: {StatusCode}", response.StatusCode);
             return false;
         }
 
@@ -62,7 +63,7 @@ public class IwaraClient
             await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: cancellationToken);
         if (loginResponse is null)
         {
-            _logger.Warning("Login failed.");
+            _logger.Warning("Login failed. Unable to deserialize payload.");
             return false;
         }
 
@@ -170,8 +171,134 @@ public class IwaraClient
         return xVersion;
     }
 
-    public async Task DownloadVideo(string videoId)
+    public async Task<bool> DownloadVideo(string videoId, string outputPath,
+                                          CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var success = await CheckToken(cancellationToken);
+        if (!success)
+        {
+            return false;
+        }
+
+        var video = await GetVideo(videoId, cancellationToken);
+        if (video is null)
+        {
+            _logger.Warning("Video not found.");
+            return false;
+        }
+
+        var videoGuid = video.File.Id;
+        var fileUrl = video.FileUrl;
+        if (fileUrl is null)
+        {
+            _logger.Error("File URL should not be null.");
+            return false;
+        }
+
+        var uri = new Uri(fileUrl);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        var expiration = query["expires"];
+        if (expiration is null)
+        {
+            _logger.Error("Expiration should not be null.");
+            return false;
+        }
+
+        var xVersion = CalculateXVersion(videoGuid.ToString(), expiration);
+        var response = _httpClient.Request(fileUrl)
+                                  .WithHeader("Authorization", $"Bearer {_token}")
+                                  .WithHeader("X-Version", xVersion)
+                                  .Send();
+        var videoDownloadMetadata =
+            await response.Content.ReadFromJsonAsync<List<VideoDownloadMetadata>>(cancellationToken: cancellationToken);
+        var sourceMetadata = videoDownloadMetadata?.FirstOrDefault(x => x.Name == "Source")?.Src;
+        if (sourceMetadata is null)
+        {
+            _logger.Error("Source metadata should not be null.");
+            return false;
+        }
+
+        var downloadUrl = "https:" + sourceMetadata.Download;
+        var downloadResponse = await _httpClient.GetAsync(downloadUrl, cancellationToken);
+        if (!downloadResponse.IsSuccessStatusCode)
+        {
+            _logger.Error("Failed to download video. Status code: {StatusCode}", downloadResponse.StatusCode);
+            return false;
+        }
+
+        var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
+        await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await stream.CopyToAsync(fileStream, cancellationToken);
+
+        return true;
+    }
+    
+    public async Task<Image?> GetImage(string imageId, CancellationToken cancellationToken = default)
+    {
+        var success = await CheckToken(cancellationToken);
+        if (!success)
+        {
+            return null;
+        }
+
+        var requestUrl = $"https://api.iwara.tv/image/{imageId}";
+        var response = await _httpClient.GetAsync(requestUrl, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var image = await response.Content.ReadFromJsonAsync<Image>(cancellationToken: cancellationToken);
+        return image;
+    }
+
+    public async Task<bool> DownloadImage(string imageId, string outputPath,
+                                          CancellationToken cancellationToken = default)
+    {
+        var success = await CheckToken(cancellationToken);
+        if (!success)
+        {
+            return false;
+        }
+
+        var image = await GetImage(imageId, cancellationToken);
+        if (image is null)
+        {
+            _logger.Warning("Image not found.");
+            return false;
+        }
+
+        var images = image.Files;
+        if (images.Count == 0)
+        {
+            _logger.Error("No images found.");
+            return false;
+        }
+        
+        foreach (var (i, file) in images.Select((img, idx) => (idx, img)))
+        {
+            var imageUrl = $"https://i.iwara.tv/image/original/{file.Id}/{file.Name}";
+            var downloadResponse = await _httpClient.GetAsync(imageUrl, cancellationToken);
+            if (!downloadResponse.IsSuccessStatusCode)
+            {
+                _logger.Error("Failed to download image. Status code: {StatusCode}", downloadResponse.StatusCode);
+                return false;
+            }
+
+            var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
+            if (i > 0)
+            {
+                var ext = Path.GetExtension(file.Name);
+                var stem = Path.GetFileNameWithoutExtension(outputPath);
+                var parent = Path.GetDirectoryName(outputPath)!;
+                var newFilename = $"{stem}_{i+1}{ext}";
+                outputPath = Path.Combine(parent, newFilename);
+            }
+            
+            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await stream.CopyToAsync(fileStream, cancellationToken);
+        }
+
+        return true;
     }
 }

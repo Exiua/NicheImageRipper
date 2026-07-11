@@ -4,6 +4,7 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
 using Serilog;
 using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
@@ -27,8 +28,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (username, password) = Config.Logins.Iwara;
-        var client = new IwaraClient(username, password);
+        var client = ImageRipper.ClientManager.IwaraClient;
         string dirName;
         var images = new List<StringImageLinkWrapper>();
         if (CurrentUrl.Contains("/video/"))
@@ -58,18 +58,18 @@ public class IwaraParser : HtmlParser, IHtmlParser
 
                 foreach (var video in videos.Results)
                 {
-                    var videoLink = $"https://www.iwara.tv/video/{video.Id}";
+                    var videoLink = $"https://api.iwara.tv/video/{video.Id}";
                     var imageLink = new ImageLink(videoLink, FilenameScheme, 0)
                     {
                         Filename = video.Title + ".mp4",
-                        LinkInfo = LinkInfo.M3U8YtDlp,
+                        LinkInfo = LinkInfo.Iwara,
                     };
                     
                     images.Add(imageLink);
                 }
 
                 // When retrieved fewer items than limit
-                if (videos.Count < videos.Limit)
+                if (videos.Results.Count < videos.Limit)
                 {
                     break;
                 }
@@ -89,11 +89,18 @@ public class IwaraParser : HtmlParser, IHtmlParser
 
                 foreach (var image in imagesResponse.Results)
                 {
-                    foreach (var file in image.Files)
+                    var videoLink = $"https://api.iwara.tv/image/{image.Id}";
+                    var imageLink = new ImageLink(videoLink, FilenameScheme, 0)
                     {
-                        var imageLink =
-                            $"https://i.iwara.tv/image/original/{file.Id}/{file.Name}";
-                        images.Add(imageLink);
+                        Filename = image.Thumbnail.Name,
+                        LinkInfo = LinkInfo.Iwara,
+                    };
+                    
+                    images.Add(imageLink);
+
+                    for (var _ = 0; _ < image.NumImages - 1; _++)
+                    {
+                        images.Add(ImageLink.Invalid);
                     }
                 }
 
