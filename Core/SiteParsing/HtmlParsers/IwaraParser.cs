@@ -89,18 +89,24 @@ public class IwaraParser : HtmlParser, IHtmlParser
 
                 foreach (var image in imagesResponse.Results)
                 {
-                    var videoLink = $"https://api.iwara.tv/image/{image.Id}";
-                    var imageLink = new ImageLink(videoLink, FilenameScheme, 0)
+                    var imageResponse = await client.GetImage(image.Id, cancellationToken);
+                    if (imageResponse is null)
                     {
-                        Filename = image.Thumbnail.Name,
-                        LinkInfo = LinkInfo.Iwara,
-                    };
-                    
-                    images.Add(imageLink);
+                        Logger.Error("Image not found for image ID {ImageId}", image.Id);
+                        throw new RipperException($"Image not found for image ID {image.Id}");
+                    }
 
-                    for (var _ = 0; _ < image.NumImages - 1; _++)
+                    var imgs = imageResponse.Files;
+                    if (imgs.Count == 0)
                     {
-                        images.Add(ImageLink.Invalid);
+                        Logger.Error("No images found for image ID {ImageId}", image.Id);
+                        throw new RipperException($"No images found for image ID {image.Id}");
+                    }
+
+                    foreach (var img in imgs)
+                    {
+                        var imageUrl = $"https://i.iwara.tv/image/original/{img.Id}/{img.Name}";
+                        images.Add(imageUrl);
                     }
                 }
 

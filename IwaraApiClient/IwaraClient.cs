@@ -252,7 +252,7 @@ public class IwaraClient
         return image;
     }
 
-    public async Task<bool> DownloadImage(string imageId, string outputPath,
+    public async Task<bool> DownloadImage(string imageUrl, string outputPath,
                                           CancellationToken cancellationToken = default)
     {
         var success = await CheckToken(cancellationToken);
@@ -260,44 +260,18 @@ public class IwaraClient
         {
             return false;
         }
-
-        var image = await GetImage(imageId, cancellationToken);
-        if (image is null)
-        {
-            _logger.Warning("Image not found.");
-            return false;
-        }
-
-        var images = image.Files;
-        if (images.Count == 0)
-        {
-            _logger.Error("No images found.");
-            return false;
-        }
         
-        foreach (var (i, file) in images.Select((img, idx) => (idx, img)))
+        var downloadResponse = await _httpClient.GetAsync(imageUrl, cancellationToken);
+        if (!downloadResponse.IsSuccessStatusCode)
         {
-            var imageUrl = $"https://i.iwara.tv/image/original/{file.Id}/{file.Name}";
-            var downloadResponse = await _httpClient.GetAsync(imageUrl, cancellationToken);
-            if (!downloadResponse.IsSuccessStatusCode)
-            {
-                _logger.Error("Failed to download image. Status code: {StatusCode}", downloadResponse.StatusCode);
-                return false;
-            }
-
-            var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
-            if (i > 0)
-            {
-                var ext = Path.GetExtension(file.Name);
-                var stem = Path.GetFileNameWithoutExtension(outputPath);
-                var parent = Path.GetDirectoryName(outputPath)!;
-                var newFilename = $"{stem}_{i+1}{ext}";
-                outputPath = Path.Combine(parent, newFilename);
-            }
-            
-            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await stream.CopyToAsync(fileStream, cancellationToken);
+            _logger.Error("Failed to download image. Status code: {StatusCode}", downloadResponse.StatusCode);
+            return false;
         }
+
+        var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
+            
+        await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await stream.CopyToAsync(fileStream, cancellationToken);
 
         return true;
     }
