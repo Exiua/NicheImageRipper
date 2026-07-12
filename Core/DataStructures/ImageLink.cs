@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
 using JetBrains.Annotations;
@@ -19,9 +20,13 @@ public partial class ImageLink
     public string Url { get; set; } = null!;
     public string Filename { get; set; } = null!;
 
+    [JsonIgnore]
     public bool IsBlob => Url.StartsWith("blob:");
+    
+    [JsonIgnore]
     public bool IsInvalid => Url == "";
 
+    [JsonIgnore]
     [MemberNotNullWhen(true, nameof(Referer))]
     public bool HasReferer => !string.IsNullOrEmpty(Referer);
 

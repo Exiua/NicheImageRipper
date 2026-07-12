@@ -9,6 +9,7 @@ using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using NicheImageRipper.Core.Utility;
@@ -31,6 +32,8 @@ public abstract class HtmlParser : IDisposable
 
     protected static GeneralConfig Config => Configuration.Config.Instance;
     protected static TokenManager TokenManager => TokenManager.Instance;
+    
+    private static PartialSaveManager PartialSaveManager => PartialSaveManager.Instance;
 
     protected WebDriver WebDriver { get; }
     public bool Interrupted { get; set; }
@@ -79,17 +82,16 @@ public abstract class HtmlParser : IDisposable
         GivenUrl = url;
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         // e-hentai image links expire too quickly, so we need to parse the site every time
-        if (File.Exists("partial.json") && (SiteName != "e-hentai" && SiteName != "exhentai"))
+        if ((SiteName != "e-hentai" && SiteName != "exhentai"))
         {
-            Logger.Debug("Partial save file found");
-            var saveData = ReadPartialSave();
-            if (saveData.TryGetValue(url, out var value))
+            var saveData = PartialSaveManager.GetPartialSave(url);
+            if (saveData is not null)
             {
                 Logger.Debug("Partial save found for {Url}", url);
-                RequestHeaders["cookie"] = value.Cookies;
-                RequestHeaders["referer"] = value.Referer;
+                RequestHeaders["cookie"] = saveData.Cookies;
+                RequestHeaders["referer"] = saveData.Referer;
                 Interrupted = true;
-                return value.RipInfo;
+                return saveData.RipInfo;
             }
         }
         else
@@ -377,11 +379,6 @@ public abstract class HtmlParser : IDisposable
         };
     }
 
-    private static Dictionary<string, PartialSaveEntry> ReadPartialSave()
-    {
-        return JsonUtility.Deserialize<Dictionary<string, PartialSaveEntry>>("partial.json")!;
-    }
-
     private void WritePartialSave(RipInfo ripInfo, string url)
     {
         var partialSaveEntry = new PartialSaveEntry
@@ -390,8 +387,7 @@ public abstract class HtmlParser : IDisposable
             Referer = RequestHeaders["referer"],
             RipInfo = ripInfo
         };
-        var partialSave = new Dictionary<string, PartialSaveEntry> { { url, partialSaveEntry } };
-        JsonUtility.Serialize("partial.json", partialSave);
+        PartialSaveManager.AddPartialSave(url, partialSaveEntry);
     }
 
     // TODO: Make private and call from ParseSite so children only need to implement SiteLoginHelper instead of worrying

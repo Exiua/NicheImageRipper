@@ -43,7 +43,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
             {
                 throw new RipperException($"User not found: {userId}");
             }
-            
+
             dirName = $"{userResponse.User.Name} ({userId})";
             var user = userResponse.User;
             var page = 0;
@@ -66,9 +66,9 @@ public class IwaraParser : HtmlParser, IHtmlParser
                     else
                     {
                         var videoLink = $"https://api.iwara.tv/video/{video.Id}";
-                        var imageLink = new ImageLink(videoLink, FilenameScheme, 0, cleanFilename: true)
+                        var imageLink = new ImageLink(videoLink, FilenameScheme, 0, filename: $"{video.Title}.mp4",
+                            cleanFilename: true)
                         {
-                            Filename = video.Title + ".mp4",
                             LinkInfo = LinkInfo.Iwara,
                         };
 
@@ -81,10 +81,10 @@ public class IwaraParser : HtmlParser, IHtmlParser
                 {
                     break;
                 }
-                
+
                 page++;
             }
-            
+
             page = 0;
             while (true)
             {
@@ -123,7 +123,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
                 {
                     break;
                 }
-                
+
                 page++;
             }
         }

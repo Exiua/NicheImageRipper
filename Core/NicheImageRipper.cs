@@ -13,6 +13,7 @@ using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
 using Serilog;
@@ -460,7 +461,8 @@ public partial class NicheImageRipper : IDisposable
     
     public static void ClearCache()
     {
-        SilentlyRemoveFiles(".ripIndex", "partial.json", "ripState.json");
+        PartialSaveManager.Instance.ClearPartialSaves();
+        SilentlyRemoveFiles(".ripIndex", "ripState.json");
     }
 
     private static void SilentlyRemoveFiles(params string[] filepaths)
