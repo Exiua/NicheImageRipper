@@ -143,22 +143,37 @@ public class IwaraClient
         return pagedImages;
     }
 
-    public async Task<Video?> GetVideo(string videoId, CancellationToken cancellationToken = default)
+    public async Task<Result<Video, RequestResult>> GetVideo(string videoId, CancellationToken cancellationToken = default)
     {
         var success = await CheckToken(cancellationToken);
         if (!success)
         {
-            return null;
+            return RequestResult.LoginFailure;
         }
 
         var requestUrl = $"https://api.iwara.tv/video/{videoId}";
         var response = await _httpClient.GetAsync(requestUrl, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            return null;
+            var errorMessage = await response.Content.ReadFromJsonAsync<ErrorMessage>(cancellationToken: cancellationToken);
+            if (errorMessage!.Message == "errors.privateVideo")
+            {   
+                _logger.Warning("Video is private.");
+                return RequestResult.VideoPrivate;
+            }
+            else
+            {
+                _logger.Error("Failed to get video. Error message: {Message}", errorMessage?.Message);
+                return RequestResult.VideoNotFound;
+            }
         }
 
         var video = await response.Content.ReadFromJsonAsync<Video>(cancellationToken: cancellationToken);
+        if (video is null)
+        {
+            return RequestResult.JsonNull;
+        }
+
         return video;
     }
 
@@ -171,28 +186,29 @@ public class IwaraClient
         return xVersion;
     }
 
-    public async Task<bool> DownloadVideo(string videoId, string outputPath,
+    public async Task<RequestResult> DownloadVideo(string videoId, string outputPath,
                                           CancellationToken cancellationToken = default)
     {
         var success = await CheckToken(cancellationToken);
         if (!success)
         {
-            return false;
+            return RequestResult.LoginFailure;
         }
 
-        var video = await GetVideo(videoId, cancellationToken);
-        if (video is null)
+        var videoResult = await GetVideo(videoId, cancellationToken);
+        if (videoResult.IsError)
         {
-            _logger.Warning("Video not found.");
-            return false;
+            var error = videoResult.UnwrapError();
+            return error;
         }
 
+        var video = videoResult.Unwrap();
         var videoGuid = video.File.Id;
         var fileUrl = video.FileUrl;
         if (fileUrl is null)
         {
             _logger.Error("File URL should not be null.");
-            return false;
+            return RequestResult.FileUrlIsNull;
         }
 
         var uri = new Uri(fileUrl);
@@ -201,7 +217,7 @@ public class IwaraClient
         if (expiration is null)
         {
             _logger.Error("Expiration should not be null.");
-            return false;
+            return RequestResult.ExpirationIsMissingFromUrl;
         }
 
         var xVersion = CalculateXVersion(videoGuid.ToString(), expiration);
@@ -215,7 +231,7 @@ public class IwaraClient
         if (sourceMetadata is null)
         {
             _logger.Error("Source metadata should not be null.");
-            return false;
+            return RequestResult.SourceMetadataIsNull;
         }
 
         var downloadUrl = "https:" + sourceMetadata.Download;
@@ -223,14 +239,14 @@ public class IwaraClient
         if (!downloadResponse.IsSuccessStatusCode)
         {
             _logger.Error("Failed to download video. Status code: {StatusCode}", downloadResponse.StatusCode);
-            return false;
+            return RequestResult.FailedToDownload;
         }
 
-        var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
+        await using var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
         await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
         await stream.CopyToAsync(fileStream, cancellationToken);
 
-        return true;
+        return RequestResult.Success;
     }
     
     public async Task<Image?> GetImage(string imageId, CancellationToken cancellationToken = default)

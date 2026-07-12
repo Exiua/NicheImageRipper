@@ -11,6 +11,7 @@ using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using ImageMagick;
 using IwaraApiClient;
+using IwaraApiClient.Models;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
@@ -546,7 +547,6 @@ public partial class ImageRipper : IDisposable
                 // DownloadFromList may modify filename (if it was missing extension)
                 imagePath = Path.Combine(fullPath, link.Filename);
                 await PostProcess(link, imagePath, filesHashes, downloadStats, index, cancellationToken);
-
             }
         }
         catch (FileNotFoundException)
@@ -871,7 +871,7 @@ public partial class ImageRipper : IDisposable
     /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    /// <param name="skipDownload"></param>
+    /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
     /// <param name="cancellationToken">Cancellation token to cancel the download operation</param>
     private async Task<bool> DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
                                               DownloadStats downloadStats, Box<bool> skipDownload,
@@ -954,7 +954,18 @@ public partial class ImageRipper : IDisposable
                 success = await DownloadSteamCommunity(imagePath, imageLink, cancellationToken);
                 break;
             case LinkInfo.Iwara:
-                success = await DownloadIwara(imagePath, imageLink, cancellationToken);
+                var result = await DownloadIwara(imagePath, imageLink, cancellationToken);
+                if (result == RequestResult.VideoPrivate)
+                {
+                    Logger.Warning("Video is private. Please use the credentials of an account that has access to this video");
+                    success = true; // No point in retrying
+                    skipDownload.Value = true;
+                }
+                else
+                {
+                    success = result == RequestResult.Success;
+                }
+                
                 break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
@@ -1512,14 +1523,15 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private async Task<bool> DownloadIwara(string filePath, ImageLink imageLink,
+    private async Task<RequestResult> DownloadIwara(string filePath, ImageLink imageLink,
                                            CancellationToken cancellationToken = default)
     {
         var client = ClientManager.IwaraClient;
         var url = imageLink.Url;
+        Logger.Debug("Downloading {Url} as {Filename}", url, imageLink.Filename);
         var videoId = url.Split('/')[^1];
         var success = await client.DownloadVideo(videoId, filePath, cancellationToken);
-        await HtmlParser.JitterSleep(cancellationToken: cancellationToken);
+        await HtmlParser.JitterSleep(min: 250, max: 500, cancellationToken: cancellationToken);
         return success;
     }
     
@@ -1623,6 +1635,15 @@ public partial class ImageRipper : IDisposable
         return path;
     }*/
 
+    /// <summary>
+    ///     Downloads a file from the specified image link.
+    /// </summary>
+    /// <param name="filePath">The path where the file will be saved.</param>
+    /// <param name="imageLink">The link metadata of the file to download.</param>
+    /// <param name="generatingManually">Indicates whether the download links are being generated manually.</param>
+    /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous download operation. The task result contains a boolean indicating whether the download was successful.</returns>
     private async Task<bool> DownloadFile(string filePath, ImageLink imageLink, bool generatingManually,
                                           Box<bool> skipDownload, CancellationToken cancellationToken = default)
     {
@@ -1662,6 +1683,18 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="imageLink"></param>
+    /// <param name="imagePath"></param>
+    /// <param name="generatingManually"></param>
+    /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="EHentaiUrlExpiredException"></exception>
+    /// <exception cref="RipperException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually,
                                                 Box<bool> skipDownload, CancellationToken cancellationToken = default)
     {
@@ -1824,6 +1857,19 @@ public partial class ImageRipper : IDisposable
         ["png"] = "gif",
     };
 
+    /// <summary>
+    ///     Handles unsuccessful HTTP response status codes during file download attempts.
+    /// </summary>
+    /// <param name="response"></param>
+    /// <param name="url"></param>
+    /// <param name="imageLink"></param>
+    /// <param name="generatingManually"></param>
+    /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="WrongExtensionException"></exception>
+    /// <exception cref="BadSubdomainException"></exception>
+    /// <exception cref="EHentaiUrlExpiredException"></exception>
     private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink,
                                                           bool generatingManually, Box<bool> skipDownload,
                                                           CancellationToken cancellationToken = default)

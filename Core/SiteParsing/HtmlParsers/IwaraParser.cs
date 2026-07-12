@@ -44,7 +44,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
                 throw new RipperException($"User not found: {userId}");
             }
             
-            dirName = $"{userResponse.User.Username} ({userId})";
+            dirName = $"{userResponse.User.Name} ({userId})";
             var user = userResponse.User;
             var page = 0;
             while (true)
@@ -58,14 +58,22 @@ public class IwaraParser : HtmlParser, IHtmlParser
 
                 foreach (var video in videos.Results)
                 {
-                    var videoLink = $"https://api.iwara.tv/video/{video.Id}";
-                    var imageLink = new ImageLink(videoLink, FilenameScheme, 0)
+                    // TODO: Query each video and extract urls from the Body prop and see if we can parse that
+                    if (video.EmbedUrl is not null)
                     {
-                        Filename = video.Title + ".mp4",
-                        LinkInfo = LinkInfo.Iwara,
-                    };
-                    
-                    images.Add(imageLink);
+                        images.Add(video.EmbedUrl);
+                    }
+                    else
+                    {
+                        var videoLink = $"https://api.iwara.tv/video/{video.Id}";
+                        var imageLink = new ImageLink(videoLink, FilenameScheme, 0, cleanFilename: true)
+                        {
+                            Filename = video.Title + ".mp4",
+                            LinkInfo = LinkInfo.Iwara,
+                        };
+
+                        images.Add(imageLink);
+                    }
                 }
 
                 // When retrieved fewer items than limit

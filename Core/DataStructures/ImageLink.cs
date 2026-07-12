@@ -13,7 +13,7 @@ namespace NicheImageRipper.Core.DataStructures;
 public partial class ImageLink
 {
     private ILogger Logger { get; } = Log.ForContext<ImageLink>();
-    
+
     public string? Referer { get; set; }
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
     public string Url { get; set; } = null!;
@@ -193,6 +193,7 @@ public partial class ImageLink
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
                 case LinkInfo.SteamCommunity:
+                case LinkInfo.Iwara:
                 default:
                     // TODO: Double-check this logic, the double check for filename == "" seems redundant
                     //  smells like a logic issue
@@ -235,6 +236,7 @@ public partial class ImageLink
                 case LinkInfo.ObfuscatedM3U8:
                 case LinkInfo.PixivUgoira:
                 case LinkInfo.SteamCommunity:
+                case LinkInfo.Iwara:
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -426,7 +428,7 @@ public partial class ImageLink
             }
         }
 
-        if (fileName == ""/* && LinkInfo is not LinkInfo.Mega*/)
+        if (fileName == "" /* && LinkInfo is not LinkInfo.Mega*/)
         {
             Logger.Warning("No file name provided: {Url}", url);
             return Guid.NewGuid().ToString(); // Fallback to a random filename if none can be extracted
