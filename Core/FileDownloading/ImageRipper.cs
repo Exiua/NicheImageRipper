@@ -12,6 +12,7 @@ using Google.Apis.Services;
 using ImageMagick;
 using IwaraApiClient;
 using IwaraApiClient.Models;
+using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
@@ -446,7 +447,8 @@ public partial class ImageRipper : IDisposable
 
                                     try
                                     {
-                                        await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats, cancellationToken: cancellationToken);
+                                        await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats,
+                                            cancellationToken: cancellationToken);
                                         Interlocked.Increment(ref complete);
                                         completed[i] = true;
                                         Logger.Information("Finished downloading {Index}, {Total} remaining", i + 1,
@@ -541,7 +543,8 @@ public partial class ImageRipper : IDisposable
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
             var skipDownload = new Box<bool>(false);
-            var success = await DownloadFromList(link, imagePath, index, downloadStats, skipDownload, cancellationToken);
+            var success =
+                await DownloadFromList(link, imagePath, index, downloadStats, skipDownload, cancellationToken);
             if (success && !skipDownload)
             {
                 // DownloadFromList may modify filename (if it was missing extension)
@@ -955,15 +958,25 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.Iwara:
                 var result = await DownloadIwara(imagePath, imageLink, cancellationToken);
-                if (result == RequestResult.VideoPrivate)
+                switch (result)
                 {
-                    Logger.Warning("Video is private. Please use the credentials of an account that has access to this video");
-                    success = true; // No point in retrying
-                    skipDownload.Value = true;
-                }
-                else
-                {
-                    success = result == RequestResult.Success;
+                    case RequestResult.VideoPrivate:
+                        Logger.Warning("Video is private. Please use the credentials of an account that has access to this video");
+                        success = true; // No point in retrying
+                        skipDownload.Value = true;
+                        break;
+                    case RequestResult.VideoNotFound:
+                    {
+                        Logger.Warning("Video not found. Please check the URL");
+                        var parentPath = Directory.GetParent(imagePath)!.FullName;
+                        await File.AppendAllTextAsync(Path.Combine(parentPath, "failed.txt"), ripUrl + "\n", cancellationToken);
+                        success = true; // No point in retrying
+                        skipDownload.Value = true;
+                        break;
+                    }
+                    default:
+                        success = result == RequestResult.Success;
+                        break;
                 }
                 
                 break;
@@ -1530,7 +1543,16 @@ public partial class ImageRipper : IDisposable
         var url = imageLink.Url;
         Logger.Debug("Downloading {Url} as {Filename}", url, imageLink.Filename);
         var videoId = url.Split('/')[^1];
-        var success = await client.DownloadVideo(videoId, filePath, cancellationToken);
+        RequestResult success;
+        try
+        {
+            success = await client.DownloadVideo(videoId, filePath, cancellationToken);
+        }
+        catch (IOException e) when(e.Message.StartsWith("There is not enough space on the disk"))
+        {
+            throw new NotEnoughDiskSpaceException(e);
+        }
+        
         await HtmlParser.JitterSleep(min: 250, max: 500, cancellationToken: cancellationToken);
         return success;
     }

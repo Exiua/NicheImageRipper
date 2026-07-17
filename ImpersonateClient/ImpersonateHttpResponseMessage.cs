@@ -1,11 +1,11 @@
+using System.Net;
 using System.Text;
-using System.Text.Json;
 
 namespace ImpersonateClient;
 
 public sealed class ImpersonateHttpResponseMessage : IDisposable
 {
-    public int StatusCode { get; init; }
+    public HttpStatusCode StatusCode { get; init; }
 
     public string? ReasonPhrase { get; init; }
 
@@ -17,7 +17,7 @@ public sealed class ImpersonateHttpResponseMessage : IDisposable
 
     public HttpContent Content { get; init; } = new ByteArrayContent([]);
 
-    public bool IsSuccessStatusCode => StatusCode is >= 200 and <= 299;
+    public bool IsSuccessStatusCode => StatusCode is >= HttpStatusCode.OK and <= (HttpStatusCode)299;
 
     public void EnsureSuccessStatusCode()
     {

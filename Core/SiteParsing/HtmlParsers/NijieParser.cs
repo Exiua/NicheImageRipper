@@ -143,7 +143,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
             Driver.FindElement(By.XPath("//li[@class='ok']")).Click();
             while (!CurrentUrl.Contains("login.php"))
             {
-                await Sleep(100);
+                await Sleep(100, cancellationToken);
             }
         }
         
@@ -152,7 +152,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         Driver.FindElement(By.XPath("//input[@class='login_button']")).Click();
         while (CurrentUrl.Contains("login.php"))
         {
-            await Sleep(100);
+            await Sleep(100, cancellationToken);
         }
         
         CurrentUrl = origUrl;

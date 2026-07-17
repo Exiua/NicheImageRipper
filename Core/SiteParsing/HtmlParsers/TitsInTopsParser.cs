@@ -98,7 +98,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
             }
     
             var nextPageUrl = nextPage.GetHref();
-            soup = await Soupify($"{SiteUrl}{nextPageUrl}");
+            soup = await Soupify($"{SiteUrl}{nextPageUrl}", cancellationToken: cancellationToken);
         }
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -112,7 +112,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         var loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         while (loginInput is null)
         {
-            await Sleep(100);
+            await Sleep(100, cancellationToken);
             loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         }
         loginInput.SendKeys(username);
@@ -121,14 +121,14 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         Driver.FindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")).Click();
         while (Driver.TryFindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")) is not null)
         {
-            await Sleep(100);
+            await Sleep(100, cancellationToken);
         }
         
         CurrentUrl = origUrl;
         return true;
     }
 
-    private static async Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict,
+    private async Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict,
                                                                      Dictionary<string, List<string>> dstDict)
     {
         var downloadableLinks = new List<string>();
@@ -149,15 +149,14 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         return await ResolveDownloadableLinks(downloadableLinks);
     }
 
-    private static async Task<List<string>> ResolveDownloadableLinks(List<string> links)
+    private async Task<List<string>> ResolveDownloadableLinks(List<string> links)
     {
         var resolvedLinks = new List<string>();
-        var client = new HttpClient();
         foreach (var link in links)
         {
             if (link.Contains("sendvid.com"))
             {
-                var response = await client.GetAsync(link);
+                var response = await HttpClient.GetAsync(link);
                 var soup = await Soupify(response);
                 var sourceLink = soup.SelectSingleNodeOrThrow("//source[@id='video_source']")
                                      .GetAttributeValue("src", "");

@@ -27,9 +27,9 @@ public class LocalRipperClient : IRipperClient
         _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
     }
     
-    public Task Rip(CancellationToken cancellationToken = default)
+    public Task<bool> Rip(CancellationToken cancellationToken = default)
     {
-        return _ripper.Rip();
+        return _ripper.Rip(cancellationToken);
     }
 
     public Task<bool> Resume(CancellationToken cancellationToken = default)

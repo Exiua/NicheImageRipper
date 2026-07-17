@@ -12,7 +12,7 @@ public class RipInfo
 {
     private const int MaxDirectoryNameLength = 200;
     
-    private readonly ILogger Logger;
+    private readonly ILogger _logger;
 
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
 
@@ -33,7 +33,7 @@ public class RipInfo
     [UsedImplicitly]
     public RipInfo()
     {
-        Logger = Log.ForContext<RipInfo>();
+        _logger = Log.ForContext<RipInfo>();
     }
 
     private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
@@ -42,7 +42,7 @@ public class RipInfo
                     string? referer = "")
     {
         // SaveRawUrls(urls);
-        Logger = Log.ForContext<RipInfo>();
+        _logger = Log.ForContext<RipInfo>();
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         try
@@ -51,7 +51,7 @@ public class RipInfo
         }
         catch (Exception)
         {
-            Logger.Debug("Failed to convert urls to image links: {@urls}", urls);
+            _logger.Debug("Failed to convert urls to image links: {@urls}", urls);
             throw;
         }
 
@@ -61,7 +61,7 @@ public class RipInfo
 
     private RipInfo(List<ImageLink> urls, string directoryName, FilenameScheme filenameScheme)
     {
-        Logger = Log.ForContext<RipInfo>();
+        _logger = Log.ForContext<RipInfo>();
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         Urls = urls;
@@ -171,7 +171,7 @@ public class RipInfo
             }
             else
             {
-                Logger.Debug("Duplicate url: {Url}", url);
+                _logger.Debug("Duplicate url: {Url}", url);
             }
         }
 
@@ -186,7 +186,7 @@ public class RipInfo
             return name;
         }
 
-        Logger.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
+        _logger.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
             name.Length, MaxDirectoryNameLength);
         name = name[..MaxDirectoryNameLength].Trim();
 

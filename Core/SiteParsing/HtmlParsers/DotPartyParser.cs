@@ -25,8 +25,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
 
-    private readonly HttpClient _httpClient;
-
     protected DotPartyParser(WebDriver driver, ApiClientManager clientManager,
                              Dictionary<string, string> requestHeaders,
                              FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
@@ -37,20 +35,16 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         };
 
-        _httpClient = new HttpClient(handler);
-        _httpClient.DefaultRequestHeaders.Add("Accept",
-            "text/css"); // Needed due to DDG issues according to kemono themselves
-    }
-
-    protected override void DisposeInternal()
-    {
-        _httpClient.Dispose();
+        HttpClient = new HttpClient(handler);
+        // Needed due to DDG issues according to kemono themselves
+        HttpClient.DefaultRequestHeaders.Add("Accept", "text/css"); 
     }
 
     /// <summary>
     ///     Parses the html for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <param name="domainUrl">The domain url of the site</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns></returns>
     protected async Task<RipInfo> DotPartyParse(string domainUrl, CancellationToken cancellationToken = default)
     {
@@ -88,7 +82,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             var id = post.Id;
             Logger.Debug("Post ID: {PostId}", id);
             var content = post.Content;
-            var soup = await Soupify(content, urlString: false);
+            var soup = await Soupify(content, urlString: false, cancellationToken: cancellationToken);
             FixLinks(soup);
             var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
             var possibleLinks = new List<string>();
@@ -197,7 +191,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             else
             {
                 var dropboxParser = new DropboxParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
-                var ripInfo = await dropboxParser.Parse(link);
+                var ripInfo = await dropboxParser.Parse(link, cancellationToken);
                 stringLinks.AddRange(ripInfo.Urls.ToStringImageLinks());
             }
         }
@@ -326,7 +320,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         Logger.Debug("Profile URL: {ProfileUrl}", profileUrl);
         var response = await RetryUntil(async () =>
             {
-                var r = await _httpClient.GetAsync(profileUrl);
+                var r = await HttpClient.GetAsync(profileUrl);
                 Logger.Debug("Profile page response: {StatusCode}", r.StatusCode);
                 return r;
             },
@@ -347,7 +341,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             response = await RetryUntil(
                 async () =>
                 {
-                    var r = await _httpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
+                    var r = await HttpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
                     Logger.Debug("Page response: {StatusCode}", r.StatusCode);
                     return r;
                 },
@@ -371,7 +365,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 response = await RetryUntil(
                     async () =>
                     {
-                        var r = await _httpClient.GetAsync($"{baseUrl}/post/{id}");
+                        var r = await HttpClient.GetAsync($"{baseUrl}/post/{id}");
                         Logger.Debug("Post response: {StatusCode}", r.StatusCode);
                         return r;
                     },
@@ -416,7 +410,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             links ??= [];
             var attachmentUrl = attachmentPath.StartsWith("https://") ? attachmentPath : domainUrl + attachmentPath;
             Logger.Debug("Fetching: {AttachmentUrl}", attachmentUrl);
-            var response = await _httpClient.GetAsync(attachmentUrl);
+            var response = await HttpClient.GetAsync(attachmentUrl);
             if (!response.IsSuccessStatusCode)
             {
                 Logger.Warning("Failed to retrieve special case attachment at {AttachmentUrl}", attachmentUrl);

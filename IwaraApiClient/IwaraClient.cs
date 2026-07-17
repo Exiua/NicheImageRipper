@@ -161,11 +161,15 @@ public class IwaraClient
                 _logger.Warning("Video is private.");
                 return RequestResult.VideoPrivate;
             }
-            else
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                _logger.Error("Failed to get video. Error message: {Message}", errorMessage?.Message);
+                _logger.Warning("Video not found.");
                 return RequestResult.VideoNotFound;
             }
+
+            _logger.Error("Failed to get video. Error message: {Message}", errorMessage?.Message);
+            return RequestResult.RequestVideoFailed;
         }
 
         var video = await response.Content.ReadFromJsonAsync<Video>(cancellationToken: cancellationToken);
@@ -239,7 +243,7 @@ public class IwaraClient
         if (!downloadResponse.IsSuccessStatusCode)
         {
             _logger.Error("Failed to download video. Status code: {StatusCode}", downloadResponse.StatusCode);
-            return RequestResult.FailedToDownload;
+            return downloadResponse.StatusCode == HttpStatusCode.NotFound ? RequestResult.VideoNotFound : RequestResult.FailedToDownload;
         }
 
         await using var stream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);

@@ -33,11 +33,11 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
         Driver.FindElement(By.XPath("//input[@name='submit']")).Click();
         while (CurrentUrl == loginUrl)
         {
-            await Sleep(1000);
+            await Sleep(1000, cancellationToken);
         }
         
         CurrentUrl = "https://exhentai.org/";
-        await Sleep(2500);
+        await Sleep(2500, cancellationToken);
         CurrentUrl = currentUrl;
 
         return true;

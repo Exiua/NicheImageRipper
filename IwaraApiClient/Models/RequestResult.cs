@@ -10,5 +10,6 @@ public enum RequestResult
     FileUrlIsNull,
     ExpirationIsMissingFromUrl,
     SourceMetadataIsNull,
-    FailedToDownload
+    FailedToDownload,
+    RequestVideoFailed,
 }

@@ -277,7 +277,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                         LogMessageToFile(string.Join("\n", UrlQueue));
                         break;
                     case "r" or "rip":
-                        await Rip();
+                        await Rip(cancellationToken);
                         break;
                     case "regen":
                         Logger.Warning("Regenerating the HTML parser driver is not yet implemented.");

@@ -10,7 +10,6 @@ using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
@@ -46,6 +45,7 @@ public abstract class HtmlParser : IDisposable
     protected Dictionary<string, string> RequestHeaders { get; }
     protected ApiClientManager ApiClientManager { get; }
     protected ILogger Logger { get; init; }
+    protected HttpClient HttpClient { get; set; }
 
     protected FirefoxDriver Driver => WebDriver.Driver;
 
@@ -151,232 +151,19 @@ public abstract class HtmlParser : IDisposable
         #endif
     }
 
+    protected HtmlParser GetParser(string url)
+    {
+        var requestHeaders = new Dictionary<string, string>();
+        var (siteName, _) = UrlUtility.SiteCheck(url, requestHeaders);
+        var parser = GetParser(siteName, WebDriver, ApiClientManager, requestHeaders, FilenameScheme);
+        return parser;
+    }
+
     public static HtmlParser GetParser(string siteName, WebDriver webDriver, ApiClientManager clientManager,
                                        Dictionary<string, string> requestHeaders,
                                        FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         return HtmlParserFactory.Create(siteName, webDriver, clientManager, requestHeaders, filenameScheme);
-    }
-
-    // Working on phasing this out into a factory pattern with auto-registration
-    public static HtmlParser GetParser2(string siteName, WebDriver webDriver, ApiClientManager clientManager,
-                                        Dictionary<string, string> requestHeaders,
-                                        FilenameScheme filenameScheme = FilenameScheme.Original)
-    {
-        return siteName switch
-        {
-            "imhentai" => new ImhentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "kemono" => new KemonoParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "coomer" => new CoomerParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sankakucomplex" => new SankakuComplexParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "omegascans" => new OmegaScansParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "redgifs" => new RedGifsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "rule34" => new Rule34Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "gelbooru" => new GelbooruParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "danbooru" => new DanbooruParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "google" => new GoogleParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "dropbox" => new DropboxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "imgur" => new ImgurParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "newgrounds" => new NewgroundsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "wnacg" => new WnacgParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "arca" => new ArcaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babecentrum" => new BabeCentrumParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babeimpact" => new BabeImpactParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babeuniversum" => new BabeUniversumParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babesandbitches" => new BabesAndBitchesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babesandgirls" => new BabesAndGirlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babesaround" => new BabesAroundParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babesbang" => new BabesBangParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babesinporn" => new BabesInPornParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "babesmachine" => new BabesMachineParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "bestprettygirl" => new BestPrettyGirlParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "bitchesgirls" => new BitchesGirlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "bunkr" => new BunkrParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "buondua" => new BuonduaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "bustybloom" => new BustyBloomParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "camwhores" => new CamwhoresParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cherrynudes" => new CherryNudesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "chickteases" => new ChickTeasesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cool18" => new Cool18Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cutegirlporn" => new CuteGirlPornParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cyberdrop" => new CyberDropParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "decorativemodels" => new DecorativeModelsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            //DeviantArt
-            "dirtyyoungbitches" =>
-                new DirtyYoungBitchesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "e-hentai" or "exhentai" => new EHentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "eahentai" => new EahentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "8boobs" => new EightBoobsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "8muses" => new EightMusesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "elitebabes" => new EliteBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "erosberry" => new ErosBerryParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "erohive" => new EroHiveParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "erome" => new EroMeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "erothots" => new EroThotsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "everia" => new EveriaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "exgirlfriendmarket" => new ExGirlFriendMarketParser(webDriver, clientManager, requestHeaders,
-                filenameScheme),
-            "fapello" => new FapelloParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "faponic" => new FaponicParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "f5girls" => new F5GirlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "femjoyhunter" => new FemJoyHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "flickr" => new FlickrParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "foxhq" => new FoxHqParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "ftvhunter" => new FtvHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "ggoorr" => new GgoorrParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "girlsofdesire" => new GirlsOfDesireParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "girlsreleased" => new GirlsReleasedParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "glam0ur" => new Glam0urParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "grabpussy" => new GrabPussyParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "gyrls" => new GyrlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hegrehunter" => new HegreHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hentai-cosplays" => new HentaiCosplaysParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hentairox" => new HentaiRoxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hustlebootytemptats" => new HustleBootyTempTatsParser(webDriver, clientManager, requestHeaders,
-                filenameScheme),
-            "hotgirl" => new HotGirlParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hotstunners" => new HotStunnersParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hottystop" => new HottyStopParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "100bucksbabes" => new HundredBucksBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "imgbox" => new ImgBoxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "influencersgonewild" => new InfluencersGoneWildParser(webDriver, clientManager, requestHeaders,
-                filenameScheme),
-            "inven" => new InvenParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "jkforum" => new JkForumParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "join2babes" => new Join2BabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "joymiihub" => new JoyMiiHubParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "leakedbb" => new LeakedBbParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "livejasminbabes" => new LiveJasminBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "luscious" => new LusciousParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "mainbabes" => new MainBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "manganato" or "chapmanganato" => new ManganatoParser(webDriver, clientManager, requestHeaders,
-                filenameScheme),
-            "metarthunter" => new MetArtHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "morazzia" => new MorazziaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "myhentaigallery" => new MyHentaiGalleryParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "micmicdoll" => new MicMicDollParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nakedgirls" => new NakedGirlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nhentai" => new NHentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nightdreambabe" => new NightDreamBabeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nijie" => new NijieParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "novoglam" => new NovoGlamParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "novohot" => new NovoHotParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "novoporn" => new NovoPornParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nudebird" => new NudeBirdParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nudity911" => new Nudity911Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pbabes" => new PBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pixeldrain" => new PixelDrainParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pmatehunter" => new PMateHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "porn3dx" => new Porn3dxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pornhub" => new PornhubParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "putmega" => new PutMegaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "rabbitsfun" => new RabbitsFunParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "redpornblog" => new RedPornBlogParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "rossoporn" => new RossoPornParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sensualgirls" => new SensualGirlsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sexhd" => new SexHdParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sexyaporno" => new SexyAPornoParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sexybabesart" => new SexyBabesArtParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sexykittenporn" => new SexyKittenPornParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sexynakeds" => new SexyNakedsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sfmcompile" => new SfmCompileParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "silkengirl" => new SilkenGirlParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "simply-cosplay" => new SimplyCosplayParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sxchinesegirlz01" => new SxChineseGirlz01Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pleasuregirl" => new PleasureGirlParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "theomegaproject" => new TheOmegaProjectParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "thothub" => new ThothubParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "titsintops" => new TitsInTopsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "toonily" => new ToonilyParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "tsumino" => new TsuminoParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "twitter" or "x" => new TwitterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xcancel" => new XCancelParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "wantedbabes" => new WantedBabesParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xarthunter" => new XArtHunterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xmissy" => new XMissyParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "yande" => new YandeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "18kami" => new EighteenKamiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cup2d" => new Cup2DParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "5ge" => new FiveGeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "japaneseasmr" => new JapaneseAsmrParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "spacemiss" => new SpaceMissParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xiuren" => new XiurenParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xchina" => new XChinaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "gofile" => new GoFileParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "jpg5" => new Jpg5Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "simpcity" => new SimpCityParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "rule34video" => new Rule34VideoParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "av19a" => new Av19aParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "eporner" => new EpornerParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cgcosplay" => new CgCosplayParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "4khd" => new FourKHdParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cosplay69" => new Cosplay69Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "nlegs" => new NLegsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "ladylap" => new LadyLapParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xasiat" => new XasiatParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "catbox" => new CatBoxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "jrants" => new JRantsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "sexbjcam" => new SexBjCamParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pornavhd" => new PornAvHdParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "knit" => new KnitParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "69tang" => new Six9TangParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "jieav" => new JieAvParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hentaiclub" => new HentaiClubParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "avav19" => new Avav19Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "booru" => new AllBooruParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "mangadex" => new MangaDexParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "cosblay" => new CosblayParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "kaizty" => new KaiztyParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "quatvn" => new QuatvnParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "mangapark" => new MangaParkParser(webDriver, clientManager, requestHeaders),
-            "noodlemagazine" => new NoodleMagazineParser(webDriver, clientManager, requestHeaders),
-            "spankbang" => new SpankBangParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "apcomics" => new ApComicsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "3hentai" => new ThreeHentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "3600000" => new Three600000Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "asmhentai" => new AsmHentaiParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "ahottie" => new AHottieParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "baobua" => new BaobuaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "foamgirl" => new FoamGirlParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hentaiera" => new HentaiEraParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hentaifox" => new HentaiFoxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hentaihand" => new HentaiHandParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "meijuntu" => new MeijuntuParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pixiv" => new PixivParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "fcww0" => new Fcww0Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xsnvshen" => new XsnvshenParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "06se" => new Zero6SeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "meirentu" => new MeirentuParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "8se" => new EightSeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "51cg1" => new Five1Cg1Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "tubeasiancams" => new TubeAsianCamsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "koreanbj" => new KoreanBjParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "kbjfan" => new KbjFanParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "shameless" => new ShamelessParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pussyspace" => new PussySpaceParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "videomonstr" => new VideoMonstrParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pornoxo" => new PornOxoParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "porndr" => new PornDrParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xhamster" => new XHamsterParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "abxxx" => new AbxxxParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            //"love4porn" => new Love4PornParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "xvideos" => new XVideosParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "asianviralhub" => new AsianViralHubParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hdzog" => new HdzogParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pornzog" => new PornzogParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "x-x-x" => new XxxTubeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "privatehomeclips" => new PrivateHomeClipsParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "archivebate" => new ArchivebateParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "e621" => new E621Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "missav123" => new MissAv123Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "porncomics18" => new PornComics18Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "porncomic" => new PornComicParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hmvmania" => new HmvManiaParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "pmvhaven" => new PmvHavenParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "youtube" => new YoutubeParser(webDriver, clientManager, requestHeaders, filenameScheme),
-            "hanime1" => new Hanime1Parser(webDriver, clientManager, requestHeaders, filenameScheme),
-            _ => throw new RipperException($"Site not supported: {siteName}")
-        };
     }
 
     private void WritePartialSave(RipInfo ripInfo, string url)
@@ -415,7 +202,7 @@ public abstract class HtmlParser : IDisposable
 
     protected virtual Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
-        throw new Exception("Site authentication not implemented");
+        return Task.FromResult(true);
     }
 
     private bool IsLoggedInToSite(string siteName)
@@ -1236,6 +1023,7 @@ public abstract class HtmlParser : IDisposable
 
     protected virtual void DisposeInternal()
     {
+        HttpClient.Dispose();
     }
 }
 

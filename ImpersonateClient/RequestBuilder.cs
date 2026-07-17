@@ -190,7 +190,7 @@ public sealed class RequestBuilder
 
             return new ImpersonateHttpResponseMessage
             {
-                StatusCode = checked((int)statusCode),
+                StatusCode = checked((HttpStatusCode)(int)statusCode),
                 ReasonPhrase = parsedHeaders.ReasonPhrase,
                 Version = parsedHeaders.Version,
                 RequestUri = new Uri(request.Url),

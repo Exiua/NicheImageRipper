@@ -154,10 +154,10 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         var origUrl = CurrentUrl;
         var loginLink = Config.Custom.GoFile.LoginLink;
         CurrentUrl = loginLink;
-        await Sleep(10000);
+        await Sleep(10000, cancellationToken);
         for (var i = 0; i < 4; i++)
         {
-            await Sleep(2500);
+            await Sleep(2500, cancellationToken);
             if (CurrentUrl == "https://gofile.io/myProfile")
             {
                 Logger.Debug("Logged in to GoFile");
@@ -167,7 +167,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
             if (i == 3)
             {
                 Logger.Warning("Failed to login to GoFile: {CurrentUrl}", CurrentUrl);
-                Driver.GetScreenshot().SaveAsFile("test2.png");
+                //Driver.GetScreenshot().SaveAsFile("test2.png");
             }
         }
         

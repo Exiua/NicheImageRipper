@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.WebUtilities;
+using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
@@ -349,7 +350,7 @@ public partial class NicheImageRipper : IDisposable
         };
     }
 
-    public async Task Rip(CancellationToken cancellationToken = default)
+    public async Task<bool> Rip(CancellationToken cancellationToken = default)
     {
         
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
@@ -360,6 +361,12 @@ public partial class NicheImageRipper : IDisposable
         {
             Logger.Debug("Queue size: {QueueCount}", UrlQueue.Count);
             var url = await RipUrl(cancellationToken);
+            if (url is null)
+            {
+                // Indicates out of disk space // TODO: Improve return value to be more meaningful
+                return false;
+            }
+            
             Logger.Debug("Ripped URL: {Url:l}", url);
             if (url != "")
             {
@@ -370,9 +377,11 @@ public partial class NicheImageRipper : IDisposable
             // TODO: Add feature guard to allow users to disable saving unfinished URLs constantly
             SaveUnfinishedUrls(); // Save after each rip to avoid data loss
         }
+
+        return true;
     }
 
-    private async Task<string> RipUrl(CancellationToken cancellationToken = default)
+    private async Task<string?> RipUrl(CancellationToken cancellationToken = default)
     {
         if (UrlQueue.Count == 0)
         {
@@ -402,6 +411,12 @@ public partial class NicheImageRipper : IDisposable
             {
                 Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
                 await Task.Delay(10000, cancellationToken);
+            }
+            catch (NotEnoughDiskSpaceException e)
+            {
+                _lastException = e;
+                Logger.Error("Failed to rip {Url} due to not enough disk space. Terminating...", url);
+                return null;
             }
             catch (Exception e)
             {

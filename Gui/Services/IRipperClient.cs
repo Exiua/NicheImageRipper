@@ -15,7 +15,7 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public int UrlQueueCount { get; }
     public bool Connected { get; }
 
-    public Task Rip(CancellationToken cancellationToken = default);
+    public Task<bool> Rip(CancellationToken cancellationToken = default);
     public Task<bool> Resume(CancellationToken cancellationToken = default);
     public Task<bool> Pause(CancellationToken cancellationToken = default);
     public Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default);
