@@ -8,11 +8,17 @@ using Serilog;
 
 namespace NicheImageRipper.Core.DataStructures;
 
+/// <summary>
+///     Represents the information necessary for ripping images from a website, including the list of image links, the directory name, and the filename scheme.
+/// </summary>
 public class RipInfo
 {
+    /// <summary>
+    ///     The maximum length allowed for a directory name. If the provided directory name exceeds this length, it will be truncated.
+    /// </summary>
     private const int MaxDirectoryNameLength = 200;
-    
-    private readonly ILogger _logger;
+
+    private readonly ILogger _logger = Log.ForContext<RipInfo>();
 
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
 
@@ -29,11 +35,10 @@ public class RipInfo
     } = null!; // Initialized through the property setter
 
     public static RipInfo Empty => new([]);
-
+    
     [UsedImplicitly]
     public RipInfo()
     {
-        _logger = Log.ForContext<RipInfo>();
     }
 
     private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
@@ -42,12 +47,11 @@ public class RipInfo
                     string? referer = "")
     {
         // SaveRawUrls(urls);
-        _logger = Log.ForContext<RipInfo>();
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         try
         {
-            Urls = ConvertUrlsToImageLink(urls, discardBlobs, filenames, referer: referer).Result;
+            Urls = ConvertUrlsToImageLink(urls, discardBlobs, filenames, referer).Result;
         }
         catch (Exception)
         {
@@ -93,7 +97,8 @@ public class RipInfo
     }
 
     public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName,
-                                                   FilenameScheme filenameScheme, List<string> filenames, string? referer = "")
+                                                   FilenameScheme filenameScheme, List<string> filenames,
+                                                   string? referer = "")
     {
         return new RipInfo(urls, dirName, filenameScheme, filenames: filenames, referer: referer);
     }
@@ -131,7 +136,8 @@ public class RipInfo
             {
                 try
                 {
-                    var (imageLink, newLinkCounter) = await GDriveHelper.QueryGDriveLinks(url.Url, linkCounter, FilenameScheme);
+                    var (imageLink, newLinkCounter) =
+                        await GDriveHelper.QueryGDriveLinks(url.Url, linkCounter, FilenameScheme);
                     imageLinks.AddRange(imageLink);
                     linkCounter = newLinkCounter;
                 }
@@ -144,7 +150,7 @@ public class RipInfo
             {
                 var filename = filenames?[filenameCounter] ?? "";
                 filenameCounter++;
-                var imageLink = new ImageLink(url.Url, FilenameScheme, linkCounter, filename: filename, referer: referer);
+                var imageLink = new ImageLink(url.Url, FilenameScheme, linkCounter, filename, referer: referer);
                 imageLinks.Add(imageLink);
                 linkCounter++;
             }
@@ -164,8 +170,8 @@ public class RipInfo
         var newUrls = new List<StringImageLinkWrapper>();
         foreach (var url in urls)
         {
-            if (url.Url is not null && urlSet.Add(url.Url) ||
-                url.ImageLink is not null && urlSet.Add(url.ImageLink.Url))
+            if ((url.Url is not null && urlSet.Add(url.Url)) ||
+                (url.ImageLink is not null && urlSet.Add(url.ImageLink.Url)))
             {
                 newUrls.Add(url);
             }
@@ -180,7 +186,9 @@ public class RipInfo
 
     private string CleanDirectoryName(string directoryName)
     {
-        var name = string.IsNullOrWhiteSpace(directoryName) ? Guid.NewGuid().ToString() : FilesystemUtility.CleanPathStem(directoryName);
+        var name = string.IsNullOrWhiteSpace(directoryName)
+            ? Guid.NewGuid().ToString()
+            : FilesystemUtility.CleanPathStem(directoryName);
         if (name.Length <= MaxDirectoryNameLength)
         {
             return name;
