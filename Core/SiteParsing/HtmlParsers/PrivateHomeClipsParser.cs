@@ -12,22 +12,25 @@ public class PrivateHomeClipsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "privatehomeclips";
 
-    public PrivateHomeClipsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PrivateHomeClipsParser>(filenameScheme))
+    public PrivateHomeClipsParser(WebDriver driver, ApiClientManager clientManager,
+                                  Dictionary<string, string> requestHeaders,
+                                  FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<PrivateHomeClipsParser>(filenameScheme))
     {
     }
 
     /// <summary>
-    ///     Parses the html for privatehomeclips.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for privatehomeclips.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (capturer, b) = await ConfigureNetworkCapture<PrivateHomeClipsVideoCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<PrivateHomeClipsVideoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='video-page__title']").ChildNodes[0].InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var videoUrl = soup.SelectSingleNodeOrThrow("//video").GetSrc();
         if (videoUrl.StartsWith("blob:"))
         {
@@ -44,15 +47,12 @@ public class PrivateHomeClipsParser : HtmlParser, IHtmlParser
                 {
                     filename = url.Split("/")[^2];
                 }
-                
-                var link = new ImageLink(url, FilenameScheme, 0, filename: filename)
-                {
-                    LinkInfo = LinkInfo.M3U8YtDlp,
-                    Referer = CurrentUrl
-                };
-                
+
+                var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                    referer: CurrentUrl);
+
                 images.Add(link);
-            });
+            }, cancellationToken);
         }
         else
         {

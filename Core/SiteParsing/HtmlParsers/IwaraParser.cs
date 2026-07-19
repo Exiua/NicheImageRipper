@@ -1,12 +1,8 @@
-using IwaraApiClient;
-using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
-using Serilog;
 using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
@@ -30,7 +26,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
     {
         var client = ImageRipper.ClientManager.IwaraClient;
         string dirName;
-        var images = new List<StringImageLinkWrapper>();
+        var files = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/video/"))
         {
             throw new NotImplementedException();
@@ -61,18 +57,14 @@ public class IwaraParser : HtmlParser, IHtmlParser
                     // TODO: Query each video and extract urls from the Body prop and see if we can parse that
                     if (video.EmbedUrl is not null)
                     {
-                        images.Add(video.EmbedUrl);
+                        files.Add(video.EmbedUrl);
                     }
                     else
                     {
                         var videoLink = $"https://api.iwara.tv/video/{video.Id}";
-                        var imageLink = new ImageLink(videoLink, FilenameScheme, 0, filename: $"{video.Title}.mp4",
-                            cleanFilename: true)
-                        {
-                            LinkInfo = LinkInfo.Iwara,
-                        };
+                        var fileLink = FileLink.WithFilename(videoLink, $"{video.Title}.mp4", FilenameScheme, linkInfo: LinkInfo.Iwara, cleanFilename: true);
 
-                        images.Add(imageLink);
+                        files.Add(fileLink);
                     }
                 }
 
@@ -114,7 +106,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
                     foreach (var img in imgs)
                     {
                         var imageUrl = $"https://i.iwara.tv/image/original/{img.Id}/{img.Name}";
-                        images.Add(imageUrl);
+                        files.Add(imageUrl);
                     }
                 }
 
@@ -132,6 +124,6 @@ public class IwaraParser : HtmlParser, IHtmlParser
             throw new NotSupportedException("IwaraParser", $"Unsupported URL format: {CurrentUrl}");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(files, dirName, FilenameScheme);
     }
 }

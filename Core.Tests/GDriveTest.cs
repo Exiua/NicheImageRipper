@@ -26,7 +26,7 @@ public class GDriveTest
         );
 
         Assert.NotNull(method);
-        var imageLink = new ImageLink
+        var imageLink = new FileLink
         {
             Referer = "",
             LinkInfo = LinkInfo.GDrive,
@@ -72,7 +72,7 @@ public class GDriveTest
             0
         ];
         
-        var task = (Task<(List<ImageLink>, int)>)method.Invoke(ripInfo, parameters)!;
+        var task = (Task<(List<FileLink>, int)>)method.Invoke(ripInfo, parameters)!;
         var (imageLinks, _) = await task;
         
         var ripType = typeof(ImageRipper);
@@ -120,7 +120,7 @@ public class GDriveTest
             0
         ];
         
-        var task = (Task<(List<ImageLink>, int)>)method.Invoke(ripInfo, parameters)!;
+        var task = (Task<(List<FileLink>, int)>)method.Invoke(ripInfo, parameters)!;
         var (imageLinks, _) = await task;
         _output.WriteLine($"Found {imageLinks.Count} links:");
         _output.WriteLine(imageLinks.Select(l => l.Url).Aggregate((a, b) => a + "\n" + b));

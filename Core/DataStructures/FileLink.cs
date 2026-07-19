@@ -11,26 +11,24 @@ using Serilog;
 
 namespace NicheImageRipper.Core.DataStructures;
 
-public partial class ImageLink
+public partial class FileLink
 {
-    private ILogger Logger { get; } = Log.ForContext<ImageLink>();
+    private ILogger Logger { get; } = Log.ForContext<FileLink>();
 
     public string? Referer { get; set; }
     public LinkInfo LinkInfo { get; set; } = LinkInfo.None;
     public string Url { get; set; } = null!;
     public string Filename { get; set; } = null!;
 
-    [JsonIgnore]
-    public bool IsBlob => Url.StartsWith("blob:");
-    
-    [JsonIgnore]
-    public bool IsInvalid => Url == "";
+    [JsonIgnore] public bool IsBlob => Url.StartsWith("blob:");
+
+    [JsonIgnore] public bool IsInvalid => Url == "";
 
     [JsonIgnore]
     [MemberNotNullWhen(true, nameof(Referer))]
     public bool HasReferer => !string.IsNullOrEmpty(Referer);
 
-    public static ImageLink Invalid => new()
+    public static FileLink Invalid => new()
     {
         Referer = null,
         LinkInfo = LinkInfo.None,
@@ -40,7 +38,7 @@ public partial class ImageLink
 
     // Only used for (de)serialization
     [UsedImplicitly]
-    public ImageLink()
+    public FileLink()
     {
     }
 
@@ -57,8 +55,8 @@ public partial class ImageLink
     ///     Whether to clean the provided filename or not (default: false).
     ///     Does nothing if <paramref name="filename"/> was not provided.
     /// </param>
-    public ImageLink(string url, FilenameScheme filenameScheme, int index, string filename = "",
-                     LinkInfo linkInfo = LinkInfo.None, string? referer = "", bool cleanFilename = false)
+    private FileLink(string url, FilenameScheme filenameScheme, int index, string filename = "",
+                    LinkInfo linkInfo = LinkInfo.None, string? referer = "", bool cleanFilename = false)
     {
         Referer = referer;
         LinkInfo = linkInfo;
@@ -68,6 +66,76 @@ public partial class ImageLink
         // This is to handle certain sites that provide nested folders which we want to preserve (e.g., gdrive)
         // This can also cause issues if the provider did not intend the filename to have folders (e.g., youtube)
         Filename = GenerateFilename(url, filenameScheme, index, filename, cleanFilename);
+    }
+
+    public static FileLink Create(
+        string url,
+        FilenameScheme filenameScheme,
+        int index = 0,
+        LinkInfo linkInfo = LinkInfo.None,
+        string? referer = null)
+    {
+        return CreateCore(
+            url,
+            filenameScheme,
+            index,
+            suppliedFilename: null,
+            resolveFilenameDuringDownload: false,
+            linkInfo,
+            referer,
+            cleanFilename: false);
+    }
+
+    public static FileLink WithFilename(
+        string url,
+        string filename,
+        FilenameScheme filenameScheme,
+        int index = 0,
+        LinkInfo linkInfo = LinkInfo.None,
+        string? referer = null,
+        bool cleanFilename = false)
+    {
+        return CreateCore(
+            url,
+            filenameScheme,
+            index,
+            suppliedFilename: filename,
+            resolveFilenameDuringDownload: false,
+            linkInfo,
+            referer,
+            cleanFilename);
+    }
+
+    public static FileLink WithDownloadResolvedFilename(
+        string url,
+        FilenameScheme filenameScheme,
+        LinkInfo linkInfo = LinkInfo.None,
+        string? referer = null)
+    {
+        return CreateCore(
+            url,
+            FilenameScheme.Original,
+            index: 0,
+            suppliedFilename: null,
+            resolveFilenameDuringDownload: true,
+            linkInfo,
+            referer,
+            cleanFilename: false);
+    }
+
+    private static FileLink CreateCore(
+        string url,
+        FilenameScheme filenameScheme,
+        int index,
+        string? suppliedFilename,
+        bool resolveFilenameDuringDownload,
+        LinkInfo linkInfo,
+        string? referer,
+        bool cleanFilename)
+    {
+        // Useful shape for later refactoring
+        return new FileLink(url, filenameScheme, index, filename: suppliedFilename ?? "", linkInfo: linkInfo,
+            referer: referer ?? "", cleanFilename: cleanFilename);
     }
 
     public void Rename(int index)
@@ -289,6 +357,7 @@ public partial class ImageLink
 
     private string ExtractFilename(string url)
     {
+        var linkInfoSet = LinkInfo != LinkInfo.None;
         string fileName;
         if (url.Contains("https://titsintops.com/") && url[^1] == '/')
         {
@@ -428,7 +497,10 @@ public partial class ImageLink
             fileName = Path.GetFileName(localPath);
             if (url.Contains(".m3u8"))
             {
-                LinkInfo = LinkInfo.M3U8Ffmpeg;
+                if (!linkInfoSet)
+                {
+                    LinkInfo = LinkInfo.M3U8Ffmpeg;
+                }
                 fileName = fileName.Replace(".m3u8", ".mp4");
             }
         }
@@ -438,10 +510,8 @@ public partial class ImageLink
             Logger.Warning("No file name provided: {Url}", url);
             return Guid.NewGuid().ToString(); // Fallback to a random filename if none can be extracted
         }
-        else
-        {
-            return FilesystemUtility.CleanPathStem(fileName);
-        }
+
+        return FilesystemUtility.CleanPathStem(fileName);
     }
 
     public override string ToString()

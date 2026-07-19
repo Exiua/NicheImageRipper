@@ -20,7 +20,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for spankbang.com and spankbang.party and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for spankbang.com and spankbang.party and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -46,7 +46,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
         }
         
         string dirName;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var (urlType, id) = GetUrlType();
         switch (urlType)
         {

@@ -20,7 +20,7 @@ public class AllBooruParser : BooruParser, IHtmlParser
         var tags = ExtractTagsFromUrl(GivenUrl);
         Logger.Debug("Parsing all boorus with tags: {Tags}", tags);
         var boorus = Enum.GetValues<Booru>();
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var booru in boorus)
         {
             //Logger.Debug("Parsing {Booru}", booru);
@@ -31,7 +31,7 @@ public class AllBooruParser : BooruParser, IHtmlParser
             var urls = posts.Urls.Select(u =>
             {
                 u.Referer = referer;
-                return (StringImageLinkWrapper)u;
+                return (StringFileLinkWrapper)u;
             });
             images.AddRange(urls);
         }

@@ -19,7 +19,7 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for rule34.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -54,7 +54,7 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser
             }
         }
         
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         if (hasArt)
         {
             soup = await Soupify($"{baseUriString}/art", lazyLoadArgs: lazyLoadArgs);
@@ -68,7 +68,7 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser
                 if (artImages is not null)
                 {
                     var links = artImages.SelectNodesOrThrow(".//img")
-                                            .Select(img => (StringImageLinkWrapper)img.GetSrc());
+                                            .Select(img => (StringFileLinkWrapper)img.GetSrc());
                     images.AddRange(links);
                 }
                 else

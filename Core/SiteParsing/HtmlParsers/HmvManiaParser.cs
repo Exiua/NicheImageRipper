@@ -25,7 +25,7 @@ public class HmvManiaParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='video-entry-title']").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var videoUrl = soup.SelectSingleNodeOrThrow("//li[i[@class='fas fa-download']]/a").GetHref();
         images.Add(videoUrl);
 

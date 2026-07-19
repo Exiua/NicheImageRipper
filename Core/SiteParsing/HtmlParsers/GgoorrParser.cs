@@ -28,7 +28,7 @@ public class GgoorrParser : HtmlParser, IHtmlParser
                     .SelectSingleNodeOrThrow("//div[@id='article_1']")
                     .SelectSingleNodeOrThrow(".//div")
                     .SelectNodesOrThrow(".//img|.//video");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
             var link = post.GetNullableSrc();

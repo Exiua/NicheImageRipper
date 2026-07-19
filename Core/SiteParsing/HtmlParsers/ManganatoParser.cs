@@ -15,7 +15,7 @@ public class ManganatoParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for manganato.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for manganato.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -27,7 +27,7 @@ public class ManganatoParser : HtmlParser, IHtmlParser
         var nextChapter = soup.SelectSingleNodeOrThrow("//ul[@class='row-content-chapter']")
                             .SelectNodesOrThrow("./li")[^1]
                             .SelectSingleNode(".//a");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var counter = 1;
         while (nextChapter is not null)
         {
@@ -36,7 +36,7 @@ public class ManganatoParser : HtmlParser, IHtmlParser
             soup = await Soupify(nextChapter.GetHref());
             var chapterImages = soup.SelectSingleNodeOrThrow("//div[@class='container-chapter-reader']")
                                     .SelectNodesOrThrow(".//img");
-            images.AddRange(chapterImages.Select(img => (StringImageLinkWrapper)img.GetSrc()));
+            images.AddRange(chapterImages.Select(img => (StringFileLinkWrapper)img.GetSrc()));
             nextChapter = soup.SelectSingleNode("//a[@class='navi-change-chapter-btn-next a-h']");
         }
     

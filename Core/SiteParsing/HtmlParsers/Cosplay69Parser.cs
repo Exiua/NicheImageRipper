@@ -17,7 +17,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for cosplay69.net and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for cosplay69.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -29,7 +29,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
         });
     
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         var video = soup.SelectSingleNode("//iframe");
         if (video is not null)
         {

@@ -13,7 +13,7 @@ public class ThotsBayParser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for thotsbay.tv and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for thotsbay.tv and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public class ThotsBayParser : HtmlParser
         var container = soup.SelectSingleNodeOrThrow("//div[@id='media-items-all']");
         var items = container.SelectNodesOrThrow("./div")
                                 .Select(div => $"https://thotsbay.tv{div.SelectSingleNodeOrThrow(".//a").GetHref()}");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var item in items)
         {
             soup = await Soupify(item, delay: 250);

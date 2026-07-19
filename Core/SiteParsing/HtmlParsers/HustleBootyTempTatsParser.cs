@@ -30,7 +30,7 @@ public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
         var soup = await Soupify(delay: 1000, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='zox-post-title left entry-title']").InnerText;
         var imagesNode = soup.SelectNodes("//div[@class='galleria-thumbnails']//img");
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         if (imagesNode is not null)
         {
             images = imagesNode.Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0])

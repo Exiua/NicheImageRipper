@@ -20,7 +20,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for luscious.net and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for luscious.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -34,7 +34,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
         const string endpoint = "https://members.luscious.net/graphqli/?";
         var albumId = CurrentUrl.Split("/")[4].Split("_")[^1];
         var session = new HttpClient();
-        List<StringImageLinkWrapper> images = [];
+        List<StringFileLinkWrapper> images = [];
         Dictionary<string, object> variables;
         string query;
         if (CurrentUrl.Contains("/videos/"))
@@ -135,7 +135,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
                 var inputDict = (Dictionary<string, object>)variables["input"];
                 inputDict["page"] = (int)inputDict["page"] + 1;
                 var items = jsonData["items"]!.AsArray();
-                images.AddRange(items.Select(item => (StringImageLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
+                images.AddRange(items.Select(item => (StringFileLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
             }
         }
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

@@ -23,7 +23,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for simpcity.su and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for simpcity.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         var resolvableMap = CreateResolveMap();
         
         Cache cache;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         List<IndexedContainer<List<string>>> resolveLists;
         string dirName;
         
@@ -139,7 +139,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<(List<StringImageLinkWrapper>, List<IndexedContainer<List<string>>>, string)> ParsePosts(Dictionary<string, ParameterizedHtmlParser> resolvableMap)
+    private async Task<(List<StringFileLinkWrapper>, List<IndexedContainer<List<string>>>, string)> ParsePosts(Dictionary<string, ParameterizedHtmlParser> resolvableMap)
     {
         if (CurrentUrl.Contains("//www."))
         {
@@ -170,7 +170,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
             ScrollPauseTime = 1000
         };
 
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var resolveLists = new List<IndexedContainer<List<string>>>();
         while (true)
         {
@@ -301,6 +301,6 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         public string Url { get; set; } = null!;
         public string DirName { get; set; } = null!;
         public List<IndexedContainer<List<string>>> ResolveLists { get; set; } = null!;
-        public List<StringImageLinkWrapper> Images { get; set; } = null!;
+        public List<StringFileLinkWrapper> Images { get; set; } = null!;
     }
 }

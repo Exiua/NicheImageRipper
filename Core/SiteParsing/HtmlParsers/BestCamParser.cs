@@ -15,16 +15,16 @@ public class BestCamParser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for bestcam.tv and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for bestcam.tv and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (capturer, b) = await ConfigureNetworkCapture<BestCamVideoCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<BestCamVideoCapturer>(cancellationToken);
         await using var bidi = b;
-        var soup = await SolveParse();
+        var soup = await SolveParse(cancellationToken: cancellationToken);
         string dirName;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/model/"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//div[@class='actor-name']/h1").InnerText;
@@ -38,13 +38,9 @@ public class BestCamParser : HtmlParser
             {
                 var url = links[0];
                 var filename = url.Split("/")[4].Split("?")[0].Remove(".m3u8") + ".mp4";
-                var link = new ImageLink(url, FilenameScheme, 0, filename: filename)
-                {
-                    LinkInfo = LinkInfo.M3U8Ffmpeg,
-                    Referer = CurrentUrl
-                };
+                var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: CurrentUrl);
                 images.Add(link);
-            });
+            }, cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

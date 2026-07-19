@@ -31,7 +31,7 @@ public class FaponicParser : HtmlParser, IHtmlParser
                             .InnerText;
         var posts = soup.SelectSingleNodeOrThrow("//div[@id='content']")
                         .SelectNodesOrThrow(".//div[@class='photo-item col-4-width']");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
             var video = post.SelectSingleNode(".//a[@class='play-video2']");

@@ -23,7 +23,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -38,7 +38,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
         var soup = await SolveParse();
         await Task.Delay(GenerateDelay()); // Delay to avoid overwhelming the server
         var dirName = soup.SelectSingleNodeOrThrow("//a[@class='profile-card-username']").InnerText[1..]; // Skip the '@' at the start
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var page = 1;
         while (true)
         {

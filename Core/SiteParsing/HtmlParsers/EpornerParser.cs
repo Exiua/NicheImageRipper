@@ -36,7 +36,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
     
         string dirName;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         
         if (CurrentUrl.Contains("/profile/"))
         {

@@ -16,7 +16,7 @@ public class BabeCentrumParser : HtmlParser, IHtmlParser
     }
     
     /// <summary>
-    ///     Parses the html for babecentrum.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for babecentrum.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -30,7 +30,7 @@ public class BabeCentrumParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//table")
                          .SelectNodesOrThrow(".//img")
                          .Select(img => Protocol + img.GetAttributeValue("src", "").Remove("tn_"))
-                         .Select(dummy => (StringImageLinkWrapper)dummy)   
+                         .Select(dummy => (StringFileLinkWrapper)dummy)   
                          .ToList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

@@ -29,7 +29,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         string dirName;
-        List<StringImageLinkWrapper> images = [];
+        List<StringFileLinkWrapper> images = [];
         var client = new Client(Config.CSWebDriverUri);
         var response = await client.GetPage(CurrentUrl);
         var soup = await Soupify(response);

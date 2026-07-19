@@ -62,6 +62,7 @@ public abstract class HtmlParser : IDisposable
     protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)
     {
+        HttpClient = new HttpClient();
         WebDriver = driver;
         ApiClientManager = clientManager;
         RequestHeaders = requestHeaders;
@@ -227,7 +228,7 @@ public abstract class HtmlParser : IDisposable
         var images = soup.SelectNodesOrThrow(imageContainerXpath)
                          .SelectMany(im => im.SelectNodesOrThrow(".//img"))
                          .Select(img => Protocol + img.GetSrc().Remove("tn_"))
-                         .Select(dummy => (StringImageLinkWrapper)dummy)
+                         .Select(dummy => (StringFileLinkWrapper)dummy)
                          .ToList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -274,7 +275,7 @@ public abstract class HtmlParser : IDisposable
         var imageList = soup.SelectSingleNodeOrThrow("//ul[@class='list-gallery static css has-data']")
                             .SelectNodesOrThrow(".//a");
         var images = imageList.Select(image => image.GetHref())
-                              .Select(dummy => (StringImageLinkWrapper)dummy)
+                              .Select(dummy => (StringFileLinkWrapper)dummy)
                               .ToList();
         var dirName = imageList[0].SelectSingleNodeOrThrow(".//img")
                                   .GetAttributeValue("alt");
@@ -295,7 +296,7 @@ public abstract class HtmlParser : IDisposable
                          "//ul[contains(@class, 'list-gallery') and contains(@class, 'static') and contains(@class, 'css')]")
                     .SelectNodesOrThrow(".//a")
                     .Select(img => img.GetHref())
-                    .Select(dummy => (StringImageLinkWrapper)dummy)
+                    .Select(dummy => (StringFileLinkWrapper)dummy)
                     .ToList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

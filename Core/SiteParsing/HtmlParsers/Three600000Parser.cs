@@ -16,7 +16,7 @@ public class Three600000Parser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for 3600000.xyz and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for 3600000.xyz and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)

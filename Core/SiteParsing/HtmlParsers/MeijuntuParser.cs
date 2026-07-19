@@ -16,7 +16,7 @@ public class MeijuntuParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for meijuntu.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for meijuntu.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public class MeijuntuParser : HtmlParser, IHtmlParser
                             .InnerText
                             .ParseInt();
         var baseUrl = CurrentUrl.Remove(".html");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for(var i = 0; i < pageCount; i++)
         {
             var img = soup.SelectSingleNodeOrThrow("//div[@class='pictures']/img").GetSrc();

@@ -521,7 +521,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task DownloadSingleFromList(int index, ImageLink link, string fullPath, IndexedHashes filesHashes,
+    private async Task DownloadSingleFromList(int index, FileLink link, string fullPath, IndexedHashes filesHashes,
                                               DownloadStats downloadStats, bool updateProgress = false,
                                               CancellationToken cancellationToken = default)
     {
@@ -603,7 +603,7 @@ public partial class ImageRipper : IDisposable
         await CacheUtility.SaveRipIndex(RipIndexPath, url, index, cancellationToken);
     }
 
-    private async Task PostProcess(ImageLink link, string imagePath, IndexedHashes filesHashes,
+    private async Task PostProcess(FileLink link, string imagePath, IndexedHashes filesHashes,
                                    DownloadStats downloadStats, int index,
                                    CancellationToken cancellationToken = default)
     {
@@ -679,7 +679,7 @@ public partial class ImageRipper : IDisposable
         return (FfmpegStatusCode)exitCode;
     }
 
-    private async Task<bool> RunYtDlp(ImageLink link, string path, string startMessage, string endMessage,
+    private async Task<bool> RunYtDlp(FileLink link, string path, string startMessage, string endMessage,
                                       CancellationToken cancellationToken = default)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
@@ -836,31 +836,31 @@ public partial class ImageRipper : IDisposable
     /// <summary>
     ///     Download image from image url
     /// </summary>
-    /// <param name="imageLink">ImageLink containing data on the file to download</param>
+    /// <param name="fileLink">ImageLink containing data on the file to download</param>
     /// <param name="filename">Name of the file to download</param>
     /// <param name="imagePath">Full path to download the file to</param>
     /// <param name="ext">Extension of the file to download</param>
     /// <param name="skipDownload"></param>
     /// <param name="cancellationToken">Cancellation token to cancel the download operation</param>
-    private async Task<bool> DownloadFromUrl(ImageLink imageLink, string filename, string imagePath, string ext,
+    private async Task<bool> DownloadFromUrl(FileLink fileLink, string filename, string imagePath, string ext,
                                              Box<bool> skipDownload, CancellationToken cancellationToken = default)
     {
         var numFiles = FolderInfo.NumUrls;
         // Completes the specific image URL from the general URL
-        var url = imageLink.Url;
+        var url = fileLink.Url;
         var fullFilename = $"{filename}{ext}";
         var ripUrl = $"{url}{fullFilename}";
         var numProgress = $"({filename}/{numFiles})";
         Logger.Information("{RipUrl:l}    {NumProgress:l}", ripUrl, numProgress);
-        imageLink.Url = ripUrl;
+        fileLink.Url = ripUrl;
         bool success;
         try
         {
-            success = await DownloadFile(imagePath, imageLink, true, skipDownload, cancellationToken);
+            success = await DownloadFile(imagePath, fileLink, true, skipDownload, cancellationToken);
         }
         finally
         {
-            imageLink.Url = url;
+            fileLink.Url = url;
         }
 
         await Sleep(50, cancellationToken);
@@ -870,68 +870,68 @@ public partial class ImageRipper : IDisposable
     /// <summary>
     ///     Download images from url supplied from a list of image urls
     /// </summary>
-    /// <param name="imageLink">ImageLink containing data on the file to download</param>
+    /// <param name="fileLink">ImageLink containing data on the file to download</param>
     /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
     /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
     /// <param name="cancellationToken">Cancellation token to cancel the download operation</param>
-    private async Task<bool> DownloadFromList(ImageLink imageLink, string imagePath, int currentFileNum,
+    private async Task<bool> DownloadFromList(FileLink fileLink, string imagePath, int currentFileNum,
                                               DownloadStats downloadStats, Box<bool> skipDownload,
                                               CancellationToken cancellationToken = default)
     {
         var numFiles = FolderInfo.NumUrls;
-        var ripUrl = imageLink.Url;
-        var displayUrl = imageLink.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
+        var ripUrl = fileLink.Url;
+        var displayUrl = fileLink.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
         Logger.Information("{Url:l}    ({CurrentProgress}/{TotalProgress})", displayUrl, currentFileNum + 1, numFiles);
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
-        if (imageLink.HasReferer)
+        if (fileLink.HasReferer)
         {
-            RequestHeaders[RequestHeaderKeys.Referer] = imageLink.Referer;
+            RequestHeaders[RequestHeaderKeys.Referer] = fileLink.Referer;
         }
-        else if (imageLink.Referer is null)
+        else if (fileLink.Referer is null)
         {
             RequestHeaders[RequestHeaderKeys.Referer] = "";
         }
 
         bool success;
-        switch (imageLink.LinkInfo)
+        switch (fileLink.LinkInfo)
         {
             case LinkInfo.M3U8Ffmpeg:
-                success = await DownloadM3U8ToMp4(imagePath, imageLink, cancellationToken);
+                success = await DownloadM3U8ToMp4(imagePath, fileLink, cancellationToken);
                 if (!success)
                 {
-                    success = await DownloadObfuscatedM3U8(imagePath, imageLink, cancellationToken);
+                    success = await DownloadObfuscatedM3U8(imagePath, fileLink, cancellationToken);
                 }
 
                 break;
             case LinkInfo.M3U8YtDlp:
-                success = await DownloadM3U8YtDlp(imagePath, imageLink, cancellationToken);
+                success = await DownloadM3U8YtDlp(imagePath, fileLink, cancellationToken);
                 if (!success)
                 {
-                    success = await DownloadObfuscatedM3U8(imagePath, imageLink, cancellationToken);
+                    success = await DownloadObfuscatedM3U8(imagePath, fileLink, cancellationToken);
                 }
 
                 break;
             case LinkInfo.ObfuscatedM3U8:
-                success = await DownloadObfuscatedM3U8(imagePath, imageLink, cancellationToken);
+                success = await DownloadObfuscatedM3U8(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.GDrive:
-                success = await DownloadGDriveFile(imagePath, imageLink, cancellationToken);
+                success = await DownloadGDriveFile(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.IframeMedia:
-                success = await DownloadIframeMedia(imagePath, imageLink, cancellationToken);
+                success = await DownloadIframeMedia(imagePath, fileLink, cancellationToken);
                 // TODO: Figure out how to delete temp directories
                 break;
             case LinkInfo.Mega:
-                success = await DownloadMegaFiles(imagePath, imageLink, cancellationToken);
+                success = await DownloadMegaFiles(imagePath, fileLink, cancellationToken);
                 Logger.Debug("Success from Mega: {Success}", success);
                 break;
             case LinkInfo.PixelDrain:
-                success = await DownloadPixelDrainFiles(imagePath, imageLink, cancellationToken);
+                success = await DownloadPixelDrainFiles(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.YoutubeVideo:
-                success = await DownloadYoutubeVideo(imagePath, imageLink, cancellationToken);
+                success = await DownloadYoutubeVideo(imagePath, fileLink, cancellationToken);
                 await Sleep(1250, cancellationToken);
                 break;
             case LinkInfo.Text:
@@ -939,25 +939,25 @@ public partial class ImageRipper : IDisposable
                 success = true;
                 break;
             case LinkInfo.MpegDash:
-                success = await DownloadMpegDashFile(imagePath, imageLink, cancellationToken);
+                success = await DownloadMpegDashFile(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.ResolveImage:
-                success = await ResolveAndDownloadFile(imagePath, imageLink, skipDownload, cancellationToken);
+                success = await ResolveAndDownloadFile(imagePath, fileLink, skipDownload, cancellationToken);
                 break;
             case LinkInfo.SeleniumImage:
-                success = await DownloadSeleniumImage(imagePath, imageLink, cancellationToken);
+                success = await DownloadSeleniumImage(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.Base64:
-                success = await DownloadBase64Image(imagePath, imageLink, cancellationToken);
+                success = await DownloadBase64Image(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.PixivUgoira:
-                success = await DownloadPixivUgoira(imagePath, imageLink, cancellationToken);
+                success = await DownloadPixivUgoira(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.SteamCommunity:
-                success = await DownloadSteamCommunity(imagePath, imageLink, cancellationToken);
+                success = await DownloadSteamCommunity(imagePath, fileLink, cancellationToken);
                 break;
             case LinkInfo.Iwara:
-                var result = await DownloadIwara(imagePath, imageLink, cancellationToken);
+                var result = await DownloadIwara(imagePath, fileLink, cancellationToken);
                 switch (result)
                 {
                     case RequestResult.VideoPrivate:
@@ -982,11 +982,11 @@ public partial class ImageRipper : IDisposable
                 break;
             case LinkInfo.GoFile:
             case LinkInfo.None:
-                success = await DownloadFile(imagePath, imageLink, false, skipDownload, cancellationToken);
+                success = await DownloadFile(imagePath, fileLink, false, skipDownload, cancellationToken);
                 break;
             default:
-                var e = new RipperException("Unknown LinkInfo: " + imageLink.LinkInfo);
-                Logger.Error(e, "Unknown LinkInfo: {LinkInfo}", imageLink.LinkInfo);
+                var e = new RipperException("Unknown LinkInfo: " + fileLink.LinkInfo);
+                Logger.Error(e, "Unknown LinkInfo: {LinkInfo}", fileLink.LinkInfo);
                 throw e;
         }
 
@@ -1008,10 +1008,10 @@ public partial class ImageRipper : IDisposable
         return success;
     }
 
-    private async Task<bool> ResolveAndDownloadFile(string path, ImageLink imageLink, Box<bool> skipDownload,
+    private async Task<bool> ResolveAndDownloadFile(string path, FileLink fileLink, Box<bool> skipDownload,
                                                     CancellationToken cancellationToken = default)
     {
-        var url = imageLink.Url;
+        var url = fileLink.Url;
         for (var i = 0; i < RetryCount; i++)
         {
             var imageUrl = await GetDownloadUrl(url, cancellationToken);
@@ -1022,9 +1022,9 @@ public partial class ImageRipper : IDisposable
             }
 
             Logger.Debug("Resolved URL: {Url}", imageUrl);
-            imageLink.Url = imageUrl;
+            fileLink.Url = imageUrl;
 
-            var success = await DownloadFile(path, imageLink, false, skipDownload, cancellationToken);
+            var success = await DownloadFile(path, fileLink, false, skipDownload, cancellationToken);
             if (success)
             {
                 return true;
@@ -1076,22 +1076,22 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DownloadMpegDashFile(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadMpegDashFile(string filePath, FileLink fileLink,
                                                   CancellationToken cancellationToken = default)
     {
         var parent = Directory.GetParent(filePath)!.FullName;
         var filename = Path.GetFileName(filePath);
-        var cmd = new[] { "-P", $"\"{parent}\"", imageLink.Url, "-o", filename };
+        var cmd = new[] { "-P", $"\"{parent}\"", fileLink.Url, "-o", filename };
         var (exitCode, _, _) = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished", cancellationToken: cancellationToken);
         return exitCode == 0;
     }
 
-    private async Task<bool> DownloadM3U8ToMp4(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadM3U8ToMp4(string filePath, FileLink fileLink,
                                                CancellationToken cancellationToken = default)
     {
-        var url = imageLink.Url;
-        var referer = imageLink.Referer;
+        var url = fileLink.Url;
+        var referer = fileLink.Referer;
         if (!filePath.Contains('.'))
         {
             if (url.Contains(".mp4"))
@@ -1139,17 +1139,17 @@ public partial class ImageRipper : IDisposable
         return result.IsSuccess();
     }
 
-    private Task<bool> DownloadM3U8YtDlp(string filePath, ImageLink imageLink,
+    private Task<bool> DownloadM3U8YtDlp(string filePath, FileLink fileLink,
                                          CancellationToken cancellationToken = default)
     {
-        return RunYtDlp(imageLink, filePath, startMessage: "Starting yt-dlp download",
+        return RunYtDlp(fileLink, filePath, startMessage: "Starting yt-dlp download",
             endMessage: "yt-dlp download finished", cancellationToken: cancellationToken);
     }
 
-    private static async Task<bool> DownloadGDriveFile(string filePath, ImageLink imageLink,
+    private static async Task<bool> DownloadGDriveFile(string filePath, FileLink fileLink,
                                                        CancellationToken cancellationToken = default)
     {
-        var destinationPath = Path.Combine(filePath, imageLink.Filename);
+        var destinationPath = Path.Combine(filePath, fileLink.Filename);
         var parent = Directory.GetParent(destinationPath)!.FullName;
         Directory.CreateDirectory(parent);
         var credentials = await TokenManager.GDriveAuthenticate();
@@ -1158,13 +1158,13 @@ public partial class ImageRipper : IDisposable
             HttpClientInitializer = credentials,
             ApplicationName = "ImageRipper"
         });
-        var request = service.Files.Get(imageLink.Url);
+        var request = service.Files.Get(fileLink.Url);
         await using var stream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
         await request.DownloadAsync(stream, cancellationToken);
         return true;
     }
 
-    private static async Task<bool> DownloadIframeMedia(string filePath, ImageLink imageLink,
+    private static async Task<bool> DownloadIframeMedia(string filePath, FileLink fileLink,
                                                         CancellationToken cancellationToken = default)
     {
         var parentPathInfo = Directory.GetParent(filePath)!;
@@ -1175,8 +1175,8 @@ public partial class ImageRipper : IDisposable
             try
             {
                 var video = new BunnyVideoDrm(
-                    referer: imageLink.Url,
-                    embedUrl: imageLink.Referer!,
+                    referer: fileLink.Url,
+                    embedUrl: fileLink.Referer!,
                     name: Path.GetFileName(filePath).Split('.')[0],
                     path: parentPath
                 );
@@ -1192,7 +1192,7 @@ public partial class ImageRipper : IDisposable
             {
                 if (i == 3)
                 {
-                    LogFailedUrl(imageLink.Url);
+                    LogFailedUrl(fileLink.Url);
                     return false;
                 }
             }
@@ -1201,7 +1201,7 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private async Task<bool> DownloadMegaFiles(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadMegaFiles(string filePath, FileLink fileLink,
                                                CancellationToken cancellationToken = default)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
@@ -1230,14 +1230,14 @@ public partial class ImageRipper : IDisposable
             throw e;
         }
 
-        if (imageLink.Url.Contains("/file/"))
+        if (fileLink.Url.Contains("/file/"))
         {
-            Logger.Debug("Downloading file from Mega: {Url}", imageLink.Url);
+            Logger.Debug("Downloading file from Mega: {Url}", fileLink.Url);
             filePath = Path.GetDirectoryName(filePath)!;
         }
         else
         {
-            Logger.Debug("Downloading folder from Mega: {Url}", imageLink.Url);
+            Logger.Debug("Downloading folder from Mega: {Url}", fileLink.Url);
             Directory.CreateDirectory(filePath);
         }
 
@@ -1249,7 +1249,7 @@ public partial class ImageRipper : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
             try
             {
-                return await MegaApi.DownloadAsync(imageLink.Url, filePath, cts.Token);
+                return await MegaApi.DownloadAsync(fileLink.Url, filePath, cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -1257,16 +1257,16 @@ public partial class ImageRipper : IDisposable
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Failed to download from Mega: {Url}", imageLink.Url);
+                Logger.Error(e, "Failed to download from Mega: {Url}", fileLink.Url);
                 if (e.Message.Contains("No such file or directory"))
                 {
-                    Logger.Error("The specified file or directory does not exist on Mega: {Url}", imageLink.Url);
+                    Logger.Error("The specified file or directory does not exist on Mega: {Url}", fileLink.Url);
                     return false;
                 }
 
                 if (e.Message.Contains("Invalid URL"))
                 {
-                    Logger.Error("The provided URL is invalid: {Url}", imageLink.Url);
+                    Logger.Error("The provided URL is invalid: {Url}", fileLink.Url);
                     return false;
                 }
 
@@ -1275,7 +1275,7 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DownloadPixelDrainFiles(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadPixelDrainFiles(string filePath, FileLink fileLink,
                                                      CancellationToken cancellationToken = default)
     {
         var apiKey = Config.Keys.Pixeldrain;
@@ -1292,7 +1292,7 @@ public partial class ImageRipper : IDisposable
             client.DefaultRequestHeaders.Add(key, value);
         }
 
-        var response = await client.GetAsync($"https://pixeldrain.com/api/file/{imageLink.Url}",
+        var response = await client.GetAsync($"https://pixeldrain.com/api/file/{fileLink.Url}",
             HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -1304,19 +1304,19 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private Task<bool> DownloadYoutubeVideo(string filePath, ImageLink imageLink,
+    private Task<bool> DownloadYoutubeVideo(string filePath, FileLink fileLink,
                                             CancellationToken cancellationToken = default)
     {
-        return RunYtDlp(imageLink, filePath, startMessage: "Starting youtube-dl download",
+        return RunYtDlp(fileLink, filePath, startMessage: "Starting youtube-dl download",
             endMessage: "youtube-dl download finished", cancellationToken: cancellationToken);
     }
 
-    private async Task<bool> DownloadSeleniumImage(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadSeleniumImage(string filePath, FileLink fileLink,
                                                    CancellationToken cancellationToken = default)
     {
         try
         {
-            var imageData = GetImageViaSelenium(imageLink.Url);
+            var imageData = GetImageViaSelenium(fileLink.Url);
             await File.WriteAllBytesAsync(filePath, imageData, cancellationToken);
             return true;
         }
@@ -1327,12 +1327,12 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DownloadBase64Image(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadBase64Image(string filePath, FileLink fileLink,
                                                  CancellationToken cancellationToken = default)
     {
         try
         {
-            var base64Data = imageLink.Url.Split(',')[1];
+            var base64Data = fileLink.Url.Split(',')[1];
             var imageData = Convert.FromBase64String(base64Data);
             await File.WriteAllBytesAsync(filePath, imageData, cancellationToken);
             return true;
@@ -1344,20 +1344,20 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DownloadObfuscatedM3U8(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadObfuscatedM3U8(string filePath, FileLink fileLink,
                                                     CancellationToken cancellationToken = default)
     {
         try
         {
             var parent = Directory.GetParent(filePath)!.FullName;
-            var referer = imageLink.Referer == "" ? null : imageLink.Referer;
+            var referer = fileLink.Referer == "" ? null : fileLink.Referer;
             var ext = Path.GetExtension(filePath);
             if (ext == "")
             {
-                imageLink.Filename += ".mp4";
+                fileLink.Filename += ".mp4";
             }
 
-            await M3U8Downloader.DownloadM3U8(imageLink.Url, parent, imageLink.Filename, referer,
+            await M3U8Downloader.DownloadM3U8(fileLink.Url, parent, fileLink.Filename, referer,
                 cancellationToken: cancellationToken);
             return true;
         }
@@ -1379,10 +1379,10 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DownloadPixivUgoira(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadPixivUgoira(string filePath, FileLink fileLink,
                                                  CancellationToken cancellationToken = default)
     {
-        var illustId = imageLink.Url.Split("/")[4];
+        var illustId = fileLink.Url.Split("/")[4];
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
         Logger.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
         // Should contain PHPSESSID (checked in PixivParser)
@@ -1492,12 +1492,12 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private async Task<bool> DownloadSteamCommunity(string filePath, ImageLink imageLink,
+    private async Task<bool> DownloadSteamCommunity(string filePath, FileLink fileLink,
                                                     CancellationToken cancellationToken = default)
     {
         var destinationFolder = Path.GetDirectoryName(filePath)!;
         Directory.CreateDirectory(destinationFolder);
-        var url = imageLink.Url;
+        var url = fileLink.Url;
         var ids = url.Split('/')[^1].Split('|');
         //var appId = ids[0];
         var fileId = ids[1];
@@ -1536,12 +1536,12 @@ public partial class ImageRipper : IDisposable
         return true;
     }
 
-    private async Task<RequestResult> DownloadIwara(string filePath, ImageLink imageLink,
+    private async Task<RequestResult> DownloadIwara(string filePath, FileLink fileLink,
                                            CancellationToken cancellationToken = default)
     {
         var client = ClientManager.IwaraClient;
-        var url = imageLink.Url;
-        Logger.Debug("Downloading {Url} as {Filename}", url, imageLink.Filename);
+        var url = fileLink.Url;
+        Logger.Debug("Downloading {Url} as {Filename}", url, fileLink.Filename);
         var videoId = url.Split('/')[^1];
         RequestResult success;
         try
@@ -1661,12 +1661,12 @@ public partial class ImageRipper : IDisposable
     ///     Downloads a file from the specified image link.
     /// </summary>
     /// <param name="filePath">The path where the file will be saved.</param>
-    /// <param name="imageLink">The link metadata of the file to download.</param>
+    /// <param name="fileLink">The link metadata of the file to download.</param>
     /// <param name="generatingManually">Indicates whether the download links are being generated manually.</param>
     /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous download operation. The task result contains a boolean indicating whether the download was successful.</returns>
-    private async Task<bool> DownloadFile(string filePath, ImageLink imageLink, bool generatingManually,
+    private async Task<bool> DownloadFile(string filePath, FileLink fileLink, bool generatingManually,
                                           Box<bool> skipDownload, CancellationToken cancellationToken = default)
     {
         if (filePath[^1] == '/')
@@ -1677,7 +1677,7 @@ public partial class ImageRipper : IDisposable
         var success = false;
         for (var attempt = 0; attempt < RetryCount; attempt++)
         {
-            success = await DownloadFileHelper(imageLink, filePath, generatingManually, skipDownload,
+            success = await DownloadFileHelper(fileLink, filePath, generatingManually, skipDownload,
                 cancellationToken);
             if (success)
             {
@@ -1699,7 +1699,7 @@ public partial class ImageRipper : IDisposable
             var filename = Path.GetFileName(filePath);
             var newFilename = filename + extension;
             Logger.Debug("Renamed file {OldFilename} to {NewFilename}", filename, newFilename);
-            imageLink.Filename = newFilename;
+            fileLink.Filename = newFilename;
         }
 
         return true;
@@ -1708,7 +1708,7 @@ public partial class ImageRipper : IDisposable
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="imageLink"></param>
+    /// <param name="fileLink"></param>
     /// <param name="imagePath"></param>
     /// <param name="generatingManually"></param>
     /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
@@ -1717,10 +1717,10 @@ public partial class ImageRipper : IDisposable
     /// <exception cref="EHentaiUrlExpiredException"></exception>
     /// <exception cref="RipperException"></exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    private async Task<bool> DownloadFileHelper(ImageLink imageLink, string imagePath, bool generatingManually,
+    private async Task<bool> DownloadFileHelper(FileLink fileLink, string imagePath, bool generatingManually,
                                                 Box<bool> skipDownload, CancellationToken cancellationToken = default)
     {
-        if (imageLink.IsInvalid)
+        if (fileLink.IsInvalid)
         {
             if (SiteName == "e-hentai")
             {
@@ -1733,9 +1733,9 @@ public partial class ImageRipper : IDisposable
             throw new RipperException("Invalid ImageLink found for non-EHentai site");
         }
 
-        var url = imageLink.Url;
+        var url = fileLink.Url;
         await Task.Delay((int)(SleepTime * MillisecondsInSecond), cancellationToken);
-        var (modifiedHeader, oldCookies) = await ModifyHeaders(url, imageLink, cancellationToken);
+        var (modifiedHeader, oldCookies) = await ModifyHeaders(url, fileLink, cancellationToken);
 
         Logger.Debug("Request Headers: {@RequestHeaders}", RequestHeaders);
         var resumeFrom = 0L;
@@ -1767,7 +1767,7 @@ public partial class ImageRipper : IDisposable
 
             if (!response.IsSuccessStatusCode)
             {
-                return await HandleUnsuccessfulStatusCode(response, url, imageLink, generatingManually, skipDownload,
+                return await HandleUnsuccessfulStatusCode(response, url, fileLink, generatingManually, skipDownload,
                     cancellationToken);
             }
 
@@ -1811,7 +1811,7 @@ public partial class ImageRipper : IDisposable
 
             RestoreHeaders(modifiedHeader, oldCookies);
 
-            if (imageLink.LinkInfo == LinkInfo.GoFile)
+            if (fileLink.LinkInfo == LinkInfo.GoFile)
             {
                 var ext = FileUtility.GetCorrectExtension(imagePath);
                 if (ext != ".html")
@@ -1820,7 +1820,7 @@ public partial class ImageRipper : IDisposable
                 }
 
                 Logger.Warning("GoFile download failed, trying again...");
-                await AssociateGoFileCookies(imageLink.Url, cancellationToken);
+                await AssociateGoFileCookies(fileLink.Url, cancellationToken);
                 return false;
             }
 
@@ -1829,7 +1829,7 @@ public partial class ImageRipper : IDisposable
     }
 
     private async Task<(ModifiedHeader modifiedHeader, string oldCookies)> ModifyHeaders(
-        string url, ImageLink imageLink, CancellationToken cancellationToken = default)
+        string url, FileLink fileLink, CancellationToken cancellationToken = default)
     {
         var modifiedHeader = ModifiedHeader.None;
         var oldCookies = "";
@@ -1839,7 +1839,7 @@ public partial class ImageRipper : IDisposable
             var token = await TokenManager.GetToken(TokenKey.Redgifs, cancellationToken);
             RequestHeaders[RequestHeaderKeys.Authorization] = $"Bearer {token.Value}";
         }
-        else if (imageLink.LinkInfo == LinkInfo.GoFile)
+        else if (fileLink.LinkInfo == LinkInfo.GoFile)
         {
             modifiedHeader = ModifiedHeader.Cookie;
             var cookieValue = Config.Custom.GoFile.AccountToken;
@@ -1847,7 +1847,7 @@ public partial class ImageRipper : IDisposable
             oldCookies = RequestHeaders[RequestHeaderKeys.Cookie];
             RequestHeaders[RequestHeaderKeys.Cookie] = cookie;
         }
-        else if (imageLink.Url.Contains("donmai.us"))
+        else if (fileLink.Url.Contains("donmai.us"))
         {
             modifiedHeader = ModifiedHeader.UserAgent;
             RequestHeaders[RequestHeaderKeys.UserAgent] = "NicheImageRipper";
@@ -1884,7 +1884,7 @@ public partial class ImageRipper : IDisposable
     /// </summary>
     /// <param name="response"></param>
     /// <param name="url"></param>
-    /// <param name="imageLink"></param>
+    /// <param name="fileLink"></param>
     /// <param name="generatingManually"></param>
     /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
     /// <param name="cancellationToken"></param>
@@ -1892,7 +1892,7 @@ public partial class ImageRipper : IDisposable
     /// <exception cref="WrongExtensionException"></exception>
     /// <exception cref="BadSubdomainException"></exception>
     /// <exception cref="EHentaiUrlExpiredException"></exception>
-    private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, ImageLink imageLink,
+    private async Task<bool> HandleUnsuccessfulStatusCode(HttpResponseMessage response, string url, FileLink fileLink,
                                                           bool generatingManually, Box<bool> skipDownload,
                                                           CancellationToken cancellationToken = default)
     {
@@ -1916,17 +1916,17 @@ public partial class ImageRipper : IDisposable
 
                 // TODO: Improve this
                 // Api seems to always return .jpg even if the file is a .png or .gif
-                var parts = imageLink.Url.Split(".");
+                var parts = fileLink.Url.Split(".");
                 var ext = parts[^1];
                 if (PixivExtMap.TryGetValue(ext, out var mappedExt))
                 {
                     parts[^1] = mappedExt;
-                    imageLink.Url = string.Join(".", parts);
+                    fileLink.Url = string.Join(".", parts);
                     Logger.Information("Trying again with .{MappedExt} extension...", mappedExt);
                 }
                 else
                 {
-                    Logger.Warning("Unable to download Pixiv image: {URL}", imageLink.Url);
+                    Logger.Warning("Unable to download Pixiv image: {URL}", fileLink.Url);
                     skipDownload.Value = true;
                     return true; // Prevent further retries
                     // Some images may not exist, so we just log and move on

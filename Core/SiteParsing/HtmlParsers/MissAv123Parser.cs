@@ -20,7 +20,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for missav123.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for missav123.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -31,12 +31,12 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
             throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);
         }
         
-        var soup = await SolveParse();
+        var soup = await SolveParse(cancellationToken: cancellationToken);
         var dirNameRaw = soup.SelectSingleNodeOrThrow("//div[@class='mt-4']/h1").InnerText;
         var dirName = dirNameRaw.Contains(',') ? dirNameRaw.Split(',')[0] : dirNameRaw;
         
         var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
-        var urls = await client.GetNetworkUrls(CurrentUrl);
+        var urls = await client.GetNetworkUrls(CurrentUrl, cancellationToken: cancellationToken);
         if (urls is ErrorResponse errorResponse)
         {
             Logger.Error("Failed to get network URLs: {Error}", errorResponse.Error);
@@ -54,13 +54,8 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
         var parts = playlist.Split("/");
         var id = parts[3];
         var filename = id + ".mp4";
-        var image = new ImageLink(playlist, FilenameScheme, 0)
-        {
-            LinkInfo = LinkInfo.M3U8YtDlp,
-            Filename = filename,
-            Referer = CurrentUrl
-        };
+        var fileLink = FileLink.WithFilename(playlist, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp, referer: CurrentUrl);
 
-        return RipInfo.FromUrlList([image], dirName, FilenameScheme);
+        return RipInfo.FromUrlList([fileLink], dirName, FilenameScheme);
     }
 }

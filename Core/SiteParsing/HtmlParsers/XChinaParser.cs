@@ -18,7 +18,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for en.xchina.co and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for en.xchina.co and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -34,7 +34,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
         var id = series is not null ? series.ParentNode.InnerText : CurrentUrl.Split("id-")[^1].Split(".")[0];
         var title = tabContents.SelectNodesOrThrow(".//div")[0].InnerText;
         var dirName = $"[{publisher}] {id} - {title}";
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/video/"))
         {
             var url = GetVideoUrl(soup);
@@ -82,7 +82,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
                                     .SelectNodesOrThrow("./a")
                                     .SelectMany(a => a.SelectNodesOrThrow(".//img"))
                                     .Select(img => img.GetSrc().Split("_")[0] + ".jpg");
-                images.AddRange(photos.Select(photo => (StringImageLinkWrapper)photo));
+                images.AddRange(photos.Select(photo => (StringFileLinkWrapper)photo));
     
                 var nextButton = soup.SelectSingleNode("//a[@class='next']");
                 if (nextButton is null)

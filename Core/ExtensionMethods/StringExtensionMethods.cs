@@ -37,9 +37,9 @@ public static class StringExtensionMethods
             return string.Join(s, values);
         }
 
-        public List<StringImageLinkWrapper> IntoStringImageLinkWrapperList()
+        public List<StringFileLinkWrapper> IntoStringImageLinkWrapperList()
         {
-            return [new StringImageLinkWrapper(s)];
+            return [new StringFileLinkWrapper(s)];
         }
         
         public int ParseInt()

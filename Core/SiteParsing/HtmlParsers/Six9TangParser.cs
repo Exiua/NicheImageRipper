@@ -15,7 +15,7 @@ public class Six9TangParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for 69tang.org and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for 69tang.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)

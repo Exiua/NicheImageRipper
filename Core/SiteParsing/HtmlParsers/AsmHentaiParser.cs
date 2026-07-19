@@ -16,7 +16,7 @@ public class AsmHentaiParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for asmhentai.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for asmhentai.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -25,7 +25,7 @@ public class AsmHentaiParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
         var pages = soup.SelectSingleNodeOrThrow("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ParseInt();
         var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1].Join("/");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for(var i = 0; i < pages; i++)
         {
             var pageUrl = $"{baseUrl}/{i + 1}.jpg";

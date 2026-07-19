@@ -19,7 +19,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for porncomics18.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for porncomics18.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -45,7 +45,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
             ScrollBy = true,
             Increment = 1250
         };
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var chapter in chapters)
         {
             Logger.Information("Parsing chapter: {ChapterUrl}", chapter);

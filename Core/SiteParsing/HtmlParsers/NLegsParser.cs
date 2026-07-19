@@ -17,7 +17,7 @@ public class NLegsParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for nlegs.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for nlegs.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -31,7 +31,7 @@ public class NLegsParser : HtmlParser, IHtmlParser
                             .SelectNodesOrThrow("./li")
                             .Count;
         var baseUrl = CurrentUrl.Split(".")[..^1].Join(".");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < numPages; i++)
         {
             Logger.Information("Parsing page {i} of {numPages}", i + 1, numPages);

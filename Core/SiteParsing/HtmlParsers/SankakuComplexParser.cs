@@ -15,7 +15,7 @@ public class SankakuComplexParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for sankakucomplex.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -24,7 +24,7 @@ public class SankakuComplexParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//header[@class='entry-header']/h1[@class='entry-title']/a").InnerText;
         var imagesBase = soup.SelectNodesOrThrow("//a[@class='swipebox']").GetHrefs()[1..];
         var images = imagesBase.Select(image => !image.Contains("http") ? $"https:{image}" : image)
-                                .Select(dummy => (StringImageLinkWrapper)dummy).ToList();
+                                .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

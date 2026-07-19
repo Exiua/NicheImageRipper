@@ -14,7 +14,7 @@ public class Rule34Parser : BooruParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for rule34.xxx and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for rule34.xxx and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
     protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)

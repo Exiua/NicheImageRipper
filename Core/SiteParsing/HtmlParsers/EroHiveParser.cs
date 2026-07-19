@@ -54,7 +54,7 @@ public class EroHiveParser : HtmlParser, IHtmlParser
             posts.AddRange(links);
         }
         
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var total = posts.Count;
         foreach (var (i, post) in posts.Enumerate())
         {

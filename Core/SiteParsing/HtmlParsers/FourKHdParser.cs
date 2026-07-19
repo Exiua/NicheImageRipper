@@ -35,7 +35,7 @@ public partial class FourKHdParser : HtmlParser, IHtmlParser
                             .Count ?? 1;
     
         var baseUrl = CurrentUrl;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for (var page = 1; page <= numPages; page++)
         {
             Logger.Information("Parsing page {page} of {numPages}", page, numPages);

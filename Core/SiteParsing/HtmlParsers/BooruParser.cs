@@ -101,7 +101,7 @@ public abstract partial class BooruParser : HtmlParser
         Logger.Debug("Got Json Array");
         var data = json.AsArray();
         //Logger.Debug("Data: {@Data}", data);
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var pid = startingPageIndex + 1;
         while (true)
         {

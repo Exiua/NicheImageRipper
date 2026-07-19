@@ -29,7 +29,7 @@ public class RemoteRipperClient : IRipperClient
         _backendConnector.LogReceived += GuiLogBridge.Publish; 
     }
     
-    public Task Rip(CancellationToken cancellationToken = default)
+    public Task<bool> Rip(CancellationToken cancellationToken = default)
     {
         return _backendConnector.RipAsync(cancellationToken);
     }

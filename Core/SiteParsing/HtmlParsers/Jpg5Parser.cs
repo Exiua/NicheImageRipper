@@ -51,7 +51,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
             dirName = soup.SelectSingleNodeOrThrow("//div[@class='header']").InnerText;
         }
     
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         if (!single)
         {
             var page = 1;

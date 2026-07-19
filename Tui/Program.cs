@@ -1,14 +1,10 @@
 ﻿using System.Text;
-using NicheImageRipper.Core;
-using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Core.ArgParse;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Tui;
 using Serilog;
 using Serilog.Events;

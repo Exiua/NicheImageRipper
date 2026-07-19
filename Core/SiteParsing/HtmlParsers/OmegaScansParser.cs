@@ -22,7 +22,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for omegascans.org and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for omegascans.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -100,7 +100,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
         }
     
         chapters.Reverse();
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var (i, chapter) in chapters.Enumerate())
         {
             Logger.Information("Parsing chapter {i} of {chapterCount}", i + 1, chapterCount);

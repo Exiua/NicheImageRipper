@@ -23,7 +23,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for bunkr.si and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for bunkr.si and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
@@ -57,8 +57,8 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
             dirName = "internal-use";
         }
 
-        List<StringImageLinkWrapper> images = [];
-        StringImageLinkWrapper? link = null;
+        List<StringFileLinkWrapper> images = [];
+        StringFileLinkWrapper? link = null;
         if (CurrentUrl.Contains("/a/"))
         {
             var grid = soup.SelectSingleNode("//div[@class='grid-images']");
@@ -159,7 +159,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
     }
 
 
-    private async Task<ImageLink> GetVideoLink(HtmlNode soup, CancellationToken cancellationToken = default)
+    private async Task<FileLink> GetVideoLink(HtmlNode soup, CancellationToken cancellationToken = default)
     {
         var videoDownloadNode = soup.SelectSingleNode("//a[@id='czmDownloadz']");
         string videoDownload;
@@ -182,7 +182,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
             "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']");
         var downloadUrl = downloadButton.GetHref();
         var filename = video is not null ? video.GetSrc().Split("/")[^1] : downloadUrl.Split("/")[^1];
-        var videoLink = new ImageLink(downloadUrl, FilenameScheme, 0, filename: filename);
+        var videoLink = FileLink.WithFilename(downloadUrl, filename, FilenameScheme);
 
         return videoLink;
     }

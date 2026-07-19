@@ -16,7 +16,7 @@ public class WnacgParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for wnacg.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for wnacg.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -60,7 +60,7 @@ public class WnacgParser : HtmlParser, IHtmlParser
         }
         
         Logger.Debug("Found {NumImages} images", imageLinks.Count);
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var image in imageLinks)
         {
             await JitterSleep(max: 350);

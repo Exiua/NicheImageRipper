@@ -24,7 +24,7 @@ public class F5GirlsParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectNodesOrThrow("//div[@class='container']")[2]
                             .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var currUrl = CurrentUrl.Replace("?page=1", "");
         var pages = soup.SelectSingleNodeOrThrow("//ul[@class='pagination']")
                         .SelectNodesOrThrow(".//li")
@@ -33,7 +33,7 @@ public class F5GirlsParser : HtmlParser, IHtmlParser
         {
             var imageList = soup.SelectNodesOrThrow("//img[@class='album-image lazy']")
                                 .Select(img => img.GetSrc())
-                                .Select(dummy => (StringImageLinkWrapper)dummy)
+                                .Select(dummy => (StringFileLinkWrapper)dummy)
                                 .ToList();
             images.AddRange(imageList);
             if (i >= pages - 1)

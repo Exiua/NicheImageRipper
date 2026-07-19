@@ -15,7 +15,7 @@ public class Cup2DParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for cup2d.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for cup2d.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -26,18 +26,18 @@ public class Cup2DParser : HtmlParser, IHtmlParser
             Increment = 1250
         });
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var node = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridshow-clearfix']/div")
                        .SelectNodesOrThrow("./*[self::a or self::iframe]");
         foreach (var n in node)
         {
             if(n.Name == "a")
             {
-                images.Add((StringImageLinkWrapper)n.GetHref());
+                images.Add((StringFileLinkWrapper)n.GetHref());
             }
             else
             {
-                images.Add((StringImageLinkWrapper)n.GetSrc().Replace("/embed/", "/file/"));
+                images.Add((StringFileLinkWrapper)n.GetSrc().Replace("/embed/", "/file/"));
             }
         }
     

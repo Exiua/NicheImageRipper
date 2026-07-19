@@ -329,7 +329,7 @@ public class PartialSaveManager
                 return null;
             }
 
-            var imageLinks = _connection.Query<ImageLink>(
+            var imageLinks = _connection.Query<FileLink>(
                                              getUrlsQuery,
                                              new
                                              {

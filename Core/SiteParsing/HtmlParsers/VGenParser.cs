@@ -13,13 +13,13 @@ public class VGenParser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var dirName = Driver.FindElement(By.XPath("//h1[@class='profileDisplayName']/span")).Text;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var container = Driver.FindElement(By.XPath("//div[@class='ReactVirtualized__Masonry__innerScrollContainer']"));
         var children = container.FindElements(By.XPath("./div"));
         foreach (var child in children)

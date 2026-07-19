@@ -22,7 +22,7 @@ public class EroThotsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         string dirName;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/gif/"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='mb-0 title']").InnerText;
@@ -43,7 +43,7 @@ public class EroThotsParser : HtmlParser, IHtmlParser
             images = soup.SelectSingleNodeOrThrow("//div[@class='album-gallery']")
                             .SelectNodesOrThrow("./a")
                             .Select(link => link.GetAttributeValue("data-src"))
-                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .Select(dummy => (StringFileLinkWrapper)dummy)
                             .ToList();
         }
         

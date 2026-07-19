@@ -15,7 +15,7 @@ public class ShamelessParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for shameless.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for shameless.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public class ShamelessParser : HtmlParser, IHtmlParser
                          .Split("};")[0] + "}";
         var rawJson = ExtractJsonObject(script);
         var url = rawJson.Split("video_url:")[1].Split(",")[0].Trim().Trim('\'', '"');
-        var images = new List<StringImageLinkWrapper> { url };
+        var images = new List<StringFileLinkWrapper> { url };
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

@@ -18,7 +18,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -27,7 +27,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for dropbox.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <param name="dropboxUrl"></param>
     /// <returns></returns>

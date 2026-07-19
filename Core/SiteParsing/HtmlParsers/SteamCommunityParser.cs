@@ -21,7 +21,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for steamcommunity.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for steamcommunity.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -34,19 +34,19 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
         }
 
         var client = ImageRipper.ClientManager.SteamApiClient;
-        await client.LoginAsync(username, password);
+        await client.LoginAsync(username, password, cancellationToken);
         ulong steamId;
         string dirName;
         if (CurrentUrl.Contains("/profiles/"))
         {
             var idString = CurrentUrl.Split("/")[4];
             steamId = ulong.Parse(idString);
-            dirName = await client.GetPersonaNameAsync(steamId);
+            dirName = await client.GetPersonaNameAsync(steamId, cancellationToken);
         }
         else if (CurrentUrl.Contains("/id/"))
         {
             var vanityName = CurrentUrl.Split("/")[4];
-            steamId = await client.ResolveVanityUrlAsync(vanityName);
+            steamId = await client.ResolveVanityUrlAsync(vanityName, cancellationToken);
             dirName = vanityName;
         }
         else
@@ -63,12 +63,13 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
         }
 
         var appId = uint.Parse(appIdString!);
-        var files = await client.GetUserWorkshopItemsAsync(steamId, appId);
+        var files = await client.GetUserWorkshopItemsAsync(steamId, appId, cancellationToken);
         var images = files.Select(file => file.publishedfileid)
                           .Select(fileId => FormatSteamWorkshopDownloadUrl(appId.ToString(), fileId.ToString()))
-                          .Select(url => new ImageLink(url, FilenameScheme, 0)
-                               { Filename = "discard", LinkInfo = LinkInfo.SteamCommunity, })
-                          .Select(imageLink => (StringImageLinkWrapper)imageLink).ToList();
+                          .Select(url =>
+                               FileLink.WithDownloadResolvedFilename(url, FilenameScheme,
+                                   linkInfo: LinkInfo.SteamCommunity))
+                          .Select(imageLink => (StringFileLinkWrapper)imageLink).ToList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

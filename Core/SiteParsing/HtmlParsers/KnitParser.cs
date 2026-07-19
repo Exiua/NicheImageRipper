@@ -18,7 +18,7 @@ public class KnitParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for xx.knit.bid and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for xx.knit.bid and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -66,7 +66,7 @@ public class KnitParser : HtmlParser, IHtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='focusbox-title']").InnerText;
         var baseUrl = CurrentUrl.Split("/").Take(6).Join("/");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var page = 1;
         while(true)
         {

@@ -21,7 +21,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -65,8 +65,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser
                                  var title = line[..split];
                                  var id = line[(split + 1)..];
                                  var videoUrl = $"https://www.youtube.com/watch?v={id}";
-                                 var imageLink = new ImageLink(videoUrl, FilenameScheme, 0, filename: title + ".webm", cleanFilename: true);
-                                 return imageLink;
+                                 var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
+                                 return fileLink;
                              })
                             .ToStringImageLinkWrapperList();
 

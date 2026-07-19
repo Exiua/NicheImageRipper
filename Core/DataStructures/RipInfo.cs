@@ -22,7 +22,7 @@ public class RipInfo
 
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
 
-    public List<ImageLink> Urls { get; set; } = null!;
+    public List<FileLink> Urls { get; set; } = null!;
 
     public bool MustGenerateManually { get; set; }
 
@@ -41,7 +41,7 @@ public class RipInfo
     {
     }
 
-    private RipInfo(List<StringImageLinkWrapper> urls, string directoryName = "",
+    private RipInfo(List<StringFileLinkWrapper> urls, string directoryName = "",
                     FilenameScheme filenameScheme = FilenameScheme.Original,
                     bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
                     string? referer = "")
@@ -51,11 +51,11 @@ public class RipInfo
         DirectoryName = directoryName;
         try
         {
-            Urls = ConvertUrlsToImageLink(urls, discardBlobs, filenames, referer).Result;
+            Urls = ConvertUrlsToFileLink(urls, discardBlobs, filenames, referer).Result;
         }
         catch (Exception)
         {
-            _logger.Debug("Failed to convert urls to image links: {@urls}", urls);
+            _logger.Debug("Failed to convert urls to file links: {@urls}", urls);
             throw;
         }
 
@@ -63,7 +63,7 @@ public class RipInfo
         NumUrls = generate ? numUrls : Urls.Count;
     }
 
-    private RipInfo(List<ImageLink> urls, string directoryName, FilenameScheme filenameScheme)
+    private RipInfo(List<FileLink> urls, string directoryName, FilenameScheme filenameScheme)
     {
         _logger = Log.ForContext<RipInfo>();
         FilenameScheme = filenameScheme;
@@ -74,18 +74,18 @@ public class RipInfo
     }
 
     // Mainly used for e-hentai to allow partial parsing, where some links are invalid and need to be "re-generated"
-    internal static RipInfo GenerateWithInvalid(List<ImageLink> urls, string directoryName,
+    internal static RipInfo GenerateWithInvalid(List<FileLink> urls, string directoryName,
                                                 FilenameScheme filenameScheme)
     {
         return new RipInfo(urls, directoryName, filenameScheme);
     }
 
-    public static RipInfo FromGenerateInfo(StringImageLinkWrapper baseUrl, string dirName, int numUrls)
+    public static RipInfo FromGenerateInfo(StringFileLinkWrapper baseUrl, string dirName, int numUrls)
     {
         return new RipInfo([baseUrl], dirName, generate: true, numUrls: numUrls);
     }
 
-    public static RipInfo FromUrlList(List<StringImageLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
+    public static RipInfo FromUrlList(List<StringFileLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
                                       bool nameReuse = false, string? referer = "")
     {
         // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
@@ -96,7 +96,7 @@ public class RipInfo
             : new RipInfo(urls, dirName, filenameScheme, referer: referer);
     }
 
-    public static RipInfo FromUrlListWithFilenames(List<StringImageLinkWrapper> urls, string dirName,
+    public static RipInfo FromUrlListWithFilenames(List<StringFileLinkWrapper> urls, string dirName,
                                                    FilenameScheme filenameScheme, List<string> filenames,
                                                    string? referer = "")
     {
@@ -109,26 +109,26 @@ public class RipInfo
         return this;
     }
 
-    private async Task<List<ImageLink>> ConvertUrlsToImageLink(List<StringImageLinkWrapper> urls, bool discardBlob,
+    private async Task<List<FileLink>> ConvertUrlsToFileLink(List<StringFileLinkWrapper> urls, bool discardBlob,
                                                                List<string>? filenames = null, string? referer = "")
     {
-        var imageLinks = new List<ImageLink>();
-        var linkCounter = 0; // Current index of image_links (used for naming image_links when generating numeric names)
+        var fileLinks = new List<FileLink>();
+        var linkCounter = 0; // Current index of fileLinks (used for naming fileLinks when generating numeric names)
         var filenameCounter = 0; // Current index of filenames
         urls = RemoveDuplicates(urls);
         foreach (var url in urls)
         {
-            // IsImageLink is the same as url.ImageLink is not null
-            if (url.IsImageLink)
+            // IsFileLink is the same as url.FileLink is not null
+            if (url.IsFileLink)
             {
-                var imageLink = url.ImageLink!;
+                var fileLink = url.FileLink;
                 if (FilenameScheme == FilenameScheme.Chronological)
                 {
-                    imageLink.Rename(linkCounter);
+                    fileLink.Rename(linkCounter);
                 }
 
                 linkCounter++;
-                imageLinks.Add(imageLink);
+                fileLinks.Add(fileLink);
                 continue;
             }
 
@@ -136,9 +136,9 @@ public class RipInfo
             {
                 try
                 {
-                    var (imageLink, newLinkCounter) =
+                    var (fileLink, newLinkCounter) =
                         await GDriveHelper.QueryGDriveLinks(url.Url, linkCounter, FilenameScheme);
-                    imageLinks.AddRange(imageLink);
+                    fileLinks.AddRange(fileLink);
                     linkCounter = newLinkCounter;
                 }
                 catch (GoogleApiException) // googleapiclient.errors.HttpError
@@ -150,28 +150,28 @@ public class RipInfo
             {
                 var filename = filenames?[filenameCounter] ?? "";
                 filenameCounter++;
-                var imageLink = new ImageLink(url.Url, FilenameScheme, linkCounter, filename, referer: referer);
-                imageLinks.Add(imageLink);
+                var fileLink = FileLink.WithFilename(url.Url, filename, FilenameScheme, index: linkCounter, referer: referer);
+                fileLinks.Add(fileLink);
                 linkCounter++;
             }
         }
 
         if (discardBlob)
         {
-            imageLinks = imageLinks.Where(imageLink => !imageLink.IsBlob).ToList();
+            fileLinks = fileLinks.Where(fl => !fl.IsBlob).ToList();
         }
 
-        return imageLinks;
+        return fileLinks;
     }
 
-    private List<StringImageLinkWrapper> RemoveDuplicates(List<StringImageLinkWrapper> urls)
+    private List<StringFileLinkWrapper> RemoveDuplicates(List<StringFileLinkWrapper> urls)
     {
         var urlSet = new HashSet<string>();
-        var newUrls = new List<StringImageLinkWrapper>();
+        var newUrls = new List<StringFileLinkWrapper>();
         foreach (var url in urls)
         {
             if ((url.Url is not null && urlSet.Add(url.Url)) ||
-                (url.ImageLink is not null && urlSet.Add(url.ImageLink.Url)))
+                (url.FileLink is not null && urlSet.Add(url.FileLink.Url)))
             {
                 newUrls.Add(url);
             }

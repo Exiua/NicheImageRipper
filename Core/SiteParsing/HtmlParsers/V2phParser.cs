@@ -15,7 +15,7 @@ public class V2phParser : HtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for v2ph.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for v2ph.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -45,7 +45,7 @@ public class V2phParser : HtmlParser
                                      .SelectNodesOrThrow(".//dd")[^1]
                                      .InnerText) / 10 + 1;
         var baseLink = CurrentUrl.Split("?")[0];
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var parseComplete = false;
         for (var i = 0; i < numPages; i++)
         {
@@ -63,7 +63,7 @@ public class V2phParser : HtmlParser
                 Console.ReadLine();
             }
     
-            List<StringImageLinkWrapper> imageList;
+            List<StringFileLinkWrapper> imageList;
             while (true)
             {
                 imageList = soup.SelectSingleNodeOrThrow("//div[@class='photos-list text-center']")

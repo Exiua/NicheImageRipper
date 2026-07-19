@@ -18,7 +18,7 @@ public class PixivParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for pixiv.net and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for pixiv.net and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -40,11 +40,11 @@ public class PixivParser : HtmlParser, IHtmlParser
 
         var refreshToken = Config.Keys.Pixiv;
         var client = ApiClientManager.PixivClient;
-        _ = await client.Auth(refreshToken);
+        _ = await client.Auth(refreshToken, cancellationToken: cancellationToken);
         var artistId = CurrentUrl.Split("/")[5];
-        var userIllusts = await client.UserIllusts(artistId);
+        var userIllusts = await client.UserIllusts(artistId, cancellationToken: cancellationToken);
         var dirName = $"[Pixiv] {userIllusts.User.Name} ({artistId})";
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var page = 0;
         while(true)
         {
@@ -77,8 +77,7 @@ public class PixivParser : HtmlParser, IHtmlParser
                         var illustId = illust.Id;
                         var filename = $"{illustId}.webp";
                         var url = $"https://www.pixiv.net/artworks/{illustId}";
-                        var img = new ImageLink(url, FilenameScheme, 0, linkInfo: LinkInfo.PixivUgoira,
-                            filename: filename);
+                        var img = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.PixivUgoira);
                         images.Add(img);
 
                         break;
@@ -92,7 +91,7 @@ public class PixivParser : HtmlParser, IHtmlParser
                 if (!string.IsNullOrWhiteSpace(description))
                 {
                     var descHtml = $"<div>{description}</div>";
-                    var soup = await Soupify(descHtml, urlString: false);
+                    var soup = await Soupify(descHtml, urlString: false, cancellationToken: cancellationToken);
                     var links = soup.SelectNodesSafe("./a")
                                     .Select(a => a.GetHref())
                                     .Select(href => href.Remove("/jump.php?"))
@@ -108,8 +107,8 @@ public class PixivParser : HtmlParser, IHtmlParser
                 break;
             }
             
-            userIllusts = await client.UserIllusts(artistId, offset: page * illustsPerPage);
-            await Sleep(delay);
+            userIllusts = await client.UserIllusts(artistId, offset: page * illustsPerPage, cancellationToken: cancellationToken);
+            await Sleep(delay, cancellationToken);
         }
                 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

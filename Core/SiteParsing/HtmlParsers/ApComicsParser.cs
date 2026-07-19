@@ -16,7 +16,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for apcomics.org and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for apcomics.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -24,7 +24,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
         await WaitForElement("//ul[@class='main version-chap no-volumn']/li/a", timeout: 60);
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='post-title']/h1").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']")
                            .SelectNodesOrThrow("./li")
                            .Select(li => li.SelectSingleNodeOrThrow("./a").GetHref())

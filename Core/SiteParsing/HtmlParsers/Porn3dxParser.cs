@@ -18,7 +18,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for porn3dx.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for porn3dx.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -58,7 +58,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
             id++;
         }
         
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var (i, post) in posts.Enumerate())
         {
             var contentFound = false;
@@ -127,7 +127,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                         images.AddRange(imgs.Select(img => img.GetSrc())
                                             .Where(url => url.Contains("m.porn3dx.com") && !url.Contains("avatar") 
                                                     && !url.Contains("thumb"))
-                                            .Select(url => (StringImageLinkWrapper)url));
+                                            .Select(url => (StringFileLinkWrapper)url));
                     }
                 }
             }

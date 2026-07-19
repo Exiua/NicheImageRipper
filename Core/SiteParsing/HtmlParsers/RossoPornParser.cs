@@ -14,7 +14,7 @@ public class RossoPornParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for rossoporn.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for rossoporn.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)

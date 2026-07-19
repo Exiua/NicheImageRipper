@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NicheImageRipper.Common.ExtensionMethods;
 using PixivApi.Exceptions;
 using PixivApi.Models;
@@ -22,7 +21,7 @@ public class PixivApiClient
     private string Hosts { get; set; } = "https://app-api.pixiv.net";
     private HttpClient Requests { get; set; } = new();
     private Dictionary<string, string> Headers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-    
+
     public PixivApiClient(Dictionary<string, string>? headers = null)
     {
         if (headers is not null)
@@ -49,7 +48,7 @@ public class PixivApiClient
         Headers["Accept-Language"] = language;
     }
 
-    public void RequireAuth()
+    private void RequireAuth()
     {
         if (AccessToken is null)
         {
@@ -58,12 +57,13 @@ public class PixivApiClient
         }
     }
 
-    public async Task<HttpResponseMessage> RequestsCall(HttpMethod method,
-                                                        string url,
-                                                        Dictionary<string, string>? headers = null,
-                                                        Dictionary<string, string>? parameters = null,
-                                                        HttpContent? data = null,
-                                                        bool stream = false, CancellationToken cancellationToken = default)
+    private async Task<HttpResponseMessage> RequestsCall(HttpMethod method,
+                                                         string url,
+                                                         Dictionary<string, string>? headers = null,
+                                                         Dictionary<string, string>? parameters = null,
+                                                         HttpContent? data = null,
+                                                         bool stream = false,
+                                                         CancellationToken cancellationToken = default)
     {
         // Make a copy of the dictionary
         var mergedHeaders = Headers.ToDictionary();
@@ -72,7 +72,8 @@ public class PixivApiClient
             mergedHeaders.Update(headers);
         }
 
-        var completionOption = stream ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
+        var completionOption =
+            stream ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
         try
         {
             switch (method)
@@ -80,14 +81,14 @@ public class PixivApiClient
                 case HttpMethod.Get:
                 {
                     var request = mergedHeaders.ToRequest(method.ToHttpMethod(), url, parameters: parameters);
-                    return await Requests.SendAsync(request, completionOption);
+                    return await Requests.SendAsync(request, completionOption, cancellationToken);
                 }
                 case HttpMethod.Post:
                 case HttpMethod.Delete:
                 {
                     var request = mergedHeaders.ToRequest(method.ToHttpMethod(), url, parameters: parameters,
                         content: data);
-                    return await Requests.SendAsync(request, completionOption);
+                    return await Requests.SendAsync(request, completionOption, cancellationToken);
                 }
                 default:
                     throw new ArgumentOutOfRangeException(nameof(method), method, null);
@@ -108,7 +109,7 @@ public class PixivApiClient
 
     public Task<AuthResponse> Login(string username, string password, CancellationToken cancellationToken = default)
     {
-        return Auth(username, password);
+        return Auth(username, password, cancellationToken: cancellationToken);
     }
 
     public void SetClient(string clientId, string clientSecret)
@@ -128,7 +129,8 @@ public class PixivApiClient
         return new FormUrlEncodedContent(payload);
     }
 
-    public Task<AuthResponse> Auth(string username, string password, Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default)
+    private Task<AuthResponse> Auth(string username, string password, Dictionary<string, string>? headers = null,
+                                    CancellationToken cancellationToken = default)
     {
         var data = new Dictionary<string, string>
         {
@@ -136,11 +138,12 @@ public class PixivApiClient
             ["username"] = username,
             ["password"] = password,
         };
-        
-        return Auth(data, headers);
+
+        return Auth(data, headers, cancellationToken);
     }
 
-    public Task<AuthResponse> Auth(string? refreshToken = null, Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default)
+    public Task<AuthResponse> Auth(string? refreshToken = null, Dictionary<string, string>? headers = null,
+                                   CancellationToken cancellationToken = default)
     {
         var token = refreshToken ?? AccessToken;
         if (token is null)
@@ -153,25 +156,26 @@ public class PixivApiClient
             ["grant_type"] = "refresh_token",
             ["refresh_token"] = token,
         };
-        
-        return Auth(data, headers);
+
+        return Auth(data, headers, cancellationToken);
     }
-    
-    private async Task<AuthResponse> Auth(Dictionary<string, string> data, Dictionary<string, string>? headers = null, CancellationToken cancellationToken = default)
+
+    private async Task<AuthResponse> Auth(Dictionary<string, string> data, Dictionary<string, string>? headers = null,
+                                          CancellationToken cancellationToken = default)
     {
         var localTime = DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss+00:00");
-        var _headers = headers ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        _headers["x-client-time"] = localTime;
+        var resolvedHeaders = headers ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        resolvedHeaders["x-client-time"] = localTime;
         var input = localTime + HashSecret;
         var inputBytes = Encoding.UTF8.GetBytes(input);
         var hashBytes = MD5.HashData(inputBytes);
-        var clientHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-        _headers["x-client-hash"] = clientHash;
-        if (!_headers.ContainsKey("user-agent"))
+        var clientHash = Convert.ToHexStringLower(hashBytes);
+        resolvedHeaders["x-client-hash"] = clientHash;
+        if (!resolvedHeaders.ContainsKey("user-agent"))
         {
-            _headers["app-os"] = "ios";
-            _headers["app-os-version"] = "14.6";
-            _headers["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";
+            resolvedHeaders["app-os"] = "ios";
+            resolvedHeaders["app-os-version"] = "14.6";
+            resolvedHeaders["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";
         }
 
         string authHosts;
@@ -182,7 +186,7 @@ public class PixivApiClient
         else
         {
             authHosts = Hosts;
-            _headers["host"] = "oauth.secure.pixiv.net";
+            resolvedHeaders["host"] = "oauth.secure.pixiv.net";
         }
 
         var url = $"{authHosts}/auth/token";
@@ -190,36 +194,37 @@ public class PixivApiClient
         data["client_id"] = ClientId;
         data["client_secret"] = ClientSecret;
 
-        var request = _headers.ToRequest(System.Net.Http.HttpMethod.Post, url, content: ToFormUrlEncodedContent(data));
-        var response = await Requests.SendAsync(request);
+        var request =
+            resolvedHeaders.ToRequest(System.Net.Http.HttpMethod.Post, url, content: ToFormUrlEncodedContent(data));
+        var response = await Requests.SendAsync(request, cancellationToken);
         var statusCode = response.StatusCode;
         // If statusCode is not 200, 301, or 302
         if (statusCode != HttpStatusCode.OK && statusCode != HttpStatusCode.MovedPermanently &&
             statusCode != HttpStatusCode.Found)
         {
-            var text = await response.Content.ReadAsStringAsync();
+            var text = await response.Content.ReadAsStringAsync(cancellationToken);
             string msg;
             if (data["grant_type"] == "password")
             {
                 msg = $"[ERROR] auth() failed! check username and password.\nHTTP {statusCode}: {text}";
-                throw new PixivRequestException(msg, _headers, text);
+                throw new PixivRequestException(msg, resolvedHeaders, text);
             }
 
             msg = $"[ERROR] auth() failed! check refresh_token.\nHTTP {statusCode}: {text}";
-            throw new PixivRequestException(msg, _headers, text);
+            throw new PixivRequestException(msg, resolvedHeaders, text);
         }
 
         string? rawToken = null;
         try
         {
-            rawToken = await response.Content.ReadAsStringAsync();
+            rawToken = await response.Content.ReadAsStringAsync(cancellationToken);
             var token = JsonSerializer.Deserialize<AuthResponse>(rawToken);
             if (token is null)
             {
                 var msg = $"Failed to deserialize access_token. Response: {rawToken}";
-                throw new PixivRequestException(msg, _headers, rawToken);
+                throw new PixivRequestException(msg, resolvedHeaders, rawToken);
             }
-            
+
             UserId = token.User.Id;
             AccessToken = token.AccessToken;
             RefreshToken = token.RefreshToken;
@@ -229,16 +234,17 @@ public class PixivApiClient
         catch (Exception e)
         {
             var msg = $"Failed to deserialize access_token. Response: {rawToken}";
-            throw  new PixivRequestException(msg, e, _headers, rawToken ?? "null");
+            throw new PixivRequestException(msg, e, resolvedHeaders, rawToken ?? "null");
         }
     }
 
     public async Task<bool> Download(string url,
-                               string prefix = "",
-                               string? path = null,
-                               string? name = null,
-                               bool replace = false,
-                               string referer = "https://app-api.pixiv.net/", CancellationToken cancellationToken = default)
+                                     string prefix = "",
+                                     string? path = null,
+                                     string? name = null,
+                                     bool replace = false,
+                                     string referer = "https://app-api.pixiv.net/",
+                                     CancellationToken cancellationToken = default)
     {
         path ??= Directory.GetCurrentDirectory();
         var filename = prefix + (name ?? Path.GetFileName((new Uri(url)).LocalPath));
@@ -252,45 +258,49 @@ public class PixivApiClient
         {
             ["Referer"] = referer,
         };
-        
-        var response = await RequestsCall(HttpMethod.Get, url, headers: headers, stream: true);
+
+        var response = await RequestsCall(HttpMethod.Get, url, headers: headers, stream: true,
+            cancellationToken: cancellationToken);
         await using var destStream = File.Create(filepath);
-        await using var srcStream = await response.Content.ReadAsStreamAsync();
-        await srcStream.CopyToAsync(destStream);
+        await using var srcStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await srcStream.CopyToAsync(destStream, cancellationToken);
 
         return true;
     }
-    
+
     // SetApiProxy
-    
-    public async Task<HttpResponseMessage> NoAuthRequestsCall(HttpMethod method,
-                                                        string url,
-                                                        Dictionary<string, string>? headers = null,
-                                                        Dictionary<string, string>? parameters = null,
-                                                        HttpContent? data = null,
-                                                        bool reqAuth = true, CancellationToken cancellationToken = default)
+
+    private async Task<HttpResponseMessage> NoAuthRequestsCall(HttpMethod method,
+                                                               string url,
+                                                               Dictionary<string, string>? headers = null,
+                                                               Dictionary<string, string>? parameters = null,
+                                                               HttpContent? data = null,
+                                                               bool reqAuth = true,
+                                                               CancellationToken cancellationToken = default)
     {
-        var _headers = headers ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var resolvedHeaders = headers ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (Hosts != "https://app-api.pixiv.net")
         {
-            _headers["host"] = "app-api.pixiv.net";
+            resolvedHeaders["host"] = "app-api.pixiv.net";
         }
-        
-        if (!_headers.ContainsKey("user-agent"))
+
+        if (!resolvedHeaders.ContainsKey("user-agent"))
         {
-            _headers["app-os"] = "ios";
-            _headers["app-os-version"] = "14.6";
-            _headers["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";
+            resolvedHeaders["app-os"] = "ios";
+            resolvedHeaders["app-os-version"] = "14.6";
+            resolvedHeaders["user-agent"] = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";
         }
 
         if (!reqAuth)
         {
-            return await RequestsCall(method, url, headers: _headers, parameters: parameters, data: data);
+            return await RequestsCall(method, url, headers: resolvedHeaders, parameters: parameters, data: data,
+                cancellationToken: cancellationToken);
         }
-        
+
         RequireAuth();
-        _headers["Authorization"] = $"Bearer {AccessToken}";
-        return await RequestsCall(method, url, headers: _headers, parameters: parameters, data: data);
+        resolvedHeaders["Authorization"] = $"Bearer {AccessToken}";
+        return await RequestsCall(method, url, headers: resolvedHeaders, parameters: parameters, data: data,
+            cancellationToken: cancellationToken);
     }
 
     #region API Endpoints
@@ -310,128 +320,136 @@ public class PixivApiClient
             ["filter"] = filter.ToRequestFilterString(),
             ["type"] = type.ToRequestTypeString(),
         };
-        
+
         if (offset > 0)
         {
             parameters["offset"] = offset.ToString();
         }
-        
-        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth);
-        var userIllusts = await response.Content.ReadFromJsonAsync<UserIllustrations>();
+
+        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth,
+            cancellationToken: cancellationToken);
+        var userIllusts =
+            await response.Content.ReadFromJsonAsync<UserIllustrations>(cancellationToken: cancellationToken);
         if (userIllusts is null)
         {
             throw new PixivApiException("Failed to deserialize UserIllustrations");
         }
-        
+
         return userIllusts;
     }
-    
+
     // user_bookmarks_illust
-    
+
     // user_bookmarks_novel
-    
+
     // user_related
-    
+
     // user_recommended
-    
+
     // illust_follow
-    
-    public async Task<IllustrationInfo> IllustDetail(string illustId, bool reqAuth = true, CancellationToken cancellationToken = default)
+
+    public async Task<IllustrationInfo> IllustDetail(string illustId, bool reqAuth = true,
+                                                     CancellationToken cancellationToken = default)
     {
         var url = $"{Hosts}/v1/illust/detail";
         var parameters = new Dictionary<string, string>
         {
             ["illust_id"] = illustId,
         };
-        
-        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth);
-        var illustDetail = await response.Content.ReadFromJsonAsync<IllustrationInfo>();
+
+        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth,
+            cancellationToken: cancellationToken);
+        var illustDetail =
+            await response.Content.ReadFromJsonAsync<IllustrationInfo>(cancellationToken: cancellationToken);
         if (illustDetail is null)
         {
             throw new PixivApiException("Failed to deserialize IllustrationDetail");
         }
-        
+
         return illustDetail;
     }
-    
+
     // illust_comments
-    
+
     // illust_related
-    
+
     // illust_recommended
-    
+
     // novel_comments
-    
+
     // novel_recommended
-    
+
     // illust_ranking
-    
+
     // trending_tags_illust
-    
+
     // search_illust
-    
+
     // search_novel
-    
+
     // search_user
-    
+
     // illust_bookmark_detail
-    
+
     // illust_bookmark_add
-    
+
     // illust_bookmark_delete
-    
+
     // user_follow_add
-    
+
     // user_follow_delete
-    
+
     // user_edit_ai_show_settings
-    
+
     // user_bookmark_tags_illust
-    
+
     // user_following
-    
+
     // user_follower
-    
+
     // user_mypixiv
-    
+
     // user_list
-    
-    public async Task<UgoiraMetadata> UgoiraMetadata(string illustId, bool reqAuth = true, CancellationToken cancellationToken = default)
+
+    public async Task<UgoiraMetadata> UgoiraMetadata(string illustId, bool reqAuth = true,
+                                                     CancellationToken cancellationToken = default)
     {
         var url = $"{Hosts}/v1/ugoira/metadata";
         var parameters = new Dictionary<string, string>
         {
             ["illust_id"] = illustId,
         };
-        
-        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth);
-        var rawUgoiraMetadata = await response.Content.ReadAsStringAsync();
-        rawUgoiraMetadata = rawUgoiraMetadata.Replace("\"body\":[]", "\"body\":null"); // workaround for deserialization issue
+
+        var response = await NoAuthRequestsCall(HttpMethod.Get, url, parameters: parameters, reqAuth: reqAuth,
+            cancellationToken: cancellationToken);
+        var rawUgoiraMetadata = await response.Content.ReadAsStringAsync(cancellationToken);
+        rawUgoiraMetadata =
+            rawUgoiraMetadata.Replace("\"body\":[]", "\"body\":null"); // workaround for deserialization issue
         var ugoiraMetadata = JsonSerializer.Deserialize<UgoiraMetadata>(rawUgoiraMetadata);
         if (ugoiraMetadata is null)
         {
             throw new PixivApiException("Failed to deserialize UgoiraMetadata");
         }
-        
+
         return ugoiraMetadata;
     }
-    
+
     // user_novels
-    
+
     // novel_series
-    
+
     // novel_detail
-    
+
     // novel_new
-    
+
     // novel_follow
-    
+
     // webview_novel
-    
+
     // novel_text
-    
+
     // illust_new
-    
+
     // showcase_article
 
     #endregion

@@ -19,7 +19,7 @@ public class RedGifsParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for redgifs.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for redgifs.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -29,7 +29,7 @@ public class RedGifsParser : HtmlParser, IHtmlParser
         await LazyLoad(scrollBy: true, increment: 1250);
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='userName']").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var posts = soup.SelectSingleNodeOrThrow("//div[@class='tileFeed']").SelectNodesOrThrow("./a[@href]").GetHrefs();
         var ids = posts.Select(post => post.Split("/")[^1].Split("#")[0]).ToList();
         var idChunks = ids.Chunk(100);
@@ -47,7 +47,7 @@ public class RedGifsParser : HtmlParser, IHtmlParser
                             .Select(gif => gif!["urls"]!["hd"]!
                                 .Deserialize<string>())
                             .Select(gifUrl => gifUrl!)
-                            .Select(dummy => (StringImageLinkWrapper)dummy));
+                            .Select(dummy => (StringFileLinkWrapper)dummy));
         }
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

@@ -31,7 +31,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
         Driver.Click(verifyButton);
         var soup = await Soupify(cancellationToken: cancellationToken);
         string dirName;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/profile/"))
         {
             var profileName = CurrentUrl.Split("/")[4];

@@ -33,7 +33,7 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
             ScrollBy = true
         });
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='main_contents']//h2").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         while (true)
         {
             var imageList = soup
@@ -41,7 +41,7 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
                             .SelectNodesSafe(".//img")
                             .Select(img => img.GetSrc())
                             .Select(img => HentaiCosplayRegex().Replace(img, ""))
-                            .Select(dummy => (StringImageLinkWrapper)dummy)
+                            .Select(dummy => (StringFileLinkWrapper)dummy)
                             .ToList();
             images.AddRange(imageList);
             var nextPage = soup

@@ -16,7 +16,7 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
     }
     
     /// <summary>
-    ///     Parses the html for babeimpact.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for babeimpact.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -36,7 +36,7 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
             tagList.AddRange(tag.SelectNodesOrThrow(".//div[@class='item']"));
         }
 
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var imageList = tagList.Select(tag => tag.SelectSingleNodeOrThrow(".//a")).Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
         foreach (var image in imageList)
         {
@@ -44,7 +44,7 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
             var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']")
                           .SelectSingleNodeOrThrow(".//img")
                           .GetSrc();
-            images.Add((StringImageLinkWrapper)(Protocol + img));
+            images.Add((StringFileLinkWrapper)(Protocol + img));
         }
         
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

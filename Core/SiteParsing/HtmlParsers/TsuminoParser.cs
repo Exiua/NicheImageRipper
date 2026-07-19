@@ -15,7 +15,7 @@ public class TsuminoParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for tsumino.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for tsumino.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -27,7 +27,7 @@ public class TsuminoParser : HtmlParser, IHtmlParser
                                     .InnerText
                                     .Trim());
         var pagerUrl = CurrentUrl.Replace("/entry/", "/Read/Index/") + "?page=";
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for (var i = 1; i <= numPages; i++)
         {
             soup = await Soupify($"{pagerUrl}{i}", delay: 3000);

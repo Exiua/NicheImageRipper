@@ -18,7 +18,7 @@ public class ArtstationParser : HtmlParser
     
     // TODO: Fix this
     /// <summary>
-    ///     Parses the html for artstation.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for artstation.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -79,7 +79,7 @@ public class ArtstationParser : HtmlParser
         
         #region Get Media Links
         
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
             var url = $"https://www.artstation.com/projects/{post}.json";

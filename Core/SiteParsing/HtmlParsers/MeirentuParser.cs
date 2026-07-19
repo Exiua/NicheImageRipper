@@ -16,7 +16,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for meirentu.cc and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for meirentu.cc and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -29,7 +29,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
         
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var counter = 1;
         while (true)
         {

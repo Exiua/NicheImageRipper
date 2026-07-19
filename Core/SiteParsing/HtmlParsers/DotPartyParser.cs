@@ -41,7 +41,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <param name="domainUrl">The domain url of the site</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
@@ -71,7 +71,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
         #region Parse All Posts
 
-        var images = new List<StringImageLinkWrapper>();
+        var files = new List<StringFileLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
         var numPosts = posts.Count;
 
@@ -128,8 +128,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 }
 
                 // if path is not null, name should also not be null
-                var imageLink = new ImageLink(path, FilenameScheme, 0, filename: name!);
-                images.Add(imageLink);
+                var fileLink = FileLink.WithFilename(path, name!, FilenameScheme);
+                files.Add(fileLink);
             }
 
             var attachments = post.Attachments;
@@ -151,12 +151,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 if (specialCaseLinks is null)
                 {
                     var filename = attachmentName is not null ? ReplacePlusWithSpaceInFilename(attachmentName) : "";
-                    var attachmentLink = new ImageLink(attachmentPath, FilenameScheme, 0, filename: filename);
-                    images.Add(attachmentLink);
+                    var attachmentLink = FileLink.WithFilename(attachmentPath, filename, FilenameScheme);
+                    files.Add(attachmentLink);
                 }
                 else
                 {
-                    images.AddRange(specialCaseLinks.ToStringImageLinks());
+                    files.AddRange(specialCaseLinks.ToStringImageLinks());
                 }
             }
 
@@ -166,10 +166,10 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                                       .ToList();
 
 
-            images.AddRange(extractedAttachments.ToStringImageLinks());
+            files.AddRange(extractedAttachments.ToStringImageLinks());
             foreach (var site in ParsableSites)
             {
-                images.AddRange(externalLinks[site].ToStringImageLinkWrapperList());
+                files.AddRange(externalLinks[site].ToStringImageLinkWrapperList());
             }
         }
 
@@ -181,8 +181,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         }
 
         SaveExternalLinks(externalLinks);
-        var stringLinks = new List<StringImageLinkWrapper>();
-        foreach (var link in images)
+        var stringLinks = new List<StringFileLinkWrapper>();
+        foreach (var link in files)
         {
             if (!link.Contains("dropbox.com/"))
             {
@@ -199,7 +199,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         // This may be able to be removed as RipInfo.FromUrlList also removes duplicates
         // Remove duplicates
         var seen = new HashSet<string>();
-        var unique = new List<StringImageLinkWrapper>();
+        var unique = new List<StringFileLinkWrapper>();
         foreach (var link in stringLinks)
         {
             var domainName = new Uri(link).Host.Split('.')[0];
@@ -358,7 +358,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
 
             var ids = jsonPosts.Select(post => post.Id);
-            // Need to pull each post individually to get the html content body of the post
+            // Need to pull each post individually to get  the HTML content body of the post
             foreach (var (i, id) in ids.Enumerate())
             {
                 Logger.Debug("Retrieving post {PostId}", id);

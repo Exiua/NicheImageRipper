@@ -22,7 +22,7 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
     }
     
     // Should never be called before Parse() is called
-    public async Task<List<ImageLink>> UpdateLinks(List<ImageLink> links, int start)
+    public async Task<List<FileLink>> UpdateLinks(List<FileLink> links, int start)
     {
         if (!File.Exists(ImageLinksFileName))
         {

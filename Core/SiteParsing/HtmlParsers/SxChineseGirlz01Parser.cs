@@ -16,7 +16,7 @@ public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for sxchinesegirlz01.xyz and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for sxchinesegirlz01.xyz and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -26,7 +26,7 @@ public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
         var numPages = soup.SelectSingleNodeOrThrow("//div[@class='page-links']")
                             .SelectNodesOrThrow("./a")
                             .Count + 1;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var baseUrl = CurrentUrl;
         for (var i = 0; i < numPages; i++)
         {
@@ -39,7 +39,7 @@ public partial class SxChineseGirlz01Parser : HtmlParser, IHtmlParser
                                 .SelectNodesOrThrow("./figure[@class='wp-block-image size-large']")
                                 .Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc());
             images.AddRange(imageList.Select(img => SxChineseGirlzRegex().Replace(img, ""))
-                                        .Select(imageUrl => (StringImageLinkWrapper)imageUrl));
+                                        .Select(imageUrl => (StringFileLinkWrapper)imageUrl));
         }
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

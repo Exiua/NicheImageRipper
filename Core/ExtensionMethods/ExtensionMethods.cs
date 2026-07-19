@@ -81,24 +81,24 @@ public static class ExtensionMethods
         return string.Join(separator, values);
     }
     
-    public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
+    public static IEnumerable<StringFileLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
     {
-        return src.Select(url => new StringImageLinkWrapper(url));
+        return src.Select(url => new StringFileLinkWrapper(url));
     }
     
-    public static IEnumerable<StringImageLinkWrapper> ToStringImageLinks(this IEnumerable<ImageLink> src)
+    public static IEnumerable<StringFileLinkWrapper> ToStringImageLinks(this IEnumerable<FileLink> src)
     {
-        return src.Select(url => new StringImageLinkWrapper(url));
+        return src.Select(url => new StringFileLinkWrapper(url));
     }
     
-    public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
+    public static List<StringFileLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
     {
-        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
+        return src.Select(url => new StringFileLinkWrapper(url)).ToList();
     }
     
-    public static List<StringImageLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<ImageLink> src)
+    public static List<StringFileLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<FileLink> src)
     {
-        return src.Select(url => new StringImageLinkWrapper(url)).ToList();
+        return src.Select(url => new StringFileLinkWrapper(url)).ToList();
     }
 
     public static T[] Pop<T>(this T[] src, int index)

@@ -29,7 +29,7 @@ public class InfluencersGoneWildParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
         var posts = soup.SelectSingleNodeOrThrow("//div[@class='g1-content-narrow g1-typography-xl entry-content']")
                         .SelectNodesOrThrow(".//img|.//video");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
             switch (post.Name)

@@ -17,29 +17,31 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
     private const string WaitForElementXPath = "//div[@id='responsive-player']/iframe|//video[@id='player']";
     private const string IframeXPath = "//div[@id='responsive-player']/iframe";
     private const string VideoXPath = "//video[@id='player']";
-    
-    public KoreanBjParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KoreanBjParser>(filenameScheme))
+
+    public KoreanBjParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<KoreanBjParser>(filenameScheme))
     {
     }
 
     /// <summary>
-    ///     Parses the html for ww1.koreanbj.club and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for ww1.koreanbj.club and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (capturer, b) = await ConfigureNetworkCapture<KoreanBjVideoCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<KoreanBjVideoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var dirName = Driver.FindElement(By.XPath("//h2[@class='entry-title']")).Text;
-        var waitedElement = await WaitForElement(WaitForElementXPath);
-        var images = new List<StringImageLinkWrapper>();
+        var waitedElement = await WaitForElement(WaitForElementXPath, cancellationToken: cancellationToken);
+        var images = new List<StringFileLinkWrapper>();
         switch (waitedElement)
         {
             // if the iframe is loaded, we can immediately extract the video source as it's not a blob
             case "iframe":
                 Logger.Debug("Extracting video from iframe");
-                await ExtractVideoFromIframe(images, capturer);
+                await ExtractVideoFromIframe(images, capturer, cancellationToken);
                 break;
             // if the video tag is loaded, we can extract the source directly
             case "video":
@@ -61,7 +63,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                     if (responsivePlayer is not null)
                     {
                         Logger.Debug("Extracting playlist from responsive player div");
-                        await ExtractPlaylist(images, capturer);
+                        await ExtractPlaylist(images, capturer, cancellationToken);
                     }
                     else
                     {
@@ -71,7 +73,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 else
                 {
                     Logger.Debug("Extracting playlist from iframe");
-                    await ExtractPlaylistFromIframe(images, capturer);
+                    await ExtractPlaylistFromIframe(images, capturer, cancellationToken);
                 }
 
                 break;
@@ -81,7 +83,8 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task ExtractPlaylist(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
+    private async Task ExtractPlaylist(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,
+                                       CancellationToken cancellationToken = default)
     {
         var i = 0;
         while (true)
@@ -90,31 +93,29 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             if (videos.Count == 0)
             {
                 i++;
-                await Sleep(250);
-                if(i % 4 == 0)
+                await Sleep(250, cancellationToken);
+                if (i % 4 == 0)
                 {
                     Logger.Debug("Refreshing page to find video link");
                     Driver.Refresh();
                 }
-                
+
                 continue;
             }
 
             var video = videos[0];
             Logger.Debug("Found video URL: {url}", video);
             var filename = video.Split("/")[3] + ".mp4";
-            var imageLink = new ImageLink(videos[0], FilenameScheme, 0, filename: filename)
-            {
-                LinkInfo = LinkInfo.M3U8YtDlp,
-                Referer = "https://ww1.koreanbj.club/"
-            };
-            
-            images.Add(imageLink);
+            var fileLink = FileLink.WithFilename(videos[0], filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                referer: "https://ww1.koreanbj.club/");
+
+            files.Add(fileLink);
             break;
         }
     }
 
-    private async Task ExtractPlaylistFromIframe(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
+    private async Task ExtractPlaylistFromIframe(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,
+                                                 CancellationToken cancellationToken = default)
     {
         var closeButton = Driver.TryFindElement(By.XPath("//button[normalize-space(.)='Close']"));
         if (closeButton is not null)
@@ -128,12 +129,13 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 Driver.Click(closeButton);
             }
         }
+
         var playButton = Driver.TryFindElement(By.XPath("//div[@id='play-button']"));
         playButton?.Click();
-        await WaitForElement(IframeXPath);
+        await WaitForElement(IframeXPath, cancellationToken: cancellationToken);
         var iframe = Driver.FindElement(By.XPath(IframeXPath));
         Driver.SwitchTo().Frame(iframe);
-        await WaitForElement("//div[@id='a']");
+        await WaitForElement("//div[@id='a']", cancellationToken: cancellationToken);
         var videoElement = Driver.FindElement(By.XPath("//div[@id='a']"));
         videoElement.Click();
         while (!VideoIsPlaying())
@@ -159,8 +161,8 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             {
                 videoElement.Click();
             }
-            
-            await Sleep(500);
+
+            await Sleep(500, cancellationToken);
         }
 
         var i = 0;
@@ -170,13 +172,13 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             var videos = capturer.GetNewVideoLinks();
             if (videos.Count == 0)
             {
-                await Sleep(250);
+                await Sleep(250, cancellationToken);
                 if (i % 4 == 0)
                 {
                     Logger.Debug("Refreshing page to find video link");
                     Driver.Refresh();
                 }
-                
+
                 continue;
             }
 
@@ -194,20 +196,18 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             {
                 url = video;
             }
-            
+
             var filename = UrlUtility.GetUrlParameterValue(url, "t") + ".mp4";
-            var imageLink = new ImageLink(url, FilenameScheme, 0, filename: filename)
-            {
-                LinkInfo = LinkInfo.M3U8YtDlp,
-                Referer = "https://jilliandescribecompany.com/"
-            };
-            
-            images.Add(imageLink);
+            var fileLink = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                referer: "https://jilliandescribecompany.com/");
+
+            files.Add(fileLink);
             break;
         }
     }
 
-    private async Task ExtractVideoFromIframe(List<StringImageLinkWrapper> images, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
+    private async Task ExtractVideoFromIframe(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,
+                                              CancellationToken cancellationToken = default)
     {
         var iframe = Driver.FindElement(By.XPath(IframeXPath));
         var iframeSrc = iframe.GetAttribute("src")!;
@@ -223,13 +223,13 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 var videos = capturer.GetNewVideoLinks();
                 if (videos.Count == 0)
                 {
-                    await Sleep(250);
+                    await Sleep(250, cancellationToken);
                     if (i % 4 == 0)
                     {
                         Logger.Debug("Refreshing page to find video link");
                         Driver.Refresh();
                     }
-                    
+
                     continue;
                 }
 
@@ -237,19 +237,16 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 Logger.Debug("Found video URL: {url}", video);
                 var id = UrlUtility.GetUrlParameterValue(video, "pp");
                 var filename = Uri.UnescapeDataString(id) + ".mp4";
-                var imageLink = new ImageLink(video, FilenameScheme, 0, filename: filename)
-                {
-                    LinkInfo = LinkInfo.M3U8YtDlp,
-                    Referer = iframeSrc
-                };
-            
-                images.Add(imageLink);
+                var fileLink = FileLink.WithFilename(video, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                    referer: iframeSrc);
+
+                files.Add(fileLink);
                 break;
             }
         }
         else
         {
-            images.Add(videoSrc);
+            files.Add(videoSrc);
         }
     }
 
@@ -260,8 +257,9 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         {
             return false;
         }
-        
+
         var classAttribute = videoElement.GetAttribute("class");
-        return classAttribute is not null && (classAttribute.Contains("jw-state-playing") || classAttribute.Contains("jw-state-buffering"));
+        return classAttribute is not null &&
+               (classAttribute.Contains("jw-state-playing") || classAttribute.Contains("jw-state-buffering"));
     }
 }

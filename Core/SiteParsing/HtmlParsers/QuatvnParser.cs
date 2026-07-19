@@ -22,7 +22,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for quatvn.love and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for quatvn.love and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -54,7 +54,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             Driver.Refresh();
         }
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var tablist = soup.SelectSingleNode("//ul[@role='tablist']");
         if (tablist is not null)
         {
@@ -71,7 +71,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                 videoData = WebUtility.HtmlDecode(videoData);
                 var videoList = JsonSerializer.Deserialize<JsonNode>(videoData)!.AsObject()["sources"]!.AsArray();
                 var videos = videoList.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!);
-                images.AddRange(videos.Select(vid => (StringImageLinkWrapper)vid));
+                images.AddRange(videos.Select(vid => (StringFileLinkWrapper)vid));
                 if (i != numTabs - 1)
                 {
                     var closeBtn = Driver.TryFindElement(By.XPath("//button[@class='close-btn']"));
@@ -96,7 +96,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                 imageData = WebUtility.HtmlDecode(imageData);
                 var imageList = JsonSerializer.Deserialize<JsonNode>(imageData)!.AsArray();
                 var imgs = imageList.Select(entry => entry!.AsObject()["full"]!.Deserialize<string>()!);
-                images.AddRange(imgs.Select(img => (StringImageLinkWrapper)img));
+                images.AddRange(imgs.Select(img => (StringFileLinkWrapper)img));
             }
 
             var videoPlaylist = container.SelectSingleNode("//div[@class='fp-playlist']");

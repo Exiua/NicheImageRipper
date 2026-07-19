@@ -15,7 +15,7 @@ public class PutMegaParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for putmega.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for putmega.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -23,12 +23,12 @@ public class PutMegaParser : HtmlParser, IHtmlParser
         //const int maxRetries = 4;
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//a[@data-text='album-name']").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         while (true)
         {
             var imageList = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
                                 .SelectNodesOrThrow(".//img")
-                                .Select(img => (StringImageLinkWrapper)img.GetSrc().Remove(".md"));
+                                .Select(img => (StringFileLinkWrapper)img.GetSrc().Remove(".md"));
             images.AddRange(imageList);
             var nextPage = soup.SelectSingleNode("//li[@class='pagination-next']");
             if (nextPage is null)

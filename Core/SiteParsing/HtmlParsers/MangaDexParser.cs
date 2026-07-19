@@ -19,7 +19,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for mangadex.org and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for mangadex.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -37,7 +37,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         var mangaId = match.Groups[1].Value;
         Logger.Debug("Manga ID: {mangaId}", mangaId);
         var client = new MangaDexClient();
-        var response = await client.Manga.GetMetadata(mangaId);
+        var response = await client.Manga.GetMetadata(mangaId, cancellationToken);
         if (response is not MangaMetadataResponse mangaMetadata)
         {
             var errorResponse = (ErrorResponse) response;
@@ -58,7 +58,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
             dirName = foundEnTitle ? value! : metadataAttributes.Title.First().Value;
         }
         
-        response = await client.Manga.GetVolumeAndChapter(mangaId);
+        response = await client.Manga.GetVolumeAndChapter(mangaId, cancellationToken);
         if (response is not AggregateMangaResponse manga)
         {
             var errorResponse = (ErrorResponse) response;
@@ -67,8 +67,8 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
             throw exception;
         }
         
-        var images = new List<StringImageLinkWrapper>();
-        var mangaImages = new List<List<StringImageLinkWrapper>>();
+        var images = new List<StringFileLinkWrapper>();
+        var mangaImages = new List<List<StringFileLinkWrapper>>();
         var volumes = manga.Volumes;
         foreach (var (volumeLabel, volumeData) in volumes)
         {
@@ -86,9 +86,9 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                 var found = false;
                 foreach (var chapterId in chapterIds)
                 {
-                    await Task.Delay(delay);
+                    await Task.Delay(delay, cancellationToken);
                     Logger.Debug("Chapter {chapterLabel} ID: {chapterId}", chapterLabel, chapterId);
-                    response = await client.Chapter.GetChapter(chapterId);
+                    response = await client.Chapter.GetChapter(chapterId, cancellationToken);
                     if (response is not ChapterResponse chapter)
                     {
                         var errorResponse = (ErrorResponse) response;
@@ -107,12 +107,12 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                     AtHomeResponse atHome = null!;
                     for (var i = 0; i < maxRetries; i++)
                     {
-                        response = await client.AtHome.GetServerUrls(chapterId);
+                        response = await client.AtHome.GetServerUrls(chapterId, cancellationToken);
                         if (response is ErrorResponse errorResponse)
                         {
                             if (i != maxRetries - 1)
                             {
-                                await Task.Delay(delay * 4);
+                                await Task.Delay(delay * 4, cancellationToken);
                                 continue;
                             }
                             
@@ -129,7 +129,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                     var serverUrls = atHome.Chapter;
                     var baseUrl = atHome.BaseUrl;
                     var hash = serverUrls.Hash;
-                    var chapterImages = new List<StringImageLinkWrapper>();
+                    var chapterImages = new List<StringFileLinkWrapper>();
                     foreach (var (i, page) in serverUrls.Data.Enumerate())
                     {
                         var ext  = Path.GetExtension(page);
@@ -137,8 +137,8 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                         var filename = volumeLabel == "none"
                             ? $"{chapterLabel}-{i+1}{ext}"
                             : $"{volumeLabel}-{chapterLabel}-{i+1}{ext}";
-                        var imageLink = new ImageLink(url, FilenameScheme, 0, filename: filename);
-                        chapterImages.Add(imageLink);
+                        var fileLink = FileLink.WithFilename(url, filename, FilenameScheme);
+                        chapterImages.Add(fileLink);
                     }
                     
                     mangaImages.Add(chapterImages);

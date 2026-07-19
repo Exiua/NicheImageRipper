@@ -28,7 +28,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
             ScrollBy = true
         });
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var imagePosts = new List<string>();
         var pageCount = 1;
         while (true)

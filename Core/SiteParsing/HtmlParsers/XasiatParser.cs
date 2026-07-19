@@ -18,7 +18,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for xasiat.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for xasiat.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -29,7 +29,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
             Increment = 1250,
         });
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/albums/"))
         {
             images = soup.SelectSingleNodeOrThrow("//div[@class='images']")

@@ -44,16 +44,16 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for e-hentai.org and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for e-hentai.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await SiteLogin();
+        await SiteLogin(cancellationToken);
         CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org"); // Redirect to exhentai
         var currentUrl = CurrentUrl;
         StoreLastLink(currentUrl);
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='gn']").InnerText;
         // Links to each image page
         var imageLinks = await GetImageLinks(soup, currentUrl);
@@ -81,16 +81,16 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
             else
             {
                 Logger.Information("Parsing image {i} of {count}", i + 1, imageLinks.Count);
-                var img = await GetImageLink(link);
+                var img = await GetImageLink(link, cancellationToken);
                 imageUrls.Add(img);
-                await Sleep(1000);
+                await Sleep(1000, cancellationToken);
             }
         }
 
-        var images = new List<ImageLink>(imageUrls.Count);
+        var images = new List<FileLink>(imageUrls.Count);
         foreach (var (i, link) in imageUrls.Enumerate())
         {
-            images.Add(link == "" ? ImageLink.Invalid : new ImageLink(link, FilenameScheme, i));
+            images.Add(link == "" ? FileLink.Invalid : FileLink.Create(link, FilenameScheme, i));
         }
 
         return RipInfo.GenerateWithInvalid(images, dirName, FilenameScheme);
@@ -98,14 +98,14 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
 
     private async Task<string> GetImageLink(string link, CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(link);
+        var soup = await Soupify(link, cancellationToken: cancellationToken);
         var img = soup.SelectSingleNodeOrThrow("//img[@id='img']").GetSrc();
         return img;
     }
     
     protected override Task<string> UpdateLink(string link, CancellationToken cancellationToken = default)
     {
-        return GetImageLink(link);
+        return GetImageLink(link, cancellationToken);
     }
 
     private async Task<List<string>> GetImageLinks(HtmlNode soup, string currentUrl)
@@ -153,7 +153,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
                 break;
             }
             
-            await Sleep(1000);
+            await Sleep(1000, cancellationToken);
             try
             {
                 pageCount += 1;
@@ -162,10 +162,10 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
             catch (WebDriverTimeoutException)
             {
                 Logger.Warning("Timed out. Sleeping for 10 seconds before retrying...");
-                await Sleep(10000);
+                await Sleep(10000, cancellationToken);
                 CurrentUrl = nextPage;
             }
-            soup = await Soupify();
+            soup = await Soupify(cancellationToken: cancellationToken);
         }
     }
 }

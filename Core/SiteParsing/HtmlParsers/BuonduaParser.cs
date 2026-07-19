@@ -16,7 +16,7 @@ public class BuonduaParser : HtmlParser, IHtmlParser
     }
     
     /// <summary>
-    ///     Parses the html for buondua.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for buondua.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -39,13 +39,13 @@ public class BuonduaParser : HtmlParser, IHtmlParser
                         .Count;
         var currUrl = CurrentUrl.Replace("?page=1", "");
         
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < pages; i++)
         {
             var imageList = soup.SelectSingleNodeOrThrow("//div[@class='article-fulltext']")
                                 .SelectNodesOrThrow(".//img")
                                 .Select(img => img.GetSrc())
-                                .Select(dummy => (StringImageLinkWrapper)dummy)
+                                .Select(dummy => (StringFileLinkWrapper)dummy)
                                 .ToList();
             images.AddRange(imageList);
             if (i >= pages - 1)

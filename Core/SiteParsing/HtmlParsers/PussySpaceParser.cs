@@ -18,31 +18,28 @@ public class PussySpaceParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("-")[1];
-        var (capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var h1 = soup.SelectSingleNodeOrThrow("//h1");
         var dirName = h1.ChildNodes
                         .Where(n => n.NodeType == HtmlNodeType.Text)
                         .Select(n => n.InnerText.Trim())
                         .Where(t => !string.IsNullOrEmpty(t))
                         .Join(" ") + $"({id})";
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         await WaitForPlaylist(capturer, links =>
         {
-            var playlist = new ImageLink(links[0], FilenameScheme, 0)
-            {
-                LinkInfo = LinkInfo.M3U8YtDlp
-            };
+            var playlist = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp);
             images.Add(playlist);
-        });
+        }, cancellationToken);
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

@@ -60,7 +60,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
             JsonUtility.Serialize(CachePath, cache);
         }
 
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var (i, link) in imageLinks.Enumerate())
         {
             Logger.Information("Parsing image page {Link}", link);

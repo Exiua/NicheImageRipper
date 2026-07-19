@@ -22,7 +22,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for nijie.info and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for nijie.info and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -60,13 +60,13 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         }
         
         Logger.Information("Parsing illustration posts...");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var (i, post) in posts.Enumerate())
         {
             Logger.Information("Parsing illustration post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
-            IEnumerable<StringImageLinkWrapper> imgs = null!;
+            IEnumerable<StringFileLinkWrapper> imgs = null!;
             for(var retryCount = 0; retryCount < Retries; retryCount++)
             {
                 try
@@ -74,8 +74,8 @@ public partial class NijieParser : HtmlParser, IHtmlParser
                     var imageWindow = soup.SelectSingleNodeOrThrow("//div[@id='img_window']");
                     var imageNode = imageWindow.SelectNodes(".//a/img");
                     imgs = imageNode is not null 
-                        ? imageNode.Select(img => (StringImageLinkWrapper)(Protocol + img.GetSrc())) 
-                        : [(StringImageLinkWrapper)(Protocol + imageWindow.SelectSingleNodeOrThrow(".//video").GetSrc())];
+                        ? imageNode.Select(img => (StringFileLinkWrapper)(Protocol + img.GetSrc())) 
+                        : [(StringFileLinkWrapper)(Protocol + imageWindow.SelectSingleNodeOrThrow(".//video").GetSrc())];
                     break;
                 }
                 catch (NullReferenceException)
@@ -107,14 +107,14 @@ public partial class NijieParser : HtmlParser, IHtmlParser
             Logger.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay);
-            IEnumerable<StringImageLinkWrapper> imgs = null!;
+            IEnumerable<StringFileLinkWrapper> imgs = null!;
             for(var retryCount = 0; retryCount < Retries; retryCount++)
             {
                 try
                 {
                     imgs = soup.SelectSingleNodeOrThrow("//div[@id='img_window']")
                                 .SelectNodesOrThrow(".//a/img")
-                                .Select(img => (StringImageLinkWrapper)(Protocol + img.GetSrc()));
+                                .Select(img => (StringFileLinkWrapper)(Protocol + img.GetSrc()));
                     break;
                 }
                 catch (NullReferenceException)

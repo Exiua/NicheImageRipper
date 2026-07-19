@@ -20,27 +20,21 @@ public static class GDriveHelper
         });
     }
     
-    public static async Task<(List<ImageLink>, int)> QueryGDriveLinks(string gDriveUrl, int index, FilenameScheme filenameScheme)
+    public static async Task<(List<FileLink>, int)> QueryGDriveLinks(string gDriveUrl, int index, FilenameScheme filenameScheme)
     {
         var service = await AuthenticateGDrive();
         var (id, singleFile) = ExtractId(gDriveUrl);
         var files = await service.GetFiles(id);
-        var imageLinks = new List<ImageLink>();
+        var fileLinks = new List<FileLink>();
         var counter = index;
-        foreach (var file in files)
+        foreach (var file in files.Where(f => !f.IsFolder))
         {
-            if (file.IsFolder)
-            {
-                continue;
-            }
-            
-            var imgLink = new ImageLink(file.Id, filenameScheme, counter, filename: file.GetPath(),
-                linkInfo: LinkInfo.GDrive);
-            imageLinks.Add(imgLink);
+            var fileLink = FileLink.WithFilename(file.Id, file.GetPath(), filenameScheme, index: counter, linkInfo: LinkInfo.GDrive);
+            fileLinks.Add(fileLink);
             counter++;
         }
 
-        return (imageLinks, counter);
+        return (fileLinks, counter);
     }
     
     private static (string, bool) ExtractId(string url)

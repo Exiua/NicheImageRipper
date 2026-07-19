@@ -17,19 +17,19 @@ public class PornAvHdParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for pornavhd.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for pornavhd.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await SolveParseAddCookies();
+        var soup = await SolveParseAddCookies(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@itemprop='name']").InnerText;
         var iframe = soup.SelectSingleNodeOrThrow("//div[@class='responsive-player']/iframe");
         var iframeUrl = iframe.GetSrc();
-        var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>();
+        var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>(cancellationToken);
         CurrentUrl = iframeUrl;
         var referer = iframeUrl.Split("/")[..3].Join("/") + '/';
-        StringImageLinkWrapper playlist;
+        StringFileLinkWrapper playlist;
         while (true)
         {
             var links = capturer.GetNewVideoLinks();
@@ -38,10 +38,7 @@ public class PornAvHdParser : HtmlParser, IHtmlParser
                 continue;
             }
     
-            playlist = new ImageLink(links[0], FilenameScheme, 0)
-            {
-                Referer = referer
-            };
+            playlist = FileLink.Create(links[0], FilenameScheme, referer: referer);
             break;
         }
         

@@ -29,7 +29,7 @@ public class EroMeParser : HtmlParser, IHtmlParser
         var posts = soup
                     .SelectNodesOrThrow("//div[@class='col-sm-12 page-content']")[1]
                     .SelectNodesOrThrow("./div");
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
             var img = post.SelectSingleNode(".//img");

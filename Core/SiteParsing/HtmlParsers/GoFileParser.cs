@@ -57,7 +57,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     
         // ReSharper disable once VariableHidesOuterVariable
-        async Task<List<StringImageLinkWrapper>> GoFileParserHelper(string url, bool topLevel = false)
+        async Task<List<StringFileLinkWrapper>> GoFileParserHelper(string url, bool topLevel = false)
         {
             if (url != "")
             {
@@ -89,7 +89,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
             //Driver.WaitUntilElementExists(By.XPath("//div[@id='filesContentTableContent']/div"));
             // ReSharper disable once VariableHidesOuterVariable
             var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]");
-            var links = new List<StringImageLinkWrapper>();
+            var links = new List<StringFileLinkWrapper>();
             var entries = soup.SelectNodesOrThrow("//div[@id='filesContentTableContent']/div");
             foreach (var entry in entries)
             {

@@ -31,7 +31,7 @@ public class GirlsReleasedParser : HtmlParser, IHtmlParser
                         .SelectSingleNodeOrThrow("//div[@class='images']")
                         .SelectNodesOrThrow(".//img")
                         .Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx"))
-                        .Select(dummy => (StringImageLinkWrapper)dummy)
+                        .Select(dummy => (StringFileLinkWrapper)dummy)
                         .ToList();
     
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

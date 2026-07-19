@@ -22,7 +22,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for titsintops.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for titsintops.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -34,7 +34,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='p-title-value']")
                             .InnerText;
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
         var pageCount = 1;
         while (true)
@@ -51,14 +51,14 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                 {
                     var imgList = imgs.Select(im => im.GetSrc())
                                         .Where(im => im.Contains("http"));
-                    images.AddRange(imgList.Select(im => (StringImageLinkWrapper)im));
+                    images.AddRange(imgList.Select(im => (StringFileLinkWrapper)im));
                 }
                 
                 var videos = post.SelectNodes(".//video");
                 if (videos is not null)
                 {
                     var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectSingleNodeOrThrow(".//source").GetSrc()}");
-                    images.AddRange(videoUrls.Select(vid => (StringImageLinkWrapper)vid));
+                    images.AddRange(videoUrls.Select(vid => (StringFileLinkWrapper)vid));
                 }
                 
                 var iframes = post.SelectNodes(".//iframe");
@@ -67,7 +67,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                     var embeddedUrls = iframes.Select(em => em.GetSrc())
                                                 .Where(em => em.Contains("http"));
                     embeddedUrls = await ParseEmbeddedUrls(embeddedUrls);
-                    images.AddRange(embeddedUrls.Select(em => (StringImageLinkWrapper)em));
+                    images.AddRange(embeddedUrls.Select(em => (StringFileLinkWrapper)em));
                 }
                 
                 var attachments = post.SelectSingleNode(".//ul[@class='attachmentList']");
@@ -75,7 +75,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                 if (attachments2 != null)
                 {
                     var attachList = attachments2.Select(attach => $"https://titsintops.com{attach.GetHref()}");
-                    images.AddRange(attachList.Select(attach => (StringImageLinkWrapper)attach));
+                    images.AddRange(attachList.Select(attach => (StringFileLinkWrapper)attach));
                 }
 
                 var links = post.SelectSingleNodeOrThrow(".//article[@class='message-body js-selectToQuote']")
@@ -86,7 +86,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                                         .Where(link => link is not null);
                     var filteredLinks = ExtractExternalUrls(linkList!);
                     var downloadableLinks = await ExtractDownloadableLinks(filteredLinks, externalLinks);
-                    images.AddRange(downloadableLinks.Select(link => (StringImageLinkWrapper)link));
+                    images.AddRange(downloadableLinks.Select(link => (StringFileLinkWrapper)link));
                 }
             }
     

@@ -17,7 +17,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for thothub.lol and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for thothub.lol and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -41,7 +41,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']")
                             .SelectSingleNodeOrThrow(".//h1")
                             .InnerText;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/videos/"))
         {
             var vid = soup.SelectSingleNodeOrThrow("//video[@class='fp-engine']")

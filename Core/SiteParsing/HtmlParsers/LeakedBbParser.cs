@@ -15,7 +15,7 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for leakedbb.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for leakedbb.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
                             .SelectNodesOrThrow("./img")
                             .Select(img => img.GetSrc())
                             .ToList();
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         foreach (var link in imageLinks)
         {
             if (!link.Contains("postimg.cc"))

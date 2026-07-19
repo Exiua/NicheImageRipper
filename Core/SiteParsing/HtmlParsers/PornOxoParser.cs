@@ -17,26 +17,23 @@ public class PornOxoParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for pornoxo.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for pornoxo.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("/")[4];
-        var (capturer, b) = await ConfigureNetworkCapture<PornOxoCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<PornOxoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='video-top-header']/h1").ChildNodes[0].InnerText.Trim() + $" ({id})";
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         await WaitForPlaylist(capturer, links =>
         {
-            var link = new ImageLink(links[0], FilenameScheme, 0)
-            {
-                LinkInfo = LinkInfo.M3U8Ffmpeg
-            };
+            var link = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
             images.Add(link);
-        } );
+        }, cancellationToken);
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

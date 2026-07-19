@@ -17,7 +17,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for twitter.com/x.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for twitter.com/x.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -83,7 +83,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
         // var capturer = new TwitterVideoCapturer();
         // var bidi = await Driver.AsBiDiAsync();
         // await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         var failedUrls = new List<(int, string)>();
         foreach (var (i, link) in postLinks.Enumerate())
         {
@@ -115,7 +115,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
             {
                 Logger.Information("Retrying failed post {index}/{totalLinks}: {postLink}", i + 1, failed.Count, link);
                 var (links, retryUrls) = await TwitterParserHelper(link, true);
-                var linkTemp = links.Select(x => (StringImageLinkWrapper)x);
+                var linkTemp = links.Select(x => (StringFileLinkWrapper)x);
                 failedUrls.AddRange(retryUrls);
                 images.InsertRange(index + offset, linkTemp);
                 offset += links.Count;

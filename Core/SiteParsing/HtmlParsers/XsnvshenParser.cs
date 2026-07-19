@@ -17,7 +17,7 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for xsnvshen.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for xsnvshen.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
                                 .Text
                                 .Split(" ")[1]
                                 .ParseInt();
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < pageCount; i++)
         {
             Logger.Information("Parsing page {Page}", i + 1);

@@ -19,7 +19,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for cyberdrop.me and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for cyberdrop.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
         var titleNode = soup.SelectSingleNode("//h1[@id='title']");
         var dirName = titleNode is not null ? titleNode.InnerText : $"[CyberDrop] {CurrentUrl.Split("/")[^1]}";
         
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/a/"))
         {
             var imageList = soup.SelectNodesOrThrow("//div[@class='image-container column']")

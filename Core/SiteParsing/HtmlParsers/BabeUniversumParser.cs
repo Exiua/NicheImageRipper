@@ -27,7 +27,7 @@ public class BabeUniversumParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@class='three-column']")
                          .SelectNodesOrThrow(".//div[@class='thumbnail']")
                          .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
-                         .Select(dummy => (StringImageLinkWrapper)dummy)
+                         .Select(dummy => (StringFileLinkWrapper)dummy)
                          .ToList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

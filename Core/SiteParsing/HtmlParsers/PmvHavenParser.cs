@@ -23,13 +23,13 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for pmvhaven.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for pmvhaven.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         //var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
-        var (capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>();
+        var (capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.AddCookie("ageVerified", "true");
         Driver.Refresh();
@@ -37,28 +37,22 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
         if (button is not null)
         {
             button.Click();
-            await Sleep(250);
+            await Sleep(250, cancellationToken);
         }
         
         var currentUrl = CurrentUrl;
         string dirName;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> images;
         if (currentUrl.Contains("/video/"))
         {
-            var soup = await Soupify(xpath: "//video[@id='VideoPlayer']/source", xpathTimout: 10);
+            var soup = await Soupify(xpath: "//video[@id='VideoPlayer']/source", xpathTimout: 10, cancellationToken: cancellationToken);
             dirName = soup.SelectNodesOrThrow("//h1")[1].InnerText;
-            var url = await GetVideoUrl(capturer, currentUrl);
+            var url = await GetVideoUrl(capturer, currentUrl, cancellationToken);
             images = [url];
         }
         else if(currentUrl.Contains("/profile/"))
         {
-            // var cookies = new Dictionary<string, string>
-            // {
-            //     ["ageVerified"] = "true"
-            // };
-            // await client.GetPage(CurrentUrl, cookies: cookies);
-            // await client.PressButtonOnPage("//button[@class='btn-confirm']");
-            var soup = await Soupify();
+            var soup = await Soupify(cancellationToken: cancellationToken);
             dirName = soup.SelectNodesOrThrow("//h1")[1].InnerText;
             List<string> videoPosts = [];
             while (true)
@@ -93,15 +87,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
                 }
                 
                 nextButtonElement.Click();
-                soup = await Soupify();
-                // var response = await client.PressButtonOnPage("//nav/button[last()]");
-                // if (response is ErrorResponse errorResponse)
-                // {
-                //     throw new RipperException("Failed to navigate to next page. Reason: " + errorResponse.Error);
-                // }
-                //
-                // var pageResponse = (PageResponse)response;
-                // soup = await Soupify(pageResponse.Content, urlString: false);
+                soup = await Soupify(cancellationToken: cancellationToken);
             }
             
             Logger.Information("Found {count} videos in profile.", videoPosts.Count);
@@ -110,9 +96,9 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
             {
                 Logger.Information("Parsing video post: {post}", post);
                 CurrentUrl = post;
-                var url = await GetVideoUrl(capturer, post);
+                var url = await GetVideoUrl(capturer, post, cancellationToken);
                 images.Add(url);
-                await Sleep(250);
+                await Sleep(250, cancellationToken);
             }
         }
         else
@@ -123,21 +109,18 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<ImageLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl, CancellationToken cancellationToken = default)
+    private async Task<FileLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl, CancellationToken cancellationToken = default)
     {
         postUrl = postUrl.Split("?")[0];
-        ImageLink? imageLink = null;
+        FileLink? imageLink = null;
         await WaitForPlaylist(capturer, links =>
         {
             var url = links[0];
             var filename = postUrl.Split('/')[4] + ".mp4";
-            var link = new ImageLink(url, FilenameScheme, 0, filename: filename)
-            {
-                LinkInfo = LinkInfo.M3U8Ffmpeg,
-            };
+            var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
             
             imageLink = link;
-        });
+        }, cancellationToken);
         
         if (imageLink is null)
         {

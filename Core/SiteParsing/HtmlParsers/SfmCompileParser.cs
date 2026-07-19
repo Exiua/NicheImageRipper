@@ -16,7 +16,7 @@ public class SfmCompileParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for sfmcompile.club and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for sfmcompile.club and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -26,7 +26,7 @@ public class SfmCompileParser : HtmlParser, IHtmlParser
                             .InnerText
                             .Replace("\"", "");
         var elements = new List<HtmlNode>();
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         while (true)
         {
             var items = soup.SelectSingleNodeOrThrow("//ul[@class='g1-collection-items']")

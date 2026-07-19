@@ -23,7 +23,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for rule34video.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses  the HTML for rule34video.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -35,7 +35,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         }
         
         var client = new Client(Config.CSWebDriverUri);
-        await Sleep(500);
+        await Sleep(500, cancellationToken);
         Logger.Debug("Searching for continue button");
         var continueButton = Driver.TryFindElement(By.XPath("//input[@name='continue']"));
         if (continueButton is not null)
@@ -61,7 +61,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         {
             ["kt_rt_popAccess"] = "1"
         };
-        var response = await client.GetPage(CurrentUrl, cookies: requestCookies);
+        var response = await client.GetPage(CurrentUrl, cookies: requestCookies, cancellationToken: cancellationToken);
         if (response is ErrorResponse errorResponse)
         {
             Logger.Error("Error retrieving page: {Error}", errorResponse.Error);
@@ -69,25 +69,25 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         }
 
         var pageResponse = (PageResponse)response;
-        var soup = await Soupify(pageResponse.Content, urlString: false);
+        var soup = await Soupify(pageResponse.Content, urlString: false, cancellationToken: cancellationToken);
         string dirName;
-        List<StringImageLinkWrapper> images;
+        List<StringFileLinkWrapper> files;
         if (CurrentUrl.Contains("/models/"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText;
-            images = await GetVideoForModel(client, soup);
+            files = await GetVideoForModel(client, soup);
         }
         else if (CurrentUrl.Contains("/video/"))
         {
-            images = [];
-            (var downloadLink, dirName) = await GetVideoDownloadUrl(soup: soup);
-            var imageLink = new ImageLink(downloadLink, FilenameScheme, 0, filename: dirName + ".mp4");
-            images.Add(imageLink);
+            files = [];
+            (var downloadLink, dirName) = await GetVideoDownloadUrl(soup: soup, cancellationToken: cancellationToken);
+            var fileLink = FileLink.WithFilename(downloadLink, $"{dirName}.mp4", FilenameScheme);
+            files.Add(fileLink);
         }
         else if (CurrentUrl.Contains("/search/"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").ChildNodes[0].InnerText;
-            images = await GetVideoForSearch(client, soup);
+            files = await GetVideoForSearch(client, soup);
         }
         else
         {
@@ -101,20 +101,20 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         var cookieString = cookies.Select(kvp => $"{kvp.Key}={kvp.Value}")
                                   .Join("; ");
         RequestHeaders[RequestHeaderKeys.Cookie] = cookieString;
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(files, dirName, FilenameScheme);
     }
 
-    private Task<List<StringImageLinkWrapper>> GetVideoForSearch(Client client, HtmlNode soup)
+    private Task<List<StringFileLinkWrapper>> GetVideoForSearch(Client client, HtmlNode soup)
     {
         return GetVideoForPage(client, soup, "//div[@id='custom_list_videos_videos_list_search_items']");
     }
 
-    private Task<List<StringImageLinkWrapper>> GetVideoForModel(Client client, HtmlNode soup)
+    private Task<List<StringFileLinkWrapper>> GetVideoForModel(Client client, HtmlNode soup)
     {
         return GetVideoForPage(client, soup, "//div[@id='custom_list_videos_common_videos_items']");
     }
     
-    private async Task<List<StringImageLinkWrapper>> GetVideoForPage(Client client, HtmlNode soup, string videoXpath)
+    private async Task<List<StringFileLinkWrapper>> GetVideoForPage(Client client, HtmlNode soup, string videoXpath)
     {
         var videoPosts = new List<string>();
         var page = 1;
@@ -159,17 +159,17 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         return await ParseVideoPosts(videoPosts);
     }
 
-    private async Task<List<StringImageLinkWrapper>> ParseVideoPosts(List<string> videoPosts)
+    private async Task<List<StringFileLinkWrapper>> ParseVideoPosts(List<string> videoPosts)
     {
-        var images = new List<StringImageLinkWrapper>();
+        var files = new List<StringFileLinkWrapper>();
         foreach (var post in videoPosts)
         {
             var (downloadLink, title) = await GetVideoDownloadUrl(post: post);
-            var imageLink = new ImageLink(downloadLink, FilenameScheme, 0, filename: title + ".mp4");
-            images.Add(imageLink);
+            var fileLink = FileLink.WithFilename(downloadLink, $"{title}.mp4", FilenameScheme);
+            files.Add(fileLink);
         }
         
-        return images;
+        return files;
     }
 
     private async Task<(string, string)> GetVideoDownloadUrl(HtmlNode? soup = null, string? post = null, CancellationToken cancellationToken = default)
@@ -184,7 +184,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
             
             Logger.Debug("Parsing post: {Post}", post);
             CurrentUrl = post;
-            soup = await SolveParse();
+            soup = await SolveParse(cancellationToken: cancellationToken);
         }
         
         var title = soup.SelectSingleNodeOrThrow("//h1[@class='title_video']").InnerText;

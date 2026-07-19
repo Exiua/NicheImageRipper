@@ -27,7 +27,7 @@ public class JieAvParser : HtmlParser, IHtmlParser
         var (capturer, b) = await ConfigureNetworkCapture<JieAvCapturer>();
         await using var bidi = b;
         Driver.Refresh();
-        var images = new List<StringImageLinkWrapper>();
+        var images = new List<StringFileLinkWrapper>();
         while (true)
         {
             var videoLinks = capturer.GetNewVideoLinks();
