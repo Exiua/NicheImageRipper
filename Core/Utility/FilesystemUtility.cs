@@ -23,7 +23,7 @@ public static class FilesystemUtility
         {
             return "";
         }
-        
+
         Logger.Debug("Cleaning path stem for \"{PathName}\"", pathName);
         pathName = WebUtility.HtmlDecode(pathName).Trim(' ', '\t', '\n', '\r');
         var cleanedPathStem = new StringBuilder();
@@ -32,12 +32,17 @@ public static class FilesystemUtility
             cleanedPathStem.Append(c);
         }
 
+        if (cleanedPathStem.Length == 0)
+        {
+            return "";
+        }
+
         if (!AllowedRightPunctuation.Contains(cleanedPathStem[^1]))
         {
             RStripPunctuation(cleanedPathStem);
         }
 
-        if (!AllowedLeftPunctuation.Contains(cleanedPathStem[0]))
+        if (cleanedPathStem.Length > 0 && !AllowedLeftPunctuation.Contains(cleanedPathStem[0]))
         {
             LStripPunctuation(cleanedPathStem);
         }
