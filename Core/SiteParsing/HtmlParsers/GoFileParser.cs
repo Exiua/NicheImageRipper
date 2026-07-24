@@ -28,17 +28,17 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
             CurrentUrl = url;
         }
     
-        await SiteLogin();
+        await SiteLogin(cancellationToken);
         // var cookie = new Cookie("accountToken", cookieValue, ".gofile.io", "/", null, 
         //     true, false, "Lax");
         // Driver.AddCookie(cookie);
-        await Sleep(5000);
-        var soup = await Soupify();
+        await Sleep(5000, cancellationToken);
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var password = soup.SelectSingleNode("//input[@type='password']");
         if (password is not null)
         {
             Logger.Warning("URL is password protected. Writing url to file...");
-            await File.WriteAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n");
+            await File.WriteAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n", cancellationToken);
             // TODO: Find a better way to handle password protected files
             return RipInfo.Empty.WithDirectoryName("Password Protected");
         }
@@ -63,7 +63,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
             {
                 Logger.Debug("Found nested url: {url}", url);
                 CurrentUrl = url;
-                await Sleep(5000);
+                await Sleep(5000, cancellationToken);
             }
             
             var playButtons = Driver.FindElements(By.CssSelector(
@@ -82,13 +82,13 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                         Driver.GetScreenshot().SaveAsFile("test.png");
                         Driver.ExecuteScript("arguments[0].click();", button);
                     }
-                    await Sleep(125);
+                    await Sleep(125, cancellationToken);
                 }
             }
     
             //Driver.WaitUntilElementExists(By.XPath("//div[@id='filesContentTableContent']/div"));
             // ReSharper disable once VariableHidesOuterVariable
-            var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]");
+            var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]", cancellationToken: cancellationToken);
             var links = new List<StringFileLinkWrapper>();
             var entries = soup.SelectNodesOrThrow("//div[@id='filesContentTableContent']/div");
             foreach (var entry in entries)

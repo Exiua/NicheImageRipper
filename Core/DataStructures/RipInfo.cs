@@ -1,8 +1,8 @@
 ﻿using Google;
 using JetBrains.Annotations;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.SiteParsing.LinkRules;
 using NicheImageRipper.Core.Utility;
 using Serilog;
 
@@ -31,11 +31,11 @@ public class RipInfo
     public string DirectoryName
     {
         get;
-        set => field = CleanDirectoryName(value);
+        set => field = FilesystemUtility.CleanDirectoryName(value, MaxDirectoryNameLength);
     } = null!; // Initialized through the property setter
 
     public static RipInfo Empty => new([]);
-    
+
     [UsedImplicitly]
     public RipInfo()
     {
@@ -110,7 +110,7 @@ public class RipInfo
     }
 
     private async Task<List<FileLink>> ConvertUrlsToFileLink(List<StringFileLinkWrapper> urls, bool discardBlob,
-                                                               List<string>? filenames = null, string? referer = "")
+                                                             List<string>? filenames = null, string? referer = "")
     {
         var fileLinks = new List<FileLink>();
         var linkCounter = 0; // Current index of fileLinks (used for naming fileLinks when generating numeric names)
@@ -132,13 +132,13 @@ public class RipInfo
                 continue;
             }
 
-            if (url.Url.Contains("drive.google.com"))
+            if (SiteLinkRuleRegistry.FindMatch(url.Url) is IExpandingSiteLinkRule expandingRule)
             {
                 try
                 {
-                    var (fileLink, newLinkCounter) =
-                        await GDriveHelper.QueryGDriveLinks(url.Url, linkCounter, FilenameScheme);
-                    fileLinks.AddRange(fileLink);
+                    var (expandedLinks, newLinkCounter) =
+                        await expandingRule.ExpandAsync(url.Url, linkCounter, FilenameScheme);
+                    fileLinks.AddRange(expandedLinks);
                     linkCounter = newLinkCounter;
                 }
                 catch (GoogleApiException) // googleapiclient.errors.HttpError
@@ -150,7 +150,8 @@ public class RipInfo
             {
                 var filename = filenames?[filenameCounter] ?? "";
                 filenameCounter++;
-                var fileLink = FileLink.WithFilename(url.Url, filename, FilenameScheme, index: linkCounter, referer: referer);
+                var fileLink = FileLink.WithFilename(url.Url, filename, FilenameScheme, index: linkCounter,
+                    referer: referer);
                 fileLinks.Add(fileLink);
                 linkCounter++;
             }
@@ -182,23 +183,6 @@ public class RipInfo
         }
 
         return newUrls;
-    }
-
-    private string CleanDirectoryName(string directoryName)
-    {
-        var name = string.IsNullOrWhiteSpace(directoryName)
-            ? Guid.NewGuid().ToString()
-            : FilesystemUtility.CleanPathStem(directoryName);
-        if (name.Length <= MaxDirectoryNameLength)
-        {
-            return name;
-        }
-
-        _logger.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
-            name.Length, MaxDirectoryNameLength);
-        name = name[..MaxDirectoryNameLength].Trim();
-
-        return name;
     }
 
     public override string ToString()

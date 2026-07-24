@@ -8,8 +8,10 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 public class GoogleParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "google";
-    
-    public GoogleParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GoogleParser>(filenameScheme))
+
+    public GoogleParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<GoogleParser>(filenameScheme))
     {
     }
 
@@ -19,7 +21,7 @@ public class GoogleParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return await GoogleParse("");
+        return await GoogleParse("", cancellationToken);
     }
 
     /// <summary>
@@ -33,7 +35,7 @@ public class GoogleParser : HtmlParser, IHtmlParser
         {
             gdriveUrl = CurrentUrl;
         }
-    
+
         // Actual querying happens within the RipInfo object
         return Task.FromResult(RipInfo.FromUrlList([gdriveUrl], "", FilenameScheme));
     }

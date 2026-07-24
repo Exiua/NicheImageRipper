@@ -6,11 +6,11 @@ namespace NicheImageRipper.Core.Utility;
 
 public static class FilesystemUtility
 {
-    private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*' , '\r', '\n'];
+    private static readonly HashSet<char> ForbiddenChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*', '\r', '\n'];
     private static readonly HashSet<char> AllowedRightPunctuation = [')', ']', '}', '】', '»', '“', '”', '’', '」', '』'];
     private static readonly HashSet<char> AllowedLeftPunctuation = ['(', '[', '{', '【', '«', '„', '“', '‘', '「', '『'];
-    private static readonly ILogger Logger = Log.ForContext(typeof(FilesystemUtility)); 
-    
+    private static readonly ILogger Logger = Log.ForContext(typeof(FilesystemUtility));
+
     /// <summary>
     ///     Clean a path name by removing forbidden characters and trimming whitespace and punctuation. Does not modify
     ///     valid enclosing characters such as parentheses, brackets, or braces.
@@ -49,7 +49,38 @@ public static class FilesystemUtility
 
         return cleanedPathStem.ToString();
     }
-    
+
+    /// <summary>
+    ///     Clean a directory name by running it through <see cref="CleanPathStem"/>, falling back to a random guid
+    ///     if the input is blank or cleans down to nothing, and truncating if it exceeds <paramref name="maxLength"/>.
+    /// </summary>
+    /// <param name="directoryName">The raw directory name to clean</param>
+    /// <param name="maxLength">Maximum allowed length; longer names are truncated</param>
+    /// <returns>The cleaned (and possibly truncated or guid-replaced) directory name</returns>
+    public static string CleanDirectoryName(string directoryName, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(directoryName))
+        {
+            return Guid.NewGuid().ToString();
+        }
+
+        var name = CleanPathStem(directoryName);
+        if (name == "")
+        {
+            Logger.Warning("Directory name was cleaned to empty: {DirectoryName}", directoryName);
+            return Guid.NewGuid().ToString();
+        }
+
+        if (name.Length <= maxLength)
+        {
+            return name;
+        }
+
+        Logger.Warning("Directory name too long (length: {Length}). Truncating to {MaxLength} characters.",
+            name.Length, maxLength);
+        return name[..maxLength].Trim();
+    }
+
     private static void LStripPunctuation(StringBuilder input)
     {
         if (input.Length == 0)
