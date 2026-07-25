@@ -502,7 +502,7 @@ public partial class ImageRipper : IDisposable
                         Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
                         var parser = new EHentaiParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
-                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
+                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
                         FolderInfo.Urls = updatedLinks;
                     }
                     catch (PornhubUrlExpiredException e)
@@ -511,7 +511,7 @@ public partial class ImageRipper : IDisposable
                         Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
                         var parser = new PornhubParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
-                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start);
+                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
                         FolderInfo.Urls = updatedLinks;
                     }
                 }
@@ -1617,45 +1617,6 @@ public partial class ImageRipper : IDisposable
 
         return destinationPath;
     }
-
-    /*private static string ExtractDownloadPath(string line)
-    {
-        var inPath = false;
-        var path = "";
-        var found = false;
-        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var c in line)
-        {
-            if (found)
-            {
-                break;
-            }
-
-            switch (c)
-            {
-                case '"':
-                    if (!inPath)
-                    {
-                        inPath = true;
-                    }
-                    else
-                    {
-                        found = true;
-                    }
-
-                    break;
-                default:
-                    if (inPath)
-                    {
-                        path += c;
-                    }
-
-                    break;
-            }
-        }
-
-        return path;
-    }*/
 
     /// <summary>
     ///     Downloads a file from the specified image link.
