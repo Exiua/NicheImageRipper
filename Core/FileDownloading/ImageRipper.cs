@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using ImageMagick;
-using IwaraApiClient;
 using IwaraApiClient.Models;
 using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Common.ExtensionMethods;
@@ -134,6 +133,12 @@ public partial class ImageRipper : IDisposable
     private ILogger Logger { get; }
     public bool Paused { get; set; }
 
+    private FileDownloadStrategyRegistry StrategyRegistry { get; }
+    private IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; }
+    private IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; }
+    private IReadOnlyList<IPostDownloadValidator> PostDownloadValidators { get; }
+    private DownloadContext DownloadContext { get; set; } = null!;
+
     private bool _disposed;
 
     private FirefoxDriver Driver => WebDriver.Driver;
@@ -165,6 +170,11 @@ public partial class ImageRipper : IDisposable
         DriverPool = driverPool;
         WebDriver = driverPool.AcquireDriver(true);
         Logger = Log.ForContext<ImageRipper>();
+
+        StrategyRegistry = DownloadCompositionRoot.BuildStrategyRegistry();
+        HeaderModifiers = DownloadCompositionRoot.BuildHeaderModifiers();
+        ErrorHandlers = DownloadCompositionRoot.BuildErrorHandlers();
+        PostDownloadValidators = DownloadCompositionRoot.BuildPostDownloadValidators();
     }
 
     public async Task Rip(string url, CancellationToken cancellationToken = default)
@@ -241,9 +251,24 @@ public partial class ImageRipper : IDisposable
         return start;
     }
 
+    private DownloadContext BuildDownloadContext() => new()
+    {
+        RequestHeaders = RequestHeaders,
+        ClientManager = ClientManager,
+        WebDriver = WebDriver,
+        Session = Session,
+        SiteName = SiteName,
+        SleepTime = SleepTime,
+        Logger = Logger,
+        HeaderModifiers = HeaderModifiers,
+        ErrorHandlers = ErrorHandlers,
+        PostDownloadValidators = PostDownloadValidators,
+    };
+
     private async Task FileGetter(CancellationToken cancellationToken = default)
     {
         LoadCorrectWebDriver();
+        DownloadContext = BuildDownloadContext();
 
         var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
         Logger.Debug("Constructed HtmlParser");
@@ -411,7 +436,7 @@ public partial class ImageRipper : IDisposable
                 {
                     // TODO
                 }
-                
+
                 break;
             // Probably need to extract parts into separate methods
             default:
@@ -490,7 +515,8 @@ public partial class ImageRipper : IDisposable
 
                                 // Compute the absolute index (i is the relative index after start)
                                 var index = start + i;
-                                await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true, cancellationToken);
+                                await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true,
+                                    cancellationToken);
                             }
                         }
 
@@ -542,10 +568,8 @@ public partial class ImageRipper : IDisposable
         {
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
-            var skipDownload = new Box<bool>(false);
-            var success =
-                await DownloadFromList(link, imagePath, index, downloadStats, skipDownload, cancellationToken);
-            if (success && !skipDownload)
+            var result = await DownloadFromList(link, imagePath, index, downloadStats, cancellationToken);
+            if (result.Outcome == DownloadOutcome.Success)
             {
                 // DownloadFromList may modify filename (if it was missing extension)
                 imagePath = Path.Combine(fullPath, link.Filename);
@@ -578,8 +602,7 @@ public partial class ImageRipper : IDisposable
             if (e.Message.Contains("see inner exception"))
             {
                 Logger.Debug("Caught exception with inner exception while downloading {Url}: {InnerException}",
-                    link.Url,
-                    e.InnerException?.Message);
+                    link.Url, e.InnerException?.Message);
             }
             else
             {
@@ -870,127 +893,34 @@ public partial class ImageRipper : IDisposable
     /// <summary>
     ///     Download images from url supplied from a list of image urls
     /// </summary>
-    /// <param name="fileLink">ImageLink containing data on the file to download</param>
+    /// <param name="link"><see cref="FileLink"/> containing data on the file to download</param>
     /// <param name="imagePath">Full path of the location to save the file to</param>
     /// <param name="currentFileNum">Number of the file being downloaded</param>
     /// <param name="downloadStats">DownloadStats object to update with results</param>
-    /// <param name="skipDownload">Whether this download is being skipped due to being undownloadable for various reasons</param>
     /// <param name="cancellationToken">Cancellation token to cancel the download operation</param>
-    private async Task<bool> DownloadFromList(FileLink fileLink, string imagePath, int currentFileNum,
-                                              DownloadStats downloadStats, Box<bool> skipDownload,
-                                              CancellationToken cancellationToken = default)
+    private async Task<DownloadResult> DownloadFromList(FileLink link, string imagePath, int currentFileNum,
+                                                        DownloadStats downloadStats,
+                                                        CancellationToken cancellationToken = default)
     {
         var numFiles = FolderInfo.NumUrls;
-        var ripUrl = fileLink.Url;
-        var displayUrl = fileLink.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
+        var ripUrl = link.Url;
+        var displayUrl = link.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
         Logger.Information("{Url:l}    ({CurrentProgress}/{TotalProgress})", displayUrl, currentFileNum + 1, numFiles);
+
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
-        if (fileLink.HasReferer)
+        if (link.HasReferer)
         {
-            RequestHeaders[RequestHeaderKeys.Referer] = fileLink.Referer;
+            RequestHeaders[RequestHeaderKeys.Referer] = link.Referer;
         }
-        else if (fileLink.Referer is null)
+        else if (link.Referer is null)
         {
             RequestHeaders[RequestHeaderKeys.Referer] = "";
         }
 
-        bool success;
-        switch (fileLink.LinkInfo)
-        {
-            case LinkInfo.M3U8Ffmpeg:
-                success = await DownloadM3U8ToMp4(imagePath, fileLink, cancellationToken);
-                if (!success)
-                {
-                    success = await DownloadObfuscatedM3U8(imagePath, fileLink, cancellationToken);
-                }
+        var strategy = StrategyRegistry.Resolve(link.LinkInfo);
+        var result = await strategy.DownloadAsync(link, imagePath, DownloadContext, cancellationToken);
 
-                break;
-            case LinkInfo.M3U8YtDlp:
-                success = await DownloadM3U8YtDlp(imagePath, fileLink, cancellationToken);
-                if (!success)
-                {
-                    success = await DownloadObfuscatedM3U8(imagePath, fileLink, cancellationToken);
-                }
-
-                break;
-            case LinkInfo.ObfuscatedM3U8:
-                success = await DownloadObfuscatedM3U8(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.GDrive:
-                success = await DownloadGDriveFile(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.IframeMedia:
-                success = await DownloadIframeMedia(imagePath, fileLink, cancellationToken);
-                // TODO: Figure out how to delete temp directories
-                break;
-            case LinkInfo.Mega:
-                success = await DownloadMegaFiles(imagePath, fileLink, cancellationToken);
-                Logger.Debug("Success from Mega: {Success}", success);
-                break;
-            case LinkInfo.PixelDrain:
-                success = await DownloadPixelDrainFiles(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.YoutubeVideo:
-                success = await DownloadYoutubeVideo(imagePath, fileLink, cancellationToken);
-                await Sleep(1250, cancellationToken);
-                break;
-            case LinkInfo.Text:
-                await File.AppendAllTextAsync(imagePath, ripUrl + "\n", cancellationToken);
-                success = true;
-                break;
-            case LinkInfo.MpegDash:
-                success = await DownloadMpegDashFile(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.ResolveImage:
-                success = await ResolveAndDownloadFile(imagePath, fileLink, skipDownload, cancellationToken);
-                break;
-            case LinkInfo.SeleniumImage:
-                success = await DownloadSeleniumImage(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.Base64:
-                success = await DownloadBase64Image(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.PixivUgoira:
-                success = await DownloadPixivUgoira(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.SteamCommunity:
-                success = await DownloadSteamCommunity(imagePath, fileLink, cancellationToken);
-                break;
-            case LinkInfo.Iwara:
-                var result = await DownloadIwara(imagePath, fileLink, cancellationToken);
-                switch (result)
-                {
-                    case RequestResult.VideoPrivate:
-                        Logger.Warning("Video is private. Please use the credentials of an account that has access to this video");
-                        success = true; // No point in retrying
-                        skipDownload.Value = true;
-                        break;
-                    case RequestResult.VideoNotFound:
-                    {
-                        Logger.Warning("Video not found. Please check the URL");
-                        var parentPath = Directory.GetParent(imagePath)!.FullName;
-                        await File.AppendAllTextAsync(Path.Combine(parentPath, "failed.txt"), ripUrl + "\n", cancellationToken);
-                        success = true; // No point in retrying
-                        skipDownload.Value = true;
-                        break;
-                    }
-                    default:
-                        success = result == RequestResult.Success;
-                        break;
-                }
-                
-                break;
-            case LinkInfo.GoFile:
-            case LinkInfo.None:
-                success = await DownloadFile(imagePath, fileLink, false, skipDownload, cancellationToken);
-                break;
-            default:
-                var e = new RipperException("Unknown LinkInfo: " + fileLink.LinkInfo);
-                Logger.Error(e, "Unknown LinkInfo: {LinkInfo}", fileLink.LinkInfo);
-                throw e;
-        }
-
-        if (!success)
+        if (result.Outcome == DownloadOutcome.Failed)
         {
             if (Config.SkipFailedDownloads)
             {
@@ -998,14 +928,20 @@ public partial class ImageRipper : IDisposable
             }
             else
             {
-                throw new RipperException("Failed to download file: " + ripUrl);
+                throw new RipperException("Failed to download file: " + ripUrl +
+                                          (result.Reason is null ? "" : $" ({result.Reason})"));
             }
+        }
+
+        if (link.LinkInfo == LinkInfo.YoutubeVideo)
+        {
+            await Sleep(1250, cancellationToken);
         }
 
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         await Sleep(50, cancellationToken);
 
-        return success;
+        return result;
     }
 
     private async Task<bool> ResolveAndDownloadFile(string path, FileLink fileLink, Box<bool> skipDownload,
@@ -1244,7 +1180,7 @@ public partial class ImageRipper : IDisposable
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             // TODO: Need better way to check if megacmd has timeout or is just downloading large amounts of data
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
             try
@@ -1537,7 +1473,7 @@ public partial class ImageRipper : IDisposable
     }
 
     private async Task<RequestResult> DownloadIwara(string filePath, FileLink fileLink,
-                                           CancellationToken cancellationToken = default)
+                                                    CancellationToken cancellationToken = default)
     {
         var client = ClientManager.IwaraClient;
         var url = fileLink.Url;
@@ -1548,15 +1484,15 @@ public partial class ImageRipper : IDisposable
         {
             success = await client.DownloadVideo(videoId, filePath, cancellationToken);
         }
-        catch (IOException e) when(e.Message.StartsWith("There is not enough space on the disk"))
+        catch (IOException e) when (e.Message.StartsWith("There is not enough space on the disk"))
         {
             throw new NotEnoughDiskSpaceException(e);
         }
-        
+
         await HtmlParser.JitterSleep(min: 250, max: 500, cancellationToken: cancellationToken);
         return success;
     }
-    
+
     public static void CopyFolder(string sourceFolder, string destinationRoot)
     {
         if (!Directory.Exists(sourceFolder))
