@@ -8,7 +8,7 @@ using static ConfigAccess;
 
 public sealed class MegaDownloadStrategy : IFileDownloadStrategy
 {
-    public LinkInfo HandlesLinkInfo => LinkInfo.Mega;
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [ LinkInfo.Mega ];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                      CancellationToken cancellationToken = default)

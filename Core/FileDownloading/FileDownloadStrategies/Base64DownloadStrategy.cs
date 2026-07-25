@@ -5,7 +5,7 @@ namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 
 public sealed class Base64DownloadStrategy : IFileDownloadStrategy
 {
-    public LinkInfo HandlesLinkInfo => LinkInfo.Base64;
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [ LinkInfo.Base64 ];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)

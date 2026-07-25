@@ -5,7 +5,7 @@ namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 
 public sealed class TextDownloadStrategy : IFileDownloadStrategy
 {
-    public LinkInfo HandlesLinkInfo => LinkInfo.Text;
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [ LinkInfo.Text ];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)

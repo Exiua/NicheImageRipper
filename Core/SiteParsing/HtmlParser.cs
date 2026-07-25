@@ -666,7 +666,7 @@ public abstract class HtmlParser : IDisposable
     {
         var capturer = new T();
         var bidi = await Driver.AsBiDiAsync(cancellationToken: cancellationToken);
-        await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook, cancellationToken: cancellationToken);
+        await bidi.Network.ResponseCompleted.SubscribeAsync(capturer.CaptureHook, cancellationToken: cancellationToken);
         return (capturer, bidi);
     }
 
