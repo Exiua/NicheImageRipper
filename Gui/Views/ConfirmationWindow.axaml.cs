@@ -16,12 +16,12 @@ public partial class ConfirmationWindow : Window
     private void Reject(object? sender, RoutedEventArgs e)
     {
         ViewModel.Confirmed = false;
-        Close();
+        Close(ViewModel);
     }
     
     private void Accept(object? sender, RoutedEventArgs e)
     {
         ViewModel.Confirmed = true;
-        Close();
+        Close(ViewModel);
     }
 }

@@ -11,7 +11,7 @@ public sealed class YoutubeVideoDownloadStrategy : IFileDownloadStrategy
                                                     CancellationToken cancellationToken = default)
     {
         var success = await YtDlpRunner.RunYtDlp(link, imagePath, "Starting youtube-dl download",
-            "youtube-dl download finished", context, cancellationToken);
+            "youtube-dl download finished", cancellationToken);
         return success ? DownloadResult.Success() : DownloadResult.Failed();
     }
 }

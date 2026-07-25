@@ -40,6 +40,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));
         cookieJar.AddCookie(new Cookie("adBlockAlertHidden", "1"));
         Driver.Refresh();
+        StoreLastLink(CurrentUrl);
         var soup = await Soupify(cancellationToken: cancellationToken);
         string dirName;
         List<StringFileLinkWrapper> images;
@@ -116,6 +117,11 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                         }
 
                         break;
+                    }
+                    catch (ElementNotFoundException)
+                    {
+                        Logger.Warning("Element not found while parsing post {post}", post);
+                        await Sleep(250, cancellationToken);
                     }
                     catch (WebDriverException e)
                     {

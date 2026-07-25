@@ -13,7 +13,7 @@ public sealed class M3U8YtDlpDownloadStrategy : IFileDownloadStrategy
                                                     CancellationToken cancellationToken = default)
     {
         var success = await YtDlpRunner.RunYtDlp(link, imagePath, "Starting yt-dlp download",
-            "yt-dlp download finished", context, cancellationToken);
+            "yt-dlp download finished", cancellationToken);
         return success
             ? DownloadResult.Success()
             : await _obfuscatedFallback.DownloadAsync(link, imagePath, context, cancellationToken);
