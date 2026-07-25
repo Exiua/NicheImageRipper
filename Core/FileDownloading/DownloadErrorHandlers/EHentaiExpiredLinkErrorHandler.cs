@@ -16,6 +16,6 @@ public sealed class EHentaiExpiredLinkErrorHandler : IDownloadErrorHandler
     {
         context.Logger.Information("E-Hentai URL expired, trying to update links...");
         await Task.Delay(10 * MillisecondsInSecond, cancellationToken);
-        throw new EHentaiUrlExpiredException();
+        throw new UrlExpiredException(context.SiteName);
     }
 }

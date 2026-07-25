@@ -47,7 +47,8 @@ public class PartialSaveManager
                                                 FilenameScheme INTEGER NOT NULL,
                                                 MustGenerateManually BOOLEAN NOT NULL,
                                                 NumUrls INTEGER NOT NULL,
-                                                DirectoryName TEXT NOT NULL
+                                                DirectoryName TEXT NOT NULL,
+                                                MaxConcurrentDownloads INTEGER
                                             );
                                             """;
         const string createIndexQuery = "CREATE INDEX IF NOT EXISTS url_index ON partial_saves (Url);";
@@ -149,7 +150,8 @@ public class PartialSaveManager
                                                           FilenameScheme,
                                                           MustGenerateManually,
                                                           NumUrls,
-                                                          DirectoryName
+                                                          DirectoryName,
+                                                          MaxConcurrentDownloads
                                                       )
                                                       VALUES
                                                       (
@@ -160,7 +162,8 @@ public class PartialSaveManager
                                                           @FilenameScheme,
                                                           @MustGenerateManually,
                                                           @NumUrls,
-                                                          @DirectoryName
+                                                          @DirectoryName,
+                                                          @MaxConcurrentDownloads
                                                       );
 
                                                       SELECT last_insert_rowid();
@@ -177,7 +180,8 @@ public class PartialSaveManager
                         FilenameScheme = (int)ripInfo.FilenameScheme,
                         ripInfo.MustGenerateManually,
                         ripInfo.NumUrls,
-                        ripInfo.DirectoryName
+                        ripInfo.DirectoryName,
+                        ripInfo.MaxConcurrentDownloads
                     },
                     transaction);
 
@@ -215,7 +219,7 @@ public class PartialSaveManager
                         Referer = imageLink.Referer ?? string.Empty,
                         LinkInfo = (int)imageLink.LinkInfo,
                         imageLink.Url,
-                        Filename = imageLink.Filename
+                        imageLink.Filename
                     };
                 });
 
@@ -290,7 +294,8 @@ public class PartialSaveManager
                                                FilenameScheme,
                                                MustGenerateManually,
                                                NumUrls,
-                                               DirectoryName
+                                               DirectoryName,
+                                               MaxConcurrentDownloads
                                            FROM partial_saves
                                            WHERE Url = @Url
                                            LIMIT 1;
@@ -347,7 +352,8 @@ public class PartialSaveManager
                     MustGenerateManually = row.MustGenerateManually,
                     NumUrls = (int)row.NumUrls,
                     DirectoryName = row.DirectoryName,
-                    Urls = imageLinks
+                    Urls = imageLinks,
+                    MaxConcurrentDownloads = row.MaxConcurrentDownloads is not null ? (int?)row.MaxConcurrentDownloads : null
                 }
             };
         }

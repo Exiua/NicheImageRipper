@@ -7,7 +7,9 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public class DeviantartParser : HtmlParser
 {
-    public DeviantartParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public DeviantartParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
 
@@ -17,9 +19,9 @@ public class DeviantartParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = CurrentUrl.Split("/")[3];
-    
+
         var images = new List<StringFileLinkWrapper>();
         // TODO: Implement the rest of the method
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

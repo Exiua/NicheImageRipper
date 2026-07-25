@@ -34,7 +34,7 @@ public sealed class ObfuscatedM3U8DownloadStrategy : IFileDownloadStrategy
             // IDownloadErrorHandler's shape) — consistent with pinning further site-quirk extraction for now.
             if (context.SiteName == "pornhub" && e.StatusCode is HttpStatusCode.Gone or HttpStatusCode.NotFound)
             {
-                throw new PornhubUrlExpiredException();
+                throw new UrlExpiredException(context.SiteName);
             }
 
             context.Logger.Error(e, "Failed to download obfuscated M3U8");

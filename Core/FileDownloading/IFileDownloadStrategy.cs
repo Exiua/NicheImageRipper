@@ -7,6 +7,7 @@ namespace NicheImageRipper.Core.FileDownloading;
 public interface IFileDownloadStrategy
 {
     IEnumerable<LinkInfo> HandlesLinkInfo { get; }
+    bool SupportsPostProcessing => true; // default; override to false where an external tool owns the result
 
     /// <summary>
     ///     Only Success, SkipNotAFailure, or Failed should ever be returned — Retry is for internal use between

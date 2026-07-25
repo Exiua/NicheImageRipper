@@ -104,7 +104,7 @@ public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
             if (context.SiteName == "e-hentai")
             {
                 // Used to force generation of unparsed links (partial-parsing approach — may fire multiple times per rip)
-                throw new EHentaiUrlExpiredException();
+                throw new UrlExpiredException(context.SiteName);
             }
 
             throw new RipperException("Invalid ImageLink found for non-EHentai site");

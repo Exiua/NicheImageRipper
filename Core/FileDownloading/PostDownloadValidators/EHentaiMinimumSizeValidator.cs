@@ -19,6 +19,6 @@ public sealed class EHentaiMinimumSizeValidator : IPostDownloadValidator
         }
 
         context.Logger.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", filePath, size);
-        throw new EHentaiUrlExpiredException();
+        throw new UrlExpiredException(context.SiteName);
     }
 }

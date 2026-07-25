@@ -522,20 +522,11 @@ public partial class ImageRipper : IDisposable
 
                         break;
                     }
-                    catch (EHentaiUrlExpiredException e)
+                    catch (UrlExpiredException e)
                     {
-                        Logger.Information("Refreshing EHentai links");
+                        Logger.Information("Refreshing {SiteName} links", e.SiteName);
                         Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
-                        var parser = new EHentaiParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
-                        start = e.ResumeIndex;
-                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
-                        FolderInfo.Urls = updatedLinks;
-                    }
-                    catch (PornhubUrlExpiredException e)
-                    {
-                        Logger.Information("Refreshing Pornhub links");
-                        Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
-                        var parser = new PornhubParser(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
+                        var parser = (TimeSensitiveHtmlParser)HtmlParser.GetParser(e.SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                         start = e.ResumeIndex;
                         var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
                         FolderInfo.Urls = updatedLinks;
@@ -585,15 +576,9 @@ public partial class ImageRipper : IDisposable
                 await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n", cancellationToken);
             }
         }
-        catch (EHentaiUrlExpiredException e)
+        catch (UrlExpiredException e)
         {
-            Logger.Debug("Caught EHentaiUrlExpiredException, need to refresh links");
-            e.ResumeIndex = index;
-            throw;
-        }
-        catch (PornhubUrlExpiredException e)
-        {
-            Logger.Debug("Caught PornhubUrlExpiredException, need to refresh links");
+            Logger.Information("Caught UrlExpiredException, need to refresh links");
             e.ResumeIndex = index;
             throw;
         }
@@ -640,7 +625,7 @@ public partial class ImageRipper : IDisposable
                 return;
             }
 
-            if (link.LinkInfo is LinkInfo.Mega or LinkInfo.YoutubeVideo or LinkInfo.SteamCommunity)
+            if (!StrategyRegistry.Resolve(link.LinkInfo).SupportsPostProcessing)
             {
                 return;
             }
@@ -667,104 +652,6 @@ public partial class ImageRipper : IDisposable
         {
             Logger.Error("Failed to download from DeviantArt");
         }
-
-        return exitCode == 0;
-    }
-
-    internal static async Task<FfmpegStatusCode> RunFfmpeg(string[] cmd,
-                                                           string startMessage = "Starting ffmpeg download",
-                                                           string endMessage = "Ffmpeg download finished",
-                                                           bool displayOutput = false,
-                                                           CancellationToken cancellationToken = default)
-    {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
-        {
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.Ffmpeg);
-        }
-
-        if (!displayOutput)
-        {
-            cmd = ["-loglevel", "quiet", "-y", ..cmd];
-        }
-        else
-        {
-            cmd = ["-y", ..cmd];
-        }
-
-        Log.Debug("ffmpeg {cmd}", string.Join(" ", cmd));
-        var (exitCode, _, _) = await RunSubprocess("ffmpeg", cmd, captureError: displayOutput,
-            startMessage: startMessage, endMessage: endMessage, cancellationToken: cancellationToken);
-        if (exitCode != 0)
-        {
-            Log.Error("Failed to run ffmpeg: {ExitCode}", exitCode);
-        }
-
-        return (FfmpegStatusCode)exitCode;
-    }
-
-    private async Task<bool> RunYtDlp(FileLink link, string path, string startMessage, string endMessage,
-                                      CancellationToken cancellationToken = default)
-    {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
-        {
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
-        }
-
-        var url = link.Url;
-        var parent = Directory.GetParent(path)!.FullName;
-        var filename = Path.GetFileName(path);
-        string[] cmd = link.Referer != ""
-            ?
-            [
-                "--force-overwrites",
-                "-P", $"\"{parent}\"",
-                "-o", $"\"{filename}\"",
-                "--add-headers", $"\"Referer:{link.Referer}\"",
-                $"\"{url}\"",
-            ]
-            :
-            [
-                "--force-overwrites",
-                "-P", $"\"{parent}\"",
-                "-o", $"\"{filename}\"",
-                $"\"{url}\"",
-            ];
-        //cmd = [ "--no-warnings", ..cmd ];
-        Logger.Debug("yt-dlp {cmd}", string.Join(" ", cmd));
-        var (exitCode, output, _) = await RunSubprocess("yt-dlp", cmd, true, /* true,*/
-            startMessage: startMessage, endMessage: endMessage, cancellationToken: cancellationToken);
-
-        if (exitCode == 0 || link.LinkInfo != LinkInfo.YoutubeVideo)
-        {
-            return exitCode == 0;
-        }
-
-        var lines = output!.Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var ageRestricted = lines.Any(line => line.Contains("This video is age-restricted"));
-        if (ageRestricted)
-        {
-            if (!File.Exists(YoutubeCookiesFile))
-            {
-                Logger.Error("Video is age-restricted but no cookies file found at {YoutubeCookiesFile}",
-                    YoutubeCookiesFile);
-                return false;
-            }
-
-            Logger.Information("Video is age-restricted, trying again with cookies");
-            cmd =
-            [
-                "--force-overwrites",
-                "--cookies", $"\"{YoutubeCookiesFile}\"",
-                "-P", $"\"{parent}\"",
-                "-o", $"\"{filename}\"",
-                $"\"{url}\"",
-            ];
-
-            (exitCode, _, _) = await RunSubprocess("yt-dlp", cmd, true, /* true,*/
-                startMessage: startMessage, endMessage: endMessage, cancellationToken: cancellationToken);
-        }
-
-        Logger.Error("Failed to run yt-dlp: {ExitCode}", exitCode);
 
         return exitCode == 0;
     }
@@ -1012,487 +899,6 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DownloadMpegDashFile(string filePath, FileLink fileLink,
-                                                  CancellationToken cancellationToken = default)
-    {
-        var parent = Directory.GetParent(filePath)!.FullName;
-        var filename = Path.GetFileName(filePath);
-        var cmd = new[] { "-P", $"\"{parent}\"", fileLink.Url, "-o", filename };
-        var (exitCode, _, _) = await RunSubprocess("yt-dlp", cmd, startMessage: "Starting youtube-dl download",
-            endMessage: "youtube-dl download finished", cancellationToken: cancellationToken);
-        return exitCode == 0;
-    }
-
-    private async Task<bool> DownloadM3U8ToMp4(string filePath, FileLink fileLink,
-                                               CancellationToken cancellationToken = default)
-    {
-        var url = fileLink.Url;
-        var referer = fileLink.Referer;
-        if (!filePath.Contains('.'))
-        {
-            if (url.Contains(".mp4"))
-            {
-                filePath += ".mp4";
-            }
-            else if (url.Contains(".webm"))
-            {
-                filePath += ".webm";
-            }
-            else
-            {
-                filePath += ".ts";
-            }
-        }
-
-        string[] cmd;
-        if (referer != "")
-        {
-            cmd =
-            [
-                "-headers",
-                $"\"Referer: {referer}\"",
-                "-headers",
-                $"\"User-Agent: {Config.UserAgent}\"",
-                "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-                "-i", $"\"{url}\"",
-                "-c", "copy",
-                $"\"{filePath}\""
-            ];
-        }
-        else
-        {
-            cmd =
-            [
-                "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-                "-i", $"\"{url}\"",
-                "-c", "copy",
-                $"\"{filePath}\""
-            ];
-        }
-
-        var result = await RunFfmpeg(cmd, cancellationToken: cancellationToken);
-        Logger.Debug("Ffmpeg result: {Result}", result.GetShortErrorMessage());
-        return result.IsSuccess();
-    }
-
-    private Task<bool> DownloadM3U8YtDlp(string filePath, FileLink fileLink,
-                                         CancellationToken cancellationToken = default)
-    {
-        return RunYtDlp(fileLink, filePath, startMessage: "Starting yt-dlp download",
-            endMessage: "yt-dlp download finished", cancellationToken: cancellationToken);
-    }
-
-    private static async Task<bool> DownloadGDriveFile(string filePath, FileLink fileLink,
-                                                       CancellationToken cancellationToken = default)
-    {
-        var destinationPath = Path.Combine(filePath, fileLink.Filename);
-        var parent = Directory.GetParent(destinationPath)!.FullName;
-        Directory.CreateDirectory(parent);
-        var credentials = await TokenManager.GDriveAuthenticate();
-        var service = new DriveService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = credentials,
-            ApplicationName = "ImageRipper"
-        });
-        var request = service.Files.Get(fileLink.Url);
-        await using var stream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
-        await request.DownloadAsync(stream, cancellationToken);
-        return true;
-    }
-
-    private static async Task<bool> DownloadIframeMedia(string filePath, FileLink fileLink,
-                                                        CancellationToken cancellationToken = default)
-    {
-        var parentPathInfo = Directory.GetParent(filePath)!;
-        var parentPath = parentPathInfo.FullName;
-        Directory.CreateDirectory(parentPath);
-        for (var i = 0; i < RetryCount; i++)
-        {
-            try
-            {
-                var video = new BunnyVideoDrm(
-                    referer: fileLink.Url,
-                    embedUrl: fileLink.Referer!,
-                    name: Path.GetFileName(filePath).Split('.')[0],
-                    path: parentPath
-                );
-                await video.Download(cancellationToken);
-                foreach (var f in parentPathInfo.EnumerateFiles(".*"))
-                {
-                    f.Delete();
-                }
-
-                break;
-            }
-            catch (UnauthorizedAccessException) // except (yt_dlp.utils.DownloadError, PermissionError)
-            {
-                if (i == 3)
-                {
-                    LogFailedUrl(fileLink.Url);
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private async Task<bool> DownloadMegaFiles(string filePath, FileLink fileLink,
-                                               CancellationToken cancellationToken = default)
-    {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
-        {
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
-        }
-
-        Logger.Debug("Logging in to MegaCmd");
-        var (email, password) = Config.Logins.Mega;
-        if (!PersistentLogins.TryGetValue("Mega", out var loggedIn))
-        {
-            PersistentLogins["Mega"] = MegaApi.WhoAmI() == email || MegaApi.Login(email, password);
-        }
-        else
-        {
-            if (!loggedIn)
-            {
-                PersistentLogins["Mega"] = MegaApi.WhoAmI() == email || MegaApi.Login(email, password);
-            }
-        }
-
-        if (!PersistentLogins["Mega"])
-        {
-            var e = new RipperException("Unable to login to MegaCmd");
-            Logger.Error(e, "Unable to login to MegaCmd");
-            throw e;
-        }
-
-        if (fileLink.Url.Contains("/file/"))
-        {
-            Logger.Debug("Downloading file from Mega: {Url}", fileLink.Url);
-            filePath = Path.GetDirectoryName(filePath)!;
-        }
-        else
-        {
-            Logger.Debug("Downloading folder from Mega: {Url}", fileLink.Url);
-            Directory.CreateDirectory(filePath);
-        }
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            // TODO: Need better way to check if megacmd has timeout or is just downloading large amounts of data
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
-            try
-            {
-                return await MegaApi.DownloadAsync(fileLink.Url, filePath, cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.Warning("Mega download timed out, retrying...");
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Failed to download from Mega: {Url}", fileLink.Url);
-                if (e.Message.Contains("No such file or directory"))
-                {
-                    Logger.Error("The specified file or directory does not exist on Mega: {Url}", fileLink.Url);
-                    return false;
-                }
-
-                if (e.Message.Contains("Invalid URL"))
-                {
-                    Logger.Error("The provided URL is invalid: {Url}", fileLink.Url);
-                    return false;
-                }
-
-                throw; // Re-throw the exception for further handling
-            }
-        }
-    }
-
-    private async Task<bool> DownloadPixelDrainFiles(string filePath, FileLink fileLink,
-                                                     CancellationToken cancellationToken = default)
-    {
-        var apiKey = Config.Keys.Pixeldrain;
-        var authString = $":{apiKey}";
-        var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
-        var headers = new Dictionary<string, string>
-        {
-            [RequestHeaderKeys.UserAgent] = Config.UserAgent,
-            [RequestHeaderKeys.Authorization] = $"Basic {base64Auth}"
-        };
-        using var client = new HttpClient();
-        foreach (var (key, value) in headers)
-        {
-            client.DefaultRequestHeaders.Add(key, value);
-        }
-
-        var response = await client.GetAsync($"https://pixeldrain.com/api/file/{fileLink.Url}",
-            HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            return false;
-        }
-
-        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-        await response.Content.CopyToAsync(fileStream, cancellationToken);
-        return true;
-    }
-
-    private Task<bool> DownloadYoutubeVideo(string filePath, FileLink fileLink,
-                                            CancellationToken cancellationToken = default)
-    {
-        return RunYtDlp(fileLink, filePath, startMessage: "Starting youtube-dl download",
-            endMessage: "youtube-dl download finished", cancellationToken: cancellationToken);
-    }
-
-    private async Task<bool> DownloadSeleniumImage(string filePath, FileLink fileLink,
-                                                   CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var imageData = GetImageViaSelenium(fileLink.Url);
-            await File.WriteAllBytesAsync(filePath, imageData, cancellationToken);
-            return true;
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Failed to download image");
-            return false;
-        }
-    }
-
-    private async Task<bool> DownloadBase64Image(string filePath, FileLink fileLink,
-                                                 CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var base64Data = fileLink.Url.Split(',')[1];
-            var imageData = Convert.FromBase64String(base64Data);
-            await File.WriteAllBytesAsync(filePath, imageData, cancellationToken);
-            return true;
-        }
-        catch (FormatException e)
-        {
-            Logger.Error(e, "Failed to decode base64 image");
-            return false;
-        }
-    }
-
-    private async Task<bool> DownloadObfuscatedM3U8(string filePath, FileLink fileLink,
-                                                    CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var parent = Directory.GetParent(filePath)!.FullName;
-            var referer = fileLink.Referer == "" ? null : fileLink.Referer;
-            var ext = Path.GetExtension(filePath);
-            if (ext == "")
-            {
-                fileLink.Filename += ".mp4";
-            }
-
-            await M3U8Downloader.DownloadM3U8(fileLink.Url, parent, fileLink.Filename, referer,
-                cancellationToken: cancellationToken);
-            return true;
-        }
-        catch (HttpRequestException e)
-        {
-            if (SiteName == "pornhub" && e.StatusCode is HttpStatusCode.Gone or HttpStatusCode.NotFound)
-            {
-                //Logger.Debug("Caught HttpRequestException with 410 Gone status code from Pornhub, need to refresh links");
-                throw new PornhubUrlExpiredException();
-            }
-
-            Logger.Error(e, "Failed to download obfuscated M3U8");
-            return false;
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Failed to download obfuscated M3U8");
-            return false;
-        }
-    }
-
-    private async Task<bool> DownloadPixivUgoira(string filePath, FileLink fileLink,
-                                                 CancellationToken cancellationToken = default)
-    {
-        var illustId = fileLink.Url.Split("/")[4];
-        var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
-        Logger.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
-        // Should contain PHPSESSID (checked in PixivParser)
-        var sessionId =
-            TokenManager.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24), Config.Cookies.Pixiv);
-        Driver.Url = "https://www.pixiv.net/";
-        Driver.SetCookie("PHPSESSID", sessionId);
-        Driver.Url = metadataUrl;
-        var rawView = Driver.FindElement(By.Id("rawdata-tab"));
-        rawView.Click();
-        var jsonPre = Driver.FindElement(By.XPath("//pre[@class='data']"));
-        var rawJson = jsonPre.Text;
-        var json = JsonNode.Parse(rawJson);
-        if (json is null)
-        {
-            throw new RipperException("Failed to parse Pixiv Ugoira metadata");
-        }
-
-        json = json.AsObject();
-        if (json["error"].Deserialize<bool>())
-        {
-            throw new RipperException("Received error while fetching Pixiv Ugoira metadata");
-        }
-
-        var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];
-        RequestHeaders[RequestHeaderKeys.Referer] = $"https://www.pixiv.net/artworks/{illustId}";
-        var body = json["body"]!.AsObject();
-        var keys = new[] { "originalSrc", "src" };
-        HttpResponseMessage response = null!; // Must be assigned before exiting loop
-        List<(string, int)> framesMetadata = null!;
-        foreach (var (i, key) in keys.Enumerate())
-        {
-            var src = body[key]?.GetValue<string>();
-            if (src is null)
-            {
-                Logger.Warning("Pixiv Ugoira source not found for key: {Key}", key);
-                if (i == keys.Length - 1)
-                {
-                    RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
-                    throw new RipperException("Pixiv Ugoira source not found");
-                }
-
-                continue;
-            }
-
-            var request = RequestHeaders.ToRequest(HttpMethod.Head, src);
-            response = await Session.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                Logger.Warning("Failed to access Pixiv Ugoira source: {Src}", src);
-                if (i == keys.Length - 1)
-                {
-                    RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
-                    throw new RipperException("Unable to access Pixiv Ugoira source");
-                }
-
-                continue;
-            }
-
-            request = RequestHeaders.ToRequest(HttpMethod.Get, src);
-            response = await Session.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                Logger.Warning("Failed to download Pixiv Ugoira: {Src}", src);
-                if (i == keys.Length - 1)
-                {
-                    RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
-                    throw new RipperException("Unable to download Pixiv Ugoira");
-                }
-
-                continue;
-            }
-
-            framesMetadata = body["frames"]!
-                            .AsArray()
-                            .Select(f => (f!["file"]!.GetValue<string>(), f["delay"]!.GetValue<int>()))
-                            .OrderBy(f => f.Item1)
-                            .ToList();
-            break;
-        }
-
-        await using var zipStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
-        using var animation = new MagickImageCollection();
-        foreach (var (fileName, delay) in framesMetadata)
-        {
-            var entry = archive.GetEntry(fileName);
-            if (entry is null)
-            {
-                Logger.Warning("Warning: {FileName} not found in ZIP", fileName);
-                continue;
-            }
-
-            await using var entryStream = await entry.OpenAsync(cancellationToken);
-            var img = new MagickImage(entryStream)
-            {
-                AnimationDelay = (uint)(delay / 10) // Convert milliseconds to centiseconds
-            };
-            animation.Add(img);
-        }
-
-        animation[0].AnimationIterations = 0;
-        //animation.OptimizeTransparency();
-        await animation.WriteAsync(filePath, cancellationToken);
-        RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
-        TokenManager.UpdateTokenRotation(RotationKey.Pixiv);
-        return true;
-    }
-
-    private async Task<bool> DownloadSteamCommunity(string filePath, FileLink fileLink,
-                                                    CancellationToken cancellationToken = default)
-    {
-        var destinationFolder = Path.GetDirectoryName(filePath)!;
-        Directory.CreateDirectory(destinationFolder);
-        var url = fileLink.Url;
-        var ids = url.Split('/')[^1].Split('|');
-        //var appId = ids[0];
-        var fileId = ids[1];
-        var (username, password) = Config.Logins.SteamCommunity;
-
-        var client = ClientManager.SteamApiClient;
-        try
-        {
-            await client.LoginAsync(username, password, cancellationToken);
-            await client.DownloadWorkshopFileAsync(ulong.Parse(fileId), destinationFolder, cancellationToken);
-        }
-        catch (SteamKitWebRequestException e) when (e.Message.Contains("503"))
-        {
-            Logger.Warning(e, "Steam Community is currently unavailable (503), retrying...");
-            await Sleep(2500, cancellationToken);
-            return false;
-        }
-        catch (AsyncJobFailedException e)
-        {
-            Logger.Warning(e, "Failed to download Steam Community file, retrying...");
-            await client.LogoutAsync(cancellationToken);
-            return false;
-        }
-        catch (HttpRequestException e) when (e.InnerException is IOException { InnerException: SocketException } ex)
-        {
-            Logger.Warning(ex, "Network error while trying to download Steam Community: {Url}", url);
-            await client.LogoutAsync(cancellationToken);
-            return false;
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e, "Failed to download Steam Community file");
-            return false;
-        }
-
-        return true;
-    }
-
-    private async Task<RequestResult> DownloadIwara(string filePath, FileLink fileLink,
-                                                    CancellationToken cancellationToken = default)
-    {
-        var client = ClientManager.IwaraClient;
-        var url = fileLink.Url;
-        Logger.Debug("Downloading {Url} as {Filename}", url, fileLink.Filename);
-        var videoId = url.Split('/')[^1];
-        RequestResult success;
-        try
-        {
-            success = await client.DownloadVideo(videoId, filePath, cancellationToken);
-        }
-        catch (IOException e) when (e.Message.StartsWith("There is not enough space on the disk"))
-        {
-            throw new NotEnoughDiskSpaceException(e);
-        }
-
-        await HtmlParser.JitterSleep(min: 250, max: 500, cancellationToken: cancellationToken);
-        return success;
-    }
-
     public static void CopyFolder(string sourceFolder, string destinationRoot)
     {
         if (!Directory.Exists(sourceFolder))
@@ -1623,7 +1029,7 @@ public partial class ImageRipper : IDisposable
             {
                 // Used to force generation of unparsed links
                 // Using a partial parsing approach, so this may be called multiple times per rip
-                throw new EHentaiUrlExpiredException();
+                throw new UrlExpiredException(SiteName);
             }
 
             // This should never happen for any other site
@@ -1845,7 +1251,7 @@ public partial class ImageRipper : IDisposable
                         Logger.Information("E-Hentai URL expired, trying to update links...");
                         await Task.Delay(10 * MillisecondsInSecond,
                             cancellationToken); // Wait for 10 seconds before retrying
-                        throw new EHentaiUrlExpiredException();
+                        throw new UrlExpiredException(SiteName);
                 }
 
                 return false;
@@ -2081,7 +1487,7 @@ public partial class ImageRipper : IDisposable
         if (totalSize < MinimumFileSize)
         {
             Logger.Warning("Downloaded file is very small: {FilePath} ({Size} bytes)", savePath, totalSize);
-            return SiteName == "e-hentai" ? throw new EHentaiUrlExpiredException() : DownloadStatus.Failed;
+            return SiteName == "e-hentai" ? throw new UrlExpiredException(SiteName) : DownloadStatus.Failed;
         }
 
         return DownloadStatus.Ok; // Success

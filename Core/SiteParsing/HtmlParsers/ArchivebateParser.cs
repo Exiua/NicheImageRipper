@@ -14,6 +14,7 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 public partial class ArchivebateParser : HtmlParser, IHtmlParser
 {
     private const string CachePath = "archivebateCache.json";
+    private const int MaxConcurrentDownloads = 30;
     
     public static string ParserName => "archivebate";
     
@@ -92,7 +93,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
         }
 
         // Url used for the webdriver must be the same as the one used for downloading the video, otherwise it will 403
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null, maxConcurrentDownloads: MaxConcurrentDownloads);
     }
 
     private async Task<List<string>> GetPageUrls(HtmlNode soup, string profileName)

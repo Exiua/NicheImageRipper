@@ -6,6 +6,7 @@ namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 public sealed class YoutubeVideoDownloadStrategy : IFileDownloadStrategy
 {
     public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.YoutubeVideo];
+    public bool SupportsPostProcessing => false;
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)

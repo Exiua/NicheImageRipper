@@ -27,6 +27,7 @@ public class RipInfo
     public bool MustGenerateManually { get; set; }
 
     public int NumUrls { get; set; }
+    public int? MaxConcurrentDownloads { get; set; } // null = sequential; set by a parser that knows its downloads are slow/independent
 
     public string DirectoryName
     {
@@ -44,11 +45,12 @@ public class RipInfo
     private RipInfo(List<StringFileLinkWrapper> urls, string directoryName = "",
                     FilenameScheme filenameScheme = FilenameScheme.Original,
                     bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
-                    string? referer = "")
+                    string? referer = "", int? maxConcurrentDownloads = null)
     {
         // SaveRawUrls(urls);
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
+        MaxConcurrentDownloads = maxConcurrentDownloads;
         try
         {
             Urls = ConvertUrlsToFileLink(urls, discardBlobs, filenames, referer).Result;
@@ -86,14 +88,14 @@ public class RipInfo
     }
 
     public static RipInfo FromUrlList(List<StringFileLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
-                                      bool nameReuse = false, string? referer = "")
+                                      bool nameReuse = false, string? referer = "", int? maxConcurrentDownloads = null)
     {
         // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
         return nameReuse
             ? new RipInfo(urls, dirName, filenameScheme == FilenameScheme.Original
                 ? FilenameScheme.Chronological
                 : filenameScheme)
-            : new RipInfo(urls, dirName, filenameScheme, referer: referer);
+            : new RipInfo(urls, dirName, filenameScheme, referer: referer, maxConcurrentDownloads: maxConcurrentDownloads);
     }
 
     public static RipInfo FromUrlListWithFilenames(List<StringFileLinkWrapper> urls, string dirName,

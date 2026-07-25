@@ -11,9 +11,11 @@ public static class M3U8Downloader
     private static ILogger Logger { get; } = Log.ForContext(typeof(M3U8Downloader));
 
     public static async Task DownloadM3U8(string url, string savePath, string outputName,
-                                          string? referer = null, bool isIndex = false, CancellationToken cancellationToken = default)
+                                          string? referer = null, bool isIndex = false,
+                                          CancellationToken cancellationToken = default)
     {
-        Logger.Debug("Url: {Url}, SavePath: {SavePath}, OutputName: {OutputName}, Referer: {Referer}, IsIndex: {IsIndex}",
+        Logger.Debug(
+            "Url: {Url}, SavePath: {SavePath}, OutputName: {OutputName}, Referer: {Referer}, IsIndex: {IsIndex}",
             url, savePath, outputName, referer, isIndex);
         string? tempPath = null;
         #if DEBUG
@@ -36,7 +38,7 @@ public static class M3U8Downloader
             }
 
             var playlistUrl = await GetPlaylistUrl(url, client, cancellationToken);
-            var segments = await DownloadPlaylist(playlistUrl, client);
+            var segments = await DownloadPlaylist(playlistUrl, client, cancellationToken);
             var segmentPaths = await DownloadSegments(segments, tempPath, client);
             var outputPath = Path.Combine(savePath, outputName);
             await ConcatenateSegments(segmentPaths, tempPath, outputPath, cancellationToken);
@@ -67,7 +69,8 @@ public static class M3U8Downloader
         }
     }
 
-    private static async Task ConcatenateSegments(List<string> segmentPaths, string tempPath, string outputPath, CancellationToken cancellationToken = default)
+    private static async Task ConcatenateSegments(List<string> segmentPaths, string tempPath, string outputPath,
+                                                  CancellationToken cancellationToken = default)
     {
         var pathEntries = new List<string>(segmentPaths.Count);
         pathEntries.AddRange(segmentPaths.Select(path => $"file '{path.Replace("'", "'\\''")}'"));
@@ -82,23 +85,24 @@ public static class M3U8Downloader
             "-c", "copy",
             $"\"{outputPath}\""
         };
-        await ImageRipper.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation",
-            endMessage: "Finished ffmpeg concatenation");
+        await ProcessRunner.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation",
+            endMessage: "Finished ffmpeg concatenation", cancellationToken: cancellationToken);
 
         Logger.Debug("Output saved to: {OutputPath}", outputPath);
     }
 
     private static async Task<List<string>> DownloadSegments(List<string> segments, string savePath,
-                                                             HttpClient client)
+                                                             HttpClient client,
+                                                             CancellationToken cancellationToken = default)
     {
         var segmentPaths = new List<string>();
         var segmentCount = 0;
         foreach (var segment in segments)
         {
             Logger.Debug("Downloading segment URL: {SegmentUrl}", segment);
-            var segmentResponse = await client.GetAsync(segment);
+            var segmentResponse = await client.GetAsync(segment, cancellationToken);
             segmentResponse.EnsureSuccessStatusCode();
-            var data = await segmentResponse.Content.ReadAsByteArrayAsync();
+            var data = await segmentResponse.Content.ReadAsByteArrayAsync(cancellationToken);
             byte[] segmentData;
             try
             {
@@ -113,26 +117,28 @@ public static class M3U8Downloader
             var segmentPath = Path.Combine(savePath, $"segment_{segmentCount:D5}.ts");
             Logger.Debug("Saving segment {SegmentPath}", segmentPath);
             segmentCount++;
-            await File.WriteAllBytesAsync(segmentPath, segmentData);
+            await File.WriteAllBytesAsync(segmentPath, segmentData, cancellationToken);
             segmentPaths.Add(segmentPath);
         }
 
         return segmentPaths;
     }
 
-    private static async Task<List<string>> DownloadPlaylist(string url, HttpClient client)
+    private static async Task<List<string>> DownloadPlaylist(string url, HttpClient client,
+                                                             CancellationToken cancellationToken = default)
     {
         Logger.Debug("Downloading playlist URL: {URL}", url);
-        var response = await client.GetAsync(url);
+        var response = await client.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var lines = content.Split('\n');
 
         return (lines.Where(line => !line.StartsWith('#') && !string.IsNullOrWhiteSpace(line))
                      .Select(line => ResolveUrl(url, line.Trim()))).ToList();
     }
 
-    private static async Task<string> GetPlaylistUrl(string url, HttpClient client, CancellationToken cancellationToken = default)
+    private static async Task<string> GetPlaylistUrl(string url, HttpClient client,
+                                                     CancellationToken cancellationToken = default)
     {
         Logger.Debug("Downloading M3U8 playlist from: {Url}", url);
         var response = await client.GetAsync(url, cancellationToken);
