@@ -24,7 +24,7 @@ public class RipInfo
 
     public List<FileLink> Urls { get; set; } = null!;
 
-    public bool MustGenerateManually { get; set; }
+    public DownloadMode DownloadMode { get; set; } = DownloadMode.List;
 
     public int NumUrls { get; set; }
     public int? MaxConcurrentDownloads { get; set; } // null = sequential; set by a parser that knows its downloads are slow/independent
@@ -34,6 +34,8 @@ public class RipInfo
         get;
         set => field = FilesystemUtility.CleanDirectoryName(value, MaxDirectoryNameLength);
     } = null!; // Initialized through the property setter
+    
+    public bool MustGenerateManually => DownloadMode == DownloadMode.Generate;
 
     public static RipInfo Empty => new([]);
 
@@ -44,7 +46,7 @@ public class RipInfo
 
     private RipInfo(List<StringFileLinkWrapper> urls, string directoryName = "",
                     FilenameScheme filenameScheme = FilenameScheme.Original,
-                    bool generate = false, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
+                    DownloadMode downloadMode = DownloadMode.List, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
                     string? referer = "", int? maxConcurrentDownloads = null)
     {
         // SaveRawUrls(urls);
@@ -61,8 +63,8 @@ public class RipInfo
             throw;
         }
 
-        MustGenerateManually = generate;
-        NumUrls = generate ? numUrls : Urls.Count;
+        DownloadMode = downloadMode;
+        NumUrls = MustGenerateManually ? numUrls : Urls.Count;
     }
 
     private RipInfo(List<FileLink> urls, string directoryName, FilenameScheme filenameScheme)
@@ -71,7 +73,7 @@ public class RipInfo
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
         Urls = urls;
-        MustGenerateManually = false;
+        DownloadMode = DownloadMode.List;
         NumUrls = Urls.Count;
     }
 
@@ -84,7 +86,12 @@ public class RipInfo
 
     public static RipInfo FromGenerateInfo(StringFileLinkWrapper baseUrl, string dirName, int numUrls)
     {
-        return new RipInfo([baseUrl], dirName, generate: true, numUrls: numUrls);
+        return new RipInfo([baseUrl], dirName, downloadMode: DownloadMode.Generate, numUrls: numUrls);
+    }
+
+    public static RipInfo ForExternalTool(StringFileLinkWrapper url, string dirName, FilenameScheme filenameScheme)
+    {
+        return new RipInfo([url], dirName, filenameScheme, downloadMode: DownloadMode.ExternalTool);
     }
 
     public static RipInfo FromUrlList(List<StringFileLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,

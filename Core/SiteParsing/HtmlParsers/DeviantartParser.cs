@@ -22,8 +22,8 @@ public class DeviantartParser : HtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = CurrentUrl.Split("/")[3];
 
-        var images = new List<StringFileLinkWrapper>();
+        //var images = new List<StringFileLinkWrapper>();
         // TODO: Implement the rest of the method
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.ForExternalTool(CurrentUrl, dirName, FilenameScheme);
     }
 }

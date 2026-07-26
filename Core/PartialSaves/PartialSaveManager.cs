@@ -45,7 +45,7 @@ public class PartialSaveManager
                                                 Cookies TEXT NOT NULL,
                                                 Referer TEXT NOT NULL,
                                                 FilenameScheme INTEGER NOT NULL,
-                                                MustGenerateManually BOOLEAN NOT NULL,
+                                                DownloadMode INTEGER NOT NULL,
                                                 NumUrls INTEGER NOT NULL,
                                                 DirectoryName TEXT NOT NULL,
                                                 MaxConcurrentDownloads INTEGER
@@ -148,7 +148,7 @@ public class PartialSaveManager
                                                           Cookies,
                                                           Referer,
                                                           FilenameScheme,
-                                                          MustGenerateManually,
+                                                          DownloadMode,
                                                           NumUrls,
                                                           DirectoryName,
                                                           MaxConcurrentDownloads
@@ -160,7 +160,7 @@ public class PartialSaveManager
                                                           @Cookies,
                                                           @Referer,
                                                           @FilenameScheme,
-                                                          @MustGenerateManually,
+                                                          @DownloadMode,
                                                           @NumUrls,
                                                           @DirectoryName,
                                                           @MaxConcurrentDownloads
@@ -178,7 +178,7 @@ public class PartialSaveManager
                         partialSave.Cookies,
                         partialSave.Referer,
                         FilenameScheme = (int)ripInfo.FilenameScheme,
-                        ripInfo.MustGenerateManually,
+                        ripInfo.DownloadMode,
                         ripInfo.NumUrls,
                         ripInfo.DirectoryName,
                         ripInfo.MaxConcurrentDownloads
@@ -292,7 +292,7 @@ public class PartialSaveManager
                                                Cookies,
                                                Referer,
                                                FilenameScheme,
-                                               MustGenerateManually,
+                                               DownloadMode,
                                                NumUrls,
                                                DirectoryName,
                                                MaxConcurrentDownloads
@@ -349,7 +349,7 @@ public class PartialSaveManager
                 RipInfo = new RipInfo
                 {
                     FilenameScheme = (FilenameScheme)(int)row.FilenameScheme,
-                    MustGenerateManually = row.MustGenerateManually,
+                    DownloadMode = (DownloadMode)(int)row.DownloadMode,
                     NumUrls = (int)row.NumUrls,
                     DirectoryName = row.DirectoryName,
                     Urls = imageLinks,
@@ -409,6 +409,53 @@ public class PartialSaveManager
             if (openedConnection)
             {
                 _connection.Close();
+            }
+        }
+    }
+    
+    public void RemovePartialSave(string url)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+
+        var openedConnection = false;
+        if (_connection.State != ConnectionState.Open)
+        {
+            _connection.Open();
+            openedConnection = true;
+        }
+
+        lock (_databaseLock)
+        {
+            using var transaction = _connection.BeginTransaction();
+            try
+            {
+                const string findExistingQuery = """
+                                                 SELECT id
+                                                 FROM partial_saves
+                                                 WHERE Url = @Url
+                                                 LIMIT 1;
+                                                 """;
+
+                var existingId = _connection.QuerySingleOrDefault<long?>(findExistingQuery, new { Url = url }, transaction);
+                if (existingId.HasValue)
+                {
+                    DeletePartialSave(existingId.Value, transaction);
+                    Logger.Information("Removed partial save for {Url}", url);
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+            finally
+            {
+                if (openedConnection)
+                {
+                    _connection.Close();
+                }
             }
         }
     }

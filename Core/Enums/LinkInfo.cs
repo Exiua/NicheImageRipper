@@ -20,5 +20,4 @@ public enum LinkInfo
     PixivUgoira,    // Requires downloading the Ugoira zip and converting to gif or mp4
     SteamCommunity, // Requires SteamCMD to download, and special handling to move the file from the SteamCMD directory to the final destination
     Iwara,          // Requires using IwaraClient to query and download,
-    DeviantArt,     // Requires using gallery-dl to download
 }

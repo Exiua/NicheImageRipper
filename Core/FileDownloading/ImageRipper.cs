@@ -1,17 +1,9 @@
-﻿using System.Diagnostics;
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Google.Apis.Drive.v3;
-using Google.Apis.Services;
-using ImageMagick;
-using IwaraApiClient.Models;
-using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
@@ -20,6 +12,7 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.Utility;
@@ -30,7 +23,6 @@ using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
-using SteamKit2;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.FileDownloading;
@@ -137,7 +129,9 @@ public partial class ImageRipper : IDisposable
     private IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; }
     private IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; }
     private IReadOnlyList<IPostDownloadValidator> PostDownloadValidators { get; }
+    private IReadOnlyList<IExternalToolDownloadStrategy> ExternalToolStrategies { get; }
     private DownloadContext DownloadContext { get; set; } = null!;
+    private bool ClearPartialSaveOnFailureThreshold { get; }
 
     private bool _disposed;
 
@@ -153,11 +147,13 @@ public partial class ImageRipper : IDisposable
 
     public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
                        UnzipProtocol unzipProtocol = UnzipProtocol.None,
-                       PostDownloadAction postDownloadAction = PostDownloadAction.None)
+                       PostDownloadAction postDownloadAction = PostDownloadAction.None,
+                       bool clearPartialSaveOnFailureThreshold = true)
     {
         FilenameScheme = filenameScheme;
         UnzipProtocol = unzipProtocol;
         PostDownloadAction = postDownloadAction;
+        ClearPartialSaveOnFailureThreshold = clearPartialSaveOnFailureThreshold;
         GivenUrl = "";
         Interrupted = false;
         PersistentLogins = new Dictionary<string, bool>();
@@ -175,6 +171,7 @@ public partial class ImageRipper : IDisposable
         HeaderModifiers = DownloadCompositionRoot.BuildHeaderModifiers();
         ErrorHandlers = DownloadCompositionRoot.BuildErrorHandlers();
         PostDownloadValidators = DownloadCompositionRoot.BuildPostDownloadValidators();
+        ExternalToolStrategies = DownloadCompositionRoot.BuildExternalToolStrategies();
     }
 
     public async Task Rip(string url, CancellationToken cancellationToken = default)
@@ -186,16 +183,14 @@ public partial class ImageRipper : IDisposable
         }
 
         OnProgressChanged?.Invoke(0, 0); // Indeterminate progress at the start
-        SleepTime = 0.2f; // Reset sleep time
-        GivenUrl = url.Replace("members.", "www."); // Replace is done to properly parse hanime pages
+
+        // TODO: Site-specific cookie injection (pre-parse) was never fully ported from the Python version.
+        //  Revisit once parser support for this is rebuilt — CookiesNeeded/AddCookies removed as dead stubs.
+        
+        
+        GivenUrl = url.Replace("members.", "www."); // Hanime-specific — inline until a second site needs the same normalization
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         Logger.Debug("Site Name: {SiteName}", SiteName);
-        Logger.Debug("Checking if cookies are needed for {SiteName}", SiteName);
-        if (CookiesNeeded())
-        {
-            Logger.Debug("Adding cookies needed for {SiteName}", SiteName);
-            AddCookies();
-        }
 
         await FileGetter(cancellationToken);
     }
@@ -273,8 +268,6 @@ public partial class ImageRipper : IDisposable
         var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
         Logger.Debug("Constructed HtmlParser");
         FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
-        //Logger.Debug("Folder Info: {@FolderInfo}", FolderInfo);
-        //Logger.Debug("Directory Name: {DirectoryName}", FolderInfo.DirectoryName);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
         {
@@ -285,68 +278,80 @@ public partial class ImageRipper : IDisposable
         Directory.CreateDirectory(fullPath);
 
         var start = await GetStartIndex(cancellationToken);
-        DownloadStats downloadStats;
-        IndexedHashes filesHashes;
-        if (!File.Exists(RipStatePath))
-        {
-            downloadStats = new DownloadStats();
-            filesHashes = new IndexedHashes();
-        }
-        else
-        {
-            var state = JsonUtility.Deserialize<RipState>(RipStatePath);
-            if (state is null)
-            {
-                Logger.Error("Failed to load rip state");
-                throw new RipperException("Failed to load rip state");
-            }
-
-            downloadStats = state.DownloadStats;
-            filesHashes = IndexedHashes.Deserialize(state.FilesHashes);
-            Logger.Debug("Truncating files hashes to index {StartIndex}", start);
-            filesHashes.TruncateToIndex(start);
-        }
+        var (downloadStats, filesHashes) = await LoadOrCreateRipState(start, cancellationToken);
 
         try
         {
-            // Can get the image through numerically ascending url for imhentai and hentairox
-            //   (hard to account for GIFs and other extensions otherwise)
-            if (FolderInfo.MustGenerateManually)
+            switch (FolderInfo.DownloadMode)
             {
-                await HandleGeneratingManually(start, fullPath, filesHashes, downloadStats, cancellationToken);
-            }
-            // Easier to put all image url in a list and then download for these sites
-            else
-            {
-                await HandleDownloadingFromList(start, fullPath, filesHashes, downloadStats, cancellationToken);
+                case DownloadMode.Generate:
+                    await HandleGeneratingManually(start, fullPath, filesHashes, downloadStats, cancellationToken);
+                    break;
+                case DownloadMode.ExternalTool:
+                    await HandleExternalToolDownload(fullPath, downloadStats, cancellationToken);
+                    break;
+                case DownloadMode.List:
+                default: // forward-compat fallback for any future DownloadMode value
+                    await HandleDownloadingFromList(start, fullPath, filesHashes, downloadStats, cancellationToken);
+                    break;
             }
         }
         catch (Exception e)
         {
             Logger.Debug("Saving rip state due to exception. Reason: {Message}", e.Message);
-            var state = new RipState
-            {
-                DownloadStats = downloadStats,
-                FilesHashes = filesHashes.Serialize(),
-            };
-
-            JsonUtility.Serialize(RipStatePath, state);
-            Logger.Debug("Saved rip state to {RipStatePath}", RipStatePath);
+            SaveRipStateOnFailure(downloadStats, filesHashes);
             throw;
         }
 
+        await FinalizeRip(fullPath, downloadStats, cancellationToken);
+    }
+
+    private async Task<(DownloadStats DownloadStats, IndexedHashes FilesHashes)> LoadOrCreateRipState(
+        int start, CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(RipStatePath))
+        {
+            return (new DownloadStats(), new IndexedHashes());
+        }
+
+        var state = JsonUtility.Deserialize<RipState>(RipStatePath);
+        if (state is null)
+        {
+            Logger.Error("Failed to load rip state");
+            throw new RipperException("Failed to load rip state");
+        }
+
+        var filesHashes = IndexedHashes.Deserialize(state.FilesHashes);
+        Logger.Debug("Truncating files hashes to index {StartIndex}", start);
+        filesHashes.TruncateToIndex(start);
+
+        return (state.DownloadStats, filesHashes);
+    }
+
+    private void SaveRipStateOnFailure(DownloadStats downloadStats, IndexedHashes filesHashes)
+    {
+        var state = new RipState
+        {
+            DownloadStats = downloadStats,
+            FilesHashes = filesHashes.Serialize(),
+        };
+
+        JsonUtility.Serialize(RipStatePath, state);
+        Logger.Debug("Saved rip state to {RipStatePath}", RipStatePath);
+    }
+
+    private async Task FinalizeRip(string fullPath, DownloadStats downloadStats,
+                                   CancellationToken cancellationToken = default)
+    {
         File.Delete(RipIndexPath);
         File.Delete(RipStatePath); // Existence of rip state file indicates incomplete rip
+
         if (((double)downloadStats.FailedDownloadsCount) / FolderInfo.NumUrls > FailureThreshold)
         {
             var msg = $"More than {FailureThreshold * 100}% of the images failed to download";
             var e = new RipperException(msg);
             Logger.Error(e, "{msg:l}", msg);
-            if (SiteName == "sexbjcam")
-            {
-                File.Delete("partial.json");
-            }
-
+            PartialSaveManager.Instance.RemovePartialSave(GivenUrl);
             throw e;
         }
 
@@ -365,7 +370,7 @@ public partial class ImageRipper : IDisposable
         var downloadResults = downloadStats.GetStats(FolderInfo.NumUrls);
         Logger.Information("{Results:l}", downloadResults);
         Logger.Information("Download Complete");
-        OnProgressChanged?.Invoke(1, 1); // Complete progress at the end
+        OnProgressChanged?.Invoke(1, 1);
     }
 
     private static Task Sleep(int milliseconds, CancellationToken cancellationToken = default)
@@ -423,121 +428,138 @@ public partial class ImageRipper : IDisposable
         }
     }
 
+    // Refactored
+    private async Task HandleExternalToolDownload(string fullPath, DownloadStats downloadStats,
+                                                  CancellationToken cancellationToken = default)
+    {
+        var strategy = ExternalToolStrategies.FirstOrDefault(s => s.AppliesTo(SiteName));
+        if (strategy is null)
+        {
+            throw new RipperException($"No external tool download strategy registered for site: {SiteName}");
+        }
+
+        var result = await strategy.DownloadAsync(FolderInfo, fullPath, DownloadContext, cancellationToken);
+        if (result.Outcome == DownloadOutcome.Failed)
+        {
+            // TODO: Handle failed downloads for external tools (e.g., log failed URLs)
+            downloadStats.FailedDownloads.Add(FolderInfo.Urls[0].Url);
+        }
+    }
+
+    // Refactored
     private async Task HandleDownloadingFromList(int start, string fullPath, IndexedHashes filesHashes,
                                                  DownloadStats downloadStats,
                                                  CancellationToken cancellationToken = default)
     {
-        switch (SiteName)
+        var completed = new bool[FolderInfo.NumUrls];
+        while (true)
         {
-            case "deviantart":
-                // Delegated to external tool
-                var success = await DeviantArtDownload(fullPath, FolderInfo.Urls[0].Url, cancellationToken);
-                if (!success)
-                {
-                    // TODO
-                }
-
-                break;
-            // Probably need to extract parts into separate methods
-            default:
+            try
             {
-                var completed = new bool[FolderInfo.NumUrls];
-                // Loop needed to retry current index after refreshing EHentai links once they expire
-                while (true)
+                if (FolderInfo.MaxConcurrentDownloads is { } maxConcurrent)
                 {
-                    try
-                    {
-                        if (SiteName == "archivebate")
-                        {
-                            var total = FolderInfo.NumUrls;
-                            var complete = 0;
-                            OnProgressChanged?.Invoke(complete + 1, total + 1);
-                            const int maxAttempts = 4;
-                            const int maxConcurrentConnections = 30;
-                            var semaphore = new SemaphoreSlim(maxConcurrentConnections, maxConcurrentConnections);
-                            var tasks = FolderInfo.Urls.Select(async (link, i) =>
-                            {
-                                await semaphore.WaitAsync(cancellationToken);
-                                if (completed[i])
-                                {
-                                    return;
-                                }
-
-                                for (var attempt = 0; attempt < maxAttempts; attempt++)
-                                {
-                                    while (Paused)
-                                    {
-                                        await Sleep(1000, cancellationToken);
-                                    }
-
-                                    try
-                                    {
-                                        await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats,
-                                            cancellationToken: cancellationToken);
-                                        Interlocked.Increment(ref complete);
-                                        completed[i] = true;
-                                        Logger.Information("Finished downloading {Index}, {Total} remaining", i + 1,
-                                            total - complete);
-                                        OnProgressChanged?.Invoke(complete + 1, total + 1);
-                                        break;
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        if (attempt == maxAttempts - 1)
-                                        {
-                                            Logger.Error(e, "Error downloading {Index}, {Total} remaining: {Url}",
-                                                i + 1,
-                                                total - complete, link.Url);
-                                        }
-                                        else
-                                        {
-                                            Logger.Warning(
-                                                "Error downloading {Index}, {Total} remaining: {Url}, retrying... ({Attempt}/{MaxAttempts})",
-                                                i + 1, total - complete, link.Url, attempt + 1, maxAttempts);
-                                            await Sleep(1000, cancellationToken);
-                                        }
-                                    }
-                                }
-
-                                semaphore.Release();
-                            });
-
-                            await Task.WhenAll(tasks);
-                        }
-                        else
-                        {
-                            foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
-                            {
-                                while (Paused)
-                                {
-                                    await Sleep(1000, cancellationToken);
-                                }
-
-                                // Compute the absolute index (i is the relative index after start)
-                                var index = start + i;
-                                await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true,
-                                    cancellationToken);
-                            }
-                        }
-
-                        break;
-                    }
-                    catch (UrlExpiredException e)
-                    {
-                        Logger.Information("Refreshing {SiteName} links", e.SiteName);
-                        Logger.Debug("Start index for refresh: {StartIndex}", e.ResumeIndex);
-                        var parser = (TimeSensitiveHtmlParser)HtmlParser.GetParser(e.SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
-                        start = e.ResumeIndex;
-                        var updatedLinks = await parser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
-                        FolderInfo.Urls = updatedLinks;
-                    }
+                    await DownloadConcurrently(maxConcurrent, completed, fullPath, filesHashes, downloadStats,
+                        cancellationToken);
+                }
+                else
+                {
+                    await DownloadSequentially(start, fullPath, filesHashes, downloadStats, cancellationToken);
                 }
 
                 break;
             }
+            catch (UrlExpiredException e)
+            {
+                Logger.Information("Refreshing links for {SiteName}", e.SiteName);
+                var parser = HtmlParser.GetParser(e.SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
+                if (parser is not TimeSensitiveHtmlParser timeSensitiveParser)
+                {
+                    throw new RipperException($"Parser for {e.SiteName} does not support link refreshing");
+                }
+
+                start = e.ResumeIndex;
+                FolderInfo.Urls = await timeSensitiveParser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
+            }
         }
     }
 
+    // Refactored
+    private async Task DownloadConcurrently(int maxConcurrent, bool[] completed, string fullPath,
+                                            IndexedHashes filesHashes, DownloadStats downloadStats,
+                                            CancellationToken cancellationToken)
+    {
+        var total = FolderInfo.NumUrls;
+        var complete = 0;
+        OnProgressChanged?.Invoke(1, total + 1);
+        const int maxAttempts = 4;
+        var semaphore = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
+        var tasks = FolderInfo.Urls.Select(async (link, i) =>
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            if (completed[i])
+            {
+                semaphore.Release();
+                return;
+            }
+
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                while (Paused)
+                {
+                    await Sleep(1000, cancellationToken);
+                }
+
+                try
+                {
+                    await DownloadSingleFromList(i, link, fullPath, filesHashes, downloadStats,
+                        cancellationToken: cancellationToken);
+                    Interlocked.Increment(ref complete);
+                    completed[i] = true;
+                    Logger.Information("Finished downloading {Index}, {Total} remaining", i + 1, total - complete);
+                    OnProgressChanged?.Invoke(complete + 1, total + 1);
+                    break;
+                }
+                catch (Exception e)
+                {
+                    if (attempt == maxAttempts - 1)
+                    {
+                        Logger.Error(e, "Error downloading {Index}, {Total} remaining: {Url}", i + 1, total - complete,
+                            link.Url);
+                    }
+                    else
+                    {
+                        Logger.Warning(
+                            "Error downloading {Index}, {Total} remaining: {Url}, retrying... ({Attempt}/{MaxAttempts})",
+                            i + 1, total - complete, link.Url, attempt + 1, maxAttempts);
+                        await Sleep(1000, cancellationToken);
+                    }
+                }
+            }
+
+            semaphore.Release();
+        });
+
+        await Task.WhenAll(tasks);
+    }
+
+    // Refactored
+    private async Task DownloadSequentially(int start, string fullPath, IndexedHashes filesHashes,
+                                            DownloadStats downloadStats, CancellationToken cancellationToken)
+    {
+        foreach (var (i, link) in FolderInfo.Urls.Skip(start).Enumerate())
+        {
+            while (Paused)
+            {
+                await Sleep(1000, cancellationToken);
+            }
+
+            var index = start + i;
+            await DownloadSingleFromList(index, link, fullPath, filesHashes, downloadStats, true, cancellationToken);
+        }
+    }
+
+    // Refactored
     private async Task DownloadSingleFromList(int index, FileLink link, string fullPath, IndexedHashes filesHashes,
                                               DownloadStats downloadStats, bool updateProgress = false,
                                               CancellationToken cancellationToken = default)
@@ -638,96 +660,6 @@ public partial class ImageRipper : IDisposable
         }
     }
 
-    private async Task<bool> DeviantArtDownload(string fullPath, string url,
-                                                CancellationToken cancellationToken = default)
-    {
-        var cmd = new[]
-        {
-            "-D", $"\"{fullPath}\"", "-u", Config.Logins.DeviantArt.Username, "-p",
-            Config.Logins.DeviantArt.Password, "--write-log", "log.txt", url
-        };
-        var (exitCode, _, _) = await RunSubprocess("gallery-dl", cmd, startMessage: "Starting Deviantart download",
-            endMessage: "Deviantart download finished", cancellationToken: cancellationToken);
-        if (exitCode != 0)
-        {
-            Logger.Error("Failed to download from DeviantArt");
-        }
-
-        return exitCode == 0;
-    }
-
-    private static async Task<(int, string?, string?)> RunSubprocess(string executable, string[]? arguments = null,
-                                                                     bool captureOutput = false,
-                                                                     bool captureError = false,
-                                                                     string? startMessage = null,
-                                                                     string? endMessage = null,
-                                                                     CancellationToken cancellationToken = default)
-    {
-        if (startMessage is not null)
-        {
-            Log.Information("{StartMessage:l}", startMessage);
-        }
-
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
-        {
-            FileName = executable,
-            Arguments = arguments is null ? "" : " ".Join(arguments),
-            RedirectStandardOutput = captureOutput,
-            RedirectStandardError = captureError,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        StringBuilder? output = null;
-        if (captureOutput)
-        {
-            output = new StringBuilder();
-            process.OutputDataReceived += (_, args) =>
-            {
-                var data = args.Data ?? "null";
-                output.AppendLine(data);
-                Log.Debug("{Data:l}", data);
-            };
-        }
-
-        StringBuilder? error = null;
-        if (captureError)
-        {
-            error = new StringBuilder();
-            process.ErrorDataReceived += (_, args) =>
-            {
-                var data = args.Data ?? "null";
-                error.AppendLine(data);
-                Log.Debug("{Data:l}", data);
-            };
-        }
-
-        process.Start();
-
-        if (captureOutput)
-        {
-            process.BeginOutputReadLine();
-        }
-
-        if (captureError)
-        {
-            process.BeginErrorReadLine();
-        }
-
-        await process.WaitForExitAsync(cancellationToken);
-        var exitCode = process.ExitCode;
-        if (endMessage is not null)
-        {
-            Log.Information("{EndMessage:l}", endMessage);
-        }
-
-        var outputStr = output?.ToString();
-        var errorStr = error?.ToString();
-
-        return (exitCode, outputStr, errorStr);
-    }
-
     private async Task<bool> HandleDuplicateFile(string imagePath, IndexedHashes filesHashes, int index,
                                                  CancellationToken cancellationToken = default)
     {
@@ -777,6 +709,7 @@ public partial class ImageRipper : IDisposable
         return success;
     }
 
+    // Refactored
     /// <summary>
     ///     Download images from url supplied from a list of image urls
     /// </summary>
@@ -1611,38 +1544,11 @@ public partial class ImageRipper : IDisposable
         return SiteName == "titsintops";
     }
 
-    private byte[] GetImageViaSelenium(string url)
-    {
-        Driver.Url = url;
-        var b64Img = (string?)Driver.ExecuteScript("""
-                                                   const img = document.getElementsByTagName("img")[0];
-                                                   const canvas = document.createElement("canvas");
-                                                   canvas.width = img.naturalWidth;
-                                                   canvas.height = img.naturalHeight;
-                                                   const ctx = canvas.getContext("2d");
-                                                   ctx.drawImage(img, 0, 0);
-                                                   const dataURL = canvas.toDataURL("image/png");
-                                                   return dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
-                                                   """);
-        var bytes = Convert.FromBase64String(b64Img!);
-        return bytes;
-    }
-
     private static void LogFailedUrl(string url)
     {
         using var writer = new StreamWriter("failed.txt", true, Encoding.Unicode);
         writer.WriteLine(url);
     }
-
-    /*private static void PrintDebugInfo(string title, string fd = "output.txt", bool clear = false, params object[] data)
-    {
-        using var writer = new StreamWriter(fd, !clear, Encoding.Unicode);
-        writer.WriteLine($"[{title}]");
-        foreach (var d in data)
-        {
-            writer.WriteLine($"\t{d.ToString()?.Trim()}");
-        }
-    }*/
 
     public void Dispose()
     {

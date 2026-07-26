@@ -2,6 +2,7 @@ using NicheImageRipper.Core.FileDownloading.DownloadErrorHandlers;
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 using NicheImageRipper.Core.FileDownloading.PostDownloadValidators;
 using NicheImageRipper.Core.FileDownloading.RequestHeaderModifier;
+using NicheImageRipper.Core.Utility;
 
 namespace NicheImageRipper.Core.FileDownloading;
 
@@ -47,4 +48,7 @@ internal static class DownloadCompositionRoot
         new GoFilePostDownloadValidator(),
         new EHentaiMinimumSizeValidator(),
     ];
+    
+    public static IReadOnlyList<IExternalToolDownloadStrategy> BuildExternalToolStrategies() =>
+        ReflectionDiscovery.DiscoverImplementations<IExternalToolDownloadStrategy>();
 }
