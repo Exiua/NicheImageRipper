@@ -10,6 +10,7 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 using NicheImageRipper.Core.Utility;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 

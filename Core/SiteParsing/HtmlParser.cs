@@ -1,7 +1,5 @@
-﻿using System.Reflection;
-using FlareSolverrIntegration.Responses;
+﻿using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
-using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
@@ -22,6 +20,11 @@ using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing;
 
+/// <summary>
+///     Base class for all site-specific HTML parsers. Handles the shared parse pipeline (site detection,
+///     partial-save caching, retry-on-WebDriverException), scraping helpers (Soupify/lazy-load/FlareSolverr),
+///     and a small dev/test harness for exercising a single parser directly.
+/// </summary>
 public abstract class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
@@ -31,7 +34,7 @@ public abstract class HtmlParser : IDisposable
 
     protected static GeneralConfig Config => Configuration.Config.Instance;
     protected static TokenManager TokenManager => TokenManager.Instance;
-    
+
     private static PartialSaveManager PartialSaveManager => PartialSaveManager.Instance;
 
     protected WebDriver WebDriver { get; }
@@ -55,6 +58,18 @@ public abstract class HtmlParser : IDisposable
         set => Driver.Url = value;
     }
 
+    /// <summary>
+    /// Whether <see cref="ParseSite"/> should navigate the driver to the given URL before calling <see cref="Parse"/>.
+    /// False for parsers (e.g. <c>AllBooruParser</c>) that fetch data directly via HttpClient and never touch the driver.
+    /// </summary>
+    protected virtual bool RequiresNavigation => true;
+
+    /// <summary>
+    /// Whether <see cref="ParseSite"/> should check/write a cached <see cref="RipInfo"/> for this parser's site. False
+    /// for sites whose links expire too quickly to cache (e.g. e-hentai).
+    /// </summary>
+    protected virtual bool SupportsPartialSave => true;
+
     protected static bool Debugging { get; set; }
     protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
     protected static string UserAgent => Config.UserAgent;
@@ -75,15 +90,24 @@ public abstract class HtmlParser : IDisposable
         Logger = Log.ForContext<HtmlParser>();
     }
 
+    /// <summary>
+    ///     Parses the given URL into a <see cref="RipInfo"/>: normalizes it, detects the site, returns a cached
+    ///     partial save if one exists and this parser supports partial saves, otherwise navigates (if required)
+    ///     and runs <see cref="Parse"/>, retrying on <see cref="WebDriverException"/> up to <see cref="RetryCount"/>
+    ///     times and caching the result for next time on success.
+    /// </summary>
+    /// <param name="url">The page/gallery URL to parse.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <returns>The parsed <see cref="RipInfo"/>.</returns>
+    /// <exception cref="RipperException"><see cref="RetryCount"/> is less than 1, or parsing failed after all retries.</exception>
     public async Task<RipInfo> ParseSite(string url, CancellationToken cancellationToken = default)
     {
         Logger.Debug("Parsing {Url}", url);
-        url = url.Replace("members.", "www.") // For HAnime
-                 .Replace("exhentai.org", "e-hentai.org"); // Need to go through e-hentai first for cookies
+        url = UrlUtility.NormalizeUrl(url);
         GivenUrl = url;
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
-        // e-hentai image links expire too quickly, so we need to parse the site every time
-        if ((SiteName != "e-hentai" && SiteName != "exhentai"))
+
+        if (SupportsPartialSave)
         {
             var saveData = PartialSaveManager.GetPartialSave(url);
             if (saveData is not null)
@@ -101,13 +125,11 @@ public abstract class HtmlParser : IDisposable
         }
 
         Logger.Debug("No partial save found for site; Parsing site");
-        if (SiteName != "booru")
+        if (RequiresNavigation)
         {
             CurrentUrl = url;
         }
 
-        // Logger.Debug("Getting parser for {SiteName}", SiteName);
-        // var siteParser = GetParser(SiteName);
         for (var attempt = 0; attempt < RetryCount; attempt++)
         {
             try
@@ -116,7 +138,6 @@ public abstract class HtmlParser : IDisposable
                 var siteInfo = await Parse(cancellationToken);
                 Logger.Debug("Saving partial save for {Url}", url);
                 WritePartialSave(siteInfo, url);
-                //pickle.dump(self.driver.get_cookies(), open("cookies.pkl", "wb"))
                 return siteInfo;
             }
             catch (WebDriverException e)
@@ -152,13 +173,13 @@ public abstract class HtmlParser : IDisposable
         #endif
     }
 
-    protected HtmlParser GetParser(string url)
-    {
-        var requestHeaders = new Dictionary<string, string>();
-        var (siteName, _) = UrlUtility.SiteCheck(url, requestHeaders);
-        var parser = GetParser(siteName, WebDriver, ApiClientManager, requestHeaders, FilenameScheme);
-        return parser;
-    }
+    // protected HtmlParser GetParser(string url)
+    // {
+    //     var requestHeaders = new Dictionary<string, string>();
+    //     var (siteName, _) = UrlUtility.SiteCheck(url, requestHeaders);
+    //     var parser = GetParser(siteName, WebDriver, ApiClientManager, requestHeaders, FilenameScheme);
+    //     return parser;
+    // }
 
     public static HtmlParser GetParser(string siteName, WebDriver webDriver, ApiClientManager clientManager,
                                        Dictionary<string, string> requestHeaders,
@@ -214,96 +235,6 @@ public abstract class HtmlParser : IDisposable
 
     protected abstract Task<RipInfo> Parse(CancellationToken cancellationToken = default);
 
-    #region Generic Site Parsers
-
-    /// <summary>
-    ///     
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected async Task<RipInfo> GenericBabesHtmlParser(string dirNameXpath, string imageContainerXpath, CancellationToken cancellationToken = default)
-    {
-        var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow(dirNameXpath)
-                          .InnerText;
-        var images = soup.SelectNodesOrThrow(imageContainerXpath)
-                         .SelectMany(im => im.SelectNodesOrThrow(".//img"))
-                         .Select(img => Protocol + img.GetSrc().Remove("tn_"))
-                         .Select(dummy => (StringFileLinkWrapper)dummy)
-                         .ToList();
-
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    }
-
-    protected Task<RipInfo> GenericHtmlParser(string siteName, CancellationToken cancellationToken = default)
-    {
-        return siteName switch
-        {
-            "bustybloom" or "sexyaporno" => GenericHtmlParserHelper1(cancellationToken),
-            "elitebabes" => GenericHtmlParserHelper2(cancellationToken),
-            "femjoyhunter" or "ftvhunter" or "hegrehunter" or "joymiihub"
-                or "metarthunter" or "pmatehunter" or "xarthunter" => GenericHtmlParserHelper3(cancellationToken),
-            _ => throw new RipperException($"Invalid site name: {siteName}")
-        };
-    }
-
-    /// <summary>
-    ///     
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GenericHtmlParserHelper1(CancellationToken cancellationToken = default)
-    {
-        var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//img[@title='Click To Enlarge!']")
-                          .GetAttributeValue("alt")
-                          .Split(" ")
-                          .TakeWhile(s => s != "-")
-                          .Join(" ");
-        var images = soup.SelectNodesOrThrow("//div[@class='gallery_thumb']")
-                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
-                         .ToStringImageLinkWrapperList();
-
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    }
-
-    /// <summary>
-    ///     
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GenericHtmlParserHelper2(CancellationToken cancellationToken = default)
-    {
-        var soup = await Soupify(cancellationToken: cancellationToken);
-        var imageList = soup.SelectSingleNodeOrThrow("//ul[@class='list-gallery static css has-data']")
-                            .SelectNodesOrThrow(".//a");
-        var images = imageList.Select(image => image.GetHref())
-                              .Select(dummy => (StringFileLinkWrapper)dummy)
-                              .ToList();
-        var dirName = imageList[0].SelectSingleNodeOrThrow(".//img")
-                                  .GetAttributeValue("alt");
-
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    }
-
-    /// <summary>
-    ///     
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private async Task<RipInfo> GenericHtmlParserHelper3(CancellationToken cancellationToken = default)
-    {
-        var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//header[@id='top']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var images = soup
-                    .SelectSingleNodeOrThrow(
-                         "//ul[contains(@class, 'list-gallery') and contains(@class, 'static') and contains(@class, 'css')]")
-                    .SelectNodesOrThrow(".//a")
-                    .Select(img => img.GetHref())
-                    .Select(dummy => (StringFileLinkWrapper)dummy)
-                    .ToList();
-
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    }
-
-    #endregion
-
     protected static string ExtractJsonObject(string json)
     {
         var depth = 0;
@@ -327,14 +258,12 @@ public abstract class HtmlParser : IDisposable
                         {
                             depth++;
                         }
-
                         break;
                     case '}':
                         if (!inString)
                         {
                             depth--;
                         }
-
                         break;
                     case '"':
                         inString = !inString;
@@ -351,17 +280,15 @@ public abstract class HtmlParser : IDisposable
         throw new RipperException($"Improperly formatted json: {json}");
     }
 
-    /// <summary>
-    ///     Convert current page into an HtmlNode object
-    /// </summary>
+    /// <summary>Convert current page into an HtmlNode object</summary>
     /// <param name="delay">How long to wait after loading the page (in milliseconds) before parsing</param>
     /// <param name="lazyLoadArgs">Arguments for lazy loading elements on the page</param>
     /// <param name="xpath">XPath of an element to wait for before parsing</param>
-    /// <param name="xpathTimout">Timeout (in seconds) for waiting for the XPath element</param>
+    /// <param name="xpathTimeout">Timeout (in seconds) for waiting for the XPath element</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-    /// <returns>>Parsed HtmlNode object</returns>
+    /// <returns>Parsed HtmlNode object</returns>
     protected async Task<HtmlNode> Soupify(int delay = 0, LazyLoadArgs? lazyLoadArgs = null, string xpath = "",
-                                           int xpathTimout = 10, CancellationToken cancellationToken = default)
+                                           int xpathTimeout = 10, CancellationToken cancellationToken = default)
     {
         if (delay > 0)
         {
@@ -370,13 +297,12 @@ public abstract class HtmlParser : IDisposable
 
         if (xpath != "")
         {
-            await WaitForElement(xpath, timeout: xpathTimout, cancellationToken: cancellationToken);
+            await WaitForElement(xpath, timeout: xpathTimeout, cancellationToken: cancellationToken);
         }
 
         if (lazyLoadArgs is not null)
         {
             await LazyLoad(lazyLoadArgs, cancellationToken);
-
         }
 
         var doc = new HtmlDocument();
@@ -384,21 +310,19 @@ public abstract class HtmlParser : IDisposable
         return doc.DocumentNode;
     }
 
-    /// <summary>
-    ///     Convert input into an HtmlNode object
-    /// </summary>
+    /// <summary>Convert input into an HtmlNode object</summary>
     /// <param name="url">URL or HTML string. If a url is provided, the driver will navigate to it first, before parsing the page.</param>
     /// <param name="delay">How long to wait after loading the page (in milliseconds) before parsing</param>
     /// <param name="lazyLoadArgs">Arguments for lazy loading elements on the page</param>
     /// <param name="xpath">XPath of an element to wait for before parsing</param>
     /// <param name="urlString">Indicates whether the 'url' parameter is a URL (true) or an HTML string (false)</param>
     /// <param name="cookies">Cookies to add before loading the page</param>
-    /// <param name="xpathTimout">Timeout (in seconds) for waiting for the XPath element</param>
+    /// <param name="xpathTimeout">Timeout (in seconds) for waiting for the XPath element</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-    /// <returns>>Parsed HtmlNode object</returns>
+    /// <returns>Parsed HtmlNode object</returns>
     protected async Task<HtmlNode> Soupify(string url, int delay = 0, LazyLoadArgs? lazyLoadArgs = null,
                                            string xpath = "", bool urlString = true, ICookieJar? cookies = null,
-                                           int xpathTimout = 10, CancellationToken cancellationToken = default)
+                                           int xpathTimeout = 10, CancellationToken cancellationToken = default)
     {
         if (!urlString)
         {
@@ -418,14 +342,13 @@ public abstract class HtmlParser : IDisposable
             }
         }
 
-        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimout: xpathTimout, cancellationToken: cancellationToken);
+        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimeout: xpathTimeout, cancellationToken: cancellationToken);
     }
 
-    /// <summary>
-    ///     Convert HttpResponseMessage content into an HtmlNode object
-    /// </summary>
+    /// <summary>Convert HttpResponseMessage content into an HtmlNode object</summary>
     /// <param name="response">HttpResponseMessage to parse</param>
-    /// <returns>>Parsed HtmlNode object</returns>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <returns>Parsed HtmlNode object</returns>
     protected static async Task<HtmlNode> Soupify(HttpResponseMessage response, CancellationToken cancellationToken = default)
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -434,11 +357,15 @@ public abstract class HtmlParser : IDisposable
         return htmlDocument.DocumentNode;
     }
 
+    /// <param name="baseResponse">Response to parse</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <returns>Parsed HtmlNode object</returns>
+    /// <exception cref="RipperException">The response was an error, or an unexpected response type.</exception>
     protected async Task<HtmlNode> Soupify(CSWebDriverClient.Models.Responses.BaseResponse baseResponse, CancellationToken cancellationToken = default)
     {
         return baseResponse switch
         {
-            CSWebDriverClient.Models.Responses.ErrorResponse errorResponse => 
+            CSWebDriverClient.Models.Responses.ErrorResponse errorResponse =>
                 errorResponse.Details is not null
                     ? throw new RipperException($"{errorResponse.Error}: {errorResponse.Details}")
                     : throw new RipperException(errorResponse.Error),
@@ -449,11 +376,10 @@ public abstract class HtmlParser : IDisposable
         };
     }
 
-    /// <summary>
-    ///     Convert FlareSolverr Solution response into an HtmlNode object
-    /// </summary>
+    /// <summary>Convert FlareSolverr Solution response into an HtmlNode object</summary>
     /// <param name="solution">FlareSolverr Solution to parse</param>
-    /// <returns>>Parsed HtmlNode object</returns>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <returns>Parsed HtmlNode object</returns>
     private static Task<HtmlNode> Soupify(Solution solution, CancellationToken cancellationToken = default)
     {
         var htmlDocument = new HtmlDocument();
@@ -461,13 +387,12 @@ public abstract class HtmlParser : IDisposable
         return Task.FromResult(htmlDocument.DocumentNode);
     }
 
-    /// <summary>
-    ///     Wait for an element to exist on the page
-    /// </summary>
+    /// <summary>Wait for an element to exist on the page</summary>
     /// <param name="xpath">XPath of the element to wait for</param>
     /// <param name="delay">Delay between each check</param>
     /// <param name="timeout">Timeout (in seconds) for the wait (-1 for no timeout)</param>
-    /// <returns>True if the element exists, false if the timeout is reached</returns>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <returns>The tag name of the found element, or null if the timeout is reached</returns>
     protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10, CancellationToken cancellationToken = default)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
@@ -493,9 +418,7 @@ public abstract class HtmlParser : IDisposable
         return foundElement.TagName;
     }
 
-    /// <summary>
-    ///     Close all tabs that do not contain the specified URL match.
-    /// </summary>
+    /// <summary>Close all tabs that do not contain the specified URL match.</summary>
     /// <param name="urlMatch">The substring that should be present in the URL of the tabs to keep open.</param>
     protected void CleanTabs(string urlMatch)
     {
@@ -512,26 +435,15 @@ public abstract class HtmlParser : IDisposable
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
-    /// <summary>
-    ///     Solves a CAPTCHA using FlareSolverr, parses the returned HTML, and adds the necessary cookies to the browser session.
-    /// </summary>
-    /// <param name="regenerateSessionOnFailure">
-    ///     If <c>true</c>, regenerates the session and retries once if CAPTCHA solving fails.
-    /// </param>
-    /// <param name="cookies">
-    ///     Optional. A list of cookie dictionaries to include in the session when solving the CAPTCHA.
-    /// </param>
+    /// <summary>Solves a CAPTCHA using FlareSolverr, parses the returned HTML, and adds the necessary cookies to the browser session.</summary>
+    /// <param name="regenerateSessionOnFailure">If true, regenerates the session and retries once if CAPTCHA solving fails.</param>
+    /// <param name="cookies">Optional cookie dictionaries to include in the session when solving the CAPTCHA.</param>
     /// <param name="cookieWhitelist">List of cookie names to retain from the existing session.</param>
     /// <param name="replaceUserAgent">Whether to replace the User-Agent header with the one provided by FlareSolverr.</param>
-    /// <returns>
-    ///     The parsed HTML document as an <see cref="HtmlNode"/>.
-    /// </returns>
-    /// <exception cref="FeatureNotAvailableException">
-    ///     Thrown if FlareSolverr support is not available.
-    /// </exception>
-    /// <exception cref="FailedToGetSolutionException">
-    ///     Thrown if CAPTCHA solving fails and session regeneration is disabled.
-    /// </exception>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <returns>The parsed HTML document as an <see cref="HtmlNode"/>.</returns>
+    /// <exception cref="FeatureNotAvailableException">FlareSolverr support is not available.</exception>
+    /// <exception cref="FailedToGetSolutionException">CAPTCHA solving fails and session regeneration is disabled.</exception>
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
                                                         List<Dictionary<string, string>>? cookies = null,
                                                         List<string>? cookieWhitelist = null,
@@ -558,6 +470,10 @@ public abstract class HtmlParser : IDisposable
         return await Soupify(solution, cancellationToken: cancellationToken);
     }
 
+    /// <param name="regenerateSessionOnFailure">If true, regenerates the session and retries once if CAPTCHA solving fails.</param>
+    /// <param name="cookies">Optional cookie dictionaries to include in the session when solving the CAPTCHA.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <returns>The parsed HTML document as an <see cref="HtmlNode"/>.</returns>
     protected async Task<HtmlNode> SolveParse(bool regenerateSessionOnFailure = false,
                                               List<Dictionary<string, string>>? cookies = null, CancellationToken cancellationToken = default)
     {
@@ -645,14 +561,7 @@ public abstract class HtmlParser : IDisposable
         if (File.Exists(cachePath))
         {
             var temp = JsonUtility.Deserialize<T>(cachePath);
-            if (temp is null)
-            {
-                data = await fetchFunc();
-            }
-            else
-            {
-                data = temp;
-            }
+            data = temp ?? await fetchFunc();
         }
         else
         {
@@ -716,9 +625,7 @@ public abstract class HtmlParser : IDisposable
         return !string.IsNullOrEmpty(url) && ExternalSites.Any(url.Contains);
     }
 
-    /// <summary>
-    ///     Scrolls through the page to lazy load images
-    /// </summary>
+    /// <summary>Scrolls through the page to lazy load images</summary>
     /// <param name="args">Arguments for lazy loading</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     protected Task LazyLoad(LazyLoadArgs args, CancellationToken cancellationToken = default)
@@ -728,9 +635,7 @@ public abstract class HtmlParser : IDisposable
             : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll, cancellationToken);
     }
 
-    /// <summary>
-    ///     Scroll through the page to lazy load images
-    /// </summary>
+    /// <summary>Scroll through the page to lazy load images</summary>
     /// <param name="scrollBy">Whether to scroll through the page or instantly scroll to the bottom</param>
     /// <param name="increment">Distance to scroll by each iteration</param>
     /// <param name="scrollPauseTime">Seconds to wait between each scroll</param>
@@ -842,6 +747,17 @@ public abstract class HtmlParser : IDisposable
 
     #region Parser Testing
 
+    private static readonly Dictionary<string, string> TestSiteNameOverrides = new()
+    {
+        ["x-x-x"] = "xxxtube",
+        ["twitter"] = "x",
+    };
+
+    /// <summary>
+    ///     Dev/test-only entry point: parses a URL by resolving and running a single parser directly, bypassing
+    ///     <see cref="ImageRipper"/> entirely. Uses a looser site-detection path than production (no whitelist
+    ///     gate), so it can exercise parsers for sites not yet enabled in <c>UrlUtility.SiteCheck</c>.
+    /// </summary>
     public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite, CancellationToken cancellationToken = default)
     {
         try
@@ -852,10 +768,9 @@ public abstract class HtmlParser : IDisposable
             OpenQA.Selenium.Internal.Logging.Log.SetLevel(
                 typeof(SeleniumManager),
                 OpenQA.Selenium.Internal.Logging.LogEventLevel.Trace);
-            /*var options = InitializeOptions(debug);
-            Driver = new FirefoxDriver(options);*/
-            CurrentUrl = givenUrl.Replace("members.", "www.");
-            SiteName = TestSiteCheck(givenUrl);
+
+            CurrentUrl = UrlUtility.NormalizeUrl(givenUrl);
+            SiteName = TestSiteCheck(CurrentUrl);
 
             Logger.Debug("Testing: {SiteName}Parse", SiteName);
             Logger.Debug("URL: {CurrentUrl}", CurrentUrl);
@@ -896,116 +811,24 @@ public abstract class HtmlParser : IDisposable
             {
                 await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
             }
-
-            //await FlareSolverrManager.DeleteSession();
         }
     }
 
     private Task<RipInfo> EvaluateParser(string siteName, CancellationToken cancellationToken = default)
     {
-        siteName = TestSiteConverter(siteName);
-        siteName = siteName[0].ToString().ToUpper() + siteName[1..];
-        var className = $"{siteName}Parser";
-        Logger.Debug("Parser: {ParserName}", className);
-        var classType = Assembly.GetExecutingAssembly()
-                                .GetTypes()
-                                .FirstOrDefault(t =>
-                                     string.Equals(t.Name, className, StringComparison.OrdinalIgnoreCase));
-        if (classType is not null)
+        if (TestSiteNameOverrides.TryGetValue(siteName, out var overrideName))
         {
-            var ripper =
-                (HtmlParser)Activator.CreateInstance(classType, WebDriver, ApiClientManager, RequestHeaders,
-                    FilenameScheme)!;
-            return ripper.Parse(cancellationToken);
+            siteName = overrideName;
         }
 
-        // Handle the case where the method does not exist
-        Logger.Error("Parser {ParserName} not found.", className);
-        throw new InvalidOperationException();
-    }
-
-    private static string TestSiteConverter(string siteName)
-    {
-        if (siteName == "x")
-        {
-            return "twitter";
-        }
-
-        if (siteName == "booru")
-        {
-            return "allbooru";
-        }
-
-        if (siteName == "x-x-x")
-        {
-            return "xxxtube";
-        }
-
-        if (siteName.Contains("bunkrrr"))
-        {
-            siteName = siteName.Replace("bunkrrr", "Bunkr");
-        }
-        else if (siteName.Contains("100bucksbabes"))
-        {
-            siteName = siteName.Replace("100bucksbabes", "HundredBucksBabes");
-        }
-        else if (siteName.Contains("chapmanganato"))
-        {
-            siteName = siteName.Replace("chapmanganato", "Manganato");
-        }
-        else if (siteName.Contains("18kami"))
-        {
-            siteName = siteName.Replace("18kami", "EighteenKami");
-        }
-
-        if (siteName[0] >= '0' && siteName[0] <= '9')
-        {
-            siteName = NumberToWord(siteName[0]) + char.ToUpper(siteName[1]) + siteName[2..];
-        }
-
-        return siteName.Remove("-");
-    }
-
-    private static string NumberToWord(char number)
-    {
-        return number switch
-        {
-            '0' => "zero",
-            '1' => "one",
-            '2' => "two",
-            '3' => "three",
-            '4' => "four",
-            '5' => "five",
-            '6' => "six",
-            '7' => "seven",
-            '8' => "eight",
-            '9' => "nine",
-            _ => throw new RipperException("Invalid number")
-        };
+        Logger.Debug("Resolving parser for site: {SiteName}", siteName);
+        var parser = HtmlParserFactory.Create(siteName, WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
+        return parser.Parse(cancellationToken);
     }
 
     private string TestSiteCheck(string url)
     {
-        var domain = new Uri(url).Host;
-        RequestHeaders["referer"] = $"https://{domain}/";
-        domain = DomainNameOverride(domain);
-        if (url.Contains("https://members.hanime.tv/") || url.Contains("https://hanime.tv/"))
-        {
-            RequestHeaders["referer"] = "https://cdn.discordapp.com/";
-        }
-        else if (url.Contains("https://kemono.party/"))
-        {
-            RequestHeaders["referer"] = "";
-        }
-
-        return domain;
-    }
-
-    private static string DomainNameOverride(string url)
-    {
-        string[] specialDomains = ["inven.co.kr", "danbooru.donmai.us"];
-        var urlSplit = url.Split(".");
-        return specialDomains.Any(url.Contains) ? urlSplit[^3] : urlSplit[^2];
+        return UrlUtility.ExtractDomainAndSetReferer(url, RequestHeaders);
     }
 
     #endregion

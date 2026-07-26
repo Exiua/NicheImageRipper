@@ -1,31 +1,44 @@
 using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.Utility;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers;
 
 public abstract class TimeSensitiveHtmlParser : HtmlParser
 {
-    // Quick fix for updating links, should be replaced with a more robust solution
-    private static readonly Dictionary<string, string> LastUrls = new();
-
     protected abstract string ImageLinksFileName { get; }
     protected abstract int MaxEntriesPerBatch { get; }
     protected abstract string ParserKey { get; }
 
     protected TimeSensitiveHtmlParser(WebDriver driver, ApiClientManager clientManager,
                                       Dictionary<string, string> requestHeaders,
-                                      FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
-        clientManager, requestHeaders, filenameScheme)
+                                      FilenameScheme filenameScheme = FilenameScheme.Original)
+        : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
-    // Should never be called before Parse() is called
-    public async Task<List<FileLink>> UpdateLinks(List<FileLink> links, int start,
+    /// <summary>
+    ///     Refreshes a batch of expired links using the image-links map cached during the original <c>Parse()</c>
+    ///     call, resuming from <paramref name="start"/>. Should never be called before <c>Parse()</c> has run at
+    ///     least once for <paramref name="ripUrl"/>.
+    /// </summary>
+    /// <param name="links">The current (possibly-expired) links to refresh.</param>
+    /// <param name="start">Index to resume refreshing from.</param>
+    /// <param name="ripUrl">
+    ///     The original rip URL, used to look up this parser's cached last-fetched-URL. Passed explicitly rather
+    ///     than read from this instance's own <c>GivenUrl</c>, since link refreshes run against a freshly
+    ///     constructed parser instance that never went through <c>ParseSite</c>.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <returns>The updated list of links.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Parse() has not been run for this URL, or its cached data is missing/unreadable.</exception>
+    /// <exception cref="start"><paramref name="start"/> is out of range for the cached image links.</exception>
+    public async Task<List<FileLink>> UpdateLinks(List<FileLink> links, int start, string ripUrl,
                                                   CancellationToken cancellationToken = default)
     {
         if (!File.Exists(ImageLinksFileName))
@@ -34,7 +47,8 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
         }
 
         var imageLinksMap = JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
-        if (!LastUrls.TryGetValue(ParserKey, out var lastUrl))
+        var lastUrl = TimeSensitiveParserStateManager.Instance.GetLastUrl(ParserKey, ripUrl);
+        if (lastUrl is null)
         {
             throw new RipperException("No last URL found. Please run Parse() first.");
         }
@@ -82,8 +96,9 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
 
     protected abstract Task<string> UpdateLink(string link, CancellationToken cancellationToken = default);
 
+    /// <summary>Records the given URL as the last one fetched, keyed against this rip's <c>GivenUrl</c>, for a later <c>UpdateLinks</c> call to find.</summary>
     protected void StoreLastLink(string url)
     {
-        LastUrls[ParserKey] = url;
+        TimeSensitiveParserStateManager.Instance.StoreLastUrl(ParserKey, GivenUrl, url);
     }
 }

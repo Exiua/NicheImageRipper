@@ -111,6 +111,31 @@ public static partial class UrlUtility
         var baseUrl = $"{parsedUri.Scheme}://{parsedUri.Host}/";
         return SupportedSites.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
     }
+    
+    private static readonly string[] SpecialDomains = ["inven.co.kr", "danbooru.donmai.us"];
+    
+    /// <summary>
+    ///     Extracts the site-check domain and referer for a URL, applying the known per-site referer overrides.
+    ///     Does not enforce the production site whitelist — see <see cref="SiteCheck"/> for that.
+    /// </summary>
+    internal static string ExtractDomainAndSetReferer(string givenUrl, Dictionary<string, string> requestHeaders)
+    {
+        var domain = new Uri(givenUrl).Host;
+        requestHeaders["referer"] = $"https://{domain}/";
+        var domainParts = domain.Split('.');
+        domain = SpecialDomains.Any(domain.Contains) ? domainParts[^3] : domainParts[^2];
+
+        if (givenUrl.Contains("https://members.hanime.tv/") || givenUrl.Contains("https://hanime.tv/"))
+        {
+            requestHeaders["referer"] = "https://cdn.discordapp.com/";
+        }
+        else if (givenUrl.Contains("https://kemono.party/") || givenUrl.Contains("inven.co.kr"))
+        {
+            requestHeaders["referer"] = "";
+        }
+
+        return domain;
+    }
 
     /// <summary>
     ///     Check the site and return the domain and delay between requests. Also sets the referer header
@@ -126,22 +151,9 @@ public static partial class UrlUtility
             throw new RipperException("Not a support site");
         }
 
-        string[] specialDomains = ["inven.co.kr", "danbooru.donmai.us"];
-        var domain = new Uri(givenUrl).Host;
-        requestHeaders["referer"] = $"https://{domain}/";
-        var domainParts = domain.Split('.');
-        domain = specialDomains.Any(specialDomain => domain.Contains(specialDomain))
-            ? domainParts[^3]
-            : domainParts[^2];
-        if (givenUrl.Contains("https://members.hanime.tv/") || givenUrl.Contains("https://hanime.tv/"))
-        {
-            requestHeaders["referer"] = "https://cdn.discordapp.com/";
-        }
-        else if (givenUrl.Contains("https://kemono.party/") || givenUrl.Contains("inven.co.kr"))
-        {
-            requestHeaders["referer"] = "";
-        }
-        else if (givenUrl.Contains("https://e-hentai.org/") || givenUrl.Contains("https://exhentai.org/"))
+        var domain = ExtractDomainAndSetReferer(givenUrl, requestHeaders);
+
+        if (givenUrl.Contains("https://e-hentai.org/") || givenUrl.Contains("https://exhentai.org/"))
         {
             return (domain, 2.5f);
         }
@@ -267,6 +279,16 @@ public static partial class UrlUtility
     public static string GetUrlParameterValue(string url, string parameter)
     {
         return url.Split($"{parameter}=")[1].Split("&")[0];
+    }
+    
+    /// <summary>
+    /// Applies known per-site URL rewrites needed before site detection/parsing (e.g. hanime member subdomain,
+    /// exhentai->e-hentai cookie sharing).
+    /// </summary>
+    public static string NormalizeUrl(string url)
+    {
+        return url.Replace("members.", "www.") // Hanime
+                  .Replace("exhentai.org", "e-hentai.org"); // Need to go through e-hentai first for cookies
     }
     
     /// <summary>

@@ -223,8 +223,7 @@ public class ImageRipper : IDisposable
         //  Revisit once parser support for this is rebuilt — CookiesNeeded/AddCookies removed as dead stubs.
 
 
-        GivenUrl = url.Replace("members.",
-            "www."); // Hanime-specific — inline until a second site needs the same normalization
+        GivenUrl = UrlUtility.NormalizeUrl(url);
         (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         Logger.Debug("Site Name: {SiteName}", SiteName);
 
@@ -546,7 +545,7 @@ public class ImageRipper : IDisposable
                 }
 
                 start = e.ResumeIndex;
-                FolderInfo.Urls = await timeSensitiveParser.UpdateLinks(FolderInfo.Urls, start, cancellationToken);
+                FolderInfo.Urls = await timeSensitiveParser.UpdateLinks(FolderInfo.Urls, start, GivenUrl, cancellationToken);
             }
         }
     }
@@ -703,13 +702,17 @@ public class ImageRipper : IDisposable
         }
     }
 
-    /// <summary>Persists the current rip's URL and <see cref="CurrentIndex"/> so it can be resumed later via <see cref="GetStartIndex"/>.</summary>
+    /// <summary>
+    /// Persists the current rip's URL and <see cref="CurrentIndex"/> so it can be resumed later via <see cref="GetStartIndex"/>.
+    /// </summary>
     internal Task SaveCurrentRipPosition(CancellationToken cancellationToken = default)
     {
         return CacheUtility.SaveRipIndex(RipIndexPath, GivenUrl, CurrentIndex, cancellationToken);
     }
 
-    /// <summary>Advances the saved rip-index position by one, without needing an active <see cref="ImageRipper"/> instance.</summary>
+    /// <summary>
+    /// Advances the saved rip-index position by one, without needing an active <see cref="ImageRipper"/> instance.
+    /// </summary>
     internal static async Task IncrementCurrentRipPosition(CancellationToken cancellationToken = default)
     {
         var (url, index) = await CacheUtility.ReadRipIndex(RipIndexPath, cancellationToken);
