@@ -51,4 +51,6 @@ internal static class DownloadCompositionRoot
     
     public static IReadOnlyList<IExternalToolDownloadStrategy> BuildExternalToolStrategies() =>
         ReflectionDiscovery.DiscoverImplementations<IExternalToolDownloadStrategy>();
+    public static IReadOnlyList<IWebDriverPreferenceProvider> BuildWebDriverPreferenceProviders() =>
+        ReflectionDiscovery.DiscoverImplementations<IWebDriverPreferenceProvider>();
 }
