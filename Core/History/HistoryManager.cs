@@ -1,20 +1,31 @@
-﻿using System.Data.SQLite;
+﻿using System.Data;
+using System.Data.SQLite;
+using System.Diagnostics.CodeAnalysis;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.ExtensionMethods;
 using Serilog;
 
 namespace NicheImageRipper.Core.History;
 
+/// <summary>
+///     Singleton manager for the persistent rip history stored in the shared SQLite database. All public
+///     members that touch the underlying connection are synchronized via a single lock, since
+///     <see cref="SQLiteConnection"/> is not safe for concurrent use from multiple threads.
+/// </summary>
 public class HistoryManager : IDisposable
 {
     private const string ConnectionString = "Data Source=NicheImageRipper.db";
-    
+
     private static readonly ILogger Logger = Log.ForContext<HistoryManager>();
-    
+
+    /// <summary>The shared singleton instance.</summary>
     public static HistoryManager Instance { get; } = new();
-    
+
     private readonly SQLiteConnection _connection = new(ConnectionString);
-    
+    private readonly Lock _databaseLock = new();
+
+    private bool _disposed;
+
     private HistoryManager()
     {
         Initialize();
@@ -34,160 +45,229 @@ public class HistoryManager : IDisposable
                                         );
                                         """;
         const string createIndexQuery = "CREATE INDEX IF NOT EXISTS url_index ON history (Url);";
-        
+
         using var createTableCmd = new SQLiteCommand(createTableQuery, _connection);
         createTableCmd.ExecuteNonQuery();
         using var createIndexCmd = new SQLiteCommand(createIndexQuery, _connection);
         createIndexCmd.ExecuteNonQuery();
     }
-    
+
+    /// <summary>Inserts a new history record.</summary>
+    /// <param name="entry">The entry to insert.</param>
+    /// <param name="transaction">An existing transaction to insert within, or null to run standalone.</param>
     public void InsertHistoryRecord(HistoryEntry entry, SQLiteTransaction? transaction = null)
     {
-        const string insertQuery = """
-                                   INSERT INTO history (DirectoryName, Url, Date, NumUrls)
-                                   VALUES (@DirectoryName, @Url, @Date, @NumUrls);
-                                   """;
+        lock (_databaseLock)
+        {
+            const string insertQuery = """
+                                       INSERT INTO history (DirectoryName, Url, Date, NumUrls)
+                                       VALUES (@DirectoryName, @Url, @Date, @NumUrls);
+                                       """;
 
-        using var insertCmd = transaction is null
-            ? new SQLiteCommand(insertQuery, _connection)
-            : new SQLiteCommand(insertQuery, _connection, transaction);
-        
-        insertCmd.Parameters.AddWithValue("@DirectoryName", entry.DirectoryName);
-        insertCmd.Parameters.AddWithValue("@Url", entry.Url);
-        insertCmd.Parameters.AddWithValue("@Date", entry.Date.ToSqliteString()); // Format date to SQLite DATETIME format
-        insertCmd.Parameters.AddWithValue("@NumUrls", entry.NumUrls);
+            using var insertCmd = transaction is null
+                ? new SQLiteCommand(insertQuery, _connection)
+                : new SQLiteCommand(insertQuery, _connection, transaction);
 
-        insertCmd.ExecuteNonQuery();
+            insertCmd.Parameters.AddWithValue("@DirectoryName", entry.DirectoryName);
+            insertCmd.Parameters.AddWithValue("@Url", entry.Url);
+            insertCmd.Parameters.AddWithValue("@Date",
+                entry.Date.ToSqliteString()); // Format date to SQLite DATETIME format
+            insertCmd.Parameters.AddWithValue("@NumUrls", entry.NumUrls);
+
+            insertCmd.ExecuteNonQuery();
+        }
     }
-    
-    public void UpdateDateByUrl(string url, DateTime date)
+
+    /// <summary>Updates the recorded date for the history entry matching the given URL.</summary>
+    /// <param name="url">URL of the entry to update.</param>
+    /// <param name="date">New date to set.</param>
+    /// <param name="transaction">An existing transaction to update within, or null to run standalone.</param>
+    public void UpdateDateByUrl(string url, DateTime date, SQLiteTransaction? transaction = null)
     {
-        const string updateQuery = """
-                                   UPDATE history
-                                   SET Date = @Date
-                                   WHERE Url = @Url;
-                                   """;
+        lock (_databaseLock)
+        {
+            const string updateQuery = """
+                                       UPDATE history
+                                       SET Date = @Date
+                                       WHERE Url = @Url;
+                                       """;
 
-        using var updateCmd = new SQLiteCommand(updateQuery, _connection);
-        updateCmd.Parameters.AddWithValue("@Date", date.ToSqliteString()); // Format date to SQLite DATETIME format
-        updateCmd.Parameters.AddWithValue("@Url", url);
+            using var updateCmd = transaction is null
+                ? new SQLiteCommand(updateQuery, _connection)
+                : new SQLiteCommand(updateQuery, _connection, transaction);
+            updateCmd.Parameters.AddWithValue("@Date", date.ToSqliteString());
+            updateCmd.Parameters.AddWithValue("@Url", url);
 
-        updateCmd.ExecuteNonQuery();
+            updateCmd.ExecuteNonQuery();
+        }
     }
-    
+
+    /// <summary>Looks up the URL for a given history record id.</summary>
+    /// <param name="id">The history record's id.</param>
+    /// <param name="transaction">An existing transaction to query within, or null to run standalone.</param>
+    /// <returns>The record's URL, or null if no record with that id exists.</returns>
     public string? GetUrlById(int id, SQLiteTransaction? transaction = null)
     {
-        const string selectQuery = """
-                                   SELECT Url FROM history
-                                   WHERE id = @Id;
-                                   """;
+        lock (_databaseLock)
+        {
+            const string selectQuery = """
+                                       SELECT Url FROM history
+                                       WHERE id = @Id;
+                                       """;
 
-        using var selectCmd = transaction is null
-            ? new SQLiteCommand(selectQuery, _connection)
-            : new SQLiteCommand(selectQuery, _connection, transaction);
-        selectCmd.Parameters.AddWithValue("@Id", id);
+            using var selectCmd = transaction is null
+                ? new SQLiteCommand(selectQuery, _connection)
+                : new SQLiteCommand(selectQuery, _connection, transaction);
+            selectCmd.Parameters.AddWithValue("@Id", id);
 
-        return (string?) selectCmd.ExecuteScalar();
+            return (string?)selectCmd.ExecuteScalar();
+        }
     }
-    
+
+    /// <summary>Updates the URL for a given history record id.</summary>
+    /// <param name="id">The history record's id.</param>
+    /// <param name="url">The new URL to set.</param>
+    /// <param name="transaction">An existing transaction to update within, or null to run standalone.</param>
     public void UpdateHistoryEntryUrlById(int id, string url, SQLiteTransaction? transaction = null)
     {
-        const string updateQuery = """
-                                   UPDATE history
-                                   SET Url = @Url
-                                   WHERE id = @Id;
-                                   """;
+        lock (_databaseLock)
+        {
+            const string updateQuery = """
+                                       UPDATE history
+                                       SET Url = @Url
+                                       WHERE id = @Id;
+                                       """;
 
-        using var updateCmd = transaction is null
-            ? new SQLiteCommand(updateQuery, _connection)
-            : new SQLiteCommand(updateQuery, _connection, transaction);
-        updateCmd.Parameters.AddWithValue("@Url", url);
-        updateCmd.Parameters.AddWithValue("@Id", id);
+            using var updateCmd = transaction is null
+                ? new SQLiteCommand(updateQuery, _connection)
+                : new SQLiteCommand(updateQuery, _connection, transaction);
+            updateCmd.Parameters.AddWithValue("@Url", url);
+            updateCmd.Parameters.AddWithValue("@Id", id);
 
-        updateCmd.ExecuteNonQuery();
+            updateCmd.ExecuteNonQuery();
+        }
     }
-    
+
+    /// <summary>Gets the total number of history records.</summary>
+    /// <returns>The total record count.</returns>
     public int GetHistoryEntryCount()
     {
-        const string selectQuery = "SELECT COUNT(*) FROM history;";
+        lock (_databaseLock)
+        {
+            const string selectQuery = "SELECT COUNT(*) FROM history;";
 
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+            using var selectCmd = new SQLiteCommand(selectQuery, _connection);
 
-        return Convert.ToInt32(selectCmd.ExecuteScalar());
+            return Convert.ToInt32(selectCmd.ExecuteScalar());
+        }
     }
-    
+
+    /// <summary>Checks whether a URL already has a history record.</summary>
+    /// <param name="url">URL to check.</param>
+    /// <returns>True if at least one record exists for this URL.</returns>
     public bool UrlInHistory(string url)
     {
-        const string selectQuery = """
-                                   SELECT COUNT(*) FROM history
-                                   WHERE Url = @Url;
-                                   """;
+        lock (_databaseLock)
+        {
+            const string selectQuery = """
+                                       SELECT COUNT(*) FROM history
+                                       WHERE Url = @Url;
+                                       """;
 
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@Url", url);
+            using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+            selectCmd.Parameters.AddWithValue("@Url", url);
 
-        return (long) selectCmd.ExecuteScalar() > 0;
+            return Convert.ToInt64(selectCmd.ExecuteScalar()) > 0;
+        }
     }
 
+    /// <summary>Gets the history record for a given URL.</summary>
+    /// <param name="url">URL to look up.</param>
+    /// <returns>The matching entry, or null if none exists.</returns>
     public HistoryEntry? GetHistoryByUrl(string url)
     {
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   WHERE Url = @Url;
-                                   """;
-        
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@Url", url);
-        using var reader = selectCmd.ExecuteReader();
-        
-        return !reader.Read() ? null : ExtractHistoryEntry(reader);
+        lock (_databaseLock)
+        {
+            const string selectQuery = """
+                                       SELECT * FROM history
+                                       WHERE Url = @Url;
+                                       """;
+
+            using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+            selectCmd.Parameters.AddWithValue("@Url", url);
+            using var reader = selectCmd.ExecuteReader();
+
+            return !reader.Read() ? null : ExtractHistoryEntry(reader);
+        }
     }
-    
+
+    /// <summary>Gets the history record for a given directory name.</summary>
+    /// <param name="directoryName">Directory name to look up.</param>
+    /// <returns>The matching entry, or null if none exists.</returns>
     public HistoryEntry? GetHistoryEntryByDirectoryName(string directoryName)
     {
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   WHERE DirectoryName = @DirectoryName;
-                                   """;
-        
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@DirectoryName", directoryName);
-        using var reader = selectCmd.ExecuteReader();
-        
-        return !reader.Read() ? null : ExtractHistoryEntry(reader);
+        lock (_databaseLock)
+        {
+            const string selectQuery = """
+                                       SELECT * FROM history
+                                       WHERE DirectoryName = @DirectoryName;
+                                       """;
+
+            using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+            selectCmd.Parameters.AddWithValue("@DirectoryName", directoryName);
+            using var reader = selectCmd.ExecuteReader();
+
+            return !reader.Read() ? null : ExtractHistoryEntry(reader);
+        }
     }
-    
+
+    /// <summary>Gets every history record, ordered by date ascending.</summary>
+    /// <returns>All history entries.</returns>
     public List<HistoryEntry> GetHistory()
     {
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   ORDER BY Date;
-                                   """;
-
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        using var reader = selectCmd.ExecuteReader();
-
-        var history = new List<HistoryEntry>();
-        while (reader.Read())
+        lock (_databaseLock)
         {
-            var entry = ExtractHistoryEntry(reader);
-            history.Add(entry);
-        }
+            const string selectQuery = """
+                                       SELECT * FROM history
+                                       ORDER BY Date;
+                                       """;
 
-        return history;
+            using var selectCmd = new SQLiteCommand(selectQuery, _connection);
+            using var reader = selectCmd.ExecuteReader();
+
+            var history = new List<HistoryEntry>();
+            while (reader.Read())
+            {
+                history.Add(ExtractHistoryEntry(reader));
+            }
+
+            return history;
+        }
     }
 
+    /// <summary>Gets a page of history records, optionally filtered by name, URL, or date.</summary>
+    /// <param name="page">Zero-based page number.</param>
+    /// <param name="offset">Number of records per page.</param>
+    /// <param name="filter">Optional filter to apply; ignored if null or invalid (see <see cref="InvalidFilter"/>).</param>
+    /// <returns>The matching page of entries, ordered by date descending.</returns>
+    /// <exception cref="ArgumentException">The filter's runtime type is not one of the known <see cref="HistoryFilter"/> subtypes.</exception>
     public List<HistoryEntry> GetHistory(int page, int offset, HistoryFilter? filter = null)
     {
         if (filter is null || InvalidFilter(filter))
         {
-            return GetUnfilteredHistory(page, offset);
+            return ExecutePagedQuery("", _ => { }, page, offset);
         }
 
         return filter switch
         {
-            HistoryNameFilter nameFilter => GetHistoryByNameFilter(nameFilter, page, offset),
-            HistoryUrlFilter urlFilter => GetHistoryByUrlFilter(urlFilter, page, offset),
+            HistoryNameFilter nameFilter => ExecutePagedQuery(
+                "WHERE DirectoryName LIKE @DirectoryName",
+                cmd => cmd.Parameters.AddWithValue("@DirectoryName", $"%{nameFilter.Name}%"),
+                page, offset),
+            HistoryUrlFilter urlFilter => ExecutePagedQuery(
+                "WHERE Url LIKE @Url",
+                cmd => cmd.Parameters.AddWithValue("@Url", $"%{urlFilter.Url}%"),
+                page, offset),
             HistoryDateFilter dateFilter => GetHistoryByDateFilter(dateFilter, page, offset),
             _ => throw new ArgumentException("Unsupported filter type.", nameof(filter))
         };
@@ -199,106 +279,60 @@ public class HistoryManager : IDisposable
         {
             return true;
         }
-        
+
         return filter switch
         {
-            HistoryNameFilter nameFilter => string.IsNullOrWhiteSpace(nameFilter.Name) || nameFilter.Name.Length <= 5, // requires more than "name:"
-            HistoryUrlFilter urlFilter => string.IsNullOrWhiteSpace(urlFilter.Url) || urlFilter.Url.Length <= 4, // requires more than "url:"
+            HistoryNameFilter nameFilter => string.IsNullOrWhiteSpace(nameFilter.Name) ||
+                                            nameFilter.Name.Length <= 5, // requires more than "name:"
+            HistoryUrlFilter urlFilter => string.IsNullOrWhiteSpace(urlFilter.Url) ||
+                                          urlFilter.Url.Length <= 4, // requires more than "url:"
             HistoryDateFilter dateFilter => dateFilter.Date == default,
             _ => true
         };
     }
-    
-    private List<HistoryEntry> GetUnfilteredHistory(int page, int offset)
-    {
-        var pageId = page * offset;
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   ORDER BY Date DESC
-                                   LIMIT @Offset OFFSET @Page;
-                                   """;
-        
-        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@Offset", offset);
-        selectCmd.Parameters.AddWithValue("@Page", pageId);
-        using var reader = selectCmd.ExecuteReader();
-        
-        var history = new List<HistoryEntry>();
-        while (reader.Read())
-        {
-            var entry = ExtractHistoryEntry(reader);
-            history.Add(entry);
-        }
-        
-        return history;
-    }
 
-    private List<HistoryEntry> GetHistoryByNameFilter(HistoryNameFilter nameFilter, int page, int offset)
+    /// <summary>
+    ///     Shared implementation for every paged history query: builds and runs
+    ///     <c>SELECT * FROM history [whereClause] ORDER BY Date DESC LIMIT @Offset OFFSET @Page</c>,
+    ///     letting the caller supply the WHERE clause and bind its own parameters.
+    /// </summary>
+    /// <param name="whereClause">A full WHERE clause (e.g. "WHERE Url LIKE @Url"), or "" for no filter.</param>
+    /// <param name="bindParams">Callback to bind any parameters referenced by <paramref name="whereClause"/>.</param>
+    /// <param name="page">Zero-based page number.</param>
+    /// <param name="offset">Number of records per page.</param>
+    /// <returns>The matching page of entries.</returns>
+    private List<HistoryEntry> ExecutePagedQuery(string whereClause, Action<SQLiteCommand> bindParams,
+                                                 int page, int offset)
     {
-        var pageId = page * offset;
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   WHERE DirectoryName LIKE @DirectoryName
-                                   ORDER BY Date DESC
-                                   LIMIT @Offset OFFSET @Page;
-                                   """;
-        
-        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@DirectoryName", $"%{nameFilter.Name}%");
-        selectCmd.Parameters.AddWithValue("@Offset", offset);
-        selectCmd.Parameters.AddWithValue("@Page", pageId);
-        using var reader = selectCmd.ExecuteReader();
-        
-        var history = new List<HistoryEntry>();
-        while (reader.Read())
+        lock (_databaseLock)
         {
-            var entry = ExtractHistoryEntry(reader);
-            history.Add(entry);
-        }
-        
-        return history;
-    }
+            var pageId = page * offset;
+            var query = $"""
+                         SELECT * FROM history
+                         {whereClause}
+                         ORDER BY Date DESC
+                         LIMIT @Offset OFFSET @Page;
+                         """;
 
-    private List<HistoryEntry> GetHistoryByUrlFilter(HistoryUrlFilter urlFilter, int page, int offset)
-    {
-        var pageId = page * offset;
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   WHERE Url LIKE @Url
-                                   ORDER BY Date DESC
-                                   LIMIT @Offset OFFSET @Page;
-                                   """;
-        
-        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@Url", $"%{urlFilter.Url}%");
-        selectCmd.Parameters.AddWithValue("@Offset", offset);
-        selectCmd.Parameters.AddWithValue("@Page", pageId);
-        using var reader = selectCmd.ExecuteReader();
-        
-        var history = new List<HistoryEntry>();
-        while (reader.Read())
-        {
-            var entry = ExtractHistoryEntry(reader);
-            history.Add(entry);
+            Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
+            using var cmd = new SQLiteCommand(query, _connection);
+            bindParams(cmd);
+            cmd.Parameters.AddWithValue("@Offset", offset);
+            cmd.Parameters.AddWithValue("@Page", pageId);
+            using var reader = cmd.ExecuteReader();
+
+            var history = new List<HistoryEntry>();
+            while (reader.Read())
+            {
+                history.Add(ExtractHistoryEntry(reader));
+            }
+
+            return history;
         }
-        
-        return history;
     }
 
     private List<HistoryEntry> GetHistoryByDateFilter(HistoryDateFilter dateFilter, int page, int offset)
     {
-        var pageId = page * offset;
-        const string selectQuery = """
-                                   SELECT * FROM history
-                                   WHERE Date BETWEEN @StartDate AND @EndDate
-                                   ORDER BY Date DESC
-                                   LIMIT @Offset OFFSET @Page;
-                                   """;
-
-        Logger.Debug("Selecting {Limit} from offset {Offset} for page {Page}", offset, pageId, page);
         var startDate = DateTime.MinValue;
         var endDate = DateTime.MaxValue;
         switch (dateFilter.FilterType)
@@ -314,59 +348,82 @@ public class HistoryManager : IDisposable
             default:
                 throw new InvalidOperationException();
         }
-        
-        using var selectCmd = new SQLiteCommand(selectQuery, _connection);
-        selectCmd.Parameters.AddWithValue("@StartDate", startDate.ToSqliteString());
-        selectCmd.Parameters.AddWithValue("@EndDate", endDate.ToSqliteString());
-        selectCmd.Parameters.AddWithValue("@Offset", offset);
-        selectCmd.Parameters.AddWithValue("@Page", pageId);
-        using var reader = selectCmd.ExecuteReader();
-        
-        var history = new List<HistoryEntry>();
-        while (reader.Read())
-        {
-            var entry = ExtractHistoryEntry(reader);
-            history.Add(entry);
-        }
-        
-        return history;
+
+        return ExecutePagedQuery(
+            "WHERE Date BETWEEN @StartDate AND @EndDate",
+            cmd =>
+            {
+                cmd.Parameters.AddWithValue("@StartDate", startDate.ToSqliteString());
+                cmd.Parameters.AddWithValue("@EndDate", endDate.ToSqliteString());
+            },
+            page, offset);
     }
-    
+
+    /// <summary>
+    /// Begins a transaction on the shared connection. Callers are responsible for their own synchronization for the
+    /// lifetime of the transaction, since it is not held under this manager's internal lock.
+    /// </summary>
+    /// <returns>A new transaction on the shared connection.</returns>
     public SQLiteTransaction BeginTransaction()
     {
-       return _connection.BeginTransaction();
+        // ReSharper disable once InconsistentlySynchronizedField
+        return _connection.BeginTransaction();
     }
 
+    /// <summary>
+    ///     Imports history records from another NicheImageRipper database file, skipping any record whose
+    ///     URL already exists in this history (dedup key: <see cref="HistoryEntry.Url"/>).
+    /// </summary>
+    /// <param name="filepath">Path to the external SQLite database to merge from.</param>
     public void MergeHistory(string filepath)
     {
-        var externalHistory = $"Data Source={filepath}";
-        using var externalConnection = new SQLiteConnection(externalHistory);
-        externalConnection.Open();
-    
-        const string selectQuery = "SELECT * FROM history;";
-        using var selectCmd = new SQLiteCommand(selectQuery, externalConnection);
-        using var reader = selectCmd.ExecuteReader();
-
-        using var transaction = _connection.BeginTransaction();
-        try
+        lock (_databaseLock)
         {
-            while (reader.Read())
+            var externalHistory = $"Data Source={filepath}";
+            using var externalConnection = new SQLiteConnection(externalHistory);
+            externalConnection.Open();
+
+            const string selectQuery = "SELECT * FROM history;";
+            using var selectCmd = new SQLiteCommand(selectQuery, externalConnection);
+            using var reader = selectCmd.ExecuteReader();
+
+            using var transaction = _connection.BeginTransaction();
+            try
             {
-                var entry = ExtractHistoryEntry(reader);
-                InsertHistoryRecord(entry, transaction);
-            }
+                var inserted = 0;
+                var updated = 0;
+                while (reader.Read())
+                {
+                    var entry = ExtractHistoryEntry(reader);
+                    var existing = GetHistoryByUrl(entry.Url);
 
-            transaction.Commit();
+                    if (existing is null)
+                    {
+                        InsertHistoryRecord(entry, transaction);
+                        inserted++;
+                    }
+                    else if (entry.Date > existing.Date)
+                    {
+                        UpdateDateByUrl(entry.Url, entry.Date, transaction);
+                        updated++;
+                    }
+                }
+
+                transaction.Commit();
+                Logger.Information("Merged history from {Filepath}: {Inserted} inserted, {Updated} updated",
+                    filepath, inserted, updated);
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
-        catch (Exception)
-        {
-            transaction.Rollback();
-            throw;
-        }
-    
-        externalConnection.Close();
     }
-    
+
+    /// <summary>Reads a <see cref="HistoryEntry"/> from the current row of a `SELECT * FROM history` reader.</summary>
+    /// <param name="reader">Reader positioned on a history row.</param>
+    /// <returns>The extracted entry.</returns>
     private static HistoryEntry ExtractHistoryEntry(SQLiteDataReader reader)
     {
         return new HistoryEntry
@@ -378,24 +435,38 @@ public class HistoryManager : IDisposable
         };
     }
 
+    [SuppressMessage("ReSharper", "InconsistentlySynchronizedField")]
     private void ReleaseUnmanagedResources()
     {
-        // Dispose of the SQLite connection
-        if (_connection.State == System.Data.ConnectionState.Open)
+        if (_connection.State == ConnectionState.Open)
         {
             _connection.Close();
         }
+
         _connection.Dispose();
     }
 
+    /// <summary>Closes and disposes the underlying database connection. Safe to call more than once.</summary>
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
     }
 
     ~HistoryManager()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         ReleaseUnmanagedResources();
     }
 }
