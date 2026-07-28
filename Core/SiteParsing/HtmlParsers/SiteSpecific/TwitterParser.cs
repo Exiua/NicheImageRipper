@@ -2,6 +2,7 @@ using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
@@ -10,7 +11,8 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
 public class TwitterParser : HtmlParser, IHtmlParser
 {
-    public static string ParserName => "x";
+    public static string ParserName => "twitter";
+    public static string[] AdditionalParserNames { get; } = ["x"];
 
     public TwitterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
@@ -192,7 +194,7 @@ public class TwitterParser : HtmlParser, IHtmlParser
                         Logger.Warning("Failed to get media: {PostLink}", postLink);
                         if (logFailure)
                         {
-                            LogFailedUrl(postLink);
+                            DownloadLogging.LogFailedUrl(postLink);
                         }
 
                         failedUrls.Add((found, postLink));

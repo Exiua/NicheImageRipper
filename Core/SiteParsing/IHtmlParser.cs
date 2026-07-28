@@ -6,6 +6,7 @@ namespace NicheImageRipper.Core.SiteParsing;
 public interface IHtmlParser
 {
     static abstract string ParserName { get; }
+    static virtual string[] AdditionalParserNames { get; } = [];
 
     static FilenameScheme GetFilenameScheme<T>(FilenameScheme original) where T : IHtmlParser
     {

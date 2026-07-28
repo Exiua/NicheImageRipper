@@ -12,12 +12,14 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
 public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
 {
-    public static string ParserName => "e-hentai or exhentai";
+    public static string ParserName => "e-hentai";
+    public static string[] AdditionalParserNames { get; } = ["exhentai"];
 
     protected override string ImageLinksFileName => "ehentai.json";
     protected override int MaxEntriesPerBatch => 250;
     protected override string ParserKey => "ehentai";
     protected override bool SupportsPartialSave => false;
+    protected override bool RequiresLogin => true;
 
     public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
@@ -52,7 +54,6 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await SiteLogin(cancellationToken);
         CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org"); // Redirect to exhentai
         var currentUrl = CurrentUrl;
         StoreLastLink(currentUrl);

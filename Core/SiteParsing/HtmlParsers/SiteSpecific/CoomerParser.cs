@@ -17,13 +17,8 @@ public class CoomerParser : DotPartyParser, IHtmlParser
     ///     Parses  the HTML for coomer.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
+    protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        if (url != "")
-        {
-            CurrentUrl = url;
-        }
-        
-        return await DotPartyParse("https://coomer.st");
+        return DotPartyParse("https://coomer.st", cancellationToken);
     }
 }

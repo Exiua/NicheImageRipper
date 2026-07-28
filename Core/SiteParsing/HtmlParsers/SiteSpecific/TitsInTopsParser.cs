@@ -16,8 +16,12 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
     public static string ParserName => "titsintops";
 
     private const string SiteUrl = "https://titsintops.com";
-    
-    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TitsInTopsParser>(filenameScheme))
+
+    protected override bool RequiresLogin => true;
+
+    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<TitsInTopsParser>(filenameScheme))
     {
     }
 
@@ -27,13 +31,13 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await SiteLogin();
         var cookies = Driver.GetCookieJar();
-        var cookieStr = cookies.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value};");
+        var cookieStr =
+            cookies.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value};");
         RequestHeaders["cookie"] = cookieStr;
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='p-title-value']")
-                            .InnerText;
+                          .InnerText;
         var images = new List<StringFileLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
         var pageCount = 1;
@@ -50,26 +54,27 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                 if (imgs is not null)
                 {
                     var imgList = imgs.Select(im => im.GetSrc())
-                                        .Where(im => im.Contains("http"));
+                                      .Where(im => im.Contains("http"));
                     images.AddRange(imgList.Select(im => (StringFileLinkWrapper)im));
                 }
-                
+
                 var videos = post.SelectNodes(".//video");
                 if (videos is not null)
                 {
-                    var videoUrls = videos.Select(vid => $"https://titsintops.com{vid.SelectSingleNodeOrThrow(".//source").GetSrc()}");
+                    var videoUrls = videos.Select(vid =>
+                        $"https://titsintops.com{vid.SelectSingleNodeOrThrow(".//source").GetSrc()}");
                     images.AddRange(videoUrls.Select(vid => (StringFileLinkWrapper)vid));
                 }
-                
+
                 var iframes = post.SelectNodes(".//iframe");
                 if (iframes is not null)
                 {
                     var embeddedUrls = iframes.Select(em => em.GetSrc())
-                                                .Where(em => em.Contains("http"));
-                    embeddedUrls = await ParseEmbeddedUrls(embeddedUrls);
+                                              .Where(em => em.Contains("http"));
+                    embeddedUrls = await ParseEmbeddedUrls(embeddedUrls, cancellationToken);
                     images.AddRange(embeddedUrls.Select(em => (StringFileLinkWrapper)em));
                 }
-                
+
                 var attachments = post.SelectSingleNode(".//ul[@class='attachmentList']");
                 var attachments2 = attachments?.SelectNodes(".//a[@class='file-preview js-lbImage']");
                 if (attachments2 != null)
@@ -85,22 +90,23 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                     var linkList = links.Select(link => link.GetNullableHref())
                                         .Where(link => link is not null);
                     var filteredLinks = ExtractExternalUrls(linkList!);
-                    var downloadableLinks = await ExtractDownloadableLinks(filteredLinks, externalLinks);
+                    var downloadableLinks =
+                        await ExtractDownloadableLinks(filteredLinks, externalLinks, cancellationToken);
                     images.AddRange(downloadableLinks.Select(link => (StringFileLinkWrapper)link));
                 }
             }
-    
+
             var nextPage = soup.SelectSingleNode("//a[@class='pageNav-jump pageNav-jump--next']");
             if (nextPage is null)
             {
                 SaveExternalLinks(externalLinks);
                 break;
             }
-    
+
             var nextPageUrl = nextPage.GetHref();
             soup = await Soupify($"{SiteUrl}{nextPageUrl}", cancellationToken: cancellationToken);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
@@ -115,21 +121,25 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
             await Sleep(100, cancellationToken);
             loginInput = Driver.TryFindElement(By.XPath("//input[@name='login']"));
         }
+
         loginInput.SendKeys(username);
         var passwordInput = Driver.FindElement(By.XPath("//input[@name='password']"));
         passwordInput.SendKeys(password);
-        Driver.FindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")).Click();
-        while (Driver.TryFindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']")) is not null)
+        Driver.FindElement(By.XPath("//button[@class='button--primary button button--icon button--icon--login']"))
+              .Click();
+        while (Driver.TryFindElement(
+                   By.XPath("//button[@class='button--primary button button--icon button--icon--login']")) is not null)
         {
             await Sleep(100, cancellationToken);
         }
-        
+
         CurrentUrl = origUrl;
         return true;
     }
 
-    private async Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict,
-                                                                     Dictionary<string, List<string>> dstDict)
+    private Task<List<string>> ExtractDownloadableLinks(Dictionary<string, List<string>> srcDict,
+                                                        Dictionary<string, List<string>> dstDict,
+                                                        CancellationToken cancellationToken = default)
     {
         var downloadableLinks = new List<string>();
         var downloadableSites = new[] { "sendvid.com" };
@@ -146,18 +156,19 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
             }
         }
 
-        return await ResolveDownloadableLinks(downloadableLinks);
+        return ResolveDownloadableLinks(downloadableLinks, cancellationToken);
     }
 
-    private async Task<List<string>> ResolveDownloadableLinks(List<string> links)
+    private async Task<List<string>> ResolveDownloadableLinks(List<string> links,
+                                                              CancellationToken cancellationToken = default)
     {
         var resolvedLinks = new List<string>();
         foreach (var link in links)
         {
             if (link.Contains("sendvid.com"))
             {
-                var response = await HttpClient.GetAsync(link);
-                var soup = await Soupify(response);
+                var response = await HttpClient.GetAsync(link, cancellationToken);
+                var soup = await Soupify(response, cancellationToken);
                 var sourceLink = soup.SelectSingleNodeOrThrow("//source[@id='video_source']")
                                      .GetAttributeValue("src", "");
                 resolvedLinks.Add(sourceLink);
@@ -171,7 +182,8 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         return resolvedLinks;
     }
 
-    private static async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls)
+    private async Task<List<string>> ParseEmbeddedUrls(IEnumerable<string> urls,
+                                                       CancellationToken cancellationToken = default)
     {
         var parsedUrls = new List<string>();
         var imgurKey = Config.Keys.Imgur;
@@ -179,7 +191,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         {
             ["Authorization"] = $"Client-Id {imgurKey}"
         };
-        var client = new HttpClient();
+
         foreach (var url in urls)
         {
             if (!url.Contains("imgur"))
@@ -187,14 +199,14 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                 continue;
             }
 
-            var response = await client.GetAsync(url);
-            var soup = await Soupify(response);
+            var response = await HttpClient.GetAsync(url, cancellationToken);
+            var soup = await Soupify(response, cancellationToken);
             var imgurUrl = soup.SelectSingleNodeOrThrow("//a[@id='image-link']")
                                .GetHref();
             var imageHash = imgurUrl.Split("#")[^1];
             var message = headers.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/image/{imageHash}");
-            response = await client.SendAsync(message);
-            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>();
+            response = await HttpClient.SendAsync(message, cancellationToken);
+            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             parsedUrls.Add(responseJson!["data"]!["link"]!.Deserialize<string>()!);
         }
 

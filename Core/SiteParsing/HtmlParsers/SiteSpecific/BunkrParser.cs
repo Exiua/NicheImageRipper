@@ -26,14 +26,9 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
     ///     Parses  the HTML for bunkr.si and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
+    protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        if (url != "")
-        {
-            CurrentUrl = url;
-        }
-
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var notFound = soup.SelectSingleNode("//h1[@class='text-3xl font-bold']");
         if (notFound is not null)
         {
@@ -42,7 +37,11 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         }
 
         string dirName;
-        if (url == "")
+        if (IsSubParserCall)
+        {
+            dirName = "internal-use";
+        }
+        else
         {
             var dirNameNode = soup.SelectSingleNode("//h1[@class='text-[24px] font-bold text-dark dark:text-white']");
             if (dirNameNode is null)
@@ -51,10 +50,6 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
             }
 
             dirName = dirNameNode.InnerText;
-        }
-        else
-        {
-            dirName = "internal-use";
         }
 
         List<StringFileLinkWrapper> images = [];
@@ -86,11 +81,11 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                 {
                     try
                     {
-                        soup = await Soupify(href, delay: ParseDelay);
+                        soup = await Soupify(href, delay: ParseDelay, cancellationToken: cancellationToken);
                         if (Driver.Title == "502 Bad Gateway")
                         {
                             Driver.Refresh();
-                            soup = await Soupify(href, delay: ParseDelay * 2);
+                            soup = await Soupify(href, delay: ParseDelay * 2, cancellationToken: cancellationToken);
                         }
 
                         break;
@@ -109,23 +104,8 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                     }
                 }
 
-                if (CurrentUrl.Contains("/i/"))
-                {
-                    link = GetImageLink(soup);
-                }
-                else if (CurrentUrl.Contains("/v/") || CurrentUrl.Contains("/f/"))
-                {
-                    link = await GetVideoLink(soup);
-                }
-                else if (CurrentUrl.Contains("/d/"))
-                {
-                    link = await GetDownloadLink(soup);
-                }
-                else
-                {
-                    Logger.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
-                }
-
+                link = await ResolveLinkForCurrentUrl(soup);
+                
                 if (link is not null)
                 {
                     images.Add(link.Value);
@@ -133,21 +113,9 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                 }
             }
         }
-        else if (CurrentUrl.Contains("/i/"))
-        {
-            link = GetImageLink(soup);
-        }
-        else if (CurrentUrl.Contains("/v/") || CurrentUrl.Contains("/f/"))
-        {
-            link = await GetVideoLink(soup);
-        }
-        else if (CurrentUrl.Contains("/d/"))
-        {
-            link = await GetDownloadLink(soup);
-        }
         else
         {
-            Logger.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
+            link = await ResolveLinkForCurrentUrl(soup);
         }
 
         if (link is not null)
@@ -156,6 +124,27 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+    
+    private async Task<StringFileLinkWrapper?> ResolveLinkForCurrentUrl(HtmlNode soup)
+    {
+        if (CurrentUrl.Contains("/i/"))
+        {
+            return GetImageLink(soup);
+        }
+
+        if (CurrentUrl.Contains("/v/") || CurrentUrl.Contains("/f/"))
+        {
+            return await GetVideoLink(soup);
+        }
+
+        if (CurrentUrl.Contains("/d/"))
+        {
+            return await GetDownloadLink(soup);
+        }
+
+        Logger.Warning("Unknown type: {CurrentUrl}", CurrentUrl);
+        return null;
     }
 
 
@@ -175,7 +164,8 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                            .GetHref();
         }
 
-        soup = await Soupify(videoDownload, xpath: "//main//video", delay: ParseDelay);
+        soup = await Soupify(videoDownload, xpath: "//main//video", delay: ParseDelay,
+            cancellationToken: cancellationToken);
         var video = soup.SelectSingleNode("//main//video");
 
         var downloadButton = soup.SelectSingleNodeOrThrow(
@@ -206,7 +196,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         }
 
         var downloadLink = downloadLinkNode.GetHref();
-        soup = await Soupify(downloadLink, delay: ParseDelay);
+        soup = await Soupify(downloadLink, delay: ParseDelay, cancellationToken: cancellationToken);
         var link = soup
                   .SelectSingleNodeOrThrow(
                        "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']")

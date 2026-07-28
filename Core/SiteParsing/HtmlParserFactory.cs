@@ -28,22 +28,19 @@ public static class HtmlParserFactory
                                     return [];
                                 }
                             })
-                           .Where(t =>
-                                !t.IsAbstract &&
-                                typeof(HtmlParser).IsAssignableFrom(t) &&
-                                typeof(IHtmlParser).IsAssignableFrom(t))
-                           .Select(t => new
+                           .Where(t => !t.IsAbstract && typeof(HtmlParser).IsAssignableFrom(t) &&
+                                       typeof(IHtmlParser).IsAssignableFrom(t))
+                           .SelectMany(t =>
                             {
-                                Type = t,
-                                Name = (string)t
-                                              .GetProperty(nameof(IHtmlParser.ParserName))!
-                                              .GetValue(null)!
+                                var primaryName =
+                                    (string)t.GetProperty(nameof(IHtmlParser.ParserName))!.GetValue(null)!;
+                                var additionalNames =
+                                    (string[])t.GetProperty(nameof(IHtmlParser.AdditionalParserNames))!.GetValue(null)!;
+                                var ctor = CreateHtmlParserFactory(t);
+                                return new[] { primaryName }.Concat(additionalNames)
+                                                            .Select(name => (Name: name, Ctor: ctor));
                             })
-                           .ToDictionary(
-                                x => x.Name,
-                                x => CreateHtmlParserFactory(x.Type),
-                                StringComparer.OrdinalIgnoreCase
-                            );
+                           .ToDictionary(x => x.Name, x => x.Ctor, StringComparer.OrdinalIgnoreCase);
     }
 
     private static HtmlParserCtor CreateHtmlParserFactory(Type type)

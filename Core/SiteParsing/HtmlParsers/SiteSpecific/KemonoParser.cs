@@ -19,13 +19,9 @@ public class KemonoParser : DotPartyParser, IHtmlParser
     ///     Parses the HTML for kemono.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
+    protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        if (url != "")
-        {
-            CurrentUrl = url;
-        }
 
-        return await DotPartyParse("https://kemono.cr");
+        return DotPartyParse("https://kemono.cr", cancellationToken);
     }
 }

@@ -13,6 +13,8 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "pixeldrain";
 
+    protected override bool RequiresNavigation => false;
+
     public PixelDrainParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
         requestHeaders, IHtmlParser.GetFilenameScheme<PixelDrainParser>(filenameScheme))
@@ -23,13 +25,9 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
     ///     Parses the HTML for pixeldrain.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
+    protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(url))
-        {
-            url = CurrentUrl;
-        }
-
+        var url = GivenUrl;
         var apiKey = Config.Keys.Pixeldrain;
         var counter = 0;
         var images = new List<StringFileLinkWrapper>();

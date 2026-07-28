@@ -20,15 +20,10 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
     ///     Parses the html for jpg5.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
+    protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        if(url != "")
-        {
-            CurrentUrl = url;
-        }
-    
         var single = false;
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var notFound = soup.SelectSingleNode("//div[@class='page-not-found']");
         if (notFound is not null)
         {
@@ -62,9 +57,9 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
                 var error = soup.SelectSingleNode("//h1");
                 if (error is not null && error.InnerText.StartsWith("500 I"))
                 {
-                    await Sleep(5000); // Most likely due to rate limiting
+                    await Sleep(5000, cancellationToken); // Most likely due to rate limiting
                     Driver.Refresh();
-                    soup = await Soupify();
+                    soup = await Soupify(cancellationToken: cancellationToken);
                 }
     
                 var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
@@ -81,7 +76,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
     
                 nextPageUrl = nextPageUrl.DecodeUrl();
                 //Logger.Debug("Next page: {nextPageUrl}", nextPageUrl);
-                soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div");
+                soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div", cancellationToken: cancellationToken);
             }
         }
         else

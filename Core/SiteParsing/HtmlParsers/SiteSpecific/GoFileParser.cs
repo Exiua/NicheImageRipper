@@ -13,7 +13,11 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "gofile";
 
-    public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GoFileParser>(filenameScheme))
+    protected override bool RequiresLogin => true;
+
+    public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<GoFileParser>(filenameScheme))
     {
     }
 
@@ -21,14 +25,8 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
     ///     Parses the html for gofile.io and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(string url, CancellationToken cancellationToken = default)
+    protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        if (url != "")
-        {
-            CurrentUrl = url;
-        }
-    
-        await SiteLogin(cancellationToken);
         // var cookie = new Cookie("accountToken", cookieValue, ".gofile.io", "/", null, 
         //     true, false, "Lax");
         // Driver.AddCookie(cookie);
@@ -42,20 +40,21 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
             // TODO: Find a better way to handle password protected files
             return RipInfo.Empty.WithDirectoryName("Password Protected");
         }
-        
-        var folderNotFound = soup.SelectSingleNode("//div[@class='alert alert-secondary border border-danger text-white']");
+
+        var folderNotFound =
+            soup.SelectSingleNode("//div[@class='alert alert-secondary border border-danger text-white']");
         if (folderNotFound is not null)
         {
             Logger.Warning("Folder not found. Writing url to file...");
             // TODO: Find a better way to indicate that data does not exist
             return RipInfo.Empty.WithDirectoryName("Folder Not Found");
         }
-        
+
         var dirName = soup.SelectSingleNodeOrThrow("//span[@id='filesContentFolderName']").InnerText;
         var images = await GoFileParserHelper("", true);
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    
+
         // ReSharper disable once VariableHidesOuterVariable
         async Task<List<StringFileLinkWrapper>> GoFileParserHelper(string url, bool topLevel = false)
         {
@@ -65,10 +64,10 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                 CurrentUrl = url;
                 await Sleep(5000, cancellationToken);
             }
-            
+
             var playButtons = Driver.FindElements(By.CssSelector(
                 ".btn.btn-outline-secondary.btn-sm.p-1.me-1.filesContentOption.filesContentOptionPlay.text-white"));
-            if(playButtons.Count > 1) // If there is one file, it will be expanded by default
+            if (playButtons.Count > 1) // If there is one file, it will be expanded by default
             {
                 foreach (var button in playButtons)
                 {
@@ -82,13 +81,15 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                         Driver.GetScreenshot().SaveAsFile("test.png");
                         Driver.ExecuteScript("arguments[0].click();", button);
                     }
+
                     await Sleep(125, cancellationToken);
                 }
             }
-    
+
             //Driver.WaitUntilElementExists(By.XPath("//div[@id='filesContentTableContent']/div"));
             // ReSharper disable once VariableHidesOuterVariable
-            var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]", cancellationToken: cancellationToken);
+            var soup = await Soupify(xpath: "//div[@id='filesContentTableContent']/div[@id]",
+                cancellationToken: cancellationToken);
             var links = new List<StringFileLinkWrapper>();
             var entries = soup.SelectNodesOrThrow("//div[@id='filesContentTableContent']/div");
             foreach (var entry in entries)
@@ -100,7 +101,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                     Logger.Error("Current URL: {url}", CurrentUrl);
                     throw new RipperException("Entry has no id");
                 }
-                
+
                 var anchor = entry.SelectSingleNodeOrThrow(".//a");
                 var href = anchor.GetHref();
                 if (href.Contains("/d/"))
@@ -144,7 +145,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                     }
                 }
             }
-    
+
             return links;
         }
     }
@@ -163,14 +164,14 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
                 Logger.Debug("Logged in to GoFile");
                 break;
             }
-            
+
             if (i == 3)
             {
                 Logger.Warning("Failed to login to GoFile: {CurrentUrl}", CurrentUrl);
                 //Driver.GetScreenshot().SaveAsFile("test2.png");
             }
         }
-        
+
         CurrentUrl = origUrl;
         return true;
     }

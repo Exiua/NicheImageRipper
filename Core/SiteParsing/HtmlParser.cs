@@ -33,7 +33,6 @@ public abstract class HtmlParser : IDisposable
         ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com", "youtube.com"];
 
     protected static GeneralConfig Config => Configuration.Config.Instance;
-    protected static TokenManager TokenManager => TokenManager.Instance;
 
     private static PartialSaveManager PartialSaveManager => PartialSaveManager.Instance;
 
@@ -43,7 +42,7 @@ public abstract class HtmlParser : IDisposable
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
     public int RetryCount { get; set; } = 4;
-    protected string GivenUrl { get; private set; }
+    protected string GivenUrl { get; set; }
     protected FilenameScheme FilenameScheme { get; }
     protected Dictionary<string, string> RequestHeaders { get; }
     protected ApiClientManager ApiClientManager { get; }
@@ -69,10 +68,14 @@ public abstract class HtmlParser : IDisposable
     /// for sites whose links expire too quickly to cache (e.g. e-hentai).
     /// </summary>
     protected virtual bool SupportsPartialSave => true;
+    
+    /// <summary>
+    /// Whether this parser needs SiteLogin run before ParseCore. Checked on every entry path
+    /// (both ParseSite-driven and delegated Parse(url) calls), since delegated calls bypass ParseSite entirely.
+    /// </summary>
+    protected virtual bool RequiresLogin => false;
 
-    protected static bool Debugging { get; set; }
     protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
-    protected static string UserAgent => Config.UserAgent;
 
     protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)
@@ -113,8 +116,8 @@ public abstract class HtmlParser : IDisposable
             if (saveData is not null)
             {
                 Logger.Debug("Partial save found for {Url}", url);
-                RequestHeaders["cookie"] = saveData.Cookies;
-                RequestHeaders["referer"] = saveData.Referer;
+                RequestHeaders[RequestHeaderKeys.Cookie] = saveData.Cookies;
+                RequestHeaders[RequestHeaderKeys.Referer] = saveData.Referer;
                 Interrupted = true;
                 return saveData.RipInfo;
             }
@@ -128,6 +131,11 @@ public abstract class HtmlParser : IDisposable
         if (RequiresNavigation)
         {
             CurrentUrl = url;
+        }
+        
+        if (RequiresLogin)
+        {
+            await SiteLogin(cancellationToken);
         }
 
         for (var attempt = 0; attempt < RetryCount; attempt++)
@@ -173,14 +181,6 @@ public abstract class HtmlParser : IDisposable
         #endif
     }
 
-    // protected HtmlParser GetParser(string url)
-    // {
-    //     var requestHeaders = new Dictionary<string, string>();
-    //     var (siteName, _) = UrlUtility.SiteCheck(url, requestHeaders);
-    //     var parser = GetParser(siteName, WebDriver, ApiClientManager, requestHeaders, FilenameScheme);
-    //     return parser;
-    // }
-
     public static HtmlParser GetParser(string siteName, WebDriver webDriver, ApiClientManager clientManager,
                                        Dictionary<string, string> requestHeaders,
                                        FilenameScheme filenameScheme = FilenameScheme.Original)
@@ -192,16 +192,14 @@ public abstract class HtmlParser : IDisposable
     {
         var partialSaveEntry = new PartialSaveEntry
         {
-            Cookies = RequestHeaders["cookie"],
-            Referer = RequestHeaders["referer"],
+            Cookies = RequestHeaders[RequestHeaderKeys.Cookie],
+            Referer = RequestHeaders[RequestHeaderKeys.Referer],
             RipInfo = ripInfo
         };
         PartialSaveManager.AddPartialSave(url, partialSaveEntry);
     }
 
-    // TODO: Make private and call from ParseSite so children only need to implement SiteLoginHelper instead of worrying
-    //  about calling SiteLogin as well
-    //  Only issue is with GoFileParser/ParameterizedHtmlParser where CurrentUrl may need to be set before login
+    // Only called by self and ParameterizedHtmlParser
     protected Task<bool> SiteLogin(CancellationToken cancellationToken = default)
     {
         Logger.Debug("Checking if already logged in to {SiteName}", SiteName);
@@ -755,11 +753,6 @@ public abstract class HtmlParser : IDisposable
             callback(links);
             break;
         }
-    }
-
-    protected static void LogFailedUrl(string url)
-    {
-        File.AppendAllText("failed.txt", $"{url}\n");
     }
 
     #region Parser Testing
