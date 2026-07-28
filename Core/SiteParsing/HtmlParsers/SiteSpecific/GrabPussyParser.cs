@@ -1,25 +1,20 @@
-using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class GrabPussyParser : HtmlParser, IHtmlParser
+// grabpussy.com
+public class GrabPussyParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "grabpussy";
 
-    public GrabPussyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GrabPussyParser>(filenameScheme))
-    {
-    }
+    protected override string DirNameXpath => "(//div[@class='c-title'])[2]//h1";
+    protected override string ImageContainerXpath => "//div[@class='gal own-gallery-images']/a";
 
-    /// <summary>
-    ///     Parses the html for grabpussy.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public GrabPussyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<GrabPussyParser>(filenameScheme))
     {
-        return GenericBabesHtmlParser("(//div[@class='c-title'])[2]//h1",
-            "//div[@class='gal own-gallery-images']/a");
     }
 }

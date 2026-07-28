@@ -258,12 +258,14 @@ public abstract class HtmlParser : IDisposable
                         {
                             depth++;
                         }
+
                         break;
                     case '}':
                         if (!inString)
                         {
                             depth--;
                         }
+
                         break;
                     case '"':
                         inString = !inString;
@@ -342,14 +344,16 @@ public abstract class HtmlParser : IDisposable
             }
         }
 
-        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimeout: xpathTimeout, cancellationToken: cancellationToken);
+        return await Soupify(delay: delay, lazyLoadArgs: lazyLoadArgs, xpath: xpath, xpathTimeout: xpathTimeout,
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Convert HttpResponseMessage content into an HtmlNode object</summary>
     /// <param name="response">HttpResponseMessage to parse</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Parsed HtmlNode object</returns>
-    protected static async Task<HtmlNode> Soupify(HttpResponseMessage response, CancellationToken cancellationToken = default)
+    protected static async Task<HtmlNode> Soupify(HttpResponseMessage response,
+                                                  CancellationToken cancellationToken = default)
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var htmlDocument = new HtmlDocument();
@@ -361,7 +365,8 @@ public abstract class HtmlParser : IDisposable
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Parsed HtmlNode object</returns>
     /// <exception cref="RipperException">The response was an error, or an unexpected response type.</exception>
-    protected async Task<HtmlNode> Soupify(CSWebDriverClient.Models.Responses.BaseResponse baseResponse, CancellationToken cancellationToken = default)
+    protected async Task<HtmlNode> Soupify(CSWebDriverClient.Models.Responses.BaseResponse baseResponse,
+                                           CancellationToken cancellationToken = default)
     {
         return baseResponse switch
         {
@@ -369,7 +374,8 @@ public abstract class HtmlParser : IDisposable
                 errorResponse.Details is not null
                     ? throw new RipperException($"{errorResponse.Error}: {errorResponse.Details}")
                     : throw new RipperException(errorResponse.Error),
-            CSWebDriverClient.Models.Responses.PageResponse pageResponse => await Soupify(pageResponse.Content, urlString: false, cancellationToken: cancellationToken),
+            CSWebDriverClient.Models.Responses.PageResponse pageResponse => await Soupify(pageResponse.Content,
+                urlString: false, cancellationToken: cancellationToken),
             CSWebDriverClient.Models.Responses.GetNetworkUrlsResponse =>
                 throw new RipperException("Incorrect response type: GetNetworkUrlsResponse"),
             _ => throw new RipperException($"Unknown response type: {baseResponse}")
@@ -393,7 +399,8 @@ public abstract class HtmlParser : IDisposable
     /// <param name="timeout">Timeout (in seconds) for the wait (-1 for no timeout)</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>The tag name of the found element, or null if the timeout is reached</returns>
-    protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10, CancellationToken cancellationToken = default)
+    protected async Task<string?> WaitForElement(string xpath, float delay = 0.1f, float timeout = 10,
+                                                 CancellationToken cancellationToken = default)
     {
         var timeoutSpan = TimeSpan.FromSeconds(timeout);
         var startTime = DateTime.Now;
@@ -447,7 +454,8 @@ public abstract class HtmlParser : IDisposable
     protected async Task<HtmlNode> SolveParseAddCookies(bool regenerateSessionOnFailure = false,
                                                         List<Dictionary<string, string>>? cookies = null,
                                                         List<string>? cookieWhitelist = null,
-                                                        bool replaceUserAgent = false, CancellationToken cancellationToken = default)
+                                                        bool replaceUserAgent = false,
+                                                        CancellationToken cancellationToken = default)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies, cancellationToken);
         if (replaceUserAgent)
@@ -475,14 +483,16 @@ public abstract class HtmlParser : IDisposable
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>The parsed HTML document as an <see cref="HtmlNode"/>.</returns>
     protected async Task<HtmlNode> SolveParse(bool regenerateSessionOnFailure = false,
-                                              List<Dictionary<string, string>>? cookies = null, CancellationToken cancellationToken = default)
+                                              List<Dictionary<string, string>>? cookies = null,
+                                              CancellationToken cancellationToken = default)
     {
         var solution = await Solve(regenerateSessionOnFailure, cookies, cancellationToken);
         return await Soupify(solution, cancellationToken: cancellationToken);
     }
 
     private async Task<Solution> Solve(bool regenerateSessionOnFailure = false,
-                                       List<Dictionary<string, string>>? cookies = null, CancellationToken cancellationToken = default)
+                                       List<Dictionary<string, string>>? cookies = null,
+                                       CancellationToken cancellationToken = default)
     {
         if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
@@ -531,7 +541,8 @@ public abstract class HtmlParser : IDisposable
     }
 
     protected static async Task<T> RetryUntil<T>(Func<Task<T>> func, Func<T, bool> successCondition,
-                                                 string errorMessage, int delay = 250, CancellationToken cancellationToken = default)
+                                                 string errorMessage, int delay = 250,
+                                                 CancellationToken cancellationToken = default)
     {
         const int maxAttempts = 4;
         T value = default!;
@@ -555,7 +566,8 @@ public abstract class HtmlParser : IDisposable
         return value;
     }
 
-    protected static async Task<T> DeserializeCache<T>(string cachePath, Func<Task<T>> fetchFunc, CancellationToken cancellationToken = default) where T : class
+    protected static async Task<T> DeserializeCache<T>(string cachePath, Func<Task<T>> fetchFunc,
+                                                       CancellationToken cancellationToken = default) where T : class
     {
         T data;
         if (File.Exists(cachePath))
@@ -571,7 +583,8 @@ public abstract class HtmlParser : IDisposable
         return data;
     }
 
-    protected async Task<(T, IBiDi)> ConfigureNetworkCapture<T>(CancellationToken cancellationToken = default) where T : PlaylistCapturer, new()
+    protected async Task<(T, IBiDi)> ConfigureNetworkCapture<T>(CancellationToken cancellationToken = default)
+        where T : PlaylistCapturer, new()
     {
         var capturer = new T();
         var bidi = await Driver.AsBiDiAsync(cancellationToken: cancellationToken);
@@ -632,7 +645,8 @@ public abstract class HtmlParser : IDisposable
     {
         return args.StopElement is not null && Driver.TryFindElement(args.StopElement) is not null
             ? LazyLoad(args.StopElement, cancellationToken: cancellationToken)
-            : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll, cancellationToken);
+            : LazyLoad(args.ScrollBy, args.Increment, args.ScrollPauseTime, args.ScrollBack, args.ReScroll,
+                cancellationToken);
     }
 
     /// <summary>Scroll through the page to lazy load images</summary>
@@ -643,7 +657,8 @@ public abstract class HtmlParser : IDisposable
     /// <param name="rescroll">Whether scrolling through the page again</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     protected async Task LazyLoad(bool scrollBy = false, int increment = 2500, int scrollPauseTime = 500,
-                                  int scrollBack = 0, bool rescroll = false, CancellationToken cancellationToken = default)
+                                  int scrollBack = 0, bool rescroll = false,
+                                  CancellationToken cancellationToken = default)
     {
         var lastHeight = Driver.GetScrollHeight();
         if (rescroll)
@@ -689,7 +704,8 @@ public abstract class HtmlParser : IDisposable
         }
     }
 
-    protected async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500, CancellationToken cancellationToken = default)
+    protected async Task LazyLoad(By elementToFind, int increment = 1250, int scrollPauseTime = 500,
+                                  CancellationToken cancellationToken = default)
     {
         var scrollScript = $"window.scrollBy({{top: {increment}, left: 0, behavior: 'smooth'}});";
         while (true)
@@ -716,7 +732,8 @@ public abstract class HtmlParser : IDisposable
         Driver.ExecuteScript("window.scrollTo(0, 0);");
     }
 
-    protected async Task WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback, CancellationToken cancellationToken = default)
+    protected async Task WaitForPlaylist(PlaylistCapturer capturer, Action<List<string>> callback,
+                                         CancellationToken cancellationToken = default)
     {
         var i = 0;
         while (true)
@@ -758,7 +775,8 @@ public abstract class HtmlParser : IDisposable
     ///     <see cref="ImageRipper"/> entirely. Uses a looser site-detection path than production (no whitelist
     ///     gate), so it can exercise parsers for sites not yet enabled in <c>UrlUtility.SiteCheck</c>.
     /// </summary>
-    public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite, CancellationToken cancellationToken = default)
+    public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite,
+                                         CancellationToken cancellationToken = default)
     {
         try
         {

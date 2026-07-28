@@ -1,24 +1,21 @@
-using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class LiveJasminBabesParser : HtmlParser, IHtmlParser
+// livejasminbabes.net
+public class LiveJasminBabesParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "livejasminbabes";
+    
+    protected override string DirNameXpath => "//div[@id='gallery_header']//h1";
+    protected override string ImageContainerXpath => "//div[@class='gallery_thumb']";
 
-    public LiveJasminBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<LiveJasminBabesParser>(filenameScheme))
+    public LiveJasminBabesParser(WebDriver driver, ApiClientManager clientManager,
+                                 Dictionary<string, string> requestHeaders,
+                                 FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<LiveJasminBabesParser>(filenameScheme))
     {
-    }
-
-    /// <summary>
-    ///     Parses the HTML for livejasminbabes.net and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
-    {
-        return await GenericBabesHtmlParser("//div[@id='gallery_header']//h1", "//div[@class='gallery_thumb']");
     }
 }

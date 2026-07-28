@@ -5,20 +5,17 @@ using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class Join2BabesParser : HtmlParser, IHtmlParser
+// join2babes.com
+public class Join2BabesParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "join2babes";
 
-    public Join2BabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Join2BabesParser>(filenameScheme))
-    {
-    }
+    protected override string DirNameXpath => "//div[@class='gallery_title_div']//h1";
+    protected override string ImageContainerXpath => "//div[@class='gthumbs']";
 
-    /// <summary>
-    ///     Parses the html for join2babes.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public Join2BabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<Join2BabesParser>(filenameScheme))
     {
-        return await GenericBabesHtmlParser("//div[@class='gallery_title_div']//h1", "//div[@class='gthumbs']");
     }
 }

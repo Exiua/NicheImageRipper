@@ -1,24 +1,20 @@
-using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class Nudity911Parser : HtmlParser, IHtmlParser
+// nudity911.com
+public class Nudity911Parser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "nudity911";
 
-    public Nudity911Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Nudity911Parser>(filenameScheme))
-    {
-    }
+    protected override string DirNameXpath => "//h1";
+    protected override string ImageContainerXpath => "//tr[@valign='top']//td[@align='center']//table[@width='650']//td[@width='33%']";
 
-    /// <summary>
-    ///     Parses the HTML for nudity911.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public Nudity911Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<Nudity911Parser>(filenameScheme))
     {
-        return GenericBabesHtmlParser("//h1", "//tr[@valign='top']//td[@align='center']//table[@width='650']//td[@width='33%']");
     }
 }

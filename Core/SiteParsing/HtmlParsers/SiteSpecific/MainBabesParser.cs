@@ -1,24 +1,20 @@
-using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class MainBabesParser : HtmlParser, IHtmlParser
+// mainbabes.com
+public class MainBabesParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "mainbabes";
 
-    public MainBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MainBabesParser>(filenameScheme))
-    {
-    }
+    protected override string DirNameXpath => "//div[@class='heading']//h2[@class='title']";
+    protected override string ImageContainerXpath => "//div[@class='thumbs_box']//div[@class='thumb_box']";
 
-    /// <summary>
-    ///     Parses the HTML for mainbabes.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public MainBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<MainBabesParser>(filenameScheme))
     {
-        return GenericBabesHtmlParser("//div[@class='heading']//h2[@class='title']", "//div[@class='thumbs_box']//div[@class='thumb_box']");
     }
 }

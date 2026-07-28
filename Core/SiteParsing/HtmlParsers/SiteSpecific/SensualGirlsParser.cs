@@ -1,24 +1,21 @@
-using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class SensualGirlsParser : HtmlParser, IHtmlParser
+// sensualgirls.org
+public class SensualGirlsParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "sensualgirls";
 
-    public SensualGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SensualGirlsParser>(filenameScheme))
-    {
-    }
+    protected override string DirNameXpath => "//a[@class='albumName']";
+    protected override string ImageContainerXpath => "//div[@id='box_289']//div[@class='gbox']";
 
-    /// <summary>
-    ///     Parses  the HTML for sensualgirls.org and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public SensualGirlsParser(WebDriver driver, ApiClientManager clientManager,
+                              Dictionary<string, string> requestHeaders,
+                              FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<SensualGirlsParser>(filenameScheme))
     {
-        return GenericBabesHtmlParser("//a[@class='albumName']", "//div[@id='box_289']//div[@class='gbox']");
     }
 }
