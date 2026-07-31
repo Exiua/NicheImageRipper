@@ -7,7 +7,6 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
@@ -17,10 +16,10 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
 {
     public static string ParserName => "pornhub";
 
-    protected override string ImageLinksFileName => "pornhub.json";
     protected override int MaxEntriesPerBatch => 25;
-    protected override string ParserKey => "pornhub";
+    protected override string ParserKey => ParserName;
 
+    private const int MaxParsePostAttempts = 4;
 
     public PornhubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
@@ -40,61 +39,26 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
         cookieJar.AddCookie(new Cookie("accessAgeDisclaimerPH", "1"));
         cookieJar.AddCookie(new Cookie("adBlockAlertHidden", "1"));
         Driver.Refresh();
-        StoreLastLink(CurrentUrl);
         var soup = await Soupify(cancellationToken: cancellationToken);
         string dirName;
         List<StringFileLinkWrapper> images;
-        Dictionary<string, List<string>> cachedLinks;
+
         if (CurrentUrl.Contains("/model/") || CurrentUrl.Contains("/pornstar/"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//h1[@itemprop='name']").InnerText;
 
-            List<string> posts;
-            if (File.Exists(ImageLinksFileName))
-            {
-                var deserializedCachedLinks =
-                    JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
-                if (deserializedCachedLinks is null)
-                {
-                    posts = await GetLinks(cancellationToken);
-                    cachedLinks = new Dictionary<string, List<string>>
-                    {
-                        [CurrentUrl] = posts
-                    };
-
-                    JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
-                }
-                else
-                {
-                    cachedLinks = deserializedCachedLinks;
-                    if (cachedLinks.TryGetValue(CurrentUrl, out var cachedPosts))
-                    {
-                        posts = cachedPosts;
-                    }
-                    else
-                    {
-                        posts = await GetLinks(cancellationToken);
-                        cachedLinks[CurrentUrl] = posts;
-                        JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
-                    }
-                }
-            }
-            else
+            var posts = TimeSensitiveParserStateManager.GetLinks(ParserKey, GivenUrl);
+            if (posts is null)
             {
                 posts = await GetLinks(cancellationToken);
-                cachedLinks = new Dictionary<string, List<string>>
-                {
-                    [CurrentUrl] = posts
-                };
-
-                JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
+                TimeSensitiveParserStateManager.StoreLinks(ParserKey, GivenUrl, posts);
             }
 
             images = [];
             var cachePosts = new List<string>();
             foreach (var (i, post) in posts.Enumerate())
             {
-                while (true)
+                for (var attempt = 0;; attempt++)
                 {
                     try
                     {
@@ -123,23 +87,29 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
                         Logger.Warning("Element not found while parsing post {post}", post);
                         await Sleep(250, cancellationToken);
                     }
+                    catch (WebDriverException e) when (e.Message.EndsWith("timed out after 60 seconds."))
+                    {
+                        Logger.Warning("Timeout while parsing post {post}", post);
+                        WebDriver.RegenerateDriver();
+                        await Sleep(250, cancellationToken);
+                    }
                     catch (WebDriverException e)
                     {
-                        if (e.Message.EndsWith("timed out after 60 seconds."))
+                        Logger.Warning(e, "Unexpected WebDriverException while parsing post {post}", post);
+                        if (attempt >= MaxParsePostAttempts - 1)
                         {
-                            Logger.Warning("Timeout while parsing post {post}", post);
-                            WebDriver.RegenerateDriver();
-                            await Sleep(250, cancellationToken);
+                            throw;
                         }
+
+                        await Sleep(250, cancellationToken);
                     }
                 }
             }
 
-            // Allows of replacement of albums with each individual photo link
+            // Allows replacement of albums with each individual photo link
             if (cachePosts.Count > posts.Count)
             {
-                cachedLinks[CurrentUrl] = cachePosts;
-                JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
+                TimeSensitiveParserStateManager.StoreLinks(ParserKey, GivenUrl, cachePosts);
             }
         }
         else
@@ -149,12 +119,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
             dirName = dir;
             if (extraPosts is not null)
             {
-                cachedLinks = new Dictionary<string, List<string>>
-                {
-                    [CurrentUrl] = extraPosts
-                };
-
-                JsonUtility.Serialize(ImageLinksFileName, cachedLinks);
+                TimeSensitiveParserStateManager.StoreLinks(ParserKey, GivenUrl, extraPosts);
             }
         }
 

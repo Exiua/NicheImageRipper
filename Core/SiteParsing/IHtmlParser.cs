@@ -6,7 +6,6 @@ namespace NicheImageRipper.Core.SiteParsing;
 public interface IHtmlParser
 {
     static abstract string ParserName { get; }
-    static virtual string[] AdditionalParserNames { get; } = [];
 
     static FilenameScheme GetFilenameScheme<T>(FilenameScheme original) where T : IHtmlParser
     {
@@ -19,4 +18,12 @@ public interface IHtmlParser
         var overrideFilenameScheme = settingsOverride.FilenameScheme;
         return Enum.IsDefined(overrideFilenameScheme) ? overrideFilenameScheme : original;
     }
+}
+
+/// <summary>
+/// Implemented by parsers that should also be registered under additional site names (e.g. mirror domains).
+/// </summary>
+public interface IMultiSiteHtmlParser
+{
+    static abstract string[] AdditionalParserNames { get; }
 }

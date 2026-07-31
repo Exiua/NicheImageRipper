@@ -4,20 +4,18 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
+public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtmlParser
 {
     public static string ParserName => "e-hentai";
     public static string[] AdditionalParserNames { get; } = ["exhentai"];
 
-    protected override string ImageLinksFileName => "ehentai.json";
     protected override int MaxEntriesPerBatch => 250;
-    protected override string ParserKey => "ehentai";
+    protected override string ParserKey => ParserName;
     protected override bool SupportsPartialSave => false;
     protected override bool RequiresLogin => true;
 
@@ -54,22 +52,25 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org"); // Redirect to exhentai
-        var currentUrl = CurrentUrl;
-        StoreLastLink(currentUrl);
-        var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='gn']").InnerText;
-        // Links to each image page
-        var imageLinks = await GetImageLinks(soup, currentUrl);
+        await SiteLogin(cancellationToken);
+        CurrentUrl = CurrentUrl.Replace("e-hentai.org", "exhentai.org");
+        var imageLinks = TimeSensitiveParserStateManager.GetLinks(ParserKey, GivenUrl);
+        string dirName;
+        if (imageLinks is null)
+        {
+            var soup = await Soupify(cancellationToken: cancellationToken);
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@id='gn']").InnerText;
+            imageLinks = [];
+            await ExtractImageLinks(soup, imageLinks, cancellationToken);
+            TimeSensitiveParserStateManager.StoreLinks(ParserKey, GivenUrl, imageLinks);
+        }
+        else
+        {
+            var soup = await Soupify(cancellationToken: cancellationToken);
+            dirName = soup.SelectSingleNodeOrThrow("//h1[@id='gn']").InnerText;
+        }
 
         Logger.Debug("Found {count} image links", imageLinks.Count);
-
-        var imageLinksSave = new Dictionary<string, List<string>>
-        {
-            [currentUrl] = imageLinks
-        };
-
-        JsonUtility.Serialize(ImageLinksFileName, imageLinksSave);
 
         // Links to the images themselves
         var imageUrls = new List<string>();
@@ -110,28 +111,6 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser
     protected override Task<string> UpdateLink(string link, CancellationToken cancellationToken = default)
     {
         return GetImageLink(link, cancellationToken);
-    }
-
-    private async Task<List<string>> GetImageLinks(HtmlNode soup, string currentUrl)
-    {
-        List<string> imageLinks;
-        if (File.Exists(ImageLinksFileName))
-        {
-            var imageLinksMap = JsonUtility.Deserialize<Dictionary<string, List<string>>>(ImageLinksFileName);
-            // Safety: if TryGetValue fails, imageLinks will be re-initialized, so it won't be null
-            if (imageLinksMap is null || !imageLinksMap.TryGetValue(currentUrl, out imageLinks!))
-            {
-                imageLinks = [];
-                await ExtractImageLinks(soup, imageLinks);
-            }
-        }
-        else
-        {
-            imageLinks = [];
-            await ExtractImageLinks(soup, imageLinks);
-        }
-
-        return imageLinks;
     }
 
     private async Task ExtractImageLinks(HtmlNode soup, List<string> imageLinks,

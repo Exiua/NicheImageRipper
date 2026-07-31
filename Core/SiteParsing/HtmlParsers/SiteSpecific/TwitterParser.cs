@@ -9,7 +9,7 @@ using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class TwitterParser : HtmlParser, IHtmlParser
+public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
 {
     public static string ParserName => "twitter";
     public static string[] AdditionalParserNames { get; } = ["x"];
