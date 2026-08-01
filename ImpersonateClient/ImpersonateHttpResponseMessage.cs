@@ -60,4 +60,44 @@ public sealed class ImpersonateHttpResponseMessage : IDisposable
             return null;
         }
     }
+
+    public override string ToString()
+    {
+        var builder = new StringBuilder();
+
+        builder.Append("StatusCode: ");
+        builder.Append(StatusCode);
+
+        builder.Append(", ReasonPhrase: '");
+        builder.Append(ReasonPhrase ?? string.Empty);
+        builder.Append('\'');
+
+        builder.Append(", Version: ");
+        builder.Append(Version);
+
+        builder.Append(", Content: ");
+        builder.Append(Content?.GetType().FullName ?? "<null>");
+
+        builder.AppendLine(", Headers:");
+        builder.AppendLine("{");
+
+        AppendHeaders(builder, Headers.All);
+
+        builder.Append('}');
+
+        return builder.ToString();
+    }
+
+    private static void AppendHeaders(
+        StringBuilder builder,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> headers)
+    {
+        foreach (var header in headers)
+        {
+            builder.Append("  ");
+            builder.Append(header.Key);
+            builder.Append(": ");
+            builder.AppendLine(string.Join(", ", header.Value));
+        }
+    }
 }

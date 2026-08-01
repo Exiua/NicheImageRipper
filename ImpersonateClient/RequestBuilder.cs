@@ -77,13 +77,13 @@ public sealed class RequestBuilder
 
     public RequestBuilder WithFormBody(IReadOnlyDictionary<string, string> data)
     {
-        string form = string.Join(
+        var form = string.Join(
             "&",
             data.Select(pair =>
                 $"{WebUtility.UrlEncode(pair.Key)}={WebUtility.UrlEncode(pair.Value)}"));
 
         _body = Encoding.UTF8.GetBytes(form);
-        return WithHeader("Content-Type", "application/x-www-form-urlencoded");
+        return WithHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     }
 
     public RequestBuilder WithBasicAuth(string user, string password)

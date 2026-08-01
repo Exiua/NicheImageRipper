@@ -17,6 +17,7 @@ public class LoginConfig
     public required Credentials EHentai { get; set; }
     public required Credentials SteamCommunity { get; set; }
     public required Credentials Iwara { get; set; }
+    public required Credentials Pornhub { get; set; }
 
     public static LoginConfig New()
     {
@@ -34,6 +35,7 @@ public class LoginConfig
             EHentai = Credentials.New(),
             SteamCommunity = Credentials.New(),
             Iwara = Credentials.New(),
+            Pornhub = Credentials.New(),
         };
     }
 }
