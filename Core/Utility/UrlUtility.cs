@@ -1,6 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.SiteParsing;
 using Serilog;
 
 namespace NicheImageRipper.Core.Utility;
@@ -109,7 +110,7 @@ public static partial class UrlUtility
     {
         var parsedUri = new Uri(givenUrl);
         var baseUrl = $"{parsedUri.Scheme}://{parsedUri.Host}/";
-        return SupportedSites.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
+        return HtmlParserFactory.SupportedUrls.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
     }
     
     private static readonly string[] SpecialDomains = ["inven.co.kr", "danbooru.donmai.us"];

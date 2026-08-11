@@ -1,8 +1,10 @@
+using System.Collections.Frozen;
 using System.Linq.Expressions;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.Managers;
+using Serilog;
 
 namespace NicheImageRipper.Core.SiteParsing;
 
@@ -10,14 +12,23 @@ using HtmlParserCtor = Func<WebDriver, ApiClientManager, Dictionary<string, stri
 
 public static class HtmlParserFactory
 {
+    private static readonly ILogger Logger = Log.ForContext(typeof(HtmlParserFactory));
+    
     private static readonly Dictionary<Type, HtmlParserCtor> HtmlParserCtors = new();
     private static readonly Dictionary<string, HtmlParserCtor> Parsers;
 
+    /// <summary>
+    ///     Every base URL (scheme+host+trailing slash) supported by any registered parser, derived from each
+    ///     parser's <see cref="IHtmlParser.SupportedUrls"/>. Used by <c>UrlUtility.UrlCheck</c> instead of a
+    ///     hardcoded list, so plugin-registered parsers are automatically recognized without touching core code.
+    /// </summary>
+    public static FrozenSet<string> SupportedUrls { get; }
+    
     static HtmlParserFactory()
     {
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         var types = assemblies.SelectMany(assembly => assembly.GetTypes());
-        var parserTypes = types.Where(type => !type.IsAbstract && typeof(HtmlParser).IsAssignableFrom(type) && typeof(IHtmlParser).IsAssignableFrom(type));
+        var parserTypes = types.Where(type => !type.IsAbstract && typeof(HtmlParser).IsAssignableFrom(type) && typeof(IHtmlParser).IsAssignableFrom(type)).ToList();
         Parsers = new Dictionary<string, HtmlParserCtor>(StringComparer.OrdinalIgnoreCase);
         foreach (var parserType in parserTypes)
         {
@@ -34,35 +45,33 @@ public static class HtmlParserFactory
                 Parsers[additionalName] = ctor;
             }
         }
-        // Parsers = AppDomain.CurrentDomain
-        //                    .GetAssemblies()
-        //                    .SelectMany(a =>
-        //                     {
-        //                         try
-        //                         {
-        //                             return a.GetTypes();
-        //                         }
-        //                         catch
-        //                         {
-        //                             return [];
-        //                         }
-        //                     })
-        //                    .Where(t => !t.IsAbstract && typeof(HtmlParser).IsAssignableFrom(t) &&
-        //                                typeof(IHtmlParser).IsAssignableFrom(t))
-        //                    .SelectMany(t =>
-        //                     {
-        //                         var primaryName =
-        //                             (string)t.GetProperty(nameof(IHtmlParser.ParserName))!.GetValue(null)!;
-        //                         var additionalNames = typeof(IMultiSiteHtmlParser).IsAssignableFrom(t)
-        //                             ? (string[])t.GetProperty(nameof(IMultiSiteHtmlParser.AdditionalParserNames))!.GetValue(null)!
-        //                             : [];
-        //                         var ctor = CreateHtmlParserFactory(t);
-        //                         return new[] { primaryName }.Concat(additionalNames)
-        //                                                     .Select(name => (Name: name, Ctor: ctor));
-        //                     })
-        //                    .ToDictionary(x => x.Name, x => x.Ctor, StringComparer.OrdinalIgnoreCase);
+        
+        SupportedUrls = BuildSupportedUrls(parserTypes);
     }
 
+    private static FrozenSet<string> BuildSupportedUrls(IEnumerable<Type> parserTypes)
+    {
+        var owners = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var type in parserTypes)
+        {
+            var supportedUrls = (string[])type.GetProperty(nameof(IHtmlParser.SupportedUrls))!.GetValue(null)!;
+            foreach (var url in supportedUrls)
+            {
+                if (owners.TryGetValue(url, out var existingOwner) && existingOwner != type)
+                {
+                    Logger.Warning(
+                        "Supported URL {Url} is claimed by both {ExistingParser} (existing) and {NewParser} (newer); newer will take precedence",
+                        url, existingOwner.Name, type.Name);
+                }
+
+                owners[url] = type; // last wins
+            }
+        }
+
+        return owners.Keys.ToFrozenSet();
+    }
+    
     private static HtmlParserCtor CreateHtmlParserFactory(Type type)
     {
         if (HtmlParserCtors.TryGetValue(type, out var existingCtor))
