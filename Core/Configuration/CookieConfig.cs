@@ -15,6 +15,7 @@ public class CookieConfig
     [JsonConverter(typeof(StringOrArrayConverter))] // required for backward compatibility
     public required string[] Pixiv { get; set; }
     public required string SteamCommunity { get; set; }
+    public required string Patreon { get; set; }
     
     public static CookieConfig New()
     {
@@ -29,6 +30,7 @@ public class CookieConfig
             SimpCity = "",
             Pixiv = [],
             SteamCommunity = "",
+            Patreon = "",
         };
     }
 }
