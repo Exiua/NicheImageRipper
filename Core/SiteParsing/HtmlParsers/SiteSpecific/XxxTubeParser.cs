@@ -8,14 +8,12 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XxxTubeParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "x-x-x";
+    public static string[] SupportedUrls => ["https://x-x-x.tube/"];
 
-    public XxxTubeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<XxxTubeParser>(filenameScheme))
+    public XxxTubeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XxxTubeParser>(filenameScheme))
     {
     }
 
@@ -35,8 +33,7 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
             case "videos":
             {
                 var soup = await Soupify(cancellationToken: cancellationToken);
-                dirName = soup.SelectSingleNodeOrThrow("//h1[@class='video-title']").InnerText.Split(",")[0].Trim() +
-                          $" ({id})";
+                dirName = soup.SelectSingleNodeOrThrow("//h1[@class='video-title']").InnerText.Split(",")[0].Trim() + $" ({id})";
                 await WaitForElement("//div[@class='fp-ui']", timeout: 30, cancellationToken: cancellationToken);
                 while (true)
                 {
@@ -74,9 +71,9 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                 var video = Driver.FindElement(By.XPath("//video"));
                 var url = video.GetAttribute("src")!;
                 images.Add(url);
-
                 break;
             }
+
             case "albums":
             {
                 await WaitForElement("//div[@id='albumGallery']//a", timeout: 100000, cancellationToken: cancellationToken);
@@ -87,15 +84,11 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                     ScrollPauseTime = 500
                 };
                 var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
-                dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText.Split(",")[0].Trim() +
-                          $" ({id})";
+                dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText.Split(",")[0].Trim() + $" ({id})";
                 var list = soup.SelectSingleNodeOrThrow("//div[@class='holder']/div[@class='list']");
                 var listItems = list.SelectNodesOrThrow("./div[@class='list-item']");
                 var imageCount = listItems[3].InnerText.Trim().ParseInt();
-                var imgs = soup.SelectSingleNodeOrThrow("//div[@id='albumGallery']")
-                               .SelectNodesOrThrow("./div")
-                               .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
-                               .ToStringImageLinkWrapperList();
+                var imgs = soup.SelectSingleNodeOrThrow("//div[@id='albumGallery']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringImageLinkWrapperList();
                 if (imgs.Count != imageCount)
                 {
                     Logger.Warning("Expected {Expected} images, but found {Found} images.", imageCount, imgs.Count);
@@ -104,6 +97,7 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                 images.AddRange(imgs);
                 break;
             }
+
             default:
                 throw new RipperException("Unknown category: " + category);
         }

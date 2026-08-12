@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class LeakedBbParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "leakedbb";
+    public static string[] SupportedUrls => ["https://leakedbb.com/"];
 
     public LeakedBbParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<LeakedBbParser>(filenameScheme))
     {
@@ -21,13 +21,8 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='flow-text left']")
-                            .SelectSingleNodeOrThrow(".//h1")
-                            .InnerText;
-        var imageLinks = soup.SelectSingleNodeOrThrow("//div[@class='post_body scaleimages']")
-                            .SelectNodesOrThrow("./img")
-                            .Select(img => img.GetSrc())
-                            .ToList();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='flow-text left']").SelectSingleNodeOrThrow(".//h1").InnerText;
+        var imageLinks = soup.SelectSingleNodeOrThrow("//div[@class='post_body scaleimages']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToList();
         var images = new List<StringFileLinkWrapper>();
         foreach (var link in imageLinks)
         {
@@ -36,12 +31,12 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
                 images.Add(link);
                 continue;
             }
-    
+
             soup = await Soupify(link);
             var img = soup.SelectSingleNodeOrThrow("//a[@id='download']").GetHref().Split("?")[0];
             images.Add(img);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

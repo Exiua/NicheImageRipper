@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PornzogParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pornzog";
+    public static string[] SupportedUrls => ["https://pornzog.com/"];
 
     public PornzogParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornzogParser>(filenameScheme))
     {
@@ -32,7 +32,6 @@ public class PornzogParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']").GetSrc();
         images.Add(baseUrl + url);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null);
     }
 }

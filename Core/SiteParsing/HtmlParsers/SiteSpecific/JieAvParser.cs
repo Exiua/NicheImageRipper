@@ -7,10 +7,10 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class JieAvParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "jieav";
+    public static string[] SupportedUrls => ["https://www.jieav.com/"];
 
     public JieAvParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JieAvParser>(filenameScheme))
     {
@@ -24,7 +24,7 @@ public class JieAvParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='works']/h1").InnerText;
-        var (capturer, b) = await ConfigureNetworkCapture<JieAvCapturer>();
+        var(capturer, b) = await ConfigureNetworkCapture<JieAvCapturer>();
         await using var bidi = b;
         Driver.Refresh();
         var images = new List<StringFileLinkWrapper>();
@@ -36,12 +36,12 @@ public class JieAvParser : HtmlParser, IHtmlParser
                 await Sleep(250);
                 continue;
             }
-            
+
             // Only one video of interest
             images.Add(videoLinks[0]);
             break;
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HentaiEraParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentaiera";
+    public static string[] SupportedUrls => ["https://hentaiera.com/"];
 
     public HentaiEraParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiEraParser>(filenameScheme))
     {
@@ -26,7 +26,6 @@ public class HentaiEraParser : HtmlParser, IHtmlParser
         var pageCount = soup.SelectSingleNodeOrThrow("//button[@id='pages_btn']").InnerText.Trim().Split(' ')[0].ParseInt();
         var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
         var baseUrl = imageContainer.GetAttributeValue("data-src");
-
         return RipInfo.FromGenerateInfo(baseUrl, dirName, pageCount);
     }
 }

@@ -9,16 +9,13 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "bunkr";
+    public static string[] SupportedUrls => ["https://bunkr.si/"];
 
     private const int ParseDelay = 500;
-
-    public BunkrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<BunkrParser>(filenameScheme))
+    public BunkrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BunkrParser>(filenameScheme))
     {
     }
 
@@ -62,12 +59,10 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                 goto GridInitializationEnd;
             }
 
-            grid = soup.SelectSingleNodeOrThrow(
-                "//div[@class='grid gap-4 grid-cols-repeat [--size:11rem] lg:[--size:14rem] grid-images']");
-
+            grid = soup.SelectSingleNodeOrThrow("//div[@class='grid gap-4 grid-cols-repeat [--size:11rem] lg:[--size:14rem] grid-images']");
             GridInitializationEnd:
-            var imagePosts = grid.SelectNodesOrThrow(".//a");
-            foreach (var (i, post) in imagePosts.Enumerate())
+                var imagePosts = grid.SelectNodesOrThrow(".//a");
+            foreach (var(i, post)in imagePosts.Enumerate())
             {
                 var href = post.GetHref();
                 if (href[0] == '/')
@@ -90,8 +85,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
 
                         break;
                     }
-                    catch (WebDriverException e) when (e.Message.StartsWith(
-                                                           "The HTTP request to the remote WebDriver server for URL"))
+                    catch (WebDriverException e)when (e.Message.StartsWith("The HTTP request to the remote WebDriver server for URL"))
                     {
                         if (j == maxRetries - 1)
                         {
@@ -105,7 +99,6 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
                 }
 
                 link = await ResolveLinkForCurrentUrl(soup);
-                
                 if (link is not null)
                 {
                     images.Add(link.Value);
@@ -125,7 +118,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
-    
+
     private async Task<StringFileLinkWrapper?> ResolveLinkForCurrentUrl(HtmlNode soup)
     {
         if (CurrentUrl.Contains("/i/"))
@@ -147,7 +140,6 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         return null;
     }
 
-
     private async Task<FileLink> GetVideoLink(HtmlNode soup, CancellationToken cancellationToken = default)
     {
         var videoDownloadNode = soup.SelectSingleNode("//a[@id='czmDownloadz']");
@@ -158,22 +150,15 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
         }
         else
         {
-            videoDownload = soup
-                           .SelectSingleNodeOrThrow(
-                                "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold flex-1 ic-download-01 ic-before before:text-lg']")
-                           .GetHref();
+            videoDownload = soup.SelectSingleNodeOrThrow("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold flex-1 ic-download-01 ic-before before:text-lg']").GetHref();
         }
 
-        soup = await Soupify(videoDownload, xpath: "//main//video", delay: ParseDelay,
-            cancellationToken: cancellationToken);
+        soup = await Soupify(videoDownload, xpath: "//main//video", delay: ParseDelay, cancellationToken: cancellationToken);
         var video = soup.SelectSingleNode("//main//video");
-
-        var downloadButton = soup.SelectSingleNodeOrThrow(
-            "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']");
+        var downloadButton = soup.SelectSingleNodeOrThrow("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']");
         var downloadUrl = downloadButton.GetHref();
         var filename = video is not null ? video.GetSrc().Split("/")[^1] : downloadUrl.Split("/")[^1];
         var videoLink = FileLink.WithFilename(downloadUrl, filename, FilenameScheme);
-
         return videoLink;
     }
 
@@ -185,23 +170,15 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
 
     private async Task<string> GetDownloadLink(HtmlNode soup, CancellationToken cancellationToken = default)
     {
-        var downloadLinkNode =
-            soup.SelectSingleNode(
-                "//a[@class='text-white inline-flex items-center justify-center rounded-[5px] py-2 px-4 text-center text-base font-bold hover:text-white mb-2']");
+        var downloadLinkNode = soup.SelectSingleNode("//a[@class='text-white inline-flex items-center justify-center rounded-[5px] py-2 px-4 text-center text-base font-bold hover:text-white mb-2']");
         if (downloadLinkNode is null)
         {
-            downloadLinkNode =
-                soup.SelectSingleNodeOrThrow(
-                    "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg flex-1']");
+            downloadLinkNode = soup.SelectSingleNodeOrThrow("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg flex-1']");
         }
 
         var downloadLink = downloadLinkNode.GetHref();
         soup = await Soupify(downloadLink, delay: ParseDelay, cancellationToken: cancellationToken);
-        var link = soup
-                  .SelectSingleNodeOrThrow(
-                       "//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']")
-                  .GetHref();
-
+        var link = soup.SelectSingleNodeOrThrow("//a[@class='btn btn-main btn-lg rounded-full px-6 font-semibold ic-download-01 ic-before before:text-lg']").GetHref();
         return link;
     }
 }

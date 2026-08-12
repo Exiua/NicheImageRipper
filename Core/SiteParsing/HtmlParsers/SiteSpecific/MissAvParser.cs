@@ -8,14 +8,12 @@ using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedExcep
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class MissAvParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "missav";
+    public static string[] SupportedUrls => ["https://missav.ws/"];
 
-    public MissAvParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
-                  FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<MissAvParser>(filenameScheme))
+    public MissAvParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MissAvParser>(filenameScheme))
     {
     }
 
@@ -25,7 +23,7 @@ public class MissAvParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (capturer, b) = await ConfigureNetworkCapture<MissAvVideoCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<MissAvVideoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);

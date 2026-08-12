@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XMissyParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xmissy";
+    public static string[] SupportedUrls => ["https://xmissy.nl/"];
 
     public XMissyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XMissyParser>(filenameScheme))
     {
@@ -26,13 +26,8 @@ public class XMissyParser : HtmlParser, IHtmlParser
         loadButton?.Click();
         await Sleep(1000);
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='pagetitle']")
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery']")
-                            .SelectNodesOrThrow(".//div[@class='noclick-image']")
-                            .Select(img => img.SelectSingleNode(".//img")?.GetNullableSrc() ?? img.SelectSingleNodeOrThrow(".//img").GetSrc())
-                            .ToStringImageLinkWrapperList();
-    
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='pagetitle']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery']").SelectNodesOrThrow(".//div[@class='noclick-image']").Select(img => img.SelectSingleNode(".//img")?.GetNullableSrc() ?? img.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

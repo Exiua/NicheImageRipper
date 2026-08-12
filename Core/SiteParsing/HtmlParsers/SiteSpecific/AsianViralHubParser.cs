@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class AsianViralHubParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "asianviralhub";
+    public static string[] SupportedUrls => ["https://asianviralhub.com/"];
 
     public AsianViralHubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AsianViralHubParser>(filenameScheme))
     {
@@ -26,7 +26,6 @@ public class AsianViralHubParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video").GetSrc();
         images.Add(url);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

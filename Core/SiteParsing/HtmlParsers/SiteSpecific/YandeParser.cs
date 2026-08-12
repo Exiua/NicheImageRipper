@@ -4,10 +4,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class YandeParser : BooruParser, IHtmlParser
 {
     public static string ParserName => "yande";
+    public static string[] SupportedUrls => ["https://yande.re/"];
 
     public YandeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<YandeParser>(filenameScheme))
     {

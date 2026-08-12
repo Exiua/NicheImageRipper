@@ -7,14 +7,12 @@ using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedExcep
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class IwaraParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "iwara";
+    public static string[] SupportedUrls => ["https://www.iwara.tv/"];
 
-    public IwaraParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<IwaraParser>(filenameScheme))
+    public IwaraParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<IwaraParser>(filenameScheme))
     {
     }
 
@@ -63,7 +61,6 @@ public class IwaraParser : HtmlParser, IHtmlParser
                     {
                         var videoLink = $"https://api.iwara.tv/video/{video.Id}";
                         var fileLink = FileLink.WithFilename(videoLink, $"{video.Title}.mp4", FilenameScheme, linkInfo: LinkInfo.Iwara, cleanFilename: true);
-
                         files.Add(fileLink);
                     }
                 }

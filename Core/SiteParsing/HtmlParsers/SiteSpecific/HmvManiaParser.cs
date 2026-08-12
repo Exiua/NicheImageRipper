@@ -5,15 +5,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HmvManiaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hmvmania";
+    public static string[] SupportedUrls => ["https://hmvmania.com/"];
 
-    public HmvManiaParser(WebDriver driver, ApiClientManager apiClientManager,
-                          Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<HmvManiaParser>(filenameScheme))
+    public HmvManiaParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HmvManiaParser>(filenameScheme))
     {
     }
 
@@ -28,7 +25,6 @@ public class HmvManiaParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var videoUrl = soup.SelectSingleNodeOrThrow("//li[i[@class='fas fa-download']]/a").GetHref();
         images.Add(videoUrl);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

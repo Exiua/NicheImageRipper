@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HentaiFoxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentaifox";
+    public static string[] SupportedUrls => ["https://hentaifox.com/"];
 
     public HentaiFoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiFoxParser>(filenameScheme))
     {
@@ -25,7 +25,6 @@ public class HentaiFoxParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
         var pageCount = soup.SelectSingleNodeOrThrow("//span[@class='i_text pages']").InnerText.Split(" ")[^1].ParseInt();
         var baseImage = soup.SelectSingleNodeOrThrow("//div[@class='g_thumb']//img").GetSrc();
-
         return RipInfo.FromGenerateInfo(baseImage, dirName, pageCount);
     }
 }

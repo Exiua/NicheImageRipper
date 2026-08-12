@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class EroThotsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "erothots";
+    public static string[] SupportedUrls => ["https://erothots.co/"];
 
     public EroThotsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EroThotsParser>(filenameScheme))
     {
@@ -37,17 +37,10 @@ public class EroThotsParser : HtmlParser, IHtmlParser
         }
         else /*if (CurrentUrl.Contains("/a/"))*/
         {
-            dirName = soup.SelectSingleNodeOrThrow("//div[@class='head-title']")
-                            .SelectSingleNodeOrThrow(".//span")
-                            .InnerText;
-            images = soup.SelectSingleNodeOrThrow("//div[@class='album-gallery']")
-                            .SelectNodesOrThrow("./a")
-                            .Select(link => link.GetAttributeValue("data-src"))
-                            .Select(dummy => (StringFileLinkWrapper)dummy)
-                            .ToList();
+            dirName = soup.SelectSingleNodeOrThrow("//div[@class='head-title']").SelectSingleNodeOrThrow(".//span").InnerText;
+            images = soup.SelectSingleNodeOrThrow("//div[@class='album-gallery']").SelectNodesOrThrow("./a").Select(link => link.GetAttributeValue("data-src")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         }
-        
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

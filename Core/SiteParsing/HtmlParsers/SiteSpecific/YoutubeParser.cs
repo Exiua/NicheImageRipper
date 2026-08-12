@@ -9,14 +9,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class YoutubeParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "youtube";
+    public static string[] SupportedUrls => ["https://www.youtube.com/"];
 
-    public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<YoutubeParser>(filenameScheme))
+    public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<YoutubeParser>(filenameScheme))
     {
     }
 
@@ -29,47 +27,32 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         // TODO: May be able to rectify this in PostProcess by renaming files after download
         if (FilenameScheme != FilenameScheme.Original)
         {
-            Logger.Warning(
-                "YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
+            Logger.Warning("YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
         }
 
         var url = CurrentUrl.Split("/").Take(4).Join('/');
         CurrentUrl = url;
         var soup = await Soupify(xpath: "//h1[@class='dynamicTextViewModelH1']/span");
         var displayName = soup.SelectSingleNodeOrThrow("//h1[@class='dynamicTextViewModelH1']/span").InnerText;
-        var username = soup
-                      .SelectSingleNodeOrThrow(
-                           "//span[@class='yt-core-attributed-string yt-content-metadata-view-model__metadata-text yt-core-attributed-string--white-space-pre-wrap yt-core-attributed-string--link-inherit-color']")
-                      .InnerText;
+        var username = soup.SelectSingleNodeOrThrow("//span[@class='yt-core-attributed-string yt-content-metadata-view-model__metadata-text yt-core-attributed-string--white-space-pre-wrap yt-core-attributed-string--link-inherit-color']").InnerText;
         var dirName = $"{displayName} ({username})";
-        var args = new SubprocessArgs("yt-dlp")
-                  .WithArgs(
-                       "--flat-playlist",
-                       "--encoding", "utf-8",
-                       "--print",
-                       "\"%(title)s|%(id)s\"",
-                       CurrentUrl
-                   )
-                  .EnableOutputCapture();
-        var (exitCode, output, error) = await RunSubprocess(args);
+        var args = new SubprocessArgs("yt-dlp").WithArgs("--flat-playlist", "--encoding", "utf-8", "--print", "\"%(title)s|%(id)s\"", CurrentUrl).EnableOutputCapture();
+        var(exitCode, output, error) = await RunSubprocess(args);
         if (exitCode != 0)
         {
             Logger.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
             throw new RipperException("yt-dlp subprocess failed");
         }
 
-        var images = output!.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(line =>
-                             {
-                                 var split = line.LastIndexOf('|');
-                                 var title = line[..split];
-                                 var id = line[(split + 1)..];
-                                 var videoUrl = $"https://www.youtube.com/watch?v={id}";
-                                 var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
-                                 return fileLink;
-                             })
-                            .ToStringImageLinkWrapperList();
-
+        var images = output!.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line =>
+        {
+            var split = line.LastIndexOf('|');
+            var title = line[..split];
+            var id = line[(split + 1)..];
+            var videoUrl = $"https://www.youtube.com/watch?v={id}";
+            var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
+            return fileLink;
+        }).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
@@ -116,7 +99,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         }
     }
 
-    private static async Task<(int, string?, string?)> RunSubprocess(SubprocessArgs args, CancellationToken cancellationToken = default)
+    private static async Task<(int, string? , string? )> RunSubprocess(SubprocessArgs args, CancellationToken cancellationToken = default)
     {
         var arguments = args.GetArgs();
         using var process = new Process();
@@ -131,7 +114,6 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             UseShellExecute = false,
             CreateNoWindow = true
         };
-
         string? output = null;
         if (args.CaptureOutput)
         {
@@ -159,7 +141,6 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         }
 
         process.Start();
-
         if (args.CaptureOutput)
         {
             process.BeginOutputReadLine();

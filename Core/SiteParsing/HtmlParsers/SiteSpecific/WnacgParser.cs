@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class WnacgParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "wnacg";
+    public static string[] SupportedUrls => ["https://www.wnacg.com/"];
 
     public WnacgParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<WnacgParser>(filenameScheme))
     {
@@ -25,7 +25,7 @@ public class WnacgParser : HtmlParser, IHtmlParser
         {
             CurrentUrl = CurrentUrl.Replace("-slist-", "-index-");
         }
-        
+
         var soup = await SolveParseAddCookies();
         Logger.Debug("Fetching directory name");
         var dirNode = soup.SelectSingleNode("//h2");
@@ -45,20 +45,18 @@ public class WnacgParser : HtmlParser, IHtmlParser
         {
             Logger.Debug("Fetching page {Page}", page);
             page++;
-            var imageList = soup
-                            .SelectNodesOrThrow("//li[@class='li tb gallary_item']")
-                            .Select(n => n.SelectSingleNodeOrThrow(".//a").GetHref());
+            var imageList = soup.SelectNodesOrThrow("//li[@class='li tb gallary_item']").Select(n => n.SelectSingleNodeOrThrow(".//a").GetHref());
             imageLinks.AddRange(imageList);
             var nextPageButton = soup.SelectSingleNode("//span[@class='next']");
             if (nextPageButton is null)
             {
                 break;
             }
-            
+
             var nextPageUrl = nextPageButton.SelectSingleNodeOrThrow(".//a").GetHref();
             soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
         }
-        
+
         Logger.Debug("Found {NumImages} images", imageLinks.Count);
         var images = new List<StringFileLinkWrapper>();
         foreach (var image in imageLinks)
@@ -71,7 +69,7 @@ public class WnacgParser : HtmlParser, IHtmlParser
             var imgSrc = img.GetSrc();
             images.Add(imgSrc.Contains("https:") ? imgSrc : $"https:{imgSrc}");
         }
-        
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

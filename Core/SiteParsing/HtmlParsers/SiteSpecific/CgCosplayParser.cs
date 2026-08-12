@@ -9,10 +9,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class CgCosplayParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cgcosplay";
+    public static string[] SupportedUrls => ["https://cgcosplay.org/"];
 
     public CgCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CgCosplayParser>(filenameScheme))
     {
@@ -24,25 +24,17 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
-        {
-            ScrollBy = true,
-            Increment = 1250
-        });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='elementor-heading-title elementor-size-xxl']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-1']")
-                            .SelectNodesOrThrow("./figure")
-                            .Select(fig => fig.SelectSingleNodeOrThrow(".//img").GetSrc())
-                            .ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-1']").SelectNodesOrThrow("./figure").Select(fig => fig.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinkWrapperList();
         var videos = soup.SelectSingleNode("//main[@id='main']");
         if (videos is not null)
         {
-            var videoRawLinks = videos.SelectNodesOrThrow(".//*[self::iframe or self::video]")
-                                        // .Select(div =>
-                                        //      div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
-                                        .Select(elm => elm.GetSrc());
+            var videoRawLinks = videos.SelectNodesOrThrow(".//*[self::iframe or self::video]")// .Select(div =>
+            //      div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
+            .Select(elm => elm.GetSrc());
             var captures = new Dictionary<string, PlaylistCapturer>();
-            foreach (var (i, link) in videoRawLinks.Enumerate())
+            foreach (var(i, link)in videoRawLinks.Enumerate())
             {
                 var cleanLink = link.DecodeUrl();
                 Logger.Debug("Video {index}: {link}", i + 1, cleanLink);
@@ -57,7 +49,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                         (capturer, _) = await ConfigureNetworkCapture<VkVideoCapturer>();
                         captures.Add("vk.com", capturer);
                     }
-                    
+
                     var resolvedLink = await ResolveVkLink(cleanLink, capturer);
                     images.Add(resolvedLink);
                 }
@@ -68,7 +60,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 else if (cleanLink.Contains("late-anxiety.com"))
                 {
                     Logger.Debug("Suppressed spam link");
-                    // suppress, it's just spam
+                // suppress, it's just spam
                 }
                 else
                 {
@@ -76,9 +68,8 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 }
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    
         async Task<string> ResolveVkLink(string url, PlaylistCapturer capturer)
         {
             CurrentUrl = url;
@@ -89,7 +80,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 {
                     break;
                 }
-                
+
                 var playButton = Driver.TryFindElement(By.XPath("//div[@class='videoplayer_thumb']"));
                 if (playButton is null)
                 {
@@ -98,11 +89,11 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                     await Sleep(1000);
                     continue;
                 }
-    
+
                 playButton.Click();
                 break;
             }
-    
+
             List<string> links;
             while (true)
             {
@@ -113,10 +104,10 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                     await Sleep(1000);
                     continue;
                 }
-                
+
                 break;
             }
-    
+
             return links[0];
         }
     }

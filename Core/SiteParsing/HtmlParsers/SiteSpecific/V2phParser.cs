@@ -10,7 +10,12 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
 public class V2phParser : HtmlParser
 {
-    public V2phParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "v2ph";
+    public static string[] SupportedUrls => ["https://www.v2ph.com/"];
+    
+    public V2phParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                      FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
 
@@ -38,9 +43,9 @@ public class V2phParser : HtmlParser
             Increment = 1250,
             ScrollPauseTime = 750
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='h5 text-center mb-3']")
-                            .InnerText;
+                          .InnerText;
         var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//dl[@class='row mb-0']")
                                      .SelectNodesOrThrow(".//dd")[^1]
                                      .InnerText) / 10 + 1;
@@ -59,10 +64,11 @@ public class V2phParser : HtmlParser
                     cookieJar.SetCookie("cf_clearance", cfClearanceCookie);
                     Driver.Refresh();
                 }
-                soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
+
+                soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000, cancellationToken: cancellationToken);
                 Console.ReadLine();
             }
-    
+
             List<StringFileLinkWrapper> imageList;
             while (true)
             {
@@ -75,24 +81,24 @@ public class V2phParser : HtmlParser
                     parseComplete = true;
                     break;
                 }
-                
+
                 if (imageList.All(img => !img.Contains("data:image/gif;base64")))
                 {
                     break;
                 }
-    
+
                 //Driver.FindElement(By.TagName("body")).SendKeys(Keys.Control + Keys.Home);
                 ScrollToTop();
-                soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+                soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
             }
-            
+
             images.AddRange(imageList);
             if (parseComplete)
             {
                 break;
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Five1Cg1Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "51cg1";
+    public static string[] SupportedUrls => ["https://51cg1.com/"];
 
     public Five1Cg1Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Five1Cg1Parser>(filenameScheme))
     {
@@ -23,11 +23,7 @@ public class Five1Cg1Parser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[contains(@class, 'post-title')]").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='post-content']")
-                         .SelectNodesOrThrow(".//img")
-                         .Select(img => img.GetSrc())
-                         .ToStringImageLinkWrapperList();
-
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='post-content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

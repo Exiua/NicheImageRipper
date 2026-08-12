@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PutMegaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "putmega";
+    public static string[] SupportedUrls => ["https://putmega.com/"];
 
     public PutMegaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PutMegaParser>(filenameScheme))
     {
@@ -26,25 +26,23 @@ public class PutMegaParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
-                                .SelectNodesOrThrow(".//img")
-                                .Select(img => (StringFileLinkWrapper)img.GetSrc().Remove(".md"));
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']").SelectNodesOrThrow(".//img").Select(img => (StringFileLinkWrapper)img.GetSrc().Remove(".md"));
             images.AddRange(imageList);
             var nextPage = soup.SelectSingleNode("//li[@class='pagination-next']");
             if (nextPage is null)
             {
                 break;
             }
-    
+
             var nextPageUrl = nextPage.SelectSingleNodeOrThrow(".//a").GetNullableHref();
             if (string.IsNullOrEmpty(nextPageUrl))
             {
                 break;
             }
-            
+
             soup = await Soupify("https://putmega.com" + nextPageUrl.Replace("&amp;", "&"), delay: 250);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

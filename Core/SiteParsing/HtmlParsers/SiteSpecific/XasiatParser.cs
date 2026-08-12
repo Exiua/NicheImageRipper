@@ -8,10 +8,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XasiatParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xasiat";
+    public static string[] SupportedUrls => ["https://www.xasiat.com/"];
 
     public XasiatParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XasiatParser>(filenameScheme))
     {
@@ -23,19 +23,12 @@ public class XasiatParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
-        {
-            ScrollBy = true,
-            Increment = 1250,
-        });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250, });
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
         List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/albums/"))
         {
-            images = soup.SelectSingleNodeOrThrow("//div[@class='images']")
-                            .SelectNodesOrThrow("./a")
-                            .Select(a => a.GetHref())
-                            .ToStringImageLinkWrapperList();
+            images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinkWrapperList();
         }
         else if (CurrentUrl.Contains("/videos/"))
         {
@@ -47,7 +40,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
             {
                 throw new RipperException("Video not found");
             }
-    
+
             var player = Driver.FindElement(By.Id("kt_player"));
             var qualityButton = Driver.TryFindElement(By.XPath("//a[@class='fp-settings']"));
             if (qualityButton is not null)
@@ -65,7 +58,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
                     Logger.Warning("No HD quality found, using default");
                 }
             }
-            
+
             await Sleep(1000);
             var video = Driver.TryFindElement(By.XPath("//video"));
             var src = video!.GetSrc()!;
@@ -75,7 +68,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
         {
             throw new RipperException("Unknown URL type");
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

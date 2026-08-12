@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HdzogParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hdzog";
+    public static string[] SupportedUrls => ["https://hdzog.com/"];
 
     public HdzogParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HdzogParser>(filenameScheme))
     {
@@ -26,7 +26,6 @@ public class HdzogParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']").GetSrc();
         images.Add("https://hdzog.com" + url);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

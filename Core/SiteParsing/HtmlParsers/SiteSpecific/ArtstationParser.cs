@@ -12,10 +12,15 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
 public class ArtstationParser : HtmlParser
 {
-    public ArtstationParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public static string ParserName => "artstation";
+    public static string[] SupportedUrls { get; } = ["https://www.artstation.com/"];
+    
+    public ArtstationParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
-    
+
     // TODO: Fix this
     /// <summary>
     ///     Parses  the HTML for artstation.com and extracts the relevant information necessary for downloading images from the site
@@ -23,24 +28,25 @@ public class ArtstationParser : HtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='artist-name']").InnerText;
         var username = CurrentUrl.Split("/")[3];
-        var cacheScript = soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
-        
+        var cacheScript =
+            soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
+
         #region Id Extraction
-        
+
         var start = cacheScript.IndexOf("quick.json", StringComparison.Ordinal);
         var end = cacheScript.LastIndexOf(");", StringComparison.Ordinal);
         var jsonData = cacheScript[(start + 14)..(end - 1)].Replace("\n", "").Replace('\"', '"');
         var json = JsonSerializer.Deserialize<JsonNode>(jsonData);
         var userId = json!["id"]!.Deserialize<string>()!;
         var userName = json["full_name"]!.Deserialize<string>()!;
-        
+
         #endregion
-        
+
         #region Get Posts
-        
+
         var total = 1;
         var pageCount = 1;
         var firstIter = true;
@@ -60,7 +66,7 @@ public class ArtstationParser : HtmlParser
                 var link = d!["permalink"]!.Deserialize<string>()!.Split("/")[4];
                 posts.Add(link);
             }
-            
+
             if (firstIter)
             {
                 total = responseData["total_count"]!.Deserialize<int>() - data.Count;
@@ -70,15 +76,15 @@ public class ArtstationParser : HtmlParser
             {
                 total -= data.Count;
             }
-            
+
             pageCount += 1;
             await Sleep(100);
         }
-        
+
         #endregion
-        
+
         #region Get Media Links
-        
+
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
@@ -93,15 +99,15 @@ public class ArtstationParser : HtmlParser
                 await Sleep(5000);
                 response = await client.GetAsync(url);
             }
-            
+
             var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
             var assets = responseData!["assets"]!.AsArray();
             var urls = assets.Select(asset => asset!["image_url"]!.Deserialize<string>()!.Replace("/large/", "/4k/"));
             images.AddRange(urls.ToStringImageLinks());
         }
-        
+
         #endregion
-        
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

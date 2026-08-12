@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ThreeHentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "3hentai";
+    public static string[] SupportedUrls => ["https://3hentai.net/"];
 
     public ThreeHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ThreeHentaiParser>(filenameScheme))
     {
@@ -28,12 +28,7 @@ public class ThreeHentaiParser : HtmlParser, IHtmlParser
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='text-left font-weight-bold']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='thumbnail-gallery']")
-                         .SelectNodesOrThrow("./div")
-                         .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())
-                         .Select(src => src.Replace("t.", "."))
-                         .ToStringImageLinkWrapperList();
-
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='thumbnail-gallery']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).Select(src => src.Replace("t.", ".")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

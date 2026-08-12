@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HotStunnersParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hotstunners";
+    public static string[] SupportedUrls => ["https://www.hotstunners.com/"];
 
     public HotStunnersParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HotStunnersParser>(filenameScheme))
     {
@@ -22,14 +22,8 @@ public class HotStunnersParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title_content']")
-                            .SelectSingleNodeOrThrow(".//h2")
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery_janna2']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => Protocol + img.GetSrc().Remove("tn_"))
-                            .ToStringImageLinkWrapperList();
-        
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title_content']").SelectSingleNodeOrThrow(".//h2").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery_janna2']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetSrc().Remove("tn_")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

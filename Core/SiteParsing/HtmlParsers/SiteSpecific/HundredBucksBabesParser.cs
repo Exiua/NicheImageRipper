@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HundredBucksBabesParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "100bucksbabes";
+    public static string[] SupportedUrls => ["https://www.100bucksbabes.com/"];
 
     public HundredBucksBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HundredBucksBabesParser>(filenameScheme))
     {
@@ -22,14 +22,8 @@ public class HundredBucksBabesParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']")
-                            .SelectSingleNodeOrThrow(".//h2[@class='heading']")
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => Protocol + img.GetAttributeValue("data-url"))
-                            .ToStringImageLinkWrapperList();
-    
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']").SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

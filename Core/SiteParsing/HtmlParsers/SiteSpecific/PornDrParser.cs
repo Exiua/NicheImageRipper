@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PornDrParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "porndr";
+    public static string[] SupportedUrls => ["https://www.porndr.com/"];
 
     public PornDrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornDrParser>(filenameScheme))
     {
@@ -26,7 +26,6 @@ public class PornDrParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video").GetSrc();
         images.Add(url);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -8,10 +8,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XChinaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xchina";
+    public static string[] SupportedUrls => ["https://en.xchina.co/"];
 
     public XChinaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XChinaParser>(filenameScheme))
     {
@@ -25,11 +25,8 @@ public class XChinaParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var tabContents = soup.SelectSingleNodeOrThrow("//div[@class='tab-content video-info']");
-        var publisherNode = tabContents.SelectSingleNode(".//i[@class='fa fa-video-camera']") 
-                            ?? tabContents.SelectSingleNodeOrThrow(".//i[@class='fa fa-user-circle']");
-    
+        var publisherNode = tabContents.SelectSingleNode(".//i[@class='fa fa-video-camera']") ?? tabContents.SelectSingleNodeOrThrow(".//i[@class='fa fa-user-circle']");
         var publisher = publisherNode.ParentNode.SelectSingleNodeOrThrow(".//a").InnerText;
-        
         var series = tabContents.SelectSingleNode(".//i[@class='fa fa-file-o']");
         var id = series is not null ? series.ParentNode.InnerText : CurrentUrl.Split("id-")[^1].Split(".")[0];
         var title = tabContents.SelectNodesOrThrow(".//div")[0].InnerText;
@@ -46,9 +43,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
             var controls = soup.SelectSingleNode("//div[@class='controls']");
             if (controls is not null)
             {
-                var index = controls.SelectSingleNodeOrThrow(".//div[@class='index']")
-                                    .InnerText
-                                    .Split(" ")[^1];
+                var index = controls.SelectSingleNodeOrThrow(".//div[@class='index']").InnerText.Split(" ")[^1];
                 numVids = int.Parse(index);
             }
             else
@@ -56,7 +51,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
                 var vid = soup.SelectSingleNode("//div[@class='container']//video");
                 numVids = vid is not null ? 1 : 0;
             }
-    
+
             var prevUrl = "";
             for (var i = 0; i < numVids; i++)
             {
@@ -69,27 +64,23 @@ public class XChinaParser : HtmlParser, IHtmlParser
                     soup = await Soupify();
                     vidSrc = GetVideoUrl(soup);
                 }
-                
+
                 images.Add(vidSrc);
                 prevUrl = vidSrc;
                 var nextButton = Driver.TryFindElement(By.XPath("//div[@go='1']"));
                 nextButton?.Click();
             }
-    
+
             while (true)
             {
-                var photos = soup.SelectSingleNodeOrThrow("//div[@class='photos']")
-                                    .SelectNodesOrThrow("./a")
-                                    .SelectMany(a => a.SelectNodesOrThrow(".//img"))
-                                    .Select(img => img.GetSrc().Split("_")[0] + ".jpg");
+                var photos = soup.SelectSingleNodeOrThrow("//div[@class='photos']").SelectNodesOrThrow("./a").SelectMany(a => a.SelectNodesOrThrow(".//img")).Select(img => img.GetSrc().Split("_")[0] + ".jpg");
                 images.AddRange(photos.Select(photo => (StringFileLinkWrapper)photo));
-    
                 var nextButton = soup.SelectSingleNode("//a[@class='next']");
                 if (nextButton is null)
                 {
                     break;
                 }
-                
+
                 var nextPage = nextButton.GetNullableHref();
                 if (nextPage is not null)
                 {
@@ -101,10 +92,10 @@ public class XChinaParser : HtmlParser, IHtmlParser
                 }
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
-    
+
     private static string GetVideoUrl(HtmlNode soup)
     {
         var video = soup.SelectSingleNodeOrThrow("//video");
@@ -113,11 +104,10 @@ public class XChinaParser : HtmlParser, IHtmlParser
         {
             return videoSrc;
         }
-    
+
         var script = video.ParentNode.SelectNodesOrThrow(".//script")[1].InnerText;
         var url = script.Split("hls.loadSource(\"")[1];
         url = url.Split("\");")[0];
         return url;
-    
     }
 }

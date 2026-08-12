@@ -4,10 +4,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class E621Parser : BooruParser, IHtmlParser
 {
     public static string ParserName => "e621";
+    public static string[] SupportedUrls => ["https://e621.net/"];
 
     public E621Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<E621Parser>(filenameScheme))
     {

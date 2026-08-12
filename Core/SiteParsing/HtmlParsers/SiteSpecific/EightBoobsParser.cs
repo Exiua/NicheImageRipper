@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class EightBoobsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "8boobs";
+    public static string[] SupportedUrls => ["https://www.8boobs.com/"];
 
     public EightBoobsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EightBoobsParser>(filenameScheme))
     {
@@ -22,17 +22,8 @@ public class EightBoobsParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='content']")
-                            .SelectNodesOrThrow(".//div[@class='title']")[1]
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery clear']")
-                            .SelectNodesOrThrow("./a")
-                            .Select(img => Protocol + img
-                                        .SelectSingleNodeOrThrow(".//img")
-                                        .GetSrc()
-                                        .Remove("tn_"))
-                            .ToStringImageLinkWrapperList();
-    
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//div[@class='title']")[1].InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery clear']").SelectNodesOrThrow("./a").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

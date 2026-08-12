@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class AbxxxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "abxxx";
+    public static string[] SupportedUrls => ["https://abxxx.com/"];
 
     public AbxxxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AbxxxParser>(filenameScheme))
     {
@@ -26,7 +26,6 @@ public class AbxxxParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video").GetSrc();
         images.Add("https://abxxx.com" + url);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

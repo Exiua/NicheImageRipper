@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HentaiRoxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentairox";
+    public static string[] SupportedUrls => ["https://hentairox.com/"];
 
     public HentaiRoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiRoxParser>(filenameScheme))
     {
@@ -21,14 +21,9 @@ public class HentaiRoxParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='col-md-7 col-sm-7 col-lg-8 right_details']")
-                            .SelectSingleNodeOrThrow(".//h1")
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='append_thumbs']")
-                            .SelectSingleNodeOrThrow(".//img[@class='lazy preloader']")
-                            .GetAttributeValue("data-src");
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='col-md-7 col-sm-7 col-lg-8 right_details']").SelectSingleNodeOrThrow(".//h1").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='append_thumbs']").SelectSingleNodeOrThrow(".//img[@class='lazy preloader']").GetAttributeValue("data-src");
         var numFiles = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[0]);
-
         return RipInfo.FromGenerateInfo(images, dirName, numFiles);
     }
 }

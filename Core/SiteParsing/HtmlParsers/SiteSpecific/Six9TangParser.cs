@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Six9TangParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "69tang";
+    public static string[] SupportedUrls => ["https://www.69tang.org/"];
 
     public Six9TangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Six9TangParser>(filenameScheme))
     {
@@ -22,9 +22,7 @@ public class Six9TangParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
-        var video = soup.SelectSingleNodeOrThrow("//div[@class='fp-player']/video")
-                            .GetSrc();
-    
-        return RipInfo.FromUrlList([ video ], dirName, FilenameScheme);
+        var video = soup.SelectSingleNodeOrThrow("//div[@class='fp-player']/video").GetSrc();
+        return RipInfo.FromUrlList([video], dirName, FilenameScheme);
     }
 }

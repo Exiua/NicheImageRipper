@@ -8,10 +8,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class CosblayParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cosblay";
+    public static string[] SupportedUrls => ["https://cosblay.com/", "https://en.cosblay.com/"];
 
     public CosblayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CosblayParser>(filenameScheme))
     {
@@ -35,8 +35,7 @@ public class CosblayParser : HtmlParser, IHtmlParser
         while (true)
         {
             Logger.Information("Page {PageCount}", pageCount++);
-            var imageContainers = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p")
-                                .SelectNodes(".//img");
+            var imageContainers = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p").SelectNodes(".//img");
             if (imageContainers is null)
             {
                 var nextBtn = GetNextButton(soup);
@@ -44,28 +43,26 @@ public class CosblayParser : HtmlParser, IHtmlParser
                 {
                     break;
                 }
-                
+
                 throw new RipperException("Images not found");
             }
-            
+
             var imgs = imageContainers.Select(img =>
-                                        {
-                                            var src = img.GetNullableSrc();
-                                            return src ?? img.ParentNode.GetHref();
-                                        })
-                                .ToStringImageLinks();
+            {
+                var src = img.GetNullableSrc();
+                return src ?? img.ParentNode.GetHref();
+            }).ToStringImageLinks();
             images.AddRange(imgs);
             var nextButton = GetNextButton(soup);
             if (nextButton is null)
             {
                 break;
             }
-            
+
             soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    
         // ReSharper disable once VariableHidesOuterVariable
         HtmlNode? GetNextButton(HtmlNode soup)
         {

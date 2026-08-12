@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class SimplyCosplayParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "simply-cosplay";
+    public static string[] SupportedUrls => ["https://www.simply-cosplay.com/"];
 
     public SimplyCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SimplyCosplayParser>(filenameScheme))
     {
@@ -31,17 +31,13 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
         List<StringFileLinkWrapper> images;
         if (imageList is null)
         {
-            images = [soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img")
-                            .GetSrc()];
+            images = [soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img").GetSrc()];
         }
         else
         {
-            images = soup.SelectSingleNodeOrThrow("//section/div[@class='row vertical-gutters']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(url => url.GetAttributeValue("data-src").Remove("thumb_"))
-                            .ToStringImageLinkWrapperList();
+            images = soup.SelectSingleNodeOrThrow("//section/div[@class='row vertical-gutters']").SelectNodesOrThrow(".//img").Select(url => url.GetAttributeValue("data-src").Remove("thumb_")).ToStringImageLinkWrapperList();
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

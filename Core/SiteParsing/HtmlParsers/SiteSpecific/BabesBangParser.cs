@@ -3,11 +3,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class BabesBangParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "babesbang";
-    
+    public static string[] SupportedUrls => ["https://www.babesbang.com/"];
     protected override string DirNameXpath => "//div[@class='main-title']";
     protected override string ImageContainerXpath => "//div[@class='gal-block']";
 

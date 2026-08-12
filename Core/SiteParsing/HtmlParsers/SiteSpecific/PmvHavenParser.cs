@@ -10,15 +10,12 @@ using FeatureNotSupportedException = NicheImageRipper.Core.Exceptions.NotSupport
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PmvHavenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pmvhaven";
+    public static string[] SupportedUrls => ["https://pmvhaven.com/"];
 
-    public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager,
-                          Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<PmvHavenParser>(filenameScheme))
+    public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PmvHavenParser>(filenameScheme))
     {
     }
 
@@ -29,7 +26,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         //var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
-        var (capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.AddCookie("ageVerified", "true");
         Driver.Refresh();
@@ -39,7 +36,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
             button.Click();
             await Sleep(250, cancellationToken);
         }
-        
+
         var currentUrl = CurrentUrl;
         string dirName;
         List<StringFileLinkWrapper> images;
@@ -50,7 +47,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
             var url = await GetVideoUrl(capturer, currentUrl, cancellationToken);
             images = [url];
         }
-        else if(currentUrl.Contains("/profile/"))
+        else if (currentUrl.Contains("/profile/"))
         {
             var soup = await Soupify(cancellationToken: cancellationToken);
             dirName = soup.SelectNodesOrThrow("//h1")[1].InnerText;
@@ -58,8 +55,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
             while (true)
             {
                 var videoGrid = soup.SelectSingleNodeOrThrow("//div[@class='videos-grid-fixed']");
-                var posts = videoGrid.SelectNodesOrThrow("./a")
-                                          .Select(a => "https://pmvhaven.com" + a.GetHref());
+                var posts = videoGrid.SelectNodesOrThrow("./a").Select(a => "https://pmvhaven.com" + a.GetHref());
                 videoPosts.AddRange(posts);
                 var navButtons = soup.SelectNodes("//nav/button");
                 if (navButtons is null || navButtons.Count == 0)
@@ -73,7 +69,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
                 {
                     break;
                 }
-                
+
                 var disabled = nextButton.GetAttributeValue("disabled", "null");
                 if (disabled != "null") // if disabled attribute exists, it won't have a value
                 {
@@ -85,11 +81,11 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
                 {
                     throw new RipperException("Failed to find next page button on the page.");
                 }
-                
+
                 nextButtonElement.Click();
                 soup = await Soupify(cancellationToken: cancellationToken);
             }
-            
+
             Logger.Information("Found {count} videos in profile.", videoPosts.Count);
             images = [];
             foreach (var post in videoPosts)
@@ -118,15 +114,13 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
             var url = links[0];
             var filename = postUrl.Split('/')[4] + ".mp4";
             var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
-            
             imageLink = link;
         }, cancellationToken);
-        
         if (imageLink is null)
         {
             throw new RipperException("Failed to retrieve video URL from network capturer.");
         }
-        
+
         return imageLink;
     }
 }

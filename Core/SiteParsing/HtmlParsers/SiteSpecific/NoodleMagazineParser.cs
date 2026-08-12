@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class NoodleMagazineParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "noodlemagazine";
+    public static string[] SupportedUrls => ["https://noodlemagazine.com/"];
 
     public NoodleMagazineParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NoodleMagazineParser>(filenameScheme))
     {
@@ -34,15 +34,13 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
                 Logger.Warning("Video has been deleted: {Url}", CurrentUrl);
                 return RipInfo.Empty.WithDirectoryName(dirName);
             }
-            
+
             images.Add(src);
         }
         else
         {
             dirName = soup.SelectSingleNodeOrThrow("//h1[@class='c_title']").InnerText;
-            var videos = soup.SelectSingleNodeOrThrow("//div[@id='list_videos']")
-                             .SelectNodesOrThrow("./div")
-                             .Select(div => div.SelectSingleNodeOrThrow("./a").GetHref());
+            var videos = soup.SelectSingleNodeOrThrow("//div[@id='list_videos']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./a").GetHref());
             foreach (var video in videos)
             {
                 var url = $"https://noodlemagazine.com{video}";
@@ -64,7 +62,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
     private async Task<string?> GetVideoUrl(CancellationToken cancellationToken = default)
     {
         start:
-        await SolveParseAddCookies();
+            await SolveParseAddCookies();
         var deletedAlert = Driver.TryFindElement(By.XPath("//div[@class='alert_warning']"));
         if (deletedAlert is not null)
         {
@@ -76,9 +74,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
         while (true)
         {
             Logger.Debug("Starting video");
-            var success =
-                await TryClickElementByXPath(
-                    "//div[@class='jw-icon jw-icon-display jw-button-color jw-reset']");
+            var success = await TryClickElementByXPath("//div[@class='jw-icon jw-icon-display jw-button-color jw-reset']");
             if (!success)
             {
                 Logger.Debug("Could not find play button, retrying");
@@ -95,10 +91,8 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
             }
 
             await Sleep(250);
-
             Logger.Debug("Finding settings button");
-            success = await TryClickElementByXPath(
-                "//div[@class='jw-icon jw-icon-inline jw-button-color jw-reset jw-icon-settings jw-settings-submenu-button']");
+            success = await TryClickElementByXPath("//div[@class='jw-icon jw-icon-inline jw-button-color jw-reset jw-icon-settings jw-settings-submenu-button']");
             if (!success)
             {
                 Logger.Debug("Could not find settings button, retrying");
@@ -106,10 +100,8 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
             }
 
             await Sleep(250);
-
             Logger.Debug("Finding highest quality button");
-            success = await TryClickElementByXPath(
-                "//div[@id='jw-player_box-settings-submenu-quality']//button");
+            success = await TryClickElementByXPath("//div[@id='jw-player_box-settings-submenu-quality']//button");
             if (!success)
             {
                 tries.Quality++;
@@ -124,7 +116,6 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
             }
 
             await Sleep(250);
-
             break;
         }
 

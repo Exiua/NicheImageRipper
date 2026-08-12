@@ -8,10 +8,10 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PussySpaceParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pussyspace";
+    public static string[] SupportedUrls => ["https://www.pussyspace.com/"];
 
     public PussySpaceParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PussySpaceParser>(filenameScheme))
     {
@@ -24,23 +24,18 @@ public class PussySpaceParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("-")[1];
-        var (capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);
         var h1 = soup.SelectSingleNodeOrThrow("//h1");
-        var dirName = h1.ChildNodes
-                        .Where(n => n.NodeType == HtmlNodeType.Text)
-                        .Select(n => n.InnerText.Trim())
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .Join(" ") + $"({id})";
+        var dirName = h1.ChildNodes.Where(n => n.NodeType == HtmlNodeType.Text).Select(n => n.InnerText.Trim()).Where(t => !string.IsNullOrEmpty(t)).Join(" ") + $"({id})";
         var images = new List<StringFileLinkWrapper>();
         await WaitForPlaylist(capturer, links =>
         {
             var playlist = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp);
             images.Add(playlist);
         }, cancellationToken);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

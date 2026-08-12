@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class EveriaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "everia";
+    public static string[] SupportedUrls => ["https://everia.club/"];
 
     public EveriaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EveriaParser>(filenameScheme))
     {
@@ -20,18 +20,9 @@ public class EveriaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
-        {
-            ScrollBy = true
-        });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single-post-title entry-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images " +
-                                                  "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc())
-                            .Select(dummy => (StringFileLinkWrapper)dummy)
-                            .ToList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images " + "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -8,15 +8,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class SteamCommunityParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "steamcommunity";
+    public static string[] SupportedUrls => ["https://steamcommunity.com/"];
 
-    public SteamCommunityParser(WebDriver driver, ApiClientManager apiClientManager,
-                                Dictionary<string, string> requestHeaders,
-                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
-        apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SteamCommunityParser>(filenameScheme))
+    public SteamCommunityParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SteamCommunityParser>(filenameScheme))
     {
     }
 
@@ -26,11 +23,10 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (username, password) = Config.Logins.SteamCommunity;
+        var(username, password) = Config.Logins.SteamCommunity;
         if (username.IsNullOrEmpty())
         {
-            throw new RipperException(
-                "No username found for steamcommunity.com, cannot parse. Please provide a username in the config file.");
+            throw new RipperException("No username found for steamcommunity.com, cannot parse. Please provide a username in the config file.");
         }
 
         var client = ImageRipper.ClientManager.SteamApiClient;
@@ -58,19 +54,12 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
         var query = QueryHelpers.ParseQuery(uri.Query);
         if (!query.TryGetValue("appid", out var appIdString))
         {
-            appIdString =
-                "431960"; // This is mainly for getting Wallpaper Engine items, other types are not really supported atm
+            appIdString = "431960"; // This is mainly for getting Wallpaper Engine items, other types are not really supported atm
         }
 
         var appId = uint.Parse(appIdString!);
         var files = await client.GetUserWorkshopItemsAsync(steamId, appId, cancellationToken);
-        var images = files.Select(file => file.publishedfileid)
-                          .Select(fileId => FormatSteamWorkshopDownloadUrl(appId.ToString(), fileId.ToString()))
-                          .Select(url =>
-                               FileLink.WithDownloadResolvedFilename(url, FilenameScheme,
-                                   linkInfo: LinkInfo.SteamCommunity))
-                          .Select(imageLink => (StringFileLinkWrapper)imageLink).ToList();
-
+        var images = files.Select(file => file.publishedfileid).Select(fileId => FormatSteamWorkshopDownloadUrl(appId.ToString(), fileId.ToString())).Select(url => FileLink.WithDownloadResolvedFilename(url, FilenameScheme, linkInfo: LinkInfo.SteamCommunity)).Select(imageLink => (StringFileLinkWrapper)imageLink).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 

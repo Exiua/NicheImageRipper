@@ -6,15 +6,15 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class BabeImpactParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babeimpact";
+    public static string[] SupportedUrls => ["https://www.babeimpact.com/"];
 
     public BabeImpactParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabeImpactParser>(filenameScheme))
     {
     }
-    
+
     /// <summary>
     ///     Parses  the HTML for babeimpact.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -23,10 +23,7 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var title = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader pink center lowercase']").InnerText;
-        var sponsor = soup.SelectSingleNodeOrThrow("//div[@class='c']")
-                          .SelectNodesOrThrow(".//a")[1]
-                          .InnerText
-                          .Trim();
+        var sponsor = soup.SelectSingleNodeOrThrow("//div[@class='c']").SelectNodesOrThrow(".//a")[1].InnerText.Trim();
         sponsor = $"({sponsor})";
         var dirName = $"{sponsor} {title}";
         var tags = soup.SelectNodesOrThrow("//div[@class='list gallery']");
@@ -41,12 +38,10 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
         foreach (var image in imageList)
         {
             soup = await Soupify(image);
-            var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']")
-                          .SelectSingleNodeOrThrow(".//img")
-                          .GetSrc();
+            var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']").SelectSingleNodeOrThrow(".//img").GetSrc();
             images.Add((StringFileLinkWrapper)(Protocol + img));
         }
-        
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

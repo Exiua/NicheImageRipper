@@ -6,14 +6,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PixivParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pixiv";
+    public static string[] SupportedUrls => ["https://www.pixiv.net/"];
 
-    public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<PixivParser>(filenameScheme))
+    public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PixivParser>(filenameScheme))
     {
     }
 
@@ -25,7 +23,6 @@ public class PixivParser : HtmlParser, IHtmlParser
     {
         const int delay = 500;
         const int illustsPerPage = 30;
-        
         if (Config.Cookies.Pixiv.Length == 0)
         {
             Logger.Error("Pixiv session ID is not set. Please add your Pixiv PHPSESSID token to the config file.");
@@ -46,7 +43,7 @@ public class PixivParser : HtmlParser, IHtmlParser
         var dirName = $"[Pixiv] {userIllusts.User.Name} ({artistId})";
         var images = new List<StringFileLinkWrapper>();
         var page = 0;
-        while(true)
+        while (true)
         {
             page++;
             Logger.Information("Parsing page {Page}", page);
@@ -72,6 +69,7 @@ public class PixivParser : HtmlParser, IHtmlParser
 
                         break;
                     }
+
                     case "ugoira":
                     {
                         var illustId = illust.Id;
@@ -79,9 +77,9 @@ public class PixivParser : HtmlParser, IHtmlParser
                         var url = $"https://www.pixiv.net/artworks/{illustId}";
                         var img = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.PixivUgoira);
                         images.Add(img);
-
                         break;
                     }
+
                     default:
                         Logger.Warning("Unknown/unsupported illustration type: {Type}", illust.Type);
                         break;
@@ -92,12 +90,7 @@ public class PixivParser : HtmlParser, IHtmlParser
                 {
                     var descHtml = $"<div>{description}</div>";
                     var soup = await Soupify(descHtml, urlString: false, cancellationToken: cancellationToken);
-                    var links = soup.SelectNodesSafe("./a")
-                                    .Select(a => a.GetHref())
-                                    .Select(href => href.Remove("/jump.php?"))
-                                    .Select(Uri.UnescapeDataString)
-                                    .Where(UrlCanBeParsed)
-                                    .ToStringImageLinks();
+                    var links = soup.SelectNodesSafe("./a").Select(a => a.GetHref()).Select(href => href.Remove("/jump.php?")).Select(Uri.UnescapeDataString).Where(UrlCanBeParsed).ToStringImageLinks();
                     images.AddRange(links);
                 }
             }
@@ -106,11 +99,11 @@ public class PixivParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-            
+
             userIllusts = await client.UserIllusts(artistId, offset: page * illustsPerPage, cancellationToken: cancellationToken);
             await Sleep(delay, cancellationToken);
         }
-                
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

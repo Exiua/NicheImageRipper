@@ -8,6 +8,7 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 public class GoogleParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "google";
+    public static string[] SupportedUrls => ["https://drive.google.com/"];
 
     public GoogleParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
@@ -27,7 +28,7 @@ public class GoogleParser : HtmlParser, IHtmlParser
     /// <summary>
     ///     Query the Google Drive API to get file information to download
     /// </summary>
-    /// <param name="gdriveUrl">The url to parse (default: CurrentUrl)</param>
+    /// <param name = "gdriveUrl">The url to parse (default: CurrentUrl)</param>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     private Task<RipInfo> GoogleParse(string gdriveUrl, CancellationToken cancellationToken = default)
     {

@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class MyHentaiGalleryParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "myhentaigallery";
+    public static string[] SupportedUrls => ["https://myhentaigallery.com/"];
 
     public MyHentaiGalleryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MyHentaiGalleryParser>(filenameScheme))
     {
@@ -22,16 +22,8 @@ public class MyHentaiGalleryParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='comic-description']")
-                            .SelectSingleNodeOrThrow(".//h1")
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//ul[@class='comics-grid clear']")
-                            .SelectNodesOrThrow("./li")
-                            .Select(img => img.SelectSingleNodeOrThrow(".//img")
-                                                .GetSrc()
-                                                .Replace("/thumbnail/", "/original/"))
-                            .ToStringImageLinkWrapperList();
-    
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='comic-description']").SelectSingleNodeOrThrow(".//h1").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='comics-grid clear']").SelectNodesOrThrow("./li").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/thumbnail/", "/original/")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

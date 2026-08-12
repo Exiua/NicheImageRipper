@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ThothubParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "thothub";
+    public static string[] SupportedUrls => ["https://thothub.lol/"];
 
     public ThothubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ThothubParser>(filenameScheme))
     {
@@ -29,6 +29,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
         {
             cookieJar.DeleteCookie(cookie);
         }
+
         cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies.Thothub));
         Driver.Refresh();
         var lazyLoadArgs = new LazyLoadArgs
@@ -38,44 +39,36 @@ public class ThothubParser : HtmlParser, IHtmlParser
             ScrollPauseTime = 1
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']")
-                            .SelectSingleNodeOrThrow(".//h1")
-                            .InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']").SelectSingleNodeOrThrow(".//h1").InnerText;
         List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/videos/"))
         {
-            var vid = soup.SelectSingleNodeOrThrow("//video[@class='fp-engine']")
-                            .GetSrc();
+            var vid = soup.SelectSingleNodeOrThrow("//video[@class='fp-engine']").GetSrc();
             if (string.IsNullOrEmpty(vid))
             {
-                vid = soup.SelectSingleNodeOrThrow("//div[@class='no-player']")
-                            .SelectSingleNodeOrThrow(".//img")
-                            .GetSrc();
+                vid = soup.SelectSingleNodeOrThrow("//div[@class='no-player']").SelectSingleNodeOrThrow(".//img").GetSrc();
             }
-    
+
             images = [vid];
         }
         else
         {
             while (true)
             {
-                var posts = soup.SelectSingleNodeOrThrow("//div[@class='images']")
-                                .SelectNodesOrThrow(".//img")
-                                .Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/"))
-                                .ToArray();
-                if(posts.Any(p => p.Contains("data:")))
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/")).ToArray();
+                if (posts.Any(p => p.Contains("data:")))
                 {
                     await Sleep(1000);
                     ScrollToTop();
                     soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
                     continue;
                 }
-                
+
                 images = posts.ToStringImageLinkWrapperList();
                 break;
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

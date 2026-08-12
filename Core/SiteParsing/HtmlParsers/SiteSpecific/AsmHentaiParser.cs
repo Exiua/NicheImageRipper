@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class AsmHentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "asmhentai";
+    public static string[] SupportedUrls => ["https://asmhentai.com/"];
 
     public AsmHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AsmHentaiParser>(filenameScheme))
     {
@@ -26,7 +26,7 @@ public class AsmHentaiParser : HtmlParser, IHtmlParser
         var pages = soup.SelectSingleNodeOrThrow("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ParseInt();
         var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1].Join("/");
         var images = new List<StringFileLinkWrapper>();
-        for(var i = 0; i < pages; i++)
+        for (var i = 0; i < pages; i++)
         {
             var pageUrl = $"{baseUrl}/{i + 1}.jpg";
             images.Add(pageUrl);

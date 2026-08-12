@@ -9,14 +9,13 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public partial class NijieParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nijie";
+    public static string[] SupportedUrls => ["https://nijie.info/"];
 
     private const int Delay = 500;
     private const int Retries = 4;
-
     protected override bool RequiresLogin => true;
 
     public NijieParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NijieParser>(filenameScheme))
@@ -38,8 +37,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing illustration posts page {count}", count);
             count++;
-            var postTags = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']")
-                                .SelectNodesOrThrow(".//p[@class='nijiedao']");
+            var postTags = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']").SelectNodesOrThrow(".//p[@class='nijiedao']");
             var postLinks = postTags.Select(link => link.SelectSingleNodeOrThrow(".//a").GetHref());
             posts.AddRange(postLinks);
             var nextPageBtn = soup.SelectSingleNode("//div[@class='right']");
@@ -47,7 +45,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-            
+
             nextPageBtn = nextPageBtn.SelectSingleNode(".//p[@class='page_button']");
             if (nextPageBtn is not null)
             {
@@ -59,24 +57,22 @@ public partial class NijieParser : HtmlParser, IHtmlParser
                 break;
             }
         }
-        
+
         Logger.Information("Parsing illustration posts...");
         var images = new List<StringFileLinkWrapper>();
-        foreach (var (i, post) in posts.Enumerate())
+        foreach (var(i, post)in posts.Enumerate())
         {
             Logger.Information("Parsing illustration post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay, cancellationToken: cancellationToken);
             IEnumerable<StringFileLinkWrapper> imgs = null!;
-            for(var retryCount = 0; retryCount < Retries; retryCount++)
+            for (var retryCount = 0; retryCount < Retries; retryCount++)
             {
                 try
                 {
                     var imageWindow = soup.SelectSingleNodeOrThrow("//div[@id='img_window']");
                     var imageNode = imageWindow.SelectNodes(".//a/img");
-                    imgs = imageNode is not null 
-                        ? imageNode.Select(img => (StringFileLinkWrapper)(Protocol + img.GetSrc())) 
-                        : [(StringFileLinkWrapper)(Protocol + imageWindow.SelectSingleNodeOrThrow(".//video").GetSrc())];
+                    imgs = imageNode is not null ? imageNode.Select(img => (StringFileLinkWrapper)(Protocol + img.GetSrc())) : [(StringFileLinkWrapper)(Protocol + imageWindow.SelectSingleNodeOrThrow(".//video").GetSrc())];
                     break;
                 }
                 catch (NullReferenceException)
@@ -89,33 +85,30 @@ public partial class NijieParser : HtmlParser, IHtmlParser
                     }
                 }
             }
-            
+
             images.AddRange(imgs);
         }
-        
+
         soup = await Soupify($"https://nijie.info/members_dojin.php?id={memberId}", delay: Delay, cancellationToken: cancellationToken);
         posts = [];
-        var doujins = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']")
-                            .SelectNodes("./div");
+        var doujins = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']").SelectNodes("./div");
         if (doujins is null)
         {
             return RipInfo.FromUrlList(images, dirName, FilenameScheme);
         }
-        
+
         posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNodeOrThrow(".//a").GetHref()));
-        foreach (var (i, post) in posts.Enumerate())
+        foreach (var(i, post)in posts.Enumerate())
         {
             Logger.Information("Parsing doujin post {i}/{posts.Count}", i + 1, posts.Count);
             var postId = post.Split("?")[^1];
             soup = await Soupify($"https://nijie.info/view_popup.php?{postId}", delay: Delay, cancellationToken: cancellationToken);
             IEnumerable<StringFileLinkWrapper> imgs = null!;
-            for(var retryCount = 0; retryCount < Retries; retryCount++)
+            for (var retryCount = 0; retryCount < Retries; retryCount++)
             {
                 try
                 {
-                    imgs = soup.SelectSingleNodeOrThrow("//div[@id='img_window']")
-                                .SelectNodesOrThrow(".//a/img")
-                                .Select(img => (StringFileLinkWrapper)(Protocol + img.GetSrc()));
+                    imgs = soup.SelectSingleNodeOrThrow("//div[@id='img_window']").SelectNodesOrThrow(".//a/img").Select(img => (StringFileLinkWrapper)(Protocol + img.GetSrc()));
                     break;
                 }
                 catch (NullReferenceException)
@@ -128,16 +121,17 @@ public partial class NijieParser : HtmlParser, IHtmlParser
                     }
                 }
             }
+
             images.AddRange(imgs);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Logins.Nijie;
+        var(username, password) = Config.Logins.Nijie;
         CurrentUrl = "https://nijie.info/login.php";
         if (CurrentUrl.Contains("age_ver.php"))
         {
@@ -147,7 +141,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
                 await Sleep(100, cancellationToken);
             }
         }
-        
+
         Driver.FindElement(By.XPath("//input[@name='email']")).SendKeys(username);
         Driver.FindElement(By.XPath("//input[@name='password']")).SendKeys(password);
         Driver.FindElement(By.XPath("//input[@class='login_button']")).Click();
@@ -155,11 +149,11 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         {
             await Sleep(100, cancellationToken);
         }
-        
+
         CurrentUrl = origUrl;
         return true;
     }
-    
+
     [GeneratedRegex(@"id=(\d+)")]
     private static partial Regex NijieRegex();
 }

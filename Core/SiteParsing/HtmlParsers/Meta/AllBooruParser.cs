@@ -10,7 +10,7 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.Meta;
 public class AllBooruParser : BooruParser, IHtmlParser
 {
     public static string ParserName => "booru";
-
+    public static string[] SupportedUrls => ["https://booru.com/"];
     protected override bool RequiresNavigation => false;
 
     public AllBooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,

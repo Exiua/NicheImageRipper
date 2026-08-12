@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class AHottieParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "ahottie";
+    public static string[] SupportedUrls => ["https://ahottie.net/"];
 
     public AHottieParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AHottieParser>(filenameScheme))
     {
@@ -26,24 +26,20 @@ public class AHottieParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']")
-                           .SelectNodesOrThrow("./img")
-                           .Select(img => img.GetSrc())
-                           .ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToStringImageLinks();
             images.AddRange(imgs);
-            var selector =
-                soup.SelectSingleNode("//span[@class='relative z-0 inline-flex flex-wrap shadow-sm rounded-md']");
+            var selector = soup.SelectSingleNode("//span[@class='relative z-0 inline-flex flex-wrap shadow-sm rounded-md']");
             if (selector is null)
             {
                 break;
             }
-            
+
             var nextButton = selector.SelectNodesOrThrow("./a")[^1];
             if (!nextButton.GetAttributeValue("aria-label").StartsWith("Next"))
             {
                 break;
             }
-            
+
             var nextUrl = nextButton.GetHref();
             soup = await Soupify(nextUrl);
         }

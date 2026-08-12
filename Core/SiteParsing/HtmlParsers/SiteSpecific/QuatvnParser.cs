@@ -12,10 +12,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class QuatvnParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "quatvn";
+    public static string[] SupportedUrls => ["https://quatvn.love/"];
 
     public QuatvnParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<QuatvnParser>(filenameScheme))
     {
@@ -38,7 +38,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-            
+
             var gallery = Driver.TryFindElement(By.XPath("//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']//figure[@class='mace-gallery-teaser']"));
             if (gallery is not null)
             {
@@ -50,9 +50,10 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             {
                 throw new RipperException("Failed to load page");
             }
-            
+
             Driver.Refresh();
         }
+
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var tablist = soup.SelectSingleNode("//ul[@role='tablist']");
@@ -85,9 +86,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
         else
         {
             Logger.Debug("Parsing non-tabbed content");
-            var container =
-                soup.SelectSingleNodeOrThrow(
-                    "//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']");
+            var container = soup.SelectSingleNodeOrThrow("//div[@id='content']//div[@class='g1-content-narrow g1-typography-xl entry-content']");
             var gallery = container.SelectSingleNode(".//figure[@class='mace-gallery-teaser']");
             if (gallery is not null)
             {
@@ -103,9 +102,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             if (videoPlaylist is not null)
             {
                 Logger.Debug("Parsing video playlist");
-                var videos = videoPlaylist.SelectNodesOrThrow("./a")
-                                          .Select(a => a.GetHref())
-                                          .ToStringImageLinks();
+                var videos = videoPlaylist.SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinks();
                 images.AddRange(videos);
             }
             else
@@ -117,13 +114,12 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                     var dataItem = playerContainer.GetAttributeValue("data-item");
                     dataItem = WebUtility.HtmlDecode(dataItem);
                     var videoData = JsonSerializer.Deserialize<JsonNode>(dataItem)!.AsObject()["sources"]!.AsArray();
-                    var videos = videoData.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!)
-                                          .ToStringImageLinks();
+                    var videos = videoData.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!).ToStringImageLinks();
                     images.AddRange(videos);
                 }
             }
         }
-        
+
         CleanTabs("quatvn.love");
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

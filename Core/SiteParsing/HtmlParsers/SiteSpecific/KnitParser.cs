@@ -8,10 +8,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class KnitParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "knit";
+    public static string[] SupportedUrls => ["https://xx.knit.bid/"];
 
     public KnitParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KnitParser>(filenameScheme))
     {
@@ -29,13 +29,12 @@ public class KnitParser : HtmlParser, IHtmlParser
             Increment = 1250,
             ScrollPauseTime = 2500
         };
-        
         var agreeButton = Driver.TryFindElement(By.XPath("//button[@id='agree-over18']"));
         if (agreeButton is not null)
         {
             Driver.Click(agreeButton);
         }
-        
+
         var retry = 0;
         while (true)
         {
@@ -50,16 +49,17 @@ public class KnitParser : HtmlParser, IHtmlParser
                 {
                     throw new RipperException("Page reset too many times");
                 }
+
                 continue;
             }
-            
+
             var loadMoreButton = Driver.TryFindElement(By.XPath("//div[@class='ias_trigger']"));
             if (loadMoreButton is null)
             {
                 Logger.Debug("No more images to load");
                 break;
             }
-            
+
             loadMoreButton.Click();
         }
 
@@ -68,26 +68,19 @@ public class KnitParser : HtmlParser, IHtmlParser
         var baseUrl = CurrentUrl.Split("/").Take(6).Join("/");
         var images = new List<StringFileLinkWrapper>();
         var page = 1;
-        while(true)
+        while (true)
         {
             Logger.Information("Parsing page {Page}", page);
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']")
-                             .SelectNodesOrThrow("./p")
-                             .Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc())
-                             .ToStringImageLinkWrapperList();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']").SelectNodesOrThrow("./p").Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringImageLinkWrapperList();
             var imageGallery = soup.SelectSingleNode("//article[@id='image-gallery']");
             if (imageGallery is not null)
             {
-                var videos = imageGallery.SelectSingleNodeOrThrow(".//div[@class='wrapper']")
-                                         .SelectNodesSafe(".//source")
-                                         .Select(source => source.GetSrc())
-                                         .ToStringImageLinks();
+                var videos = imageGallery.SelectSingleNodeOrThrow(".//div[@class='wrapper']").SelectNodesSafe(".//source").Select(source => source.GetSrc()).ToStringImageLinks();
                 imgs.AddRange(videos);
             }
-            
+
             images.AddRange(imgs);
             page++;
-            
             var nextPageButton = soup.SelectSingleNode("//li[@class='next-page']");
             if (nextPageButton is not null)
             {
@@ -98,7 +91,7 @@ public class KnitParser : HtmlParser, IHtmlParser
                 break;
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

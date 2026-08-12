@@ -11,11 +11,11 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ImgurParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "imgur";
-    
+    public static string[] SupportedUrls => ["https://imgur.com/"];
+
     public ImgurParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImgurParser>(filenameScheme))
     {
     }
@@ -34,7 +34,7 @@ public class ImgurParser : HtmlParser, IHtmlParser
             Logger.Error("Then add Client Id to Imgur in config.json under Keys");
             throw new RipperCredentialException("Client Id Not Set");
         }
-    
+
         RequestHeaders["Authorization"] = "Client-ID " + clientId;
         var albumHash = CurrentUrl.Split("/")[5];
         var session = new HttpClient();
@@ -45,12 +45,11 @@ public class ImgurParser : HtmlParser, IHtmlParser
             Logger.Error("Client Id is incorrect");
             throw new RipperCredentialException("Client Id Incorrect");
         }
-    
+
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
         var jsonData = json!["data"]!.AsObject();
         var dirName = jsonData["title"]!.Deserialize<string>()!;
         var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();
-    
         return RipInfo.FromUrlList(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme);
     }
 }

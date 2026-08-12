@@ -7,15 +7,12 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PrivateHomeClipsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "privatehomeclips";
+    public static string[] SupportedUrls => ["https://privatehomeclips.com/"];
 
-    public PrivateHomeClipsParser(WebDriver driver, ApiClientManager clientManager,
-                                  Dictionary<string, string> requestHeaders,
-                                  FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<PrivateHomeClipsParser>(filenameScheme))
+    public PrivateHomeClipsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PrivateHomeClipsParser>(filenameScheme))
     {
     }
 
@@ -25,7 +22,7 @@ public class PrivateHomeClipsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var (capturer, b) = await ConfigureNetworkCapture<PrivateHomeClipsVideoCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<PrivateHomeClipsVideoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);
@@ -48,9 +45,7 @@ public class PrivateHomeClipsParser : HtmlParser, IHtmlParser
                     filename = url.Split("/")[^2];
                 }
 
-                var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
-                    referer: CurrentUrl);
-
+                var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp, referer: CurrentUrl);
                 images.Add(link);
             }, cancellationToken);
         }

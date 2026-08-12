@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class SexHdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "sexhd";
+    public static string[] SupportedUrls => ["https://sexhd.pics/"];
 
     public SexHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SexHdParser>(filenameScheme))
     {
@@ -22,15 +22,8 @@ public class SexHdParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='photobig']//h4")
-                            .InnerText
-                            .Split(":")[1]
-                            .Trim();
-        var images = soup.SelectNodesOrThrow("//div[@class='photobig']//div[@class='relativetop']")
-                            .Skip(1)
-                            .Select(img => $"https://sexhd.pics{img.SelectSingleNodeOrThrow(".//a").GetHref()}")
-                            .ToStringImageLinkWrapperList();
-    
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='photobig']//h4").InnerText.Split(":")[1].Trim();
+        var images = soup.SelectNodesOrThrow("//div[@class='photobig']//div[@class='relativetop']").Skip(1).Select(img => $"https://sexhd.pics{img.SelectSingleNodeOrThrow(".//a").GetHref()}").ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

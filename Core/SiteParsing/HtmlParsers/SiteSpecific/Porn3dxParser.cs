@@ -8,10 +8,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Porn3dxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "porn3dx";
+    public static string[] SupportedUrls => ["https://porn3dx.com/"];
 
     public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Porn3dxParser>(filenameScheme))
     {
@@ -35,8 +35,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
             ScrollPauseTime = 1000
         };
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='items-center self-center text-sm font-bold leading-none text-white ']")
-                            .InnerText;
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='items-center self-center text-sm font-bold leading-none text-white ']").InnerText;
         var origUrl = CurrentUrl;
         var posts = new List<string>();
         var id = 0;
@@ -45,7 +44,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
         {
             throw new RipperException("Element could not be found");
         }
-    
+
         while (true)
         {
             var post = Driver.TryFindElement(By.Id($"gallery-{id}"));
@@ -53,13 +52,13 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-    
+
             posts.Add(post.GetHref());
             id++;
         }
-        
+
         var images = new List<StringFileLinkWrapper>();
-        foreach (var (i, post) in posts.Enumerate())
+        foreach (var(i, post)in posts.Enumerate())
         {
             var contentFound = false;
             Logger.Information("Parsing post {i} of {totalPosts}", i + 1, posts.Count);
@@ -77,12 +76,12 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                         var ad = Driver.TryFindElement(By.XPath("//div[@class='ex-over-top ex-opened']//div[@class='ex-over-btn']"));
                         ad?.Click();
                     }
-    
+
                     CleanTabs("porn3dx");
                     iframes = Driver.FindElements(By.XPath("//main[@id='postView']//iframe"));
                     pictures = Driver.FindElements(By.XPath("//picture"));
                 }
-    
+
                 if (iframes?.Count != 0)
                 {
                     foreach (var iframe in iframes!)
@@ -92,7 +91,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                         {
                             continue;
                         }
-    
+
                         contentFound = true;
                         Driver.SwitchTo().Frame(iframe);
                         string url = null!;
@@ -106,33 +105,29 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                                 await Sleep(500);
                                 continue;
                             }
+
                             var qualities = Driver.FindElements(By.XPath("//button[@data-plyr='quality']"));
-                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")!))
-                                                    .Prepend(0)
-                                                    .Max();
+                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")!)).Prepend(0).Max();
                             break;
                         }
-    
+
                         images.Add($"{url}{{{maxQuality}}}{iframeUrl}");
                         Driver.SwitchTo().DefaultContent();
                     }
                 }
-    
+
                 if (pictures?.Count != 0)
                 {
                     foreach (var picture in pictures!)
                     {
                         contentFound = true;
                         var imgs = picture.FindElements(By.XPath(".//img"));
-                        images.AddRange(imgs.Select(img => img.GetSrc())
-                                            .Where(url => url.Contains("m.porn3dx.com") && !url.Contains("avatar") 
-                                                    && !url.Contains("thumb"))
-                                            .Select(url => (StringFileLinkWrapper)url));
+                        images.AddRange(imgs.Select(img => img.GetSrc()).Where(url => url.Contains("m.porn3dx.com") && !url.Contains("avatar") && !url.Contains("thumb")).Select(url => (StringFileLinkWrapper)url));
                     }
                 }
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

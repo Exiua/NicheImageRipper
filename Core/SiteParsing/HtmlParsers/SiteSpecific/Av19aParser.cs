@@ -6,14 +6,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public partial class Av19aParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "av19a";
+    public static string[] SupportedUrls => ["https://av19a.com/"];
 
-    public Av19aParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<Av19aParser>(filenameScheme))
+    public Av19aParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Av19aParser>(filenameScheme))
     {
     }
 
@@ -31,9 +29,7 @@ public partial class Av19aParser : HtmlParser, IHtmlParser
         var urlPath = match.Groups[1].Value;
         var filename = match.Groups[2].Value;
         var playlist = $"https://z124fdsf6dsf.onymyway.top/{urlPath}";
-        var fileLink = FileLink.WithFilename(playlist, $"{filename}.mp4", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg,
-            referer: "https://david.cdnbuzz.buzz/");
-
+        var fileLink = FileLink.WithFilename(playlist, $"{filename}.mp4", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: "https://david.cdnbuzz.buzz/");
         return RipInfo.FromUrlList([fileLink], dirName, FilenameScheme);
     }
 

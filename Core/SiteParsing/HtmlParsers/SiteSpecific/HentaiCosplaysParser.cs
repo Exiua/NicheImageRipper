@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentai-cosplays";
+    public static string[] SupportedUrls => ["https://hentai-cosplays.com/"];
 
     public HentaiCosplaysParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiCosplaysParser>(filenameScheme))
     {
@@ -27,41 +27,26 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
             var parser = new PornVideoXXXParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
             return await parser.ParseSite(CurrentUrl);
         }
-        
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
-        {
-            ScrollBy = true
-        });
+
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='main_contents']//h2").InnerText;
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imageList = soup
-                            .SelectSingleNodeOrThrow("//div[@id='display_image_detail']")
-                            .SelectNodesSafe(".//img")
-                            .Select(img => img.GetSrc())
-                            .Select(img => HentaiCosplayRegex().Replace(img, ""))
-                            .Select(dummy => (StringFileLinkWrapper)dummy)
-                            .ToList();
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@id='display_image_detail']").SelectNodesSafe(".//img").Select(img => img.GetSrc()).Select(img => HentaiCosplayRegex().Replace(img, "")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
             images.AddRange(imageList);
-            var nextPage = soup
-                            .SelectSingleNodeOrThrow("//div[@id='paginator']")
-                            .SelectNodesOrThrow(".//span")[^2]
-                            .SelectSingleNode(".//a");
+            var nextPage = soup.SelectSingleNodeOrThrow("//div[@id='paginator']").SelectNodesOrThrow(".//span")[^2].SelectSingleNode(".//a");
             if (nextPage is null)
             {
                 break;
             }
-    
-            soup = await Soupify($"https://hentai-cosplays.com{nextPage.GetHref()}", lazyLoadArgs: new LazyLoadArgs
-            {
-                ScrollBy = true
-            });
+
+            soup = await Soupify($"https://hentai-cosplays.com{nextPage.GetHref()}", lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
-    
+
     [GeneratedRegex(@"(/p=\d+)")]
     private static partial Regex HentaiCosplayRegex();
 }

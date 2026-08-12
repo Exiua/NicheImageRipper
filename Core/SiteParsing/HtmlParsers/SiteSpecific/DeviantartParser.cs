@@ -7,6 +7,9 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
 public class DeviantartParser : HtmlParser
 {
+    public static string ParserName => "deviantart";
+    public static string[] SupportedUrls { get; } = ["https://www.deviantart.com/"];
+    
     public DeviantartParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
         requestHeaders, filenameScheme)

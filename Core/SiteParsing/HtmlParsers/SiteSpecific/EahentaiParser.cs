@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class EahentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "eahentai";
+    public static string[] SupportedUrls => ["https://eahentai.com/"];
 
     public EahentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EahentaiParser>(filenameScheme))
     {
@@ -22,16 +22,7 @@ public class EahentaiParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(delay: 1000, lazyLoadArgs: new LazyLoadArgs());
         var dirName = soup.SelectSingleNodeOrThrow("//h2").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']")
-                            .SelectNodesOrThrow(".//a")
-                            .Select(img => img
-                                        .SelectSingleNodeOrThrow(".//img")
-                                        .GetSrc()
-                                        .Remove("/thumbnail")
-                                        .Replace("t.", "."))
-                            .Select(dummy => (StringFileLinkWrapper)dummy)
-                            .ToList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']").SelectNodesOrThrow(".//a").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("/thumbnail").Replace("t.", ".")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

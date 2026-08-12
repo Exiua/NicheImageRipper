@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XsnvshenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xsnvshen";
+    public static string[] SupportedUrls => ["https://www.xsnvshen.com/"];
 
     public XsnvshenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XsnvshenParser>(filenameScheme))
     {
@@ -24,21 +24,17 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
     {
         var referer = CurrentUrl.Split("/").Take(5).Join("/");
         var dirName = Driver.FindElement(By.XPath("//h1/a")).Text;
-        var pageCount = Driver.FindElement(By.XPath("//em[@id='time']/span"))
-                                .Text
-                                .Split(" ")[1]
-                                .ParseInt();
+        var pageCount = Driver.FindElement(By.XPath("//em[@id='time']/span")).Text.Split(" ")[1].ParseInt();
         var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < pageCount; i++)
         {
             Logger.Information("Parsing page {Page}", i + 1);
-            var img = Driver.FindElement(By.XPath("//img[@id='bigImg']"))
-                            .GetAttribute("src");
+            var img = Driver.FindElement(By.XPath("//img[@id='bigImg']")).GetAttribute("src");
             if (img is null)
             {
                 throw new RipperException("Unable to find image on page " + (i + 1));
             }
-            
+
             images.Add(img);
             if (i < pageCount - 1)
             {

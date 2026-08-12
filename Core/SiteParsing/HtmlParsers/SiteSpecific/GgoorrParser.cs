@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class GgoorrParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "ggoorr";
+    public static string[] SupportedUrls => ["https://ggoorr.net/"];
 
     public GgoorrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GgoorrParser>(filenameScheme))
     {
@@ -24,10 +24,7 @@ public class GgoorrParser : HtmlParser, IHtmlParser
         var soup = await Soupify();
         var id = CurrentUrl.Split("/")[4];
         var dirName = $"[ggoorr]{soup.SelectSingleNodeOrThrow("//h1//a").InnerText} ({id})";
-        var posts = soup
-                    .SelectSingleNodeOrThrow("//div[@id='article_1']")
-                    .SelectSingleNodeOrThrow(".//div")
-                    .SelectNodesOrThrow(".//img|.//video");
+        var posts = soup.SelectSingleNodeOrThrow("//div[@id='article_1']").SelectSingleNodeOrThrow(".//div").SelectNodesOrThrow(".//img|.//video");
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
@@ -36,15 +33,15 @@ public class GgoorrParser : HtmlParser, IHtmlParser
             {
                 link = post.SelectSingleNodeOrThrow(".//source").GetSrc();
             }
-    
+
             if (!link.Contains("https://"))
             {
                 link = $"{schema}{link}";
             }
-    
+
             images.Add(link);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

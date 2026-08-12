@@ -6,15 +6,15 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class BitchesGirlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "bitchesgirls";
+    public static string[] SupportedUrls => ["https://bitchesgirls.com/"];
 
     public BitchesGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BitchesGirlsParser>(filenameScheme))
     {
     }
-    
+
     /// <summary>
     ///     Parses  the HTML for bitchesgirls.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
@@ -29,7 +29,7 @@ public class BitchesGirlsParser : HtmlParser, IHtmlParser
         {
             baseUrl += "/";
         }
-        
+
         var page = 1;
         while (true)
         {
@@ -38,10 +38,7 @@ public class BitchesGirlsParser : HtmlParser, IHtmlParser
                 soup = await Soupify($"{baseUrl}{page}");
             }
 
-            var posts = soup.SelectSingleNodeOrThrow("//div[@class='albumgrid']")
-                            .SelectNodesOrThrow("./a[@class='post-container']")
-                            .Select(post => post.GetHref())
-                            .ToStringImageLinkWrapperList();
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='albumgrid']").SelectNodesOrThrow("./a[@class='post-container']").Select(post => post.GetHref()).ToStringImageLinkWrapperList();
             images.AddRange(posts);
             var loadBtn = soup.SelectSingleNode("//a[@id='loadMore']");
             if (loadBtn is not null)

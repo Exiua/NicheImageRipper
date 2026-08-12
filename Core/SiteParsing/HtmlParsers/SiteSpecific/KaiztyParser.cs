@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class KaiztyParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "kaizty";
+    public static string[] SupportedUrls => ["https://www.kaizty.com/"];
 
     public KaiztyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KaiztyParser>(filenameScheme))
     {
@@ -29,26 +29,18 @@ public class KaiztyParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc().Split("?")[0])
-                            .Where(link => link.StartsWith("https"))
-                            .ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Split("?")[0]).Where(link => link.StartsWith("https")).ToStringImageLinks();
             images.AddRange(imgs);
-    
             var pagination = soup.SelectSingleNode("//ul[@class='pagination-site']");
-            var nextPage = pagination?.SelectNodesOrThrow(".//a")
-                                        .Where(a => a.InnerText.StartsWith("Next"))
-                                        .Select(a => a.GetHref())
-                                        .FirstOrDefault();
+            var nextPage = pagination?.SelectNodesOrThrow(".//a").Where(a => a.InnerText.StartsWith("Next")).Select(a => a.GetHref()).FirstOrDefault();
             if (nextPage is null)
             {
                 break;
             }
-            
+
             soup = await Soupify($"https://www.kaizty.com{nextPage}");
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

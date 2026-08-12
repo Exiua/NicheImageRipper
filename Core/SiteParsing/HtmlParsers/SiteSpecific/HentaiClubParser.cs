@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HentaiClubParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentaiclub";
+    public static string[] SupportedUrls => ["https://www.hentaiclub.net/"];
 
     public HentaiClubParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiClubParser>(filenameScheme))
     {
@@ -21,19 +21,10 @@ public class HentaiClubParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await LazyLoad(new LazyLoadArgs
-        {
-            ScrollBy = true,
-            Increment = 1250
-        });
-        
+        await LazyLoad(new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//span[@class='post-info-text']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='masonry']")
-                            .SelectNodesOrThrow("./div")
-                            .Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc())
-                            .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='masonry']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

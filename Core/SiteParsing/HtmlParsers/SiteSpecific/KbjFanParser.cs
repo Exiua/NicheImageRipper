@@ -9,10 +9,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class KbjFanParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "kbjfan";
+    public static string[] SupportedUrls => ["https://www.kbjfan.com/"];
 
     public KbjFanParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KbjFanParser>(filenameScheme))
     {
@@ -27,7 +27,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='article-title']/a").InnerText;
         var images = new List<StringFileLinkWrapper>();
-        for(var i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             var success = await GetVideos(soup, images);
             if (success)
@@ -37,8 +37,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
 
             if (i == 3)
             {
-                throw new RipperException("Unable to find any videos on the page. " +
-                                          "This may be due to a change in the site's structure or a temporary issue.");
+                throw new RipperException("Unable to find any videos on the page. " + "This may be due to a change in the site's structure or a temporary issue.");
             }
 
             Driver.ClearCookies();
@@ -60,7 +59,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
             {
                 return false;
             }
-            
+
             images.Add(video);
         }
         else
@@ -74,17 +73,15 @@ public class KbjFanParser : HtmlParser, IHtmlParser
                 {
                     return false;
                 }
-                
+
                 images.Add(video);
                 index++;
-                var nextButton =
-                    Driver.TryFindElement(
-                        By.XPath($"//div[contains(@class, 'featured-video-episode')]/a[@data-index='{index}']"));
+                var nextButton = Driver.TryFindElement(By.XPath($"//div[contains(@class, 'featured-video-episode')]/a[@data-index='{index}']"));
                 if (nextButton is null)
                 {
                     break;
                 }
-                
+
                 nextButton.Click();
                 soup = await Soupify(delay: 250);
             }

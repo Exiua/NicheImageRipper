@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class MeirentuParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "meirentu";
+    public static string[] SupportedUrls => ["https://meirentu.cc/"];
 
     public MeirentuParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MeirentuParser>(filenameScheme))
     {
@@ -26,7 +26,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
         {
             referer += ".html";
         }
-        
+
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
@@ -35,9 +35,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {Counter}", counter);
             counter++;
-            var imgs = soup.SelectNodesOrThrow("//div[@class='content_left']//img")
-                           .Select(img => img.GetSrc())
-                           .ToStringImageLinks();
+            var imgs = soup.SelectNodesOrThrow("//div[@class='content_left']//img").Select(img => img.GetSrc()).ToStringImageLinks();
             images.AddRange(imgs);
             var nextPageButton = soup.SelectNodesOrThrow("//div[@class='page']/a")[^1];
             var nextPageButtonText = nextPageButton.InnerText.Trim();
@@ -45,7 +43,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-            
+
             var nextPageUrl = nextPageButton.GetHref();
             soup = await Soupify("https://meirentu.cc" + nextPageUrl);
         }

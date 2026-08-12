@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HotGirlParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hotgirl";
+    public static string[] SupportedUrls => ["https://hotgirl.asia/"];
 
     public HotGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HotGirlParser>(filenameScheme))
     {
@@ -26,13 +26,10 @@ public class HotGirlParser : HtmlParser, IHtmlParser
             var urlParts = CurrentUrl.Split("/")[..4];
             CurrentUrl = "/".Join(urlParts) + "/?stype=slideshow";
         }
-        
+
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@itemprop='name']").InnerText;
-        var images = soup.SelectNodesOrThrow("//img[@class='center-block w-100']")
-                         .Select(image => image.GetSrc())
-                         .ToStringImageLinkWrapperList();
-        
+        var images = soup.SelectNodesOrThrow("//img[@class='center-block w-100']").Select(image => image.GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

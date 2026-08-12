@@ -9,10 +9,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "tubeasiancams";
+    public static string[] SupportedUrls => ["https://tubeasiancams.com/"];
 
     public TubeAsianCamsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TubeAsianCamsParser>(filenameScheme))
     {
@@ -26,7 +26,7 @@ public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='entry-title']").InnerText;
-        var (capturer, b) = await ConfigureNetworkCapture<TubeAsianCamVideoCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<TubeAsianCamVideoCapturer>(cancellationToken);
         await using var bidi = b;
         await WaitForElement("//iframe", cancellationToken: cancellationToken);
         var iframe = Driver.FindElement(By.XPath("//iframe"));
@@ -53,7 +53,7 @@ public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
             {
                 url = links[0];
             }
-            
+
             var filename = UrlUtility.GetUrlParameterValue(url, "t");
             var fileLink = FileLink.WithFilename(url, $"{filename}.mp4", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: "https://jilliandescribecompany.com/");
             files.Add(fileLink);

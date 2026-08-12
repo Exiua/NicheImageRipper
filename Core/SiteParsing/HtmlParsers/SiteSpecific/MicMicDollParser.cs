@@ -7,10 +7,10 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class MicMicDollParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "micmicdoll";
+    public static string[] SupportedUrls => ["https://sex.micmicdoll.com/"];
 
     public MicMicDollParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MicMicDollParser>(filenameScheme))
     {
@@ -28,16 +28,12 @@ public class MicMicDollParser : HtmlParser, IHtmlParser
         }
         catch (NoAlertPresentException)
         {
-            // ignored
+        // ignored
         }
+
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='post-title entry-title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a")
-                            .Select(a => a.GetNullableHref())
-                            .Where(item => item is not null)
-                            .Select(item => item!)
-                            .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a").Select(a => a.GetNullableHref()).Where(item => item is not null).Select(item => item!).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

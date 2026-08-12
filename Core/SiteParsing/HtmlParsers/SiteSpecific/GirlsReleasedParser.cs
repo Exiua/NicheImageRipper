@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class GirlsReleasedParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "girlsreleased";
+    public static string[] SupportedUrls => ["https://girlsreleased.com/"];
 
     public GirlsReleasedParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GirlsReleasedParser>(filenameScheme))
     {
@@ -27,13 +27,7 @@ public class GirlsReleasedParser : HtmlParser, IHtmlParser
         var modelName = metadata[1].InnerText;
         var setName = metadata[2].InnerText;
         var dirName = $"{{{siteName}}} {setName} [{modelName}]";
-        var images = soup
-                        .SelectSingleNodeOrThrow("//div[@class='images']")
-                        .SelectNodesOrThrow(".//img")
-                        .Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx"))
-                        .Select(dummy => (StringFileLinkWrapper)dummy)
-                        .ToList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

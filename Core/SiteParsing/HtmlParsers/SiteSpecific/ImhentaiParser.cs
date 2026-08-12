@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ImhentaiParser : HtmlParser<ImhentaiParser>, IHtmlParser
 {
     public static string ParserName => "imhentai";
+    public static string[] SupportedUrls => ["https://imhentai.xxx/"];
 
     public ImhentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImhentaiParser>(filenameScheme))
     {
@@ -25,14 +25,12 @@ public class ImhentaiParser : HtmlParser<ImhentaiParser>, IHtmlParser
             var galCode = CurrentUrl.Split("/")[4];
             CurrentUrl = $"https://imhentai.xxx/gallery/{galCode}/";
         }
-    
+
         var soup = await Soupify();
         var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
-
         var images = imageContainer.GetAttributeValue("data-src");
         var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[1]);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
-    
         return RipInfo.FromGenerateInfo(images, dirName, numPages);
     }
 }

@@ -8,10 +8,10 @@ using NicheImageRipper.Core.Utility;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XHamsterParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xhamster";
+    public static string[] SupportedUrls => ["https://xhamster.com/"];
 
     public XHamsterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XHamsterParser>(filenameScheme))
     {
@@ -24,7 +24,7 @@ public class XHamsterParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("-")[^1].Split("?")[0];
-        var (capturer, b) = await ConfigureNetworkCapture<XHamsterCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<XHamsterCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);
@@ -37,7 +37,6 @@ public class XHamsterParser : HtmlParser, IHtmlParser
             var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
             images.Add(link);
         }, cancellationToken);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

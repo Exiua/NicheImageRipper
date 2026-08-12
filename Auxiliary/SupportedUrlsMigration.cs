@@ -43,12 +43,30 @@ public static class SupportedUrlsMigrationProgram
             ? "Running in DRY-RUN mode — no files will be modified.\n"
             : "Running for real — files WILL be modified.\n");
 
-        // MSBuildLocator must run before touching any Microsoft.CodeAnalysis.MSBuild types.
+        // MUST happen before any method that references Microsoft.CodeAnalysis.MSBuild types is
+        // JIT-compiled — keeping that logic in a separate method (RunMigrationAsync) prevents the
+        // JIT from touching those types during Main's own compilation.
         if (!MSBuildLocator.IsRegistered)
         {
-            MSBuildLocator.RegisterDefaults();
+            var instances = MSBuildLocator.QueryVisualStudioInstances().ToList();
+            if (instances.Count == 0)
+            {
+                Console.WriteLine("ERROR: No MSBuild instance found. Install the .NET SDK (not just the runtime), " +
+                                  "or run 'dotnet workload list' to confirm build tools are available.");
+                return;
+            }
+
+            Console.WriteLine($"Using MSBuild from: {instances[0].MSBuildPath}");
+            MSBuildLocator.RegisterInstance(instances[0]);
         }
 
+        await RunMigrationAsync(solutionPath);
+    }
+
+    // Isolated on purpose — nothing in Main references Microsoft.CodeAnalysis.MSBuild directly,
+    // so the JIT never needs to resolve that assembly before MSBuildLocator has registered it.
+    private static async Task RunMigrationAsync(string solutionPath)
+    {
         using var workspace = MSBuildWorkspace.Create();
         workspace.RegisterWorkspaceFailedHandler(e => Console.WriteLine($"[workspace] {e.Diagnostic}"));
 
@@ -251,8 +269,8 @@ public static class SupportedUrlsMigrationProgram
 
         var newInitializer = SyntaxFactory.InitializerExpression(
             SyntaxKind.ArrayInitializerExpression,
-            SyntaxFactory.SeparatedList<ExpressionSyntax>(
-                remainingUrls.Select(u => (ExpressionSyntax)SyntaxFactory.LiteralExpression(
+            SyntaxFactory.SeparatedList(
+                remainingUrls.Select(ExpressionSyntax (u) => SyntaxFactory.LiteralExpression(
                     SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(u)))));
 
         var newArrayCreation = arrayCreation.WithInitializer(newInitializer);

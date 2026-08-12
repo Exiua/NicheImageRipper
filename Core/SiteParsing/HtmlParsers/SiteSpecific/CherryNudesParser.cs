@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class CherryNudesParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cherrynudes";
+    public static string[] SupportedUrls => ["https://www.cherrynudes.com/"];
 
     public CherryNudesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CherryNudesParser>(filenameScheme))
     {
@@ -22,16 +22,9 @@ public class CherryNudesParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//title")
-                            .InnerText
-                            .Split("-")[0]
-                            .Trim();
+        var dirName = soup.SelectSingleNodeOrThrow("//title").InnerText.Split("-")[0].Trim();
         var contentUrl = CurrentUrl.Replace("www", "cdn");
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']")
-                            .SelectNodesOrThrow(".//a")
-                            .Select(img => img.GetHref())
-                            .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class FoxHqParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "foxhq";
+    public static string[] SupportedUrls => ["https://www.foxhq.com/"];
 
     public FoxHqParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FoxHqParser>(filenameScheme))
     {
@@ -27,13 +27,9 @@ public class FoxHqParser : HtmlParser, IHtmlParser
         {
             dirName = soup.SelectSingleNodeOrThrow("//h2").InnerText;
         }
-    
+
         var url = CurrentUrl;
-        var images = soup
-                    .SelectNodesOrThrow("//div[@class='thumb simple']")
-                    .Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref())
-                    .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectNodesOrThrow("//div[@class='thumb simple']").Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

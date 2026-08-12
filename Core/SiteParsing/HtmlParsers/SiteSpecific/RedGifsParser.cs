@@ -9,11 +9,11 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class RedGifsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "redgifs";
-    
+    public static string[] SupportedUrls => ["https://www.redgifs.com/"];
+
     public RedGifsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<RedGifsParser>(filenameScheme))
     {
     }
@@ -43,13 +43,9 @@ public class RedGifsParser : HtmlParser, IHtmlParser
             var response = await session.SendAsync(request);
             var responseJson = (await response.Content.ReadFromJsonAsync<JsonNode>())!;
             var gifs = responseJson["gifs"]!.AsArray();
-            images.AddRange(gifs
-                            .Select(gif => gif!["urls"]!["hd"]!
-                                .Deserialize<string>())
-                            .Select(gifUrl => gifUrl!)
-                            .Select(dummy => (StringFileLinkWrapper)dummy));
+            images.AddRange(gifs.Select(gif => gif!["urls"]!["hd"]!.Deserialize<string>()).Select(gifUrl => gifUrl!).Select(dummy => (StringFileLinkWrapper)dummy));
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

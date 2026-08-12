@@ -10,7 +10,9 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
 public class BestCamParser : HtmlParser
 {
-    public BestCamParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public BestCamParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, filenameScheme)
     {
     }
 
@@ -38,7 +40,8 @@ public class BestCamParser : HtmlParser
             {
                 var url = links[0];
                 var filename = url.Split("/")[4].Split("?")[0].Remove(".m3u8") + ".mp4";
-                var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: CurrentUrl);
+                var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg,
+                    referer: CurrentUrl);
                 images.Add(link);
             }, cancellationToken);
         }

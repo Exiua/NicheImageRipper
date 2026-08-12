@@ -7,14 +7,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Zero6SeParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "06se";
+    public static string[] SupportedUrls => ["https://www.06se.com/"];
 
-    public Zero6SeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<Zero6SeParser>(filenameScheme))
+    public Zero6SeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Zero6SeParser>(filenameScheme))
     {
     }
 
@@ -28,12 +26,7 @@ public class Zero6SeParser : HtmlParser, IHtmlParser
         // readMoreButton?.Click();
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='article-title']/a").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='article-content']")
-                         .SelectNodesOrThrow(".//img")
-                         .Select(GetUrl)
-                         .OfType<string>()
-                         .ToStringImageLinkWrapperList();
-
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='article-content']").SelectNodesOrThrow(".//img").Select(GetUrl).OfType<string>().ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 

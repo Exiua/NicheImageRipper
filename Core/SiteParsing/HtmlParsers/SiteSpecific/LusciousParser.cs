@@ -10,10 +10,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class LusciousParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "luscious";
+    public static string[] SupportedUrls => ["https://www.luscious.net/"];
 
     public LusciousParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<LusciousParser>(filenameScheme))
     {
@@ -29,6 +29,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
         {
             CurrentUrl = CurrentUrl.Replace("members.", "www.");
         }
+
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='o-h1 album-heading']|//h1[@class='o-h1 video-heading o-padding-sides']").InnerText;
         const string endpoint = "https://members.luscious.net/graphqli/?";
@@ -54,24 +55,19 @@ public class LusciousParser : HtmlParser, IHtmlParser
                     }
                     fragment VideoStandard on Video{id title tags content genres description audiences url poster_url subtitle_url v240p v360p v720p v1080p}
                     """;
-            var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new
-            {
-                operationName = "getVideoInfo",
-                query,
-                variables
-            }), Encoding.UTF8, "application/json"));
+            var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new { operationName = "getVideoInfo", query, variables }), Encoding.UTF8, "application/json"));
             var json = await response.Content.ReadFromJsonAsync<JsonNode>();
             var jsonData = json!["data"]!["video"]!["get"]!;
             string videoUrl;
-            if(!jsonData["v1080p"].IsNull())
+            if (!jsonData["v1080p"].IsNull())
             {
                 videoUrl = jsonData["v1080p"]!.Deserialize<string>()!;
             }
-            else if(!jsonData["v720p"].IsNull())
+            else if (!jsonData["v720p"].IsNull())
             {
                 videoUrl = jsonData["v720p"]!.Deserialize<string>()!;
             }
-            else if(!jsonData["v360p"].IsNull())
+            else if (!jsonData["v360p"].IsNull())
             {
                 videoUrl = jsonData["v360p"]!.Deserialize<string>()!;
             }
@@ -79,6 +75,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
             {
                 videoUrl = jsonData["v240p"]!.Deserialize<string>()!;
             }
+
             images.Add(videoUrl);
         }
         else
@@ -123,12 +120,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
             var nextPage = true;
             while (nextPage)
             {
-                var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new
-                {
-                    operationName = "PictureQuery",
-                    query,
-                    variables
-                }), Encoding.UTF8, "application/json"));
+                var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new { operationName = "PictureQuery", query, variables }), Encoding.UTF8, "application/json"));
                 var json = await response.Content.ReadFromJsonAsync<JsonNode>();
                 var jsonData = json!["data"]!["picture"]!["list"]!;
                 nextPage = jsonData["info"]!["has_next_page"]!.Deserialize<bool>();
@@ -138,6 +130,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
                 images.AddRange(items.Select(item => (StringFileLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
             }
         }
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

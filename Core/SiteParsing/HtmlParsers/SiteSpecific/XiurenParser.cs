@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XiurenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xiuren";
+    public static string[] SupportedUrls => ["https://xiuren.biz/"];
 
     public XiurenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XiurenParser>(filenameScheme))
     {
@@ -23,11 +23,7 @@ public class XiurenParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='jeg_post_title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']")
-                            .SelectNodesOrThrow(".//a")
-                            .Select(img => img.GetHref())
-                            .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

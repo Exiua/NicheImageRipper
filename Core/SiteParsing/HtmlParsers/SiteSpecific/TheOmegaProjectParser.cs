@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class TheOmegaProjectParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "theomegaproject";
+    public static string[] SupportedUrls => ["https://www.theomegaproject.org/"];
 
     public TheOmegaProjectParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TheOmegaProjectParser>(filenameScheme))
     {
@@ -22,15 +22,8 @@ public class TheOmegaProjectParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectNodesOrThrow("//h2[@class='section-title title']")[1].InnerText
-                            .Split("Porn")[0]
-                            .Split("porn")[0]
-                            .Trim();
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='lightgallery thumbs quadruple fivefold']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc())
-                            .ToStringImageLinkWrapperList();
-        
+        var dirName = soup.SelectNodesOrThrow("//h2[@class='section-title title']")[1].InnerText.Split("Porn")[0].Split("porn")[0].Trim();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='lightgallery thumbs quadruple fivefold']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

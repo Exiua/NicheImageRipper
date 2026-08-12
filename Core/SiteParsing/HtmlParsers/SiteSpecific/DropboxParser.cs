@@ -8,11 +8,11 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class DropboxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "dropbox";
-    
+    public static string[] SupportedUrls => ["https://www.dropbox.com/"];
+
     public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DropboxParser>(filenameScheme))
     {
     }
@@ -29,7 +29,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
     /// <summary>
     ///     Parses  the HTML for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
-    /// <param name="dropboxUrl"></param>
+    /// <param name = "dropboxUrl"></param>
     /// <returns></returns>
     internal async Task<RipInfo> Parse(string dropboxUrl, CancellationToken cancellationToken = default)
     {
@@ -41,11 +41,11 @@ public class DropboxParser : HtmlParser, IHtmlParser
                 dropboxUrl = dropboxUrl.Replace("dl=0", "dl=1");
                 return RipInfo.FromUrlList([dropboxUrl], "", FilenameScheme);
             }
-    
+
             CurrentUrl = dropboxUrl;
             internalUse = true;
         }
-    
+
         var soup = await Soupify(xpath: "//span[@class='dig-Breadcrumb-link-text']");
         string dirName;
         if (!internalUse)
@@ -56,13 +56,12 @@ public class DropboxParser : HtmlParser, IHtmlParser
             }
             catch (NullReferenceException)
             {
-                var deletedNotice =
-                    soup.SelectSingleNode("//h2[@class='dig-Title dig-Title--size-large dig-Title--color-standard']");
+                var deletedNotice = soup.SelectSingleNode("//h2[@class='dig-Title dig-Title--size-large dig-Title--color-standard']");
                 if (deletedNotice is not null)
                 {
                     return RipInfo.FromUrlList([], "Deleted", FilenameScheme);
                 }
-    
+
                 Logger.Error("Could not find directory name. Unable to continue.");
                 throw;
             }
@@ -71,12 +70,12 @@ public class DropboxParser : HtmlParser, IHtmlParser
         {
             dirName = "";
         }
-    
+
         if (CurrentUrl.Contains("/scl/fi/"))
         {
             return RipInfo.FromUrlList([CurrentUrl.Replace("dl=0", "dl=1")], "", FilenameScheme);
         }
-    
+
         var images = new List<string>();
         var filenames = new List<string>();
         var postsNodes = soup.SelectSingleNode("//ol[@class='_sl-grid-body_6yqpe_26']");
@@ -87,20 +86,18 @@ public class DropboxParser : HtmlParser, IHtmlParser
             foreach (var post in posts)
             {
                 soup = await Soupify(post, xpath: "//img[@class='_fullSizeImg_1anuf_16']");
-                GetDropboxFile(soup, post, filenames, images,
-                    posts); // The method modifies the posts list which is being iterated over...
+                GetDropboxFile(soup, post, filenames, images, posts); // The method modifies the posts list which is being iterated over...
             }
         }
         else
         {
             GetDropboxFile(soup, CurrentUrl, filenames, images, posts);
         }
-    
+
         return RipInfo.FromUrlListWithFilenames(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme, filenames);
     }
-    
-    private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images,
-                                       List<string> posts)
+
+    private static void GetDropboxFile(HtmlNode soup, string post, List<string> filenames, List<string> images, List<string> posts)
     {
         var filename = post.Split("/")[^1].Split("?")[0];
         filenames.Add(filename);
@@ -128,18 +125,14 @@ public class DropboxParser : HtmlParser, IHtmlParser
                 }
                 else
                 {
-                    var newPosts = soup
-                                  .SelectSingleNodeOrThrow("//ol[@class='_sl-grid-body_6yqpe_26']")
-                                  .SelectNodesOrThrow("//a")
-                                  .GetHrefs()
-                                  .RemoveDuplicates();
+                    var newPosts = soup.SelectSingleNodeOrThrow("//ol[@class='_sl-grid-body_6yqpe_26']").SelectNodesOrThrow("//a").GetHrefs().RemoveDuplicates();
                     posts.AddRange(newPosts);
                 }
             }
         }
         catch (AttributeNotFoundException)
         {
-            // ignored
+        // ignored
         }
     }
 }

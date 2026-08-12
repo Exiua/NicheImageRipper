@@ -4,11 +4,11 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class GelbooruParser : BooruParser, IHtmlParser
 {
     public static string ParserName => "gelbooru";
-    
+    public static string[] SupportedUrls => ["https://gelbooru.com/"];
+
     public GelbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GelbooruParser>(filenameScheme))
     {
     }

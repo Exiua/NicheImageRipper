@@ -4,12 +4,11 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 // wantedbabes.com
 public class WantedBabesParser : GenericBabesGalleryParser, IHtmlParser
 {
     public static string ParserName => "wantedbabes";
-
+    public static string[] SupportedUrls => ["https://www.wantedbabes.com/"];
     protected override string DirNameXpath => "//div[@id='main-content']//h1";
     protected override string ImageContainerXpath => "//div[@class='gallery']";
 

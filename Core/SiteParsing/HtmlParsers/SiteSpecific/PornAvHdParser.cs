@@ -7,10 +7,10 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PornAvHdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pornavhd";
+    public static string[] SupportedUrls => ["https://pornavhd.com/"];
 
     public PornAvHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornAvHdParser>(filenameScheme))
     {
@@ -26,7 +26,7 @@ public class PornAvHdParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@itemprop='name']").InnerText;
         var iframe = soup.SelectSingleNodeOrThrow("//div[@class='responsive-player']/iframe");
         var iframeUrl = iframe.GetSrc();
-        var (capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>(cancellationToken);
+        var(capturer, _) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>(cancellationToken);
         CurrentUrl = iframeUrl;
         var referer = iframeUrl.Split("/")[..3].Join("/") + '/';
         StringFileLinkWrapper playlist;
@@ -37,11 +37,11 @@ public class PornAvHdParser : HtmlParser, IHtmlParser
             {
                 continue;
             }
-    
+
             playlist = FileLink.Create(links[0], FilenameScheme, referer: referer);
             break;
         }
-        
-        return RipInfo.FromUrlList([ playlist ], dirName, FilenameScheme);
+
+        return RipInfo.FromUrlList([playlist], dirName, FilenameScheme);
     }
 }

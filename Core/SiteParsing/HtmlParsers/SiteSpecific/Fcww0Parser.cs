@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Fcww0Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "fcww0";
+    public static string[] SupportedUrls => ["https://fcww0.com/"];
 
     public Fcww0Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Fcww0Parser>(filenameScheme))
     {
@@ -23,10 +23,7 @@ public class Fcww0Parser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//video")
-                         .GetSrc()
-                         .IntoStringImageLinkWrapperList();
-
+        var images = soup.SelectSingleNodeOrThrow("//video").GetSrc().IntoStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

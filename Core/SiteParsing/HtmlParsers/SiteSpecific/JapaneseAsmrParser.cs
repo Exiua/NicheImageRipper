@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class JapaneseAsmrParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "japaneseasmr";
+    public static string[] SupportedUrls => ["https://japaneseasmr.com/"];
 
     public JapaneseAsmrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JapaneseAsmrParser>(filenameScheme))
     {
@@ -23,13 +23,8 @@ public class JapaneseAsmrParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='page-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc())
-                            .ToStringImageLinkWrapperList();
-        var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']")
-                            .SelectNodesOrThrow(".//a")
-                            .Select(a => a.GetHref());
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
+        var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']").SelectNodesOrThrow(".//a").Select(a => a.GetHref());
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var link in megaLinks)
         {
@@ -39,10 +34,9 @@ public class JapaneseAsmrParser : HtmlParser, IHtmlParser
             // {
             //     await Sleep(1000);
             // }
-            
             images.Add($"text:{link}");
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

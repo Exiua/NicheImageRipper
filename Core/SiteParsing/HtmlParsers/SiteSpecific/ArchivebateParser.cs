@@ -10,14 +10,13 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public partial class ArchivebateParser : HtmlParser, IHtmlParser
 {
     private const string CachePath = "archivebateCache.json";
     private const int MaxConcurrentDownloads = 30;
-    
     public static string ParserName => "archivebate";
-    
+    public static string[] SupportedUrls => ["https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/"];
+
     public ArchivebateParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ArchivebateParser>(filenameScheme))
     {
     }
@@ -49,7 +48,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 }
                 else
                 {
-                    if(temp.TryGetValue(profileName, out var p))
+                    if (temp.TryGetValue(profileName, out var p))
                     {
                         posts = p;
                     }
@@ -64,7 +63,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 posts = await GetPageUrls(soup, profileName);
             }
 
-            foreach (var (i, post) in posts.Enumerate())
+            foreach (var(i, post)in posts.Enumerate())
             {
                 Logger.Information("Parsing post {Current} of {Total}: {Url}", i + 1, posts.Count, post);
                 CurrentUrl = post;
@@ -88,7 +87,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             {
                 images.Add(url);
             }
-            
+
             Driver.SwitchTo().DefaultContent();
         }
 
@@ -105,9 +104,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {PageCount}", pageCount);
             pageCount++;
-            var p = soup.SelectSingleNodeOrThrow("//div[@class='ab_grid']")
-                        .SelectNodesOrThrow("./section")
-                        .Select(section => section.SelectSingleNodeOrThrow(".//a").GetHref());
+            var p = soup.SelectSingleNodeOrThrow("//div[@class='ab_grid']").SelectNodesOrThrow("./section").Select(section => section.SelectSingleNodeOrThrow(".//a").GetHref());
             posts.AddRange(p);
             var pagination = soup.SelectSingleNode("//div[not(@class)]/ul[@class='pagination']");
             if (pagination is null)
@@ -121,7 +118,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-                
+
             var nextLink = nextButton.SelectSingleNodeOrThrow("./a").GetHref();
             soup = await Soupify(nextLink, xpath: "//div[@class='ab_grid']/section//a");
         }
@@ -131,7 +128,6 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
             [profileName] = posts
         };
         JsonUtility.Serialize(CachePath, cache);
-
         return posts;
     }
 
@@ -146,13 +142,13 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 Logger.Information("Video has been deleted");
                 return "";
             }
-            
+
             Logger.Warning("Iframe not found, video probably unavailable");
             return "";
         }
-        
+
         Driver.SwitchTo().Frame(iframe);
-        while(true)
+        while (true)
         {
             try
             {
@@ -169,13 +165,12 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                 await Sleep(250, cancellationToken);
             }
         }
-            
+
         const int maxAttempts = 4;
         await Task.Delay(250, cancellationToken);
         IWebElement? video = null;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            
             var playButton = Driver.TryFindElement(By.XPath("//button[@class='vjs-big-play-button']"));
             if (playButton is null)
             {
@@ -185,7 +180,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                     Logger.Information("Video is unavailable");
                     return "";
                 }
-                
+
                 var videoJs = Driver.TryFindElement(By.XPath("//div[@id='videojs']"));
                 if (videoJs is null)
                 {
@@ -194,11 +189,11 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                         Logger.Warning("VideoJS container not found, video probably unavailable");
                         return "";
                     }
-                    
+
                     await Sleep(1000, cancellationToken);
                     continue;
                 }
-                
+
                 var classes = videoJs.GetAttribute("class")!;
                 if (!classes.Contains("vjs-playing"))
                 {
@@ -211,8 +206,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                     await Sleep(1000, cancellationToken);
                     continue;
                 }
-                
-                // Video is already playing
+            // Video is already playing
             }
             else
             {
@@ -232,14 +226,14 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
                     continue;
                 }
             }
-        
+
             await Task.Delay(250, cancellationToken);
             video = Driver.TryFindElement(By.XPath("//video[@src]"));
             if (video is not null)
             {
                 break;
             }
-            
+
             if (attempt == maxAttempts - 1)
             {
                 Logger.Warning("Video element not found, video probably unavailable");
@@ -248,14 +242,12 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
 
             await Sleep(1000, cancellationToken);
         }
-        
-        var url = video!.GetAttribute("src")!;
-        
-        Driver.SwitchTo().DefaultContent();
 
+        var url = video!.GetAttribute("src")!;
+        Driver.SwitchTo().DefaultContent();
         return url;
     }
-    
+
     private static string CompactSpaces(string input)
     {
         input = input.Trim();

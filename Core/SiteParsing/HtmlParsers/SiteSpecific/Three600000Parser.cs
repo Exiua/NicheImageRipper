@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Three600000Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "3600000";
+    public static string[] SupportedUrls => ["https://3600000.xyz/"];
 
     public Three600000Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Three600000Parser>(filenameScheme))
     {
@@ -23,11 +23,7 @@ public class Three600000Parser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p")
-                         .SelectNodesOrThrow("./a")
-                         .Select(a => a.GetHref())
-                         .ToStringImageLinkWrapperList();
-
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

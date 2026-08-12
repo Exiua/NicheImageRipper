@@ -7,10 +7,10 @@ using NicheImageRipper.Core.Utility;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "jpg5";
+    public static string[] SupportedUrls => ["https://jpg5.su/"];
 
     public Jpg5Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Jpg5Parser>(filenameScheme))
     {
@@ -30,7 +30,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
             Logger.Warning("Image not found");
             return RipInfo.Empty.WithDirectoryName("Not Found");
         }
-        
+
         string? dirName;
         if (CurrentUrl.Contains("/a/"))
         {
@@ -45,7 +45,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
         {
             dirName = soup.SelectSingleNodeOrThrow("//div[@class='header']").InnerText;
         }
-    
+
         var images = new List<StringFileLinkWrapper>();
         if (!single)
         {
@@ -61,11 +61,8 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
                     Driver.Refresh();
                     soup = await Soupify(cancellationToken: cancellationToken);
                 }
-    
-                var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
-                                .SelectNodesOrThrow("./div")
-                                .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc().Remove(".md"))
-                                .ToStringImageLinks();
+
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc().Remove(".md")).ToStringImageLinks();
                 images.AddRange(posts);
                 var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
                 var nextPageUrl = nextPage?.GetNullableHref();
@@ -73,7 +70,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
                 {
                     break;
                 }
-    
+
                 nextPageUrl = nextPageUrl.DecodeUrl();
                 //Logger.Debug("Next page: {nextPageUrl}", nextPageUrl);
                 soup = await Soupify(nextPageUrl, xpath: "//div[@class='pad-content-listing']/div", cancellationToken: cancellationToken);
@@ -95,7 +92,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
                 images.Add(imgSrc);
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

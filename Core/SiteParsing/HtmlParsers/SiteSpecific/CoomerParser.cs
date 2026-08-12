@@ -4,11 +4,11 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class CoomerParser : DotPartyParser, IHtmlParser
 {
     public static string ParserName => "coomer";
-    
+    public static string[] SupportedUrls => ["https://coomer.party/", "https://coomer.su/", "https://coomer.st/"];
+
     public CoomerParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CoomerParser>(filenameScheme))
     {
     }

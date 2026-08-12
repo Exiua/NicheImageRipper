@@ -7,16 +7,13 @@ using NicheImageRipper.Core.Utility;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "cyberdrop";
+    public static string[] SupportedUrls => ["https://cyberdrop.me/"];
 
     private const int ParseDelay = 500;
-
-    public CyberDropParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<CyberDropParser>(filenameScheme))
+    public CyberDropParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CyberDropParser>(filenameScheme))
     {
     }
 
@@ -29,15 +26,10 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
         var soup = await SolveParseAddCookies(cancellationToken: cancellationToken);
         var titleNode = soup.SelectSingleNode("//h1[@id='title']");
         var dirName = titleNode is not null ? titleNode.InnerText : $"[CyberDrop] {CurrentUrl.Split("/")[^1]}";
-
         var images = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/a/"))
         {
-            var imageList = soup.SelectNodesOrThrow("//div[@class='image-container column']")
-                                .Select(image => image
-                                                .SelectSingleNodeOrThrow(".//a[@class='image']")
-                                                .GetHref())
-                                .Select(href => $"https://cyberdrop.me{href}");
+            var imageList = soup.SelectNodesOrThrow("//div[@class='image-container column']").Select(image => image.SelectSingleNodeOrThrow(".//a[@class='image']").GetHref()).Select(href => $"https://cyberdrop.me{href}");
             foreach (var image in imageList)
             {
                 var link = await GetFileUrl(image, cancellationToken);
@@ -78,15 +70,12 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
         {
             try
             {
-                var soup = await Soupify(url, delay: ParseDelay * 2, xpath: "//a[@id='downloadBtn']",
-                    xpathTimeout: 120, cancellationToken: cancellationToken);
-                #if DEBUG
+                var soup = await Soupify(url, delay: ParseDelay * 2, xpath: "//a[@id='downloadBtn']", xpathTimeout: 120, cancellationToken: cancellationToken);
+#if DEBUG
                 Driver.TakeDebugScreenshot();
                 Logger.Debug("Current url: {CurrentUrl}", Driver.Url);
-                #endif
-                var link = soup.SelectSingleNodeOrThrow("//a[@id='downloadBtn']")
-                               .GetHref();
-
+#endif
+                var link = soup.SelectSingleNodeOrThrow("//a[@id='downloadBtn']").GetHref();
                 return link;
             }
             catch (AttributeNotFoundException)

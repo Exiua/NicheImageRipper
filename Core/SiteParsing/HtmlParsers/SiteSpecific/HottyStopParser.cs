@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HottyStopParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hottystop";
+    public static string[] SupportedUrls => ["https://www.hottystop.com/"];
 
     public HottyStopParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HottyStopParser>(filenameScheme))
     {
@@ -25,11 +25,7 @@ public class HottyStopParser : HtmlParser, IHtmlParser
         var boxLargeContent = soup.SelectSingleNodeOrThrow("//div[@class='content-center content-center-2']");
         var titleNode = boxLargeContent.SelectSingleNode(".//h1") ?? boxLargeContent.SelectSingleNodeOrThrow(".//u");
         var dirName = titleNode.InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gallery']")
-                            .SelectNodesOrThrow(".//a")
-                            .Select(a => a.GetHref())
-                            .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gallery']").SelectNodesOrThrow(".//a").Select(a => a.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

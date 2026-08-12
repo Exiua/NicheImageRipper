@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class NudeBirdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nudebird";
+    public static string[] SupportedUrls => ["https://nudebird.biz/"];
 
     public NudeBirdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NudeBirdParser>(filenameScheme))
     {
@@ -23,10 +23,7 @@ public class NudeBirdParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title single-title entry-title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']")
-                            .Select(img => img.GetHref())
-                            .ToStringImageLinkWrapperList();
-    
+        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

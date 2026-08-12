@@ -7,10 +7,10 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Cosplay69Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cosplay69";
+    public static string[] SupportedUrls => ["https://cosplay69.net/"];
 
     public Cosplay69Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Cosplay69Parser>(filenameScheme))
     {
@@ -22,18 +22,13 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(/*delay: 5000, */lazyLoadArgs: new LazyLoadArgs
-        {
-            ScrollBy = true,
-            Increment = 1250
-        });
-    
+        var soup = await Soupify( /*delay: 5000, */lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
         List<StringFileLinkWrapper> images;
         var video = soup.SelectSingleNode("//iframe");
         if (video is not null)
         {
-            var (capturer, _) = await ConfigureNetworkCapture<Cosplay69VideoCapturer>();
+            var(capturer, _) = await ConfigureNetworkCapture<Cosplay69VideoCapturer>();
             Driver.Refresh();
             while (true)
             {
@@ -44,19 +39,16 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
                     await Sleep(1000);
                     continue;
                 }
-                
+
                 images = links.ToStringImageLinkWrapperList();
                 break;
             }
         }
         else
         {
-            images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridnext-clearfix']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc())
-                            .ToStringImageLinkWrapperList();
+            images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridnext-clearfix']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

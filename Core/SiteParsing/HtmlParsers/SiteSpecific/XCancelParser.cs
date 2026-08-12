@@ -6,14 +6,12 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XCancelParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xcancel";
+    public static string[] SupportedUrls => ["https://xcancel.com/"];
 
-    public XCancelParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                   FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders,
-        IHtmlParser.GetFilenameScheme<XCancelParser>(filenameScheme))
+    public XCancelParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XCancelParser>(filenameScheme))
     {
     }
 
@@ -33,7 +31,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
         {
             CurrentUrl = baseUrl;
         }
-        
+
         // TODO: Add anti-bot page detection handling
         var soup = await SolveParse();
         await Task.Delay(GenerateDelay()); // Delay to avoid overwhelming the server
@@ -44,16 +42,12 @@ public class XCancelParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {page}", page);
             page++;
-            var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']")
-                               .SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
+            var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']").SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
             foreach (var div in timeline)
             {
-                var imgs = div.SelectNodesSafe(".//a[@class='still-image']")
-                             .Select(a => a.GetHref())
-                              .ToStringImageLinks();
+                var imgs = div.SelectNodesSafe(".//a[@class='still-image']").Select(a => a.GetHref()).ToStringImageLinks();
                 images.AddRange(imgs);
-                var video = div.SelectSingleNode(".//video/source")?
-                                .GetSrc();
+                var video = div.SelectSingleNode(".//video/source")?.GetSrc();
                 if (video is not null)
                 {
                     images.Add(video);
@@ -65,7 +59,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-            
+
             var nextUrl = nextButton.GetHref();
             CurrentUrl = $"{baseUrl}{nextUrl}";
             soup = await SolveParse();

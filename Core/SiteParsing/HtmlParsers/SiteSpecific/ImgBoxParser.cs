@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ImgBoxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "imgbox";
+    public static string[] SupportedUrls => ["https://imgbox.com/"];
 
     public ImgBoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImgBoxParser>(filenameScheme))
     {
@@ -22,14 +22,8 @@ public class ImgBoxParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']")
-                            .SelectSingleNodeOrThrow(".//h1")
-                            .InnerText.Split(" - ")[0];
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o"))
-                            .ToStringImageLinkWrapperList();
-    
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']").SelectSingleNodeOrThrow(".//h1").InnerText.Split(" - ")[0];
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

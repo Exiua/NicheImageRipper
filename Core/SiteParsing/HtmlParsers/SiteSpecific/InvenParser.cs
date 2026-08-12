@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class InvenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "inven";
+    public static string[] SupportedUrls => ["https://www.inven.co.kr/"];
 
     public InvenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<InvenParser>(filenameScheme))
     {
@@ -22,13 +22,8 @@ public class InvenParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='subject ']//span[@class='middle']")
-                            .InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='powerbbsContent']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetSrc().Split("?")[0])
-                            .ToStringImageLinkWrapperList();
-        
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='subject ']//span[@class='middle']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='powerbbsContent']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Split("?")[0]).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

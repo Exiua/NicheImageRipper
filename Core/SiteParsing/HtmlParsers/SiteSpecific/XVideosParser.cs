@@ -7,10 +7,10 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class XVideosParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xvideos";
+    public static string[] SupportedUrls => ["https://www.xvideos.com/"];
 
     public XVideosParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XVideosParser>(filenameScheme))
     {
@@ -24,7 +24,7 @@ public class XVideosParser : HtmlParser, IHtmlParser
     {
         var currentUrl = CurrentUrl;
         var id = currentUrl.Split("/")[3].Split(".")[1];
-        var (capturer, b) = await ConfigureNetworkCapture<XVideosCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<XVideosCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);
@@ -37,7 +37,6 @@ public class XVideosParser : HtmlParser, IHtmlParser
             var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: CurrentUrl);
             files.Add(link);
         }, cancellationToken);
-
         return RipInfo.FromUrlList(files, dirName, FilenameScheme);
     }
 }

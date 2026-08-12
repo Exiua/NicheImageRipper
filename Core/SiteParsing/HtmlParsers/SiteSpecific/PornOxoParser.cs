@@ -7,10 +7,10 @@ using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PornOxoParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pornoxo";
+    public static string[] SupportedUrls => ["https://www.pornoxo.com/"];
 
     public PornOxoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornOxoParser>(filenameScheme))
     {
@@ -23,7 +23,7 @@ public class PornOxoParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("/")[4];
-        var (capturer, b) = await ConfigureNetworkCapture<PornOxoCapturer>(cancellationToken);
+        var(capturer, b) = await ConfigureNetworkCapture<PornOxoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);
@@ -34,7 +34,6 @@ public class PornOxoParser : HtmlParser, IHtmlParser
             var link = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
             images.Add(link);
         }, cancellationToken);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

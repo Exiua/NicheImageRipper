@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ToonilyParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "toonily";
+    public static string[] SupportedUrls => ["https://toonily.me/", "https://toonily.com/"];
 
     public ToonilyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ToonilyParser>(filenameScheme))
     {
@@ -23,31 +23,22 @@ public class ToonilyParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNode("//div[@class='post-title']/h1")!.InnerText;
-        var chapterList = soup.SelectSingleNode("//ul[@class='main version-chap no-volumn']")!
-                              .SelectNodes("./li")!
-                              .Select(li =>
-                               {
-                                   var a = li.SelectSingleNode("./a");
-                                   var href = a!.GetHref();
-                                   var text = a!.InnerText.Trim();
-                                   return (href, text);
-                               })
-                              .Reverse();
-
+        var chapterList = soup.SelectSingleNode("//ul[@class='main version-chap no-volumn']")!.SelectNodes("./li")!.Select(li =>
+        {
+            var a = li.SelectSingleNode("./a");
+            var href = a!.GetHref();
+            var text = a!.InnerText.Trim();
+            return (href, text);
+        }).Reverse();
         var images = new List<StringFileLinkWrapper>();
-        foreach (var (chapter, name) in chapterList)
+        foreach (var(chapter, name)in chapterList)
         {
             Logger.Information("Parsing {ChapterName}", name);
             soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 5000, ScrollPauseTime = 1000 });
-            var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!
-                                .SelectNodes("./div")!
-                                .Select(div => div.SelectSingleNode("./img"))
-                                .Select(img => img!.GetSrc().Trim())
-                                .ToStringImageLinks();
-            
+            var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!.SelectNodes("./div")!.Select(div => div.SelectSingleNode("./img")).Select(img => img!.GetSrc().Trim()).ToStringImageLinks();
             images.AddRange(imageList);
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

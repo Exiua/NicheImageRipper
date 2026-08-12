@@ -7,15 +7,12 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hustlebootytemptats";
+    public static string[] SupportedUrls => ["https://hustlebootytemptats.com/"];
 
-    public HustleBootyTempTatsParser(WebDriver driver, ApiClientManager clientManager,
-                                     Dictionary<string, string> requestHeaders,
-                                     FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
-        clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HustleBootyTempTatsParser>(filenameScheme))
+    public HustleBootyTempTatsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HustleBootyTempTatsParser>(filenameScheme))
     {
     }
 
@@ -33,8 +30,7 @@ public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
         List<StringFileLinkWrapper> images;
         if (imagesNode is not null)
         {
-            images = imagesNode.Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0])
-                               .ToStringImageLinkWrapperList();
+            images = imagesNode.Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0]).ToStringImageLinkWrapperList();
         }
         else
         {

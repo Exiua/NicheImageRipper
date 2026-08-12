@@ -5,10 +5,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Cup2DParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cup2d";
+    public static string[] SupportedUrls => ["https://cup2d.com/"];
 
     public Cup2DParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Cup2DParser>(filenameScheme))
     {
@@ -20,18 +20,13 @@ public class Cup2DParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs
-        {
-            ScrollBy = true,
-            Increment = 1250
-        });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
         var images = new List<StringFileLinkWrapper>();
-        var node = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridshow-clearfix']/div")
-                       .SelectNodesOrThrow("./*[self::a or self::iframe]");
+        var node = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridshow-clearfix']/div").SelectNodesOrThrow("./*[self::a or self::iframe]");
         foreach (var n in node)
         {
-            if(n.Name == "a")
+            if (n.Name == "a")
             {
                 images.Add((StringFileLinkWrapper)n.GetHref());
             }
@@ -40,7 +35,7 @@ public class Cup2DParser : HtmlParser, IHtmlParser
                 images.Add((StringFileLinkWrapper)n.GetSrc().Replace("/embed/", "/file/"));
             }
         }
-    
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

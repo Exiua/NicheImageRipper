@@ -6,10 +6,10 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ApComicsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "apcomics";
+    public static string[] SupportedUrls => ["https://apcomics.org/"];
 
     public ApComicsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ApComicsParser>(filenameScheme))
     {
@@ -25,10 +25,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='post-title']/h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
-        var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']")
-                           .SelectNodesOrThrow("./li")
-                           .Select(li => li.SelectSingleNodeOrThrow("./a").GetHref())
-                           .Reverse();
+        var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']").SelectNodesOrThrow("./li").Select(li => li.SelectSingleNodeOrThrow("./a").GetHref()).Reverse();
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true
@@ -37,10 +34,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
         {
             Logger.Debug("Parsing chapter {Chapter}", chapter);
             soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs);
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']")
-                           .SelectNodesOrThrow("./div")
-                           .Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim())
-                           .ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim()).ToStringImageLinks();
             images.AddRange(imgs);
         }
 

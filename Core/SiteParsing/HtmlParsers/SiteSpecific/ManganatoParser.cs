@@ -6,9 +6,17 @@ using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 
-public class ManganatoParser : HtmlParser, IHtmlParser
+public class ManganatoParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
 {
-    public static string ParserName => "manganato or chapmanganato";
+    public static string ParserName => "manganato";
+
+    public static string[] AdditionalParserNames { get; } = ["chapmanganato"];
+
+    public static string[] SupportedUrls { get; } =
+    [
+        "https://readmanganato.com/",
+        "https://manganato.com/"
+    ];
 
     public ManganatoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ManganatoParser>(filenameScheme))
     {
