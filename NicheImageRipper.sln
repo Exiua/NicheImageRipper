@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IwaraApiClient", "IwaraApiC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImpersonateClient", "ImpersonateClient\ImpersonateClient.csproj", "{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auxiliary", "Auxiliary\Auxiliary.csproj", "{4ABF1FE7-C591-4698-9C25-FC33E36857BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -102,5 +104,9 @@ Global
 		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB922D18-DEBE-4ADF-96F3-E972B0F41D80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4ABF1FE7-C591-4698-9C25-FC33E36857BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ABF1FE7-C591-4698-9C25-FC33E36857BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ABF1FE7-C591-4698-9C25-FC33E36857BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ABF1FE7-C591-4698-9C25-FC33E36857BA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

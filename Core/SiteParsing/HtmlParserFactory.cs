@@ -13,9 +13,10 @@ using HtmlParserCtor = Func<WebDriver, ApiClientManager, Dictionary<string, stri
 public static class HtmlParserFactory
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(HtmlParserFactory));
-    
+
     private static readonly Dictionary<Type, HtmlParserCtor> HtmlParserCtors = new();
     private static readonly Dictionary<string, HtmlParserCtor> Parsers;
+    private static readonly Dictionary<string, Type> ParserTypesByName;
 
     /// <summary>
     ///     Every base URL (scheme+host+trailing slash) supported by any registered parser, derived from each
@@ -23,21 +24,27 @@ public static class HtmlParserFactory
     ///     hardcoded list, so plugin-registered parsers are automatically recognized without touching core code.
     /// </summary>
     public static FrozenSet<string> SupportedUrls { get; }
-    
+
     static HtmlParserFactory()
     {
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         var types = assemblies.SelectMany(assembly => assembly.GetTypes());
-        var parserTypes = types.Where(type => !type.IsAbstract && typeof(HtmlParser).IsAssignableFrom(type) && typeof(IHtmlParser).IsAssignableFrom(type)).ToList();
+        var parserTypes = types.Where(type =>
+                                    !type.IsAbstract && typeof(HtmlParser).IsAssignableFrom(type) &&
+                                    typeof(IHtmlParser).IsAssignableFrom(type))
+                               .ToList();
         Parsers = new Dictionary<string, HtmlParserCtor>(StringComparer.OrdinalIgnoreCase);
         foreach (var parserType in parserTypes)
         {
             if (parserType.GetProperty(nameof(IHtmlParser.ParserName))?.GetValue(null) is not string primaryName)
             {
-                throw new InvalidOperationException($"Parser type {parserType.Name} does not have a valid ParserName property.");
+                throw new InvalidOperationException(
+                    $"Parser type {parserType.Name} does not have a valid ParserName property.");
             }
-            
-            var additionalNames = parserType.GetProperty(nameof(IMultiSiteHtmlParser.AdditionalParserNames))?.GetValue(null) as string[] ?? [];
+
+            var additionalNames =
+                parserType.GetProperty(nameof(IMultiSiteHtmlParser.AdditionalParserNames))
+                         ?.GetValue(null) as string[] ?? [];
             var ctor = CreateHtmlParserFactory(parserType);
             Parsers[primaryName] = ctor;
             foreach (var additionalName in additionalNames)
@@ -45,10 +52,27 @@ public static class HtmlParserFactory
                 Parsers[additionalName] = ctor;
             }
         }
-        
+
         SupportedUrls = BuildSupportedUrls(parserTypes);
+
+        ParserTypesByName = parserTypes
+                           .SelectMany(t =>
+                            {
+                                var primaryName =
+                                    (string)t.GetProperty(nameof(IHtmlParser.ParserName))!.GetValue(null)!;
+                                var additionalNames = typeof(IMultiSiteHtmlParser).IsAssignableFrom(t)
+                                    ? (string[])t.GetProperty(nameof(IMultiSiteHtmlParser.AdditionalParserNames))!
+                                                 .GetValue(null)!
+                                    : [];
+                                return new[] { primaryName }.Concat(additionalNames)
+                                                            .Select(name => (Name: name, Type: t));
+                            })
+                           .ToDictionary(x => x.Name, x => x.Type, StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>Resolves a registered site name to its declaring parser Type, without constructing an instance.</summary>
+    public static Type? ResolveType(string site) => ParserTypesByName.GetValueOrDefault(site);
+    
     private static FrozenSet<string> BuildSupportedUrls(IEnumerable<Type> parserTypes)
     {
         var owners = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
@@ -71,7 +95,7 @@ public static class HtmlParserFactory
 
         return owners.Keys.ToFrozenSet();
     }
-    
+
     private static HtmlParserCtor CreateHtmlParserFactory(Type type)
     {
         if (HtmlParserCtors.TryGetValue(type, out var existingCtor))
