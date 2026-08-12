@@ -53,8 +53,7 @@ public static class HtmlParserFactory
             }
         }
 
-        //SupportedUrls = BuildSupportedUrls(parserTypes);
-        SupportedUrls = new HashSet<string>().ToFrozenSet();
+        SupportedUrls = BuildSupportedUrls(parserTypes);
 
         ParserTypesByName = parserTypes
                            .SelectMany(t =>

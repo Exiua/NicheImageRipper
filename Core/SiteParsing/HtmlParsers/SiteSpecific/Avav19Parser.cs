@@ -7,7 +7,7 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 public class Avav19Parser : Av19aParser, IHtmlParser
 {
     public new static string ParserName => "avav19";
-    public static string[] SupportedUrls => ["https://avav19.com/"];
+    public new static string[] SupportedUrls => ["https://avav19.com/"];
 
     public Avav19Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Avav19Parser>(filenameScheme))
     {

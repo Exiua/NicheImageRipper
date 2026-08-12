@@ -12,6 +12,7 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 public partial class NHentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nhentai";
+    public static string[] SupportedUrls { get; } = ["https://nhentai.net"];
 
     public NHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
     {

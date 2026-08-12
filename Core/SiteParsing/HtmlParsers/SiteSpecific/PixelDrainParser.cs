@@ -12,6 +12,8 @@ namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
 public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "pixeldrain";
+    
+    public static string[] SupportedUrls { get; } = ["https://pixeldrain.com/"];
 
     protected override bool RequiresNavigation => false;
 

@@ -9,7 +9,7 @@ public interface IHtmlParser
 
     /// <summary>The full base URLs (scheme + host + trailing slash) this parser supports, matching how
     /// UrlUtility.UrlCheck normalizes a URL for comparison (e.g. "https://www.example.com/").</summary>
-    static virtual string[] SupportedUrls { get; } = [];
+    static abstract string[] SupportedUrls { get; }
 
     static FilenameScheme GetFilenameScheme<T>(FilenameScheme original) where T : IHtmlParser
     {
