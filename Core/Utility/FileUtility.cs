@@ -3,38 +3,87 @@ using Serilog;
 
 namespace NicheImageRipper.Core.Utility;
 
+/// <summary>
+///     A byte-prefix trie for matching file signatures ("magic numbers") to extensions. Structurally guarantees
+///     longest-prefix-wins semantics — no manual mask ordering to get wrong when adding a new signature.
+/// </summary>
+public sealed class FileSignatureTrie
+{
+    private sealed class Node
+    {
+        public Dictionary<byte, Node>? Children;
+        public string? Extension; // set if a signature terminates at this node
+    }
+
+    private readonly Node _root = new();
+
+    public void Add(byte[] signature, string extension)
+    {
+        var node = _root;
+        foreach (var b in signature)
+        {
+            node.Children ??= new Dictionary<byte, Node>();
+            if (!node.Children.TryGetValue(b, out var child))
+            {
+                child = new Node();
+                node.Children[b] = child;
+            }
+
+            node = child;
+        }
+
+        node.Extension = extension;
+    }
+
+    /// <summary>Finds the extension for the longest signature prefix that matches the given bytes.</summary>
+    /// <returns>The matched extension, or null if no registered signature matches.</returns>
+    public string? Match(byte[] data)
+    {
+        var node = _root;
+        string? lastMatch = null;
+
+        foreach (var b in data)
+        {
+            if (node.Children is null || !node.Children.TryGetValue(b, out var child))
+            {
+                break;
+            }
+
+            node = child;
+            if (node.Extension is not null)
+            {
+                lastMatch = node.Extension;
+            }
+        }
+
+        return lastMatch;
+    }
+}
+
 public static class FileUtility
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(FileUtility));
 
-    private static readonly Dictionary<ulong, string> FileSignatures = new()
-    {
-        [0x89_50_4E_47_0D_0A_1A_0A] = ".png", // /8
-        [0x43_53_46_43_48_55_4E_4B] = ".clip", // /8
-        [0x3C_21_44_4F_43_54_59_50] = ".html", // /8 // <!DOCTYP
-        [0x3C_21_64_6F_63_74_79_70] = ".html", // /8 // <!doctyp
-        [0x52_61_72_21_1A_07_00_00] = ".rar", // /6
-        [0x37_7A_BC_AF_27_1C_00_00] = ".7z", // /6
-        [0x47_49_46_38_00_00_00_00] = ".gif", // /4
-        [0x50_4B_03_04_00_00_00_00] = ".zip", // /4
-        [0x38_42_50_53_00_00_00_00] = ".psd", // /4
-        [0x25_50_44_46_00_00_00_00] = ".pdf", // /4
-        [0x1A_45_DF_A3_00_00_00_00] = ".webm", // /4
-        [0x52_49_46_46_00_00_00_00] = ".webp", // /4
-        [0x00_00_00_00_66_74_79_70] = ".mp4", // /4, bytes 4-7 ("ftyp" box type — MP4's signature isn't at offset 0)
-        [0xFF_D8_FF_00_00_00_00_00] = ".jpg", // /3
-    };
+    private static readonly FileSignatureTrie SignatureTrie = BuildSignatureTrie();
 
-    // Tried in this order; a signature entry's length must be listed here so its mask is checked before any
-    // shorter/less-specific mask that could otherwise match a false positive first.
-    private static readonly ulong[] SignatureMasks =
-    [
-        0xFFFF_FFFF_FFFF_FFFF, // 8 bytes
-        0xFFFF_FFFF_FFFF_0000, // 6 bytes
-        0xFFFF_FFFF_0000_0000, // 4 bytes
-        0x0000_0000_FFFF_FFFF, // 4 bytes, offset 4 (e.g. mp4's ftyp box type)
-        0xFFFF_FF00_0000_0000, // 3 bytes
-    ];
+    private static FileSignatureTrie BuildSignatureTrie()
+    {
+        var trie = new FileSignatureTrie();
+        trie.Add([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], ".png");
+        trie.Add([.. "CSFCHUNK"u8], ".clip");
+        trie.Add([.. "<!DOCTYP"u8], ".html");
+        trie.Add([.. "<!doctyp"u8], ".html");
+        trie.Add([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00, 0x00], ".rar");
+        trie.Add([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C], ".7z");
+        trie.Add([.. "GIF8"u8], ".gif");
+        trie.Add([0x50, 0x4B, 0x03, 0x04], ".zip");
+        trie.Add([.. "8BPS"u8], ".psd");
+        trie.Add([.. "%PDF"u8], ".pdf");
+        trie.Add([0x1A, 0x45, 0xDF, 0xA3], ".webm");
+        trie.Add([.. "RIFF"u8], ".webp");
+        trie.Add([0xFF, 0xD8, 0xFF], ".jpg");
+        return trie;
+    }
 
     /// <summary>
     ///     Determines the correct file extension by analyzing the file's signature.
@@ -46,43 +95,19 @@ public static class FileUtility
     /// </returns>
     public static string GetCorrectExtension(string filepath)
     {
-        var signature = ReadSignature(filepath, 8);
-        if (signature is null)
+        var data = ReadSignature(filepath, 8);
+        if (data is null)
         {
             return ".bin"; // Default extension if reading failed or file is too small
         }
 
-        var signatureInt = ToUInt64(signature, 0);
-        foreach (var mask in SignatureMasks)
+        // MP4 sig starts from offset 4, so handle as special case
+        if (data.Length >= 8 && data[4] == 0x66 && data[5] == 0x74 && data[6] == 0x79 && data[7] == 0x70)
         {
-            var maskedSignature = signatureInt & mask;
-            if (FileSignatures.TryGetValue(maskedSignature, out var ext))
-            {
-                return ext;
-            }
+            return ".mp4";
         }
 
-        return ".bin"; // Default extension if no matching signature is found
-    }
-
-    /// <summary>
-    ///     Converts eight bytes from a byte array, starting at a specified index, into a 64-bit unsigned integer.
-    /// </summary>
-    /// <param name="bytes">The byte array containing the bytes to convert.</param>
-    /// <param name="startIndex">The starting index within the byte array.</param>
-    /// <returns>A 64-bit unsigned integer representing the value of the eight bytes.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     Thrown if <paramref name="startIndex"/> is less than 0 or if there are fewer than eight bytes remaining from the specified index.
-    /// </exception>
-    private static ulong ToUInt64(byte[] bytes, int startIndex)
-    {
-        var value = 0UL;
-        for (var i = 0; i < 8; i++)
-        {
-            value |= (ulong)bytes[startIndex + i] << (8 * (7 - i));
-        }
-
-        return value;
+        return SignatureTrie.Match(data) ?? ".bin";
     }
 
     /// <summary>

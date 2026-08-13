@@ -10,13 +10,17 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
+
 public class SimpCityParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "simpcity";
     public static string[] SupportedUrls => ["https://simpcity.su/", "https://www.simpcity.su/"];
 
     private const string CacheFile = "simpcitycache.json";
-    public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SimpCityParser>(filenameScheme))
+
+    public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<SimpCityParser>(filenameScheme))
     {
     }
 
@@ -72,11 +76,12 @@ public class SimpCityParser : HtmlParser, IHtmlParser
             JsonUtility.Serialize(CacheFile, cache);
         }
 
-#region Resolve Links
+        #region Resolve Links
+
         var offset = 0;
         var resolved = 1;
         var total = resolveLists.Sum(list => list.Value.Count);
-        foreach (var(resolveList, i)in resolveLists)
+        foreach (var (resolveList, i)in resolveLists)
         {
             var index = i + offset;
             foreach (var link in resolveList)
@@ -84,7 +89,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                 Logger.Information("Resolving link {Resolved} of {Total}: {Link}", resolved, total, link);
                 resolved++;
                 ParameterizedHtmlParser? parser = null;
-                foreach (var(urlPart, p)in resolvableMap)
+                foreach (var (urlPart, p)in resolvableMap)
                 {
                     if (link.Contains(urlPart))
                     {
@@ -111,7 +116,8 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                     // TODO: Find a better way to handle this
                     info = await ReTryParse(link, parser);
                 }
-                catch (WebDriverException e)when (e.Message.Contains("The HTTP request to the remote WebDriver server for URL"))
+                catch (WebDriverException e)when (e.Message.Contains(
+                                                      "The HTTP request to the remote WebDriver server for URL"))
                 {
                     Logger.Warning("WebDriver unresponsive, retrying");
                     // Assume driver is dead and unreachable
@@ -125,12 +131,14 @@ public class SimpCityParser : HtmlParser, IHtmlParser
             }
         }
 
-#endregion
+        #endregion
+
         File.Delete(CacheFile);
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<(List<StringFileLinkWrapper>, List<IndexedContainer<List<string>>>, string)> ParsePosts(Dictionary<string, ParameterizedHtmlParser> resolvableMap)
+    private async Task<(List<StringFileLinkWrapper>, List<IndexedContainer<List<string>>>, string)> ParsePosts(
+        Dictionary<string, ParameterizedHtmlParser> resolvableMap)
     {
         if (CurrentUrl.Contains("//www."))
         {
@@ -170,21 +178,23 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                 continue;
             }
 
-#if DEBUG
+            #if DEBUG
             Driver.TakeDebugScreenshot();
-#endif
-            var posts = soup.SelectSingleNodeOrThrow("//div[@class='block-body js-replyNewMessageContainer']").SelectNodesSafe("./article");
+            #endif
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='block-body js-replyNewMessageContainer']")
+                            .SelectNodesSafe("./article");
             foreach (var post in posts)
             {
                 var content = post.SelectSingleNodeOrThrow(".//div[@class='bbWrapper']");
-                var imgs = content.SelectNodesSafe(".//img").Select(img => img.GetSrc().Remove(".md")).Where(url => !url.StartsWith("data:image/gif")) // Ignore emojis
-                .ToStringImageLinks();
+                var imgs = content.SelectNodesSafe(".//img").Select(img => img.GetSrc().Remove(".md"))
+                                  .Where(url => !url.StartsWith("data:image/gif")) // Ignore emojis
+                                  .ToStringImageLinks();
                 images.AddRange(imgs);
                 var vids = content.SelectNodesSafe(".//video").Select(VideoResolver).ToStringImageLinks();
                 images.AddRange(vids);
                 var index = images.Count;
                 var links = content.SelectNodesSafe(".//a");
-#if DEBUG
+                #if DEBUG
                 var rawLinks = links.Select(link => link.GetNullableHref()).OfType<string>().ToList();
                 var resolve = rawLinks.Where(url => resolvableMap.Keys.Any(url.Contains)).ToList();
                 foreach (var link in rawLinks.Except(resolve))
@@ -192,13 +202,14 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                     Logger.Debug("Unhandled link: {Link}", link);
                 }
 
-#else
+                #else
                 var resolve = links.Select(link => link.GetNullableHref())
                                     .OfType<string>()
                                     .Where(url => resolvableMap.Keys.Any(url.Contains))
                                     .ToList();
-#endif
-                var iframes = content.SelectNodesSafe(".//iframe[@class='saint-iframe']").Select(iframe => iframe.GetSrc()); //cyberdrop and saint2
+                #endif
+                var iframes = content.SelectNodesSafe(".//iframe[@class='saint-iframe']")
+                                     .Select(iframe => iframe.GetSrc()); //cyberdrop and saint2
                 resolve.AddRange(iframes);
                 if (resolve.Count != 0)
                 {
@@ -255,12 +266,14 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         }
 
         var grandParent = video.ParentNode.ParentNode;
-        var downloadLink = grandParent.SelectSingleNodeOrThrow(".//a[@class='plyr__controls__item plyr__control']").GetHref();
+        var downloadLink = grandParent.SelectSingleNodeOrThrow(".//a[@class='plyr__controls__item plyr__control']")
+                                      .GetHref();
         var id = downloadLink.Split("/d/")[^1];
         return $"https://simp2.saint2.pk/api/download.php?file={id}";
     }
 
-    private Task<RipInfo> ReTryParse(string link, ParameterizedHtmlParser parser, CancellationToken cancellationToken = default)
+    private Task<RipInfo> ReTryParse(string link, ParameterizedHtmlParser parser,
+                                     CancellationToken cancellationToken = default)
     {
         WebDriver.RegenerateDriver();
         // Driver.Url = link;

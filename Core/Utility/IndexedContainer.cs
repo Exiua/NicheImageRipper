@@ -5,7 +5,7 @@ namespace NicheImageRipper.Core.Utility;
 public class IndexedContainer<T>
 {
     public int Index { get; set; }
-    public T Value { get; set; } =default!;
+    public T Value { get; set; } = default!;
 
     [JsonConstructor]
     public IndexedContainer()
