@@ -385,7 +385,7 @@ public partial class NicheImageRipper : IDisposable
     {
         if (UrlQueue.Count == 0)
         {
-            PrintUtility.Print("No URLs to rip.");
+            Logger.Information("No URLs to rip.");
             return "";
         }
 

@@ -18,6 +18,10 @@ public static class HtmlParserFactory
     private static readonly Dictionary<string, HtmlParserCtor> Parsers;
     private static readonly Dictionary<string, Type> ParserTypesByName;
 
+    public static FrozenDictionary<string, int> SubdomainSignificantSuffixes { get; }
+    public static FrozenDictionary<string, string> RefererOverridesBySuffix { get; }
+    public static IReadOnlyList<(string From, string To)> UrlReplacements { get; }
+
     /// <summary>
     ///     Every base URL (scheme+host+trailing slash) supported by any registered parser, derived from each
     ///     parser's <see cref="IHtmlParser.SupportedUrls"/>. Used by <c>UrlUtility.UrlCheck</c> instead of a
@@ -68,11 +72,60 @@ public static class HtmlParserFactory
                                                             .Select(name => (Name: name, Type: t));
                             })
                            .ToDictionary(x => x.Name, x => x.Type, StringComparer.OrdinalIgnoreCase);
+
+        SubdomainSignificantSuffixes = parserTypes
+                                      .Where(t => typeof(ISubdomainSignificantHtmlParser).IsAssignableFrom(t))
+                                      .SelectMany(t =>
+                                       {
+                                           var labels =
+                                               (int)t.GetProperty(nameof(ISubdomainSignificantHtmlParser
+                                                  .SignificantDomainLabels))!.GetValue(null)!;
+                                           var urls = (string[])t.GetProperty(nameof(IHtmlParser.SupportedUrls))!
+                                                                 .GetValue(null)!;
+                                           return urls.Select(url => (Suffix: new Uri(url).Host, Labels: labels));
+                                       })
+                                      .ToFrozenDictionary(x => x.Suffix, x => x.Labels);
+
+        RefererOverridesBySuffix = BuildSuffixLookup<string>(
+            parserTypes, nameof(IRefererOverrideHtmlParser.RefererOverride));
+
+        UrlReplacements = parserTypes
+                         .Where(t => typeof(IUrlNormalizingHtmlParser).IsAssignableFrom(t))
+                         .SelectMany(t =>
+                              (ValueTuple<string, string>[])t.GetProperty(nameof(IUrlNormalizingHtmlParser
+                                 .UrlReplacements))!.GetValue(null)!)
+                         .ToList();
     }
 
     /// <summary>Resolves a registered site name to its declaring parser Type, without constructing an instance.</summary>
     public static Type? ResolveType(string site) => ParserTypesByName.GetValueOrDefault(site);
-    
+
+    private static FrozenDictionary<string, TValue> BuildSuffixLookup<TValue>(
+        IEnumerable<Type> parserTypes, string propertyName)
+    {
+        var owners = new Dictionary<string, (Type Owner, TValue Value)>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var type in parserTypes.Where(t => typeof(IRefererOverrideHtmlParser).IsAssignableFrom(t)))
+        {
+            var value = (TValue)type.GetProperty(propertyName)!.GetValue(null)!;
+            var urls = (string[])type.GetProperty(nameof(IHtmlParser.SupportedUrls))!.GetValue(null)!;
+
+            foreach (var suffix in urls.Select(u => new Uri(u).Host).Distinct())
+            {
+                if (owners.TryGetValue(suffix, out var existing) && existing.Owner != type)
+                {
+                    Logger.Warning(
+                        "Domain suffix {Suffix} claimed by both {Existing} (existing) and {New} (new); newer will take precedence",
+                        suffix, existing.Owner.Name, type.Name);
+                }
+
+                owners[suffix] = (type, value);
+            }
+        }
+
+        return owners.ToFrozenDictionary(kvp => kvp.Key, kvp => kvp.Value.Value);
+    }
+
     private static FrozenSet<string> BuildSupportedUrls(IEnumerable<Type> parserTypes)
     {
         var owners = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);

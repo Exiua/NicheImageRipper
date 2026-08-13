@@ -4,12 +4,16 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-public class KemonoParser : DotPartyParser, IHtmlParser
+
+public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlParser
 {
     public static string ParserName => "kemono";
     public static string[] SupportedUrls => ["https://kemono.party/", "https://kemono.su/", "https://kemono.cr/"];
+    public static string RefererOverride => "";
 
-    public KemonoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KemonoParser>(filenameScheme))
+    public KemonoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<KemonoParser>(filenameScheme))
     {
     }
 

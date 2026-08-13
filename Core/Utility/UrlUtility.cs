@@ -8,6 +8,7 @@ namespace NicheImageRipper.Core.Utility;
 public static partial class UrlUtility
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(UrlUtility));
+
     /// <summary>
     ///     Check the url to make sure it is from valid site
     /// </summary>
@@ -21,6 +22,7 @@ public static partial class UrlUtility
     }
 
     private static readonly string[] SpecialDomains = ["inven.co.kr", "danbooru.donmai.us"];
+
     /// <summary>
     ///     Extracts the site-check domain and referer for a URL, applying the known per-site referer overrides.
     ///     Does not enforce the production site whitelist — see <see cref = "SiteCheck"/> for that.
@@ -30,14 +32,23 @@ public static partial class UrlUtility
         var domain = new Uri(givenUrl).Host;
         requestHeaders["referer"] = $"https://{domain}/";
         var domainParts = domain.Split('.');
-        domain = SpecialDomains.Any(domain.Contains) ? domainParts[^3] : domainParts[^2];
-        if (givenUrl.Contains("https://members.hanime.tv/") || givenUrl.Contains("https://hanime.tv/"))
+
+        var labelsToKeep = HtmlParserFactory.SubdomainSignificantSuffixes
+                                            .Where(kvp => domain.EndsWith(kvp.Key))
+                                            .Select(kvp => kvp.Value)
+                                            .DefaultIfEmpty(2)
+                                            .Max();
+        domain = domainParts[^Math.Min(labelsToKeep, domainParts.Length)];
+
+        var refererOverride = HtmlParserFactory.RefererOverridesBySuffix
+                                               .Where(kvp => domain.EndsWith(kvp.Key)) // reuse `domain` (the host) already computed above
+                                               .OrderByDescending(kvp => kvp.Key.Length)
+                                               .Select(string? (kvp) => kvp.Value)
+                                               .FirstOrDefault();
+
+        if (refererOverride is not null)
         {
-            requestHeaders["referer"] = "https://cdn.discordapp.com/";
-        }
-        else if (givenUrl.Contains("https://kemono.party/") || givenUrl.Contains("inven.co.kr"))
-        {
-            requestHeaders["referer"] = "";
+            requestHeaders["referer"] = refererOverride;
         }
 
         return domain;
@@ -107,7 +118,7 @@ public static partial class UrlUtility
                     end = m.Groups[1].Index + "?id=".Length + 33;
                     break;
                 default:
-                    PrintUtility.Print($"Incorrect Match: {url}");
+                    Logger.Warning("Incorrect Match: {Url}", url);
                     return "";
             }
 
@@ -127,14 +138,14 @@ public static partial class UrlUtility
                     end = m.Groups[1].Index + "/file/d/".Length + 33;
                     break;
                 default:
-                    PrintUtility.Print(url);
+                    Logger.Warning("Incorrect Match: {Url}", url);
                     return "";
             }
 
             return url.Length < end ? "" : url[start..end];
         }
 
-        PrintUtility.Print(url);
+        Logger.Warning("Unrecognized GDrive url: {Url}", url);
         return "";
     }
 
@@ -149,7 +160,7 @@ public static partial class UrlUtility
         var m = MegaLinkRegex().Match(url);
         if (!m.Success)
         {
-            PrintUtility.Print(url);
+            Logger.Warning("Unrecognized Mega url: {Url}", url);
             return "";
         }
 
@@ -169,7 +180,7 @@ public static partial class UrlUtility
                 end = m.Groups[1].Index + "/file/".Length + 52;
                 break;
             default:
-                PrintUtility.Print($"Incorrect Match: {url}");
+                Logger.Warning("Incorrect Match: {Url}", url);
                 return "";
         }
 
@@ -192,8 +203,12 @@ public static partial class UrlUtility
     /// </summary>
     public static string NormalizeUrl(string url)
     {
-        return url.Replace("members.", "www.") // Hanime
-        .Replace("exhentai.org", "e-hentai.org"); // Need to go through e-hentai first for cookies
+        foreach (var (from, to) in HtmlParserFactory.UrlReplacements)
+        {
+            url = url.Replace(from, to);
+        }
+
+        return url;
     }
 
     /// <summary>
@@ -211,8 +226,10 @@ public static partial class UrlUtility
 
     [GeneratedRegex(@"(\?usp=sharing|\?usp=share_link|\?id=)")]
     private static partial Regex GDriveLinkRegex1();
+
     [GeneratedRegex(@"(/folders/|/file/d/)")]
     private static partial Regex GDriveLinkRegex2();
+
     [GeneratedRegex(@"(/folder/|/#F!|/#!|/file/)")]
     private static partial Regex MegaLinkRegex();
 }

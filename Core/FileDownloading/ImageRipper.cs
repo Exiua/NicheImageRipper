@@ -443,7 +443,7 @@ public class ImageRipper : IDisposable
     {
         // Gets the general url for all images in this album
         var imageLink = FolderInfo.Urls[0];
-        var trimmedUrl = TrimUrl(imageLink.Url);
+        var trimmedUrl = UrlUtility.TrimUrl(imageLink.Url);
         imageLink.Url = trimmedUrl;
         string[] extensions = [".webp", ".jpg", ".gif", ".png", ".webm", ".mp4", "t.jpg"];
 
@@ -857,16 +857,6 @@ public class ImageRipper : IDisposable
         await Sleep(50, cancellationToken);
 
         return result;
-    }
-
-    /// <summary>
-    /// Returns the url without the filename attached (i.e. truncated to its last '/').
-    /// </summary>
-    /// <param name="url">Url to trim</param>
-    /// <returns>The base url</returns>
-    private static string TrimUrl(string url)
-    {
-        return url[..(url.LastIndexOf('/') + 1)];
     }
 
     /// <summary>

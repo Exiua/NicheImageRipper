@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
@@ -14,7 +17,9 @@ public partial class NHentaiParser : HtmlParser, IHtmlParser
     public static string ParserName => "nhentai";
     public static string[] SupportedUrls { get; } = ["https://nhentai.net"];
 
-    public NHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
+    public NHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
     {
     }
 
@@ -29,28 +34,29 @@ public partial class NHentaiParser : HtmlParser, IHtmlParser
             ScrollBy = true,
             Increment = 1250
         };
-        await LazyLoad(lazyLoadArgs);
+        await LazyLoad(lazyLoadArgs, cancellationToken);
         var btn = Driver.TryFindElement(By.Id("show-all-images-button"));
         if (btn is not null)
         {
             Driver.ExecuteScript("arguments[0].scrollIntoView();", btn);
             btn.Click();
         }
-        await LazyLoad(lazyLoadArgs);
-        var soup = await Soupify();
+
+        await LazyLoad(lazyLoadArgs, cancellationToken);
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
         var thumbnails = soup.SelectSingleNodeOrThrow("//div[@class='thumbs']")
-                            .SelectNodesOrThrow(".//img")
-                            .Select(img => img.GetNullableAttributeValue("data-src"))
-                            .ToList();
+                             .SelectNodesOrThrow(".//img")
+                             .Select(img => img.GetNullableAttributeValue("data-src"))
+                             .ToList();
         var images = thumbnails.Where(thumb => !string.IsNullOrEmpty(thumb)) // Remove nulls
-                                .Select(thumb => NHentaiRegex().Replace(thumb!, "i7."))
-                                .Select(newThumb => newThumb.Replace("t.", "."))
-                                .ToStringImageLinkWrapperList();
-    
+                               .Select(thumb => NHentaiRegex().Replace(thumb!, "i7."))
+                               .Select(newThumb => newThumb.Replace("t.", "."))
+                               .ToStringImageLinkWrapperList();
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
-    
+
     [GeneratedRegex(@"t\d\.")]
     private static partial Regex NHentaiRegex();
 }

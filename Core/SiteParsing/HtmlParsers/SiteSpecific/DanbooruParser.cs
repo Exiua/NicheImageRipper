@@ -4,12 +4,16 @@ using NicheImageRipper.Core.Managers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-public class DanbooruParser : BooruParser, IHtmlParser
+
+public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtmlParser
 {
     public static string ParserName => "danbooru";
     public static string[] SupportedUrls => ["https://danbooru.donmai.us/"];
+    public static int SignificantDomainLabels => 3;
 
-    public DanbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DanbooruParser>(filenameScheme))
+    public DanbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<DanbooruParser>(filenameScheme))
     {
     }
 

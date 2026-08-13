@@ -8,24 +8,30 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing.HtmlParsers.SiteSpecific;
-public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtmlParser
+
+public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtmlParser, IUrlNormalizingHtmlParser
 {
     public static string ParserName => "e-hentai";
     public static string[] SupportedUrls => ["https://e-hentai.org/", "https://exhentai.org/"];
     public static string[] AdditionalParserNames { get; } = ["exhentai"];
+    public static (string From, string To)[] UrlReplacements { get; } = [("exhentai.org", "e-hentai.org")];
+
+
     protected override int MaxEntriesPerBatch => 250;
     protected override string ParserKey => ParserName;
     protected override bool SupportsPartialSave => false;
     protected override bool RequiresLogin => true;
 
-    public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EHentaiParser>(filenameScheme))
+    public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<EHentaiParser>(filenameScheme))
     {
     }
 
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         const string loginUrl = "https://forums.e-hentai.org/index.php?act=Login&CODE=00";
-        var(username, password) = Config.Logins.EHentai;
+        var (username, password) = Config.Logins.EHentai;
         var currentUrl = CurrentUrl;
         CurrentUrl = loginUrl;
         Driver.FindElement(By.XPath("//input[@name='UserName']")).SendKeys(username);
@@ -69,7 +75,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
         Logger.Debug("Found {count} image links", imageLinks.Count);
         // Links to the images themselves
         var imageUrls = new List<string>();
-        foreach (var(i, link)in imageLinks.Enumerate())
+        foreach (var (i, link)in imageLinks.Enumerate())
         {
             // Done to prevent taking too long getting links to the point where the links have expired
             // Also, E-Hentai seems to hang for too long when too many requests are made in a short period of time
@@ -88,7 +94,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
         }
 
         var images = new List<FileLink>(imageUrls.Count);
-        foreach (var(i, link)in imageUrls.Enumerate())
+        foreach (var (i, link)in imageUrls.Enumerate())
         {
             images.Add(link == "" ? FileLink.Invalid : FileLink.Create(link, FilenameScheme, i));
         }
@@ -108,7 +114,8 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
         return GetImageLink(link, cancellationToken);
     }
 
-    private async Task ExtractImageLinks(HtmlNode soup, List<string> imageLinks, CancellationToken cancellationToken = default)
+    private async Task ExtractImageLinks(HtmlNode soup, List<string> imageLinks,
+                                         CancellationToken cancellationToken = default)
     {
         var pageCount = 1;
         while (true)
@@ -122,7 +129,8 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
             }
 
             imageLinks.AddRange(imageTags);
-            var nextPage = soup.SelectSingleNodeOrThrow("//table[@class='ptb']").SelectNodesSafe(".//a").Last().GetHref();
+            var nextPage = soup.SelectSingleNodeOrThrow("//table[@class='ptb']").SelectNodesSafe(".//a").Last()
+                               .GetHref();
             if (nextPage == CurrentUrl)
             {
                 break;

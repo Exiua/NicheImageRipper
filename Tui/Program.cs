@@ -20,7 +20,6 @@ Log.Logger = new LoggerConfiguration()
 NicheImageRipper.Core.NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
 #endif
 
-PrintUtility.PrintFunction = Log.Information;
 Console.OutputEncoding = Encoding.UTF8;
 
 #if DEBUG
