@@ -1,12 +1,21 @@
+using NicheImageRipper.Common.ExtensionMethods;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
+
 public class SpaceMissParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "spacemiss";
     public static string[] SupportedUrls => ["https://spacemiss.com/"];
 
-    public SpaceMissParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SpaceMissParser>(filenameScheme))
+    public SpaceMissParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<SpaceMissParser>(filenameScheme))
     {
     }
 
@@ -18,7 +27,10 @@ public class SpaceMissParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify();
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='tdb-title-text']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images columns-2 is-cropped td-modal-on-gallery wp-block-gallery-1 is-layout-flex wp-block-gallery-is-layout-flex']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup
+                    .SelectSingleNodeOrThrow(
+                         "//figure[@class='wp-block-gallery has-nested-images columns-2 is-cropped td-modal-on-gallery wp-block-gallery-1 is-layout-flex wp-block-gallery-is-layout-flex']")
+                    .SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }
