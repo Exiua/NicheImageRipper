@@ -30,7 +30,7 @@ public partial class NicheImageRipper : IDisposable
     public static GeneralConfig Config => Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
     public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
-    public static Version Version { get; } = new(4, 1, 0);
+    public static Version Version { get; } = new(5, 0, 0);
 
     public static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
     
