@@ -1,24 +1,26 @@
 using System.Diagnostics;
 using System.Text;
-using NicheImageRipper.Common.ExtensionMethods;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using OpenQA.Selenium;
-using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
+
 public class YoutubeParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "youtube";
     public static string[] SupportedUrls => ["https://www.youtube.com/"];
+    protected override bool RequiresNavigation => false;
 
-    public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<YoutubeParser>(filenameScheme))
+    public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<YoutubeParser>(filenameScheme))
     {
     }
 
@@ -28,20 +30,26 @@ public class YoutubeParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        // TODO: May be able to rectify this in PostProcess by renaming files after download
-        if (FilenameScheme != FilenameScheme.Original)
+        if (!Core.NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
         {
-            Logger.Warning("YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
+            Logger.Error("yt-dlp is not available. Cannot parse YouTube without yt-dlp.");
+            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
         }
 
-        var url = CurrentUrl.Split("/").Take(4).Join('/');
-        CurrentUrl = url;
-        var soup = await Soupify(xpath: "//h1[@class='dynamicTextViewModelH1']/span", cancellationToken: cancellationToken);
-        var displayName = soup.SelectSingleNodeOrThrow("//h1[@class='dynamicTextViewModelH1']/span").InnerText;
-        var username = soup.SelectSingleNodeOrThrow("//span[@class='yt-core-attributed-string yt-content-metadata-view-model__metadata-text yt-core-attributed-string--white-space-pre-wrap yt-core-attributed-string--link-inherit-color']").InnerText;
-        var dirName = $"{displayName} ({username})";
-        var args = new SubprocessArgs("yt-dlp").WithArgs("--flat-playlist", "--encoding", "utf-8", "--print", "\"%(title)s|%(id)s\"", CurrentUrl).EnableOutputCapture();
-        var(exitCode, output, error) = await RunSubprocess(args, cancellationToken: cancellationToken);
+        if (FilenameScheme != FilenameScheme.Original)
+        {
+            Logger.Warning(
+                "YoutubeParser only supports Original filename scheme. Files will be saved with original filenames.");
+        }
+
+        var url = GivenUrl.Split("/").Take(4).Join('/');
+
+        var dirName = await GetChannelDisplayName(url, cancellationToken);
+
+        var listArgs = new SubprocessArgs("yt-dlp")
+                      .WithArgs("--flat-playlist", "--encoding", "utf-8", "--print", "\"%(title)s|%(id)s\"", url)
+                      .EnableOutputCapture();
+        var (exitCode, output, error) = await RunSubprocess(listArgs, cancellationToken: cancellationToken);
         if (exitCode != 0)
         {
             Logger.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
@@ -57,7 +65,32 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
             return fileLink;
         }).ToStringImageLinkWrapperList();
+
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+
+    private async Task<string> GetChannelDisplayName(string url, CancellationToken cancellationToken)
+    {
+        var metadataArgs = new SubprocessArgs("yt-dlp")
+                          .WithArgs("--flat-playlist", "--playlist-items", "0", "--dump-single-json", url)
+                          .EnableOutputCapture()
+                          .EnableErrorCapture();
+        var (exitCode, output, error) = await RunSubprocess(metadataArgs, cancellationToken: cancellationToken);
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
+        {
+            Logger.Warning("Failed to fetch channel metadata via yt-dlp (exit {ExitCode}): {Error}", exitCode, error);
+            return "Unknown Channel";
+        }
+
+        var json = JsonSerializer.Deserialize<JsonNode>(output);
+        var displayName = json?["channel"]?.GetValue<string>() ?? json?["uploader"]?.GetValue<string>();
+        var username = json?["uploader_id"]?.GetValue<string>() ?? json?["channel_id"]?.GetValue<string>();
+
+        return displayName is null
+            ? "Unknown Channel"
+            : username is null
+                ? displayName
+                : $"{displayName} ({username})";
     }
 
     private class SubprocessArgs
@@ -103,7 +136,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         }
     }
 
-    private static async Task<(int, string? , string? )> RunSubprocess(SubprocessArgs args, CancellationToken cancellationToken = default)
+    private static async Task<(int, string?, string? )> RunSubprocess(SubprocessArgs args,
+                                                                      CancellationToken cancellationToken = default)
     {
         var arguments = args.GetArgs();
         using var process = new Process();

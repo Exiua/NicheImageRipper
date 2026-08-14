@@ -13,7 +13,7 @@ namespace NicheImageRipper.Core.Utility;
 /// </summary>
 public static class SiteModuleLoader
 {
-    private const string BuiltInModuleAssemblyName = "NicheImageRipper.SiteModules";
+    private const string BuiltInModuleAssemblyName = "SiteModules.dll";
     private const string ModulesFolderName = "modules";
     private const string LoadOrderFileName = "loadOrder.json";
 
@@ -39,7 +39,10 @@ public static class SiteModuleLoader
     {
         try
         {
-            return Assembly.Load(BuiltInModuleAssemblyName);
+            return AssemblyLoadContext.Default.LoadFromAssemblyPath(
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    BuiltInModuleAssemblyName));
         }
         catch (Exception e)
         {

@@ -45,7 +45,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Clients\Iwara\" />
+        <Content Include="..\SiteModules\bin\$(Configuration)\net10.0\SiteModules.dll">
+<!--            <Link>Plugins\SiteModules.dll</Link>-->
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>
