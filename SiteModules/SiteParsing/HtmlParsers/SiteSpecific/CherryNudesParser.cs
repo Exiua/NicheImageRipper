@@ -1,0 +1,25 @@
+using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
+public class CherryNudesParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "cherrynudes";
+    public static string[] SupportedUrls => ["https://www.cherrynudes.com/"];
+
+    public CherryNudesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CherryNudesParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for cherrynudes.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify();
+        var dirName = soup.SelectSingleNodeOrThrow("//title").InnerText.Split("-")[0].Trim();
+        var contentUrl = CurrentUrl.Replace("www", "cdn");
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}
