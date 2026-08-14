@@ -527,7 +527,7 @@ public abstract class HtmlParser : IDisposable
         return solution;
     }
 
-    internal static Task JitterSleep(int min = 250, int max = 2500, CancellationToken cancellationToken = default)
+    public static Task JitterSleep(int min = 250, int max = 2500, CancellationToken cancellationToken = default)
     {
         var jitter = Random.Shared.Next(min, max);
         return Task.Delay(jitter, cancellationToken);

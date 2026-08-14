@@ -78,8 +78,8 @@ public class RipInfo
     }
 
     // Mainly used for e-hentai to allow partial parsing, where some links are invalid and need to be "re-generated"
-    internal static RipInfo GenerateWithInvalid(List<FileLink> urls, string directoryName,
-                                                FilenameScheme filenameScheme)
+    public static RipInfo GenerateWithInvalid(List<FileLink> urls, string directoryName,
+                                              FilenameScheme filenameScheme)
     {
         return new RipInfo(urls, directoryName, filenameScheme);
     }

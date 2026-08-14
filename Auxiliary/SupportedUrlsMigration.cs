@@ -28,7 +28,7 @@ public static class SupportedUrlsMigrationProgram
 {
     private static bool _dryRun;
 
-    public static async Task Main(string[] args)
+    public static async Task Run(string[] args)
     {
         var solutionPath = args.FirstOrDefault(a => !a.StartsWith("--"));
         _dryRun = args.Contains("--dry-run");

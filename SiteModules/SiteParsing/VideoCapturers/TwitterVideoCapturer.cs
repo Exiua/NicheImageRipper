@@ -1,6 +1,7 @@
-﻿using OpenQA.Selenium.BiDi.Network;
+﻿using NicheImageRipper.Core.SiteParsing.VideoCapturers;
+using OpenQA.Selenium.BiDi.Network;
 
-namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 
 public class TwitterVideoCapturer : PlaylistCapturer
 {

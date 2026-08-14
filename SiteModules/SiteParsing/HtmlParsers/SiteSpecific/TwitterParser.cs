@@ -4,6 +4,12 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using OpenQA.Selenium;
+using HtmlAgilityPack;
+using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -213,8 +219,8 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
                     streak += 1;
                     if (streak == 3)
                     {
-                    //baseWaitTime *= 0.9; // Reduce wait time if successful on first try
-                    //baseWaitTime = Math.Max(baseWaitTime, trueBaseWaitTime);
+                        //baseWaitTime *= 0.9; // Reduce wait time if successful on first try
+                        //baseWaitTime = Math.Max(baseWaitTime, trueBaseWaitTime);
                     }
                 }
 

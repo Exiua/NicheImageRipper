@@ -4,6 +4,11 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using OpenQA.Selenium;
+using HtmlAgilityPack;
+using NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -28,7 +33,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
         var video = soup.SelectSingleNode("//iframe");
         if (video is not null)
         {
-            var(capturer, _) = await ConfigureNetworkCapture<Cosplay69VideoCapturer>();
+            var(capturer, _) = await ConfigureNetworkCapture<Cosplay69VideoCapturer>(cancellationToken);
             Driver.Refresh();
             while (true)
             {

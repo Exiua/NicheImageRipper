@@ -4,6 +4,13 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using OpenQA.Selenium;
+using HtmlAgilityPack;
+using NicheImageRipper.Core.SiteParsing.VideoCapturers;
+using NicheImageRipper.Core.Utility;
+using NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;

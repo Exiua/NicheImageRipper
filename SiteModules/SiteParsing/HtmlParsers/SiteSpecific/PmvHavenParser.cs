@@ -5,15 +5,22 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Exceptions;
+using OpenQA.Selenium;
+using NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
+
 public class PmvHavenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pmvhaven";
     public static string[] SupportedUrls => ["https://pmvhaven.com/"];
 
-    public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PmvHavenParser>(filenameScheme))
+    public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager,
+                          Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<PmvHavenParser>(filenameScheme))
     {
     }
 
@@ -24,7 +31,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         //var client = new CSWebDriverClient.Client(Config.CSWebDriverUri);
-        var(capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>(cancellationToken);
+        var (capturer, b) = await ConfigureNetworkCapture<PmvHavenCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.AddCookie("ageVerified", "true");
         Driver.Refresh();
@@ -40,7 +47,8 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
         List<StringFileLinkWrapper> images;
         if (currentUrl.Contains("/video/"))
         {
-            var soup = await Soupify(xpath: "//video[@id='VideoPlayer']/source", xpathTimeout: 10, cancellationToken: cancellationToken);
+            var soup = await Soupify(xpath: "//video[@id='VideoPlayer']/source", xpathTimeout: 10,
+                cancellationToken: cancellationToken);
             dirName = soup.SelectNodesOrThrow("//h1")[1].InnerText;
             var url = await GetVideoUrl(capturer, currentUrl, cancellationToken);
             images = [url];
@@ -103,7 +111,8 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task<FileLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl, CancellationToken cancellationToken = default)
+    private async Task<FileLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl,
+                                             CancellationToken cancellationToken = default)
     {
         postUrl = postUrl.Split("?")[0];
         FileLink? imageLink = null;

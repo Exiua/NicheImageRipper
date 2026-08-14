@@ -1,8 +1,9 @@
+using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using OpenQA.Selenium.BiDi.Network;
 
-namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 
-public class PmvHavenCapturer : PlaylistCapturer
+public class SexBjCamVideoCapturer : PlaylistCapturer
 {
     protected override bool ResponseIsInteresting(ResponseCompletedEventArgs e)
     {
@@ -11,7 +12,6 @@ public class PmvHavenCapturer : PlaylistCapturer
 
     protected override string GetId(string url)
     {
-        var slashCount = url.Count(c => c == '/');
-        return slashCount == 4 ? url.Split('/')[3] : url.Split('/')[4];
+        return url.Split("/")[4];
     }
 }

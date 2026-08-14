@@ -2,7 +2,7 @@ using System.Text;
 
 namespace NicheImageRipper.Core.FileDownloading;
 
-internal static class DownloadLogging
+public static class DownloadLogging
 {
     public static void LogFailedUrl(string url)
     {

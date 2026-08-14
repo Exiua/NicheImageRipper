@@ -1,3 +1,4 @@
+using CSWebDriverClient;
 using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
 using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
 using NicheImageRipper.Common.ExtensionMethods;
@@ -6,6 +7,10 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using OpenQA.Selenium;
+using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -81,7 +86,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
     private async Task<string> GetVideoUrl(Client client, string url, CancellationToken cancellationToken = default)
     {
         url = url.Replace("watch?", "download?");
-        var response = await client.GetPage(url, waitForXPath: "//a[@download]");
+        var response = await client.GetPage(url, waitForXPath: "//a[@download]", cancellationToken: cancellationToken);
         if (response is ErrorResponse errorResponse)
         {
             throw new Exception($"Error retrieving video page: {errorResponse.Error}");
@@ -91,7 +96,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         HtmlNode? downloadButton = null;
         for (var i = 0; i < maxAttempts; i++)
         {
-            var soup = await Soupify(response);
+            var soup = await Soupify(response, cancellationToken);
             downloadButton = soup.SelectSingleNode("//a[@download]"); // First link will be the highest quality
             if (downloadButton is null)
             {
@@ -100,7 +105,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
                     throw new RipperException("Failed to find download button after multiple attempts.");
                 }
 
-                await Sleep(250);
+                await Sleep(250, cancellationToken);
             }
             else
             {

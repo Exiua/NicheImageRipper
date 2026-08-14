@@ -1,9 +1,15 @@
+using CSWebDriverClient;
+using CSWebDriverClient.Models.Responses;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Core.Exceptions;
+using OpenQA.Selenium;
+using HtmlAgilityPack;
+using NicheImageRipper.Core.Utility;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
 
@@ -23,7 +29,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
+        if (!Core.NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
         {
             Logger.Error("CSWebDriver URI is not configured. Cannot parse rule34video.com without CSWebDriver.");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);

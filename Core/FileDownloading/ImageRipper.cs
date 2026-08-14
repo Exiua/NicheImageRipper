@@ -28,7 +28,7 @@ public class ImageRipper : IDisposable
     private const string RipStatePath = "ripState.json";
     private const int MillisecondsInSecond = 1000;
 
-    internal static ApiClientManager ClientManager { get; } = new();
+    public static ApiClientManager ClientManager { get; } = new();
 
     // ReSharper disable once UnusedMember.Local
     private static readonly string[] MediaExtensions =

@@ -32,7 +32,7 @@ public partial class NicheImageRipper : IDisposable
     public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
     public static Version Version { get; } = new(4, 1, 0);
 
-    protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
+    public static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
     
     protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 

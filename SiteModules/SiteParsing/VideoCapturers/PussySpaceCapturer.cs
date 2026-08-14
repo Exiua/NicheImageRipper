@@ -1,9 +1,10 @@
+using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium.BiDi.Network;
 
-namespace NicheImageRipper.Core.SiteParsing.VideoCapturers;
+namespace NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 
-public class TubeAsianCamVideoCapturer : PlaylistCapturer
+public class PussySpaceCapturer : PlaylistCapturer
 {
     protected override bool ResponseIsInteresting(ResponseCompletedEventArgs e)
     {
@@ -12,6 +13,6 @@ public class TubeAsianCamVideoCapturer : PlaylistCapturer
 
     protected override string GetId(string url)
     {
-        return UrlUtility.GetUrlParameterValue(url, "t");
+        return UrlUtility.GetUrlParameterValue(url, "_tid");
     }
 }
