@@ -8,7 +8,7 @@ using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
 using HtmlAgilityPack;
-using NicheImageRipper.Core.SiteParsing.HtmlParserEnums;
+using NicheImageRipper.SiteModules.SiteParsing.HtmlParserEnums;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;

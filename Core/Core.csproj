@@ -46,7 +46,6 @@
 
     <ItemGroup>
       <Folder Include="Clients\Iwara\" />
-      <Folder Include="SiteParsing\HtmlParsers\SiteSpecific\" />
     </ItemGroup>
 
 </Project>
