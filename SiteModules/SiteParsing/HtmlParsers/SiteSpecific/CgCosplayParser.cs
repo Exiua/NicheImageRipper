@@ -29,13 +29,13 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='elementor-heading-title elementor-size-xxl']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-1']").SelectNodesOrThrow("./figure").Select(fig => fig.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinkWrapperList();
         var videos = soup.SelectSingleNode("//main[@id='main']");
         if (videos is not null)
         {
-            var videoRawLinks = videos.SelectNodesOrThrow(".//*[self::iframe or self::video]")// .Select(div =>
+            var videoRawLinks = videos.SelectNodesOrThrow(".//*[self::iframe or self::video]") // .Select(div =>
             //      div.SelectSingleNode(".//video") ?? div.SelectSingleNode(".//iframe"))
             .Select(elm => elm.GetSrc());
             var captures = new Dictionary<string, PlaylistCapturer>();
@@ -51,7 +51,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 {
                     if (!captures.TryGetValue("vk.com", out var capturer))
                     {
-                        (capturer, _) = await ConfigureNetworkCapture<VkVideoCapturer>();
+                        (capturer, _) = await ConfigureNetworkCapture<VkVideoCapturer>(cancellationToken: cancellationToken);
                         captures.Add("vk.com", capturer);
                     }
 

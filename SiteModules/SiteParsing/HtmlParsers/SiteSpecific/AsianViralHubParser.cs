@@ -27,7 +27,7 @@ public class AsianViralHubParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("/")[4];
-        var soup = await Soupify(delay: 250);
+        var soup = await Soupify(delay: 250, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText + $" ({id})";
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video").GetSrc();

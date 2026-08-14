@@ -14,15 +14,12 @@ using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ArtstationParser : HtmlParser
 {
     public static string ParserName => "artstation";
     public static string[] SupportedUrls { get; } = ["https://www.artstation.com/"];
-    
-    public ArtstationParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+
+    public ArtstationParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
     }
 
@@ -36,35 +33,28 @@ public class ArtstationParser : HtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='artist-name']").InnerText;
         var username = CurrentUrl.Split("/")[3];
-        var cacheScript =
-            soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
-
-        #region Id Extraction
-
+        var cacheScript = soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
+#region Id Extraction
         var start = cacheScript.IndexOf("quick.json", StringComparison.Ordinal);
         var end = cacheScript.LastIndexOf(");", StringComparison.Ordinal);
         var jsonData = cacheScript[(start + 14)..(end - 1)].Replace("\n", "").Replace('\"', '"');
         var json = JsonSerializer.Deserialize<JsonNode>(jsonData);
         var userId = json!["id"]!.Deserialize<string>()!;
         var userName = json["full_name"]!.Deserialize<string>()!;
-
-        #endregion
-
-        #region Get Posts
-
+#endregion
+#region Get Posts
         var total = 1;
         var pageCount = 1;
         var firstIter = true;
         var posts = new List<string>();
         var client = new HttpClient();
-
         while (total > 0)
         {
             Logger.Information("Page {PageCount} of {Total}", pageCount, total);
             var url = $"https://www.artstation.com/users/{username}/projects.json?page={pageCount}";
             Logger.Debug("Requesting {Url}", url);
             var response = await client.GetAsync(url);
-            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             var data = responseData!["data"]!.AsArray();
             foreach (var d in data)
             {
@@ -83,13 +73,11 @@ public class ArtstationParser : HtmlParser
             }
 
             pageCount += 1;
-            await Sleep(100);
+            await Sleep(100, cancellationToken: cancellationToken);
         }
 
-        #endregion
-
-        #region Get Media Links
-
+#endregion
+#region Get Media Links
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
@@ -101,18 +89,17 @@ public class ArtstationParser : HtmlParser
             }
             catch (HttpRequestException)
             {
-                await Sleep(5000);
+                await Sleep(5000, cancellationToken: cancellationToken);
                 response = await client.GetAsync(url);
             }
 
-            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             var assets = responseData!["assets"]!.AsArray();
             var urls = assets.Select(asset => asset!["image_url"]!.Deserialize<string>()!.Replace("/large/", "/4k/"));
             images.AddRange(urls.ToStringImageLinks());
         }
 
-        #endregion
-
+#endregion
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

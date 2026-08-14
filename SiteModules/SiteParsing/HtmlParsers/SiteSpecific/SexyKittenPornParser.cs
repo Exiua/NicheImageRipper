@@ -26,14 +26,14 @@ public class SexyKittenPornParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader']").InnerText;
         var tagList = soup.SelectNodesOrThrow("//div[@class='list gallery col3']").SelectMany(tag => tag.SelectNodesOrThrow(".//div[@class='item']"));
         var imageLink = tagList.Select(image => $"https://www.sexykittenporn.com{image.SelectSingleNodeOrThrow(".//a").GetHref()}");
         var images = new List<StringFileLinkWrapper>();
         foreach (var link in imageLink)
         {
-            soup = await Soupify(link);
+            soup = await Soupify(link, cancellationToken: cancellationToken);
             images.Add($"https:{soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img").GetSrc()}");
         }
 

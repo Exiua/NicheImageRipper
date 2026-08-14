@@ -26,7 +26,7 @@ public class ToonilyParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNode("//div[@class='post-title']/h1")!.InnerText;
         var chapterList = soup.SelectSingleNode("//ul[@class='main version-chap no-volumn']")!.SelectNodes("./li")!.Select(li =>
         {
@@ -39,7 +39,7 @@ public class ToonilyParser : HtmlParser, IHtmlParser
         foreach (var(chapter, name)in chapterList)
         {
             Logger.Information("Parsing {ChapterName}", name);
-            soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 5000, ScrollPauseTime = 1000 });
+            soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 5000, ScrollPauseTime = 1000 }, cancellationToken: cancellationToken);
             var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!.SelectNodes("./div")!.Select(div => div.SelectSingleNode("./img")).Select(img => img!.GetSrc().Trim()).ToStringImageLinks();
             images.AddRange(imageList);
         }

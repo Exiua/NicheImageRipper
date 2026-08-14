@@ -37,11 +37,11 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             Increment = 2500,
             ScrollPauseTime = 750,
         };
-        var(capturer, b) = await ConfigureNetworkCapture<OmegaScansVideoCapturer>();
+        var(capturer, b) = await ConfigureNetworkCapture<OmegaScansVideoCapturer>(cancellationToken: cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         Logger.Debug("Waiting for chapter list to load");
-        var soup = await Soupify(xpath: chapterListXpath, xpathTimeout: 60, lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(xpath: chapterListXpath, xpathTimeout: 60, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var chapterCountStr = soup.SelectSingleNodeOrThrow("//span[normalize-space(.)='Total chapters']/following-sibling::span").InnerText;
         var chapterCount = int.Parse(chapterCountStr.Trim().Split(' ')[0]);
@@ -51,7 +51,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
         {
             var url = links[0];
             apiUrl = url;
-        });
+        }, cancellationToken: cancellationToken);
         if (apiUrl == "")
         {
             Logger.Error("No API URL found from network capture");
@@ -70,7 +70,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             var response = await client.GetAsync($"https://api.omegascans.org/chapter/query?page={page}&perPage=30&series_id={seriesId}");
             page++;
             response.EnsureSuccessStatusCode();
-            var chapterResponse = await response.Content.ReadFromJsonAsync<GetChapterResponse>();
+            var chapterResponse = await response.Content.ReadFromJsonAsync<GetChapterResponse>(cancellationToken: cancellationToken);
             if (chapterResponse is null)
             {
                 Logger.Error("Failed to deserialize chapter response");
@@ -100,13 +100,13 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             {
                 try
                 {
-                    soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs);
+                    soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
                     break;
                 }
                 catch (WebDriverException)
                 {
                     Logger.Warning("WebDriverException encountered, retrying...");
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken: cancellationToken);
                     WebDriver.RegenerateDriver();
                 }
             }
@@ -120,7 +120,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
 
             var imgs = post.SelectNodesOrThrow(".//img[@src]").Select(img => img.GetNullableSrc() ?? img.GetAttributeValue("data-src"));
             images.AddRange(imgs.ToStringImageLinks());
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
         }
 
         // Files are numbered per chapter, so original will have the files overwrite each other

@@ -32,7 +32,7 @@ public class ImhentaiParser : HtmlParser<ImhentaiParser>, IHtmlParser
             CurrentUrl = $"https://imhentai.xxx/gallery/{galCode}/";
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
         var images = imageContainer.GetAttributeValue("data-src");
         var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[1]);

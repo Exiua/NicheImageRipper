@@ -36,12 +36,12 @@ public class YoutubeParser : HtmlParser, IHtmlParser
 
         var url = CurrentUrl.Split("/").Take(4).Join('/');
         CurrentUrl = url;
-        var soup = await Soupify(xpath: "//h1[@class='dynamicTextViewModelH1']/span");
+        var soup = await Soupify(xpath: "//h1[@class='dynamicTextViewModelH1']/span", cancellationToken: cancellationToken);
         var displayName = soup.SelectSingleNodeOrThrow("//h1[@class='dynamicTextViewModelH1']/span").InnerText;
         var username = soup.SelectSingleNodeOrThrow("//span[@class='yt-core-attributed-string yt-content-metadata-view-model__metadata-text yt-core-attributed-string--white-space-pre-wrap yt-core-attributed-string--link-inherit-color']").InnerText;
         var dirName = $"{displayName} ({username})";
         var args = new SubprocessArgs("yt-dlp").WithArgs("--flat-playlist", "--encoding", "utf-8", "--print", "\"%(title)s|%(id)s\"", CurrentUrl).EnableOutputCapture();
-        var(exitCode, output, error) = await RunSubprocess(args);
+        var(exitCode, output, error) = await RunSubprocess(args, cancellationToken: cancellationToken);
         if (exitCode != 0)
         {
             Logger.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
@@ -155,7 +155,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             process.BeginErrorReadLine();
         }
 
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync(cancellationToken: cancellationToken);
         var exitCode = process.ExitCode;
         return (exitCode, output, error);
     }

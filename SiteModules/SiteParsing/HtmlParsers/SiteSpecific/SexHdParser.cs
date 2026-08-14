@@ -26,7 +26,7 @@ public class SexHdParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='photobig']//h4").InnerText.Split(":")[1].Trim();
         var images = soup.SelectNodesOrThrow("//div[@class='photobig']//div[@class='relativetop']").Skip(1).Select(img => $"https://sexhd.pics{img.SelectSingleNodeOrThrow(".//a").GetHref()}").ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

@@ -5,14 +5,12 @@ using NicheImageRipper.Service.Contexts;
 using NicheImageRipper.Service.Models;
 
 namespace NicheImageRipper.Service.Services;
-
 public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
 {
     public async Task<CreateApiKeyResult> CreateAsync(string name, string? ownerId, DateTime? expiresUtc, CancellationToken cancellationToken = default)
     {
-        var (prefix, rawKey) = ApiKeyGenerator.Generate();
+        var(prefix, rawKey) = ApiKeyGenerator.Generate();
         var hash = ApiKeyHasher.Hash(rawKey);
-
         var entity = new ApiKey
         {
             Id = Guid.NewGuid(),
@@ -24,10 +22,8 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
             ExpiresUtc = expiresUtc,
             IsRevoked = false
         };
-
         context.ApiKeys.Add(entity);
-        await context.SaveChangesAsync();
-
+        await context.SaveChangesAsync(cancellationToken: cancellationToken);
         return new CreateApiKeyResult
         {
             Id = entity.Id,
@@ -47,10 +43,7 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
 
         var prefix = rawApiKey[..dotIndex];
         var hash = ApiKeyHasher.Hash(rawApiKey);
-
-        var entity = await context.ApiKeys
-            .FirstOrDefaultAsync(x => x.KeyPrefix == prefix);
-
+        var entity = await context.ApiKeys.FirstOrDefaultAsync(x => x.KeyPrefix == prefix, cancellationToken: cancellationToken);
         if (entity == null)
         {
             return null;
@@ -72,8 +65,7 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
         }
 
         entity.LastUsedUtc = DateTime.UtcNow;
-        await context.SaveChangesAsync();
-
+        await context.SaveChangesAsync(cancellationToken: cancellationToken);
         return new ApiKeyValidationResult
         {
             Id = entity.Id,
@@ -84,14 +76,14 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
 
     public async Task<bool> RevokeAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var entity = await context.ApiKeys.FirstOrDefaultAsync(x => x.Id == id);
+        var entity = await context.ApiKeys.FirstOrDefaultAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
             return false;
         }
 
         entity.IsRevoked = true;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken: cancellationToken);
         return true;
     }
 }
@@ -102,13 +94,8 @@ public static class ApiKeyGenerator
     {
         var prefixBytes = RandomNumberGenerator.GetBytes(6);
         var secretBytes = RandomNumberGenerator.GetBytes(32);
-
         var prefix = "ak_" + Convert.ToHexString(prefixBytes);
-        var secret = Convert.ToBase64String(secretBytes)
-                            .Replace("+", "")
-                            .Replace("/", "")
-                            .Replace("=", "");
-
+        var secret = Convert.ToBase64String(secretBytes).Replace("+", "").Replace("/", "").Replace("=", "");
         var fullKey = $"{prefix}.{secret}";
         return (prefix, fullKey);
     }

@@ -1,11 +1,10 @@
-﻿using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Utility;
 using Serilog.Events;
 
 namespace NicheImageRipper.Tui;
-
 public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
 {
     private void PrintHistory()
@@ -20,29 +19,29 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             Console.WriteLine("+----------------------------------------+");
         }
     }
-    
+
     public async Task Run(CancellationToken cancellationToken = default)
     {
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
         {
             Logger.Warning("ffmpeg not found. Some functionality may be limited.");
         }
-        
+
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
         {
             Logger.Warning("yt-dlp not found. Some functionality may be limited.");
         }
-        
+
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
         {
             Logger.Warning("MEGAcmd not found. Some functionality may be limited.");
         }
-        
+
         if (!AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
         {
             Logger.Warning("FlareSolverr not found. Some functionality may be limited.");
         }
-        
+
         while (true)
         {
             try
@@ -71,13 +70,14 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                         HandleRejectedUrls(rejectedUrls);
                         break;
                     }
+
                     case "c" or "clear":
                         if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: cache or queue", LogEventLevel.Warning);
                             break;
                         }
-                        
+
                         switch (cmdParts[1])
                         {
                             case "cache":
@@ -101,7 +101,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                             LogMessageToFile("Missing argument: <key>", LogEventLevel.Warning);
                             break;
                         }
-                        
+
                         var key = cmdParts[1].ToLower();
                         switch (key)
                         {
@@ -149,7 +149,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                                                 PostDownloadAction |= action;
                                             }
                                         }
-                                        
+
                                         LogMessageToFile($"Post download action set to {PostDownloadAction}");
                                     }
                                     else
@@ -158,27 +158,29 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                                         LogMessageToFile($"Invalid action. Valid actions: {{{validActions}}}", LogEventLevel.Warning);
                                     }
                                 }
-                                
+
                                 break;
                             default:
                                 LogMessageToFile($"Invalid key: {key}. Valid Keys: {{savepath, postdownloadaction}}", LogEventLevel.Warning);
                                 break;
                         }
+
                         break;
                     }
+
                     case "debug":
                         Logger.Warning("Debug mode is not yet implemented.");
                         //HtmlParser.SetDebugMode(true);
                         Debugging = true;
                         break;
                     case "delay":
-                        if(cmdParts.Length < 2)
+                        if (cmdParts.Length < 2)
                         {
                             LogMessageToFile($"Retry delay: {RetryDelay} ms");
                         }
                         else
                         {
-                            if(int.TryParse(cmdParts[1], out var delay))
+                            if (int.TryParse(cmdParts[1], out var delay))
                             {
                                 RetryDelay = delay;
                                 LogMessageToFile($"Retry delay set to {delay} ms");
@@ -215,19 +217,17 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                         PrintHistory();
                         break;
                     case "l" or "load":
-                        var urls = JsonUtility.Deserialize<List<string>>(cmdParts.Length < 2
-                            ? "UnfinishedRips.json"
-                            : cmdParts[1])!;
+                        var urls = JsonUtility.Deserialize<List<string>>(cmdParts.Length < 2 ? "UnfinishedRips.json" : cmdParts[1])!;
                         LoadUrls(urls);
                         LogMessageToFile("URLs loaded");
                         break;
                     case "list":
                         var message = "";
-                        foreach (var (i, queuedUrl) in UrlQueue.Enumerate())
+                        foreach (var(i, queuedUrl)in UrlQueue.Enumerate())
                         {
                             message += $"{i}: {queuedUrl}\n";
                         }
-                        
+
                         LogMessageToFile(message);
                         break;
                     case "lookup":
@@ -251,17 +251,18 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                             LogMessageToFile("No history entry found", LogEventLevel.Warning);
                             break;
                         }
-                        
+
                         LogMessageToFile($"[{historyEntry.Date:s}] Url: {historyEntry.Url}");
                         break;
                     }
+
                     case "merge":
                         if (cmdParts.Length < 2)
                         {
                             LogMessageToFile("Missing argument: filename", LogEventLevel.Warning);
                             break;
                         }
-                        
+
                         HistoryDb.MergeHistory(cmdParts[1]);
                         LogMessageToFile("History merged");
                         break;
@@ -270,7 +271,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                         break;
                     case "q" or "quit":
                         LogMessageToFile("Exiting...");
-                        await SaveData();
+                        await SaveData(cancellationToken: cancellationToken);
                         //HtmlParser.Dispose();
                         return;
                     case "queue":
@@ -290,7 +291,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                         }
                         else
                         {
-                            if(int.TryParse(cmdParts[1], out var retries))
+                            if (int.TryParse(cmdParts[1], out var retries))
                             {
                                 MaxRetries = retries + 1;
                                 LogMessageToFile($"Max retries set to {MaxRetries}");
@@ -303,7 +304,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
 
                         break;
                     case "save":
-                        await SaveData();
+                        await SaveData(cancellationToken: cancellationToken);
                         LogMessageToFile("Data saved");
                         break;
                     case "skip":
@@ -350,14 +351,15 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                         LogMessageToFile($"Skipping {url}");
                         break;
                     }
+
                     case "tail":
                         LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[^1]);
                         break;
-                    #if DEBUG
+#if DEBUG
                     case "test":
                         NormalizeUrlsInDb();
                         break;
-                    #endif
+#endif
                     case "v" or "version":
                         LogMessageToFile($"{Title} v{Version}");
                         break;
@@ -396,12 +398,13 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                     {
                         urlsToRequeue.Add(failedUrl);
                     }
+
                     break;
                 default:
                     throw new InvalidOperationException("Invalid QueueFailureReason: " + failedUrl.Reason);
             }
         }
-                        
+
         RequeueUrls(failedUrls.WithRejectedUrls(urlsToRequeue));
     }
 }

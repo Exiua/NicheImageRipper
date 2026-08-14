@@ -2,19 +2,17 @@ using System.Text.Json;
 using MangaDexLibrary.Responses;
 
 namespace MangaDexLibrary;
-
 public class Manga
 {
     private HttpClient _client;
-    
     public Manga(HttpClient client)
     {
         _client = client;
     }
 
-    public  Task<MangaDexResponse> GetVolumeAndChapter(Guid mangaId, CancellationToken cancellationToken = default)
+    public Task<MangaDexResponse> GetVolumeAndChapter(Guid mangaId, CancellationToken cancellationToken = default)
     {
-        return GetVolumeAndChapter(mangaId.ToString());
+        return GetVolumeAndChapter(mangaId.ToString(), cancellationToken: cancellationToken);
     }
 
     public async Task<MangaDexResponse> GetMetadata(string mangaId, CancellationToken cancellationToken = default)
@@ -27,16 +25,16 @@ public class Manga
             var error = JsonSerializer.Deserialize<ErrorResponse>(content) ?? new ErrorResponse();
             return error;
         }
-        
+
         var manga = JsonSerializer.Deserialize<MangaMetadataResponse>(content);
         if (manga is null)
         {
             return new ErrorResponse();
         }
-        
+
         return manga;
     }
-    
+
     public async Task<MangaDexResponse> GetVolumeAndChapter(string mangaId, CancellationToken cancellationToken = default)
     {
         var url = $"https://api.mangadex.org/manga/{mangaId}/aggregate";
@@ -47,13 +45,13 @@ public class Manga
             var error = JsonSerializer.Deserialize<ErrorResponse>(content) ?? new ErrorResponse();
             return error;
         }
-        
+
         var manga = JsonSerializer.Deserialize<AggregateMangaResponse>(content);
         if (manga is null)
         {
             return new ErrorResponse();
         }
-        
+
         return manga;
     }
 }

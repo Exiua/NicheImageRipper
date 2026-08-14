@@ -11,7 +11,6 @@ using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class Love4PornParser : HtmlParser
 {
     public Love4PornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
@@ -34,12 +33,11 @@ public class Love4PornParser : HtmlParser
             CurrentUrl += "&asgtbndr=1&play=true";
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText + $" ({id})";
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video").GetSrc();
         images.Add(url);
-
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

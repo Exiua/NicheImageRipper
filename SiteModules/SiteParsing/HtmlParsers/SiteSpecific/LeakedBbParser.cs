@@ -26,7 +26,7 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='flow-text left']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var imageLinks = soup.SelectSingleNodeOrThrow("//div[@class='post_body scaleimages']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToList();
         var images = new List<StringFileLinkWrapper>();
@@ -38,7 +38,7 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
                 continue;
             }
 
-            soup = await Soupify(link);
+            soup = await Soupify(link, cancellationToken: cancellationToken);
             var img = soup.SelectSingleNodeOrThrow("//a[@id='download']").GetHref().Split("?")[0];
             images.Add(img);
         }

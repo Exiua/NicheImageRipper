@@ -29,7 +29,7 @@ public class NLegsParser : HtmlParser, IHtmlParser
     {
         const string domain = "https://www.nlegs.com";
         const int delay = 1000;
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//strong").InnerText;
         var numPages = soup.SelectSingleNodeOrThrow("//ul[@class='pagination pagination']").SelectNodesOrThrow("./li").Count;
         var baseUrl = CurrentUrl.Split(".")[..^1].Join(".");
@@ -39,7 +39,7 @@ public class NLegsParser : HtmlParser, IHtmlParser
             Logger.Information("Parsing page {i} of {numPages}", i + 1, numPages);
             var posts = soup.SelectSingleNodeOrThrow("//div[@class='col-md-12 col-xs-12 ']").SelectNodesOrThrow(".//a").Select(a => domain + a.GetHref()).ToStringImageLinks();
             images.AddRange(posts);
-            soup = await Soupify($"{baseUrl}/{i + 2}.html"); // Pages are 1-indexed
+            soup = await Soupify($"{baseUrl}/{i + 2}.html", cancellationToken: cancellationToken); // Pages are 1-indexed
             await Task.Delay(delay);
         }
 

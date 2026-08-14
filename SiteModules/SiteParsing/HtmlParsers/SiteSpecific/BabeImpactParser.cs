@@ -26,7 +26,7 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var title = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader pink center lowercase']").InnerText;
         var sponsor = soup.SelectSingleNodeOrThrow("//div[@class='c']").SelectNodesOrThrow(".//a")[1].InnerText.Trim();
         sponsor = $"({sponsor})";
@@ -42,7 +42,7 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
         var imageList = tagList.Select(tag => tag.SelectSingleNodeOrThrow(".//a")).Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
         foreach (var image in imageList)
         {
-            soup = await Soupify(image);
+            soup = await Soupify(image, cancellationToken: cancellationToken);
             var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']").SelectSingleNodeOrThrow(".//img").GetSrc();
             images.Add((StringFileLinkWrapper)(Protocol + img));
         }

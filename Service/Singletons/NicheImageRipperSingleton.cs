@@ -6,18 +6,14 @@ using Config = NicheImageRipper.Service.Models.Configs.Config;
 using SettingsOverride = NicheImageRipper.Core.Configuration.SettingsOverride;
 
 namespace NicheImageRipper.Service.Singletons;
-
 public class NicheImageRipperSingleton : INicheImageRipperSingleton
 {
     private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
     private readonly Lock _ripperLock = new();
     private readonly ILogger<NicheImageRipperSingleton> _logger;
-    
     private bool _isRipping;
-
     public event Action? QueueUpdated;
     public event Action<int, int>? ProgressChanged;
-
     public NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger)
     {
         _logger = logger;
@@ -25,7 +21,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         _ripper.OnProgressChanged += (current, total) => ProgressChanged?.Invoke(current, total);
         _ripper.OnUrlQueueUpdated += () => QueueUpdated?.Invoke();
     }
-    
+
     public string[] GetQueueSnapshot()
     {
         using (_ripperLock.EnterScope())
@@ -38,7 +34,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
     {
         using (_ripperLock.EnterScope())
         {
-            return  _ripper.QueueUrls(urls);
+            return _ripper.QueueUrls(urls);
         }
     }
 
@@ -64,7 +60,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         {
             return false;
         }
-        
+
         Task.Run(async () =>
         {
             try
@@ -80,20 +76,19 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
                 Interlocked.Exchange(ref _isRipping, false);
             }
         });
-        
         return true;
     }
 
     public bool IsRipping => _isRipping;
     public bool Paused => _ripper.Paused;
-    
+
     public bool Pause()
     {
         if (!_isRipping || Paused)
         {
             return false;
         }
-        
+
         _ripper.Pause();
         return true;
     }
@@ -104,7 +99,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         {
             return false;
         }
-        
+
         _ripper.Resume();
         return true;
     }
@@ -136,72 +131,72 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         {
             existingConfig.SavePath = config.SavePath;
         }
-        
+
         if (config.Theme is not null)
         {
             existingConfig.Theme = config.Theme;
         }
-        
+
         if (config.FilenameScheme is not null)
         {
             existingConfig.FilenameScheme = config.FilenameScheme.Value;
         }
-        
+
         if (config.UnzipProtocol is not null)
         {
             existingConfig.UnzipProtocol = config.UnzipProtocol.Value;
         }
-        
+
         if (config.PostDownloadAction is not null)
         {
             existingConfig.PostDownloadAction = config.PostDownloadAction.Value;
         }
-        
+
         if (config.AskToReRip is not null)
         {
             existingConfig.AskToReRip = config.AskToReRip.Value;
         }
-        
+
         if (config.LiveHistory is not null)
         {
             existingConfig.LiveHistory = config.LiveHistory.Value;
         }
-        
+
         if (config.SkipFailedDownloads is not null)
         {
             existingConfig.SkipFailedDownloads = config.SkipFailedDownloads.Value;
         }
-        
+
         if (config.NumThreads is not null)
         {
             existingConfig.NumThreads = config.NumThreads.Value;
         }
-        
+
         if (config.MaxRetries is not null)
         {
             existingConfig.MaxRetries = config.MaxRetries.Value;
         }
-        
+
         if (config.RetryDelay is not null)
         {
             existingConfig.RetryDelay = config.RetryDelay.Value;
         }
-        
+
         if (config.FlareSolverrUri is not null)
         {
             existingConfig.FlareSolverrUri = config.FlareSolverrUri;
         }
-        
+
         if (config.CloseFlareSolverrSession is not null)
         {
             existingConfig.CloseFlareSolverrSession = config.CloseFlareSolverrSession.Value;
         }
-        
+
         if (config.CSWebDriverUri is not null)
         {
             existingConfig.CSWebDriverUri = config.CSWebDriverUri;
         }
-        
+
         if (config.Logins is not null)
         {
             var logins = config.Logins;
@@ -227,18 +222,22 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             {
                 existingKeys.Imgur = keys.Imgur;
             }
+
             if (keys.Google is not null)
             {
                 existingKeys.Google = keys.Google;
             }
+
             if (keys.Dropbox is not null)
             {
                 existingKeys.Dropbox = keys.Dropbox;
             }
+
             if (keys.Pixeldrain is not null)
             {
                 existingKeys.Pixeldrain = keys.Pixeldrain;
             }
+
             if (keys.Pixiv is not null)
             {
                 existingKeys.Pixiv = keys.Pixiv;
@@ -253,34 +252,42 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             {
                 existingCookies.Twitter = cookies.Twitter;
             }
+
             if (cookies.Newgrounds is not null)
             {
                 existingCookies.Newgrounds = cookies.Newgrounds;
             }
+
             if (cookies.Porn3dx is not null)
             {
                 existingCookies.Porn3dx = cookies.Porn3dx;
             }
+
             if (cookies.Pornhub is not null)
             {
                 existingCookies.Pornhub = cookies.Pornhub;
             }
+
             if (cookies.Thothub is not null)
             {
                 existingCookies.Thothub = cookies.Thothub;
             }
+
             if (cookies.Kemono is not null)
             {
                 existingCookies.Kemono = cookies.Kemono;
             }
+
             if (cookies.SimpCity is not null)
             {
                 existingCookies.SimpCity = cookies.SimpCity;
             }
+
             if (cookies.Pixiv is not null)
             {
                 existingCookies.Pixiv = cookies.Pixiv;
             }
+
             if (cookies.SteamCommunity is not null)
             {
                 existingCookies.SteamCommunity = cookies.SteamCommunity;
@@ -309,7 +316,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
                     existingCustom.V2PH.CfClearance = v2ph.CfClearance;
                 }
             }
-            
+
             if (custom.GoFile is not null)
             {
                 var goFile = custom.GoFile;
@@ -327,7 +334,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
         if (config.ParserSpecificSettingsOverrides is not null)
         {
-            foreach (var (key, value) in config.ParserSpecificSettingsOverrides)
+            foreach (var(key, value)in config.ParserSpecificSettingsOverrides)
             {
                 SettingsOverride settingsOverride;
                 if (existingConfig.ParserSpecificSettingsOverrides.TryGetValue(key, out var @override))
@@ -339,7 +346,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
                     settingsOverride = new SettingsOverride();
                     existingConfig.ParserSpecificSettingsOverrides[key] = settingsOverride;
                 }
-                
+
                 if (value.FilenameScheme is not null)
                 {
                     settingsOverride.FilenameScheme = value.FilenameScheme.Value;
@@ -360,7 +367,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public Task Save(CancellationToken cancellationToken = default)
     {
-        return _ripper.SaveData();
+        return _ripper.SaveData(cancellationToken: cancellationToken);
     }
 
     public void LoadUrls(List<string> urls)

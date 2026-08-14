@@ -32,7 +32,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
             referer += ".html";
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var counter = 1;
@@ -50,7 +50,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
             }
 
             var nextPageUrl = nextPageButton.GetHref();
-            soup = await Soupify("https://meirentu.cc" + nextPageUrl);
+            soup = await Soupify("https://meirentu.cc" + nextPageUrl, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: referer);

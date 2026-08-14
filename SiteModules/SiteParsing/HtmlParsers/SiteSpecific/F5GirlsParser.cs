@@ -26,7 +26,7 @@ public class F5GirlsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectNodesOrThrow("//div[@class='container']")[2].SelectSingleNodeOrThrow(".//h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var currUrl = CurrentUrl.Replace("?page=1", "");
@@ -41,7 +41,7 @@ public class F5GirlsParser : HtmlParser, IHtmlParser
             }
 
             var nextPage = $"{currUrl}?page={i + 2}";
-            soup = await Soupify(nextPage);
+            soup = await Soupify(nextPage, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

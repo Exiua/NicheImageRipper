@@ -27,7 +27,7 @@ public class PutMegaParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         //const int maxRetries = 4;
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//a[@data-text='album-name']").InnerText;
         var images = new List<StringFileLinkWrapper>();
         while (true)
@@ -46,7 +46,7 @@ public class PutMegaParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            soup = await Soupify("https://putmega.com" + nextPageUrl.Replace("&amp;", "&"), delay: 250);
+            soup = await Soupify("https://putmega.com" + nextPageUrl.Replace("&amp;", "&"), delay: 250, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

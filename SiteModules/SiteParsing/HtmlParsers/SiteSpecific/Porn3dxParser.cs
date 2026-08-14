@@ -37,12 +37,12 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
             Increment = 1250,
             ScrollPauseTime = 1000
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='items-center self-center text-sm font-bold leading-none text-white ']").InnerText;
         var origUrl = CurrentUrl;
         var posts = new List<string>();
         var id = 0;
-        var waitedElement = await WaitForElement("//a[@id='gallery-0']", timeout: 50);
+        var waitedElement = await WaitForElement("//a[@id='gallery-0']", timeout: 50, cancellationToken: cancellationToken);
         if (waitedElement is not null)
         {
             throw new RipperException("Element could not be found");
@@ -68,12 +68,12 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
             while (!contentFound)
             {
                 CurrentUrl = post;
-                await Sleep(100);
+                await Sleep(100, cancellationToken: cancellationToken);
                 var iframes = Driver.FindElements(By.XPath("//main[@id='postView']//iframe"));
                 var pictures = Driver.FindElements(By.XPath("//picture"));
                 while (iframes?.Count == 0 && pictures?.Count == 0)
                 {
-                    await Sleep(5000);
+                    await Sleep(5000, cancellationToken: cancellationToken);
                     if (CurrentUrl == origUrl)
                     {
                         var ad = Driver.TryFindElement(By.XPath("//div[@class='ex-over-top ex-opened']//div[@class='ex-over-btn']"));
@@ -105,7 +105,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                             url = source.GetSrc();
                             if (url.StartsWith("blob:") || url == "")
                             {
-                                await Sleep(500);
+                                await Sleep(500, cancellationToken: cancellationToken);
                                 continue;
                             }
 

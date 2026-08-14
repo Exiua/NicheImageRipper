@@ -11,7 +11,6 @@ using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class ThotsBayParser : HtmlParser
 {
     public ThotsBayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
@@ -29,19 +28,17 @@ public class ThotsBayParser : HtmlParser
             ScrollBy = true,
             Increment = 1250,
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='actor-name']/h1").InnerText;
         var container = soup.SelectSingleNodeOrThrow("//div[@id='media-items-all']");
-        var items = container.SelectNodesOrThrow("./div")
-                                .Select(div => $"https://thotsbay.tv{div.SelectSingleNodeOrThrow(".//a").GetHref()}");
+        var items = container.SelectNodesOrThrow("./div").Select(div => $"https://thotsbay.tv{div.SelectSingleNodeOrThrow(".//a").GetHref()}");
         var images = new List<StringFileLinkWrapper>();
         foreach (var item in items)
         {
-            soup = await Soupify(item, delay: 250);
+            soup = await Soupify(item, delay: 250, cancellationToken: cancellationToken);
         }
-        
+
         // Unable to download videos from blob, parse in on hold
-    
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

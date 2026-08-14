@@ -26,7 +26,7 @@ public class BabeUniversumParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='three-column']").SelectNodesOrThrow(".//div[@class='thumbnail']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

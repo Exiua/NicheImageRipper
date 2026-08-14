@@ -26,7 +26,7 @@ public class KaiztyParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='c-denomination s-denomination']//h2").InnerText;
         var end = dirName.IndexOf(" |", StringComparison.Ordinal);
         const int start = 15; // Length of "Kaizty Photos: "
@@ -43,7 +43,7 @@ public class KaiztyParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            soup = await Soupify($"https://www.kaizty.com{nextPage}");
+            soup = await Soupify($"https://www.kaizty.com{nextPage}", cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

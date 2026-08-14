@@ -26,7 +26,7 @@ public class JapaneseAsmrParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='page-title']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
         var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']").SelectNodesOrThrow(".//a").Select(a => a.GetHref());

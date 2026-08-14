@@ -26,7 +26,7 @@ public class EroMeParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { Increment = 1250, ScrollBy = true });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { Increment = 1250, ScrollBy = true }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var posts = soup.SelectNodesOrThrow("//div[@class='col-sm-12 page-content']")[1].SelectNodesOrThrow("./div");
         var images = new List<StringFileLinkWrapper>();

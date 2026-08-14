@@ -26,7 +26,7 @@ public class HottyStopParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var boxLargeContent = soup.SelectSingleNodeOrThrow("//div[@class='content-center content-center-2']");
         var titleNode = boxLargeContent.SelectSingleNode(".//h1") ?? boxLargeContent.SelectSingleNodeOrThrow(".//u");
         var dirName = titleNode.InnerText;

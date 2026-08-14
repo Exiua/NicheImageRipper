@@ -26,10 +26,10 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await Sleep(5000);
+        await Sleep(5000, cancellationToken: cancellationToken);
         var viewButton = Driver.TryFindElement(By.XPath("//button[@class='btn btn-default']"));
         viewButton?.Click();
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='content-headline']").InnerText;
         var imageList = soup.SelectSingleNode("//div[@class='swiper-wrapper']");
         List<StringFileLinkWrapper> images;

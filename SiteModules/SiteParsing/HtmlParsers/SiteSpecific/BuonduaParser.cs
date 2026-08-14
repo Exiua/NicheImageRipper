@@ -26,7 +26,7 @@ public class BuonduaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='article-header']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var dirNameSplit = dirName.Split("(");
         if (dirName.Contains("pictures") || dirName.Contains("photos"))
@@ -48,7 +48,7 @@ public class BuonduaParser : HtmlParser, IHtmlParser
 
             var nextPage = $"{currUrl}?page={i + 2}";
             CurrentUrl = nextPage;
-            soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
+            soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

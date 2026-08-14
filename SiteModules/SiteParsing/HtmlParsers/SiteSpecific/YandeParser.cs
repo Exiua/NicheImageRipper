@@ -26,6 +26,6 @@ public class YandeParser : BooruParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Booru.Yandere);
+        return BooruParse(Booru.Yandere, cancellationToken: cancellationToken);
     }
 }

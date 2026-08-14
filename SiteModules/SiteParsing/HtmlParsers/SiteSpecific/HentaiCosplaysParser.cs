@@ -31,10 +31,10 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
         {
             CurrentUrl = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
             var parser = new PornVideoXXXParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
-            return await parser.ParseSite(CurrentUrl);
+            return await parser.ParseSite(CurrentUrl, cancellationToken: cancellationToken);
         }
 
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='main_contents']//h2").InnerText;
         var images = new List<StringFileLinkWrapper>();
         while (true)
@@ -47,7 +47,7 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            soup = await Soupify($"https://hentai-cosplays.com{nextPage.GetHref()}", lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
+            soup = await Soupify($"https://hentai-cosplays.com{nextPage.GetHref()}", lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

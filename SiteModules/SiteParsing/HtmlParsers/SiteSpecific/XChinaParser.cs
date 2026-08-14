@@ -26,7 +26,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var tabContents = soup.SelectSingleNodeOrThrow("//div[@class='tab-content video-info']");
         var publisherNode = tabContents.SelectSingleNode(".//i[@class='fa fa-video-camera']") ?? tabContents.SelectSingleNodeOrThrow(".//i[@class='fa fa-user-circle']");
         var publisher = publisherNode.ParentNode.SelectSingleNodeOrThrow(".//a").InnerText;
@@ -61,10 +61,10 @@ public class XChinaParser : HtmlParser, IHtmlParser
                 var vidSrc = GetVideoUrl(soup);
                 while (vidSrc == prevUrl)
                 {
-                    await Sleep(250);
+                    await Sleep(250, cancellationToken: cancellationToken);
                     // var vidNode = Driver.FindElement(By.XPath("//video"));
                     // vidSrc = vidNode.GetSrc()!;
-                    soup = await Soupify();
+                    soup = await Soupify(cancellationToken: cancellationToken);
                     vidSrc = GetVideoUrl(soup);
                 }
 
@@ -87,7 +87,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
                 var nextPage = nextButton.GetNullableHref();
                 if (nextPage is not null)
                 {
-                    soup = await Soupify("https://en.xchina.co" + nextPage);
+                    soup = await Soupify("https://en.xchina.co" + nextPage, cancellationToken: cancellationToken);
                 }
                 else
                 {

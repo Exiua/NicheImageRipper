@@ -26,7 +26,7 @@ public class BaobuaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//span[@itemprop='name']").InnerText.Split("|")[0].Trim();
         var images = new List<StringFileLinkWrapper>();
         var pageCount = soup.SelectSingleNode("//div[@class='nav-links']")?.LastChild.InnerText.ParseInt() ?? 1;
@@ -37,7 +37,7 @@ public class BaobuaParser : HtmlParser, IHtmlParser
             images.AddRange(imgs);
             if (i != pageCount - 1)
             {
-                soup = await Soupify($"{baseUrl}?p={i + 2}");
+                soup = await Soupify($"{baseUrl}?p={i + 2}", cancellationToken: cancellationToken);
             }
         }
 

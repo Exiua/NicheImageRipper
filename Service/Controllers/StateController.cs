@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using NicheImageRipper.Service.Singletons;
 
 namespace NicheImageRipper.Service.Controllers;
-
 [Authorize(AuthenticationSchemes = "ApiKey")]
 [ApiController]
 [Route("api/state")]
@@ -27,7 +26,7 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     public Task<IActionResult> Save(CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Saving");
-        nicheImageRipperSingleton.Save();
+        nicheImageRipperSingleton.Save(cancellationToken: cancellationToken);
         return Task.FromResult<IActionResult>(Ok());
     }
 
@@ -44,7 +43,7 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
             return Task.FromException<ActionResult<bool>>(exception);
         }
     }
-    
+
     [HttpPost("resume")]
     public Task<ActionResult<bool>> Resume()
     {

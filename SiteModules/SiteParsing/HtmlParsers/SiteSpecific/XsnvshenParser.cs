@@ -43,7 +43,7 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
             if (i < pageCount - 1)
             {
                 Driver.FindElement(By.XPath("//span[@id='next']")).Click();
-                await Sleep(1000);
+                await Sleep(1000, cancellationToken: cancellationToken);
             }
         }
 

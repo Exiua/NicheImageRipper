@@ -10,11 +10,9 @@ public sealed class WebSocketBroadcaster
     private readonly ConcurrentDictionary<Guid, WebSocket> _clients = new();
     private readonly INicheImageRipperSingleton _nicheImageRipperSingleton;
     private readonly ILoggerFactory _loggerFactory;
-
     internal ILogger<WebSocketBroadcaster> Logger => field ??= _loggerFactory.CreateLogger<WebSocketBroadcaster>();
 
-    public WebSocketBroadcaster(ILoggerFactory loggerFactory,
-                                INicheImageRipperSingleton nicheImageRipperSingleton)
+    public WebSocketBroadcaster(ILoggerFactory loggerFactory, INicheImageRipperSingleton nicheImageRipperSingleton)
     {
         _loggerFactory = loggerFactory;
         _nicheImageRipperSingleton = nicheImageRipperSingleton;
@@ -27,13 +25,8 @@ public sealed class WebSocketBroadcaster
         var envelope = new WsEnvelope
         {
             EventType = WsEventType.ProgressChange,
-            Payload = JsonSerializer.SerializeToElement(new ProgressChangedEvent
-            {
-                Current = current,
-                Total = total,
-            }),
+            Payload = JsonSerializer.SerializeToElement(new ProgressChangedEvent { Current = current, Total = total, }),
         };
-        
         _ = BroadcastSafeAsync(envelope);
     }
 
@@ -43,7 +36,6 @@ public sealed class WebSocketBroadcaster
         {
             EventType = WsEventType.QueueUpdate,
         };
-        
         _ = BroadcastSafeAsync(envelope);
     }
 
@@ -51,18 +43,13 @@ public sealed class WebSocketBroadcaster
     {
         var id = Guid.NewGuid();
         _clients[id] = socket;
-
         var buffer = new byte[1024];
-
         Logger.LogInformation("Adding WebSocket client connection: {Id}", id);
         try
         {
             while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
             {
-                var result = await socket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer),
-                    cancellationToken);
-
+                var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     break;
@@ -76,15 +63,11 @@ public sealed class WebSocketBroadcaster
         finally
         {
             _clients.TryRemove(id, out _);
-
             try
             {
                 if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
                 {
-                    await socket.CloseAsync(
-                        WebSocketCloseStatus.NormalClosure,
-                        "Closing",
-                        CancellationToken.None);
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                 }
             }
             catch (Exception e)
@@ -95,7 +78,7 @@ public sealed class WebSocketBroadcaster
             socket.Dispose();
         }
     }
-    
+
     private async Task BroadcastSafeAsync(WsEnvelope envelope)
     {
         try
@@ -112,8 +95,7 @@ public sealed class WebSocketBroadcaster
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(message);
         var deadClients = new List<Guid>();
-
-        foreach (var (key, socket) in _clients)
+        foreach (var (key, socket)in _clients)
         {
             if (socket.State != WebSocketState.Open)
             {
@@ -123,10 +105,7 @@ public sealed class WebSocketBroadcaster
 
             try
             {
-                await socket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    endOfMessage: true,
+                await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, endOfMessage: true,
                     cancellationToken);
             }
             catch

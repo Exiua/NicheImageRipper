@@ -14,50 +14,32 @@ using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
-using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers;
-
 public abstract class DotPartyParser : ParameterizedHtmlParser
 {
     private const string CachePath = "dotpartyCache.json";
     private const int PageSize = 50;
-
-    private static readonly string[] AttachmentExtensions =
-        [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
-
+    private static readonly string[] AttachmentExtensions = [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
-
-    protected DotPartyParser(WebDriver driver, ApiClientManager clientManager,
-                             Dictionary<string, string> requestHeaders,
-                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+    protected DotPartyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
     {
         var handler = new HttpClientHandler
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         };
-
         HttpClient = new HttpClient(handler);
         // Needed due to DDG issues according to kemono themselves
-        HttpClient.DefaultRequestHeaders.Add("Accept", "text/css"); 
+        HttpClient.DefaultRequestHeaders.Add("Accept", "text/css");
     }
 
     /// <summary>
     ///     Parses  the HTML for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
-    /// <param name="domainUrl">The domain url of the site</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
+    /// <param name = "domainUrl">The domain url of the site</param>
+    /// <param name = "cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns></returns>
     protected async Task<RipInfo> DotPartyParse(string domainUrl, CancellationToken cancellationToken = default)
     {
@@ -82,13 +64,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             (dirName, posts) = await GetAndCachePosts(domainUrl);
         }
 
-        #region Parse All Posts
-
+#region Parse All Posts
         var files = new List<StringFileLinkWrapper>();
         var externalLinks = CreateExternalLinkDict();
         var numPosts = posts.Count;
-
-        foreach (var (i, postResponse) in posts.Enumerate())
+        foreach (var(i, postResponse)in posts.Enumerate())
         {
             Logger.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
             var post = postResponse.Post;
@@ -123,7 +103,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 externalLinks[site].AddRange(extLinks[site]);
             }
 
-
             var file = post.File;
             var name = file.Name;
             var path = file.Path;
@@ -132,9 +111,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 if (path[0] == '/')
                 {
                     path = domainUrl + path;
-                    
                 }
-                
+
                 if (domainUrl.Contains("kemono"))
                 {
                     path = path.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
@@ -154,7 +132,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 {
                     attachmentPath = domainUrl + attachmentPath;
                 }
-                
+
                 if (domainUrl.Contains("kemono"))
                 {
                     attachmentPath = attachmentPath.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
@@ -173,12 +151,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 }
             }
 
-            var extractedAttachments = links
-                                      .Where(l => AttachmentExtensions.Any(l.Contains))
-                                      .Select(l => (l.Contains(domainUrl) || l.Contains("http")) ? l : domainUrl + l)
-                                      .ToList();
-
-
+            var extractedAttachments = links.Where(l => AttachmentExtensions.Any(l.Contains)).Select(l => (l.Contains(domainUrl) || l.Contains("http")) ? l : domainUrl + l).ToList();
             files.AddRange(extractedAttachments.ToStringImageLinks());
             foreach (var site in ParsableSites)
             {
@@ -186,8 +159,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
         }
 
-        #endregion
-
+#endregion
         foreach (var site in ExternalSites)
         {
             externalLinks[site] = externalLinks[site].RemoveDuplicates();
@@ -222,7 +194,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 // Site not responding correctly
                 continue;
             }
-            
+
             if (!linkStr.Contains(domainName)) // Only native links get duplicated
             {
                 unique.Add(link);
@@ -237,7 +209,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         }
 
         File.Delete(CachePath);
-
         return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
     }
 
@@ -254,23 +225,24 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                     {
                         newFilename += '+';
                     }
+
                     break;
                 default:
                     if (lastChar == '+')
                     {
                         newFilename += ' ';
                     }
-                    
+
                     newFilename += c;
                     break;
             }
-            
+
             lastChar = c;
         }
-        
+
         return newFilename;
     }
-    
+
     private static Dictionary<string, List<string>> ExtractPossibleExternalUrls(List<string> possibleUrls)
     {
         var externalLinks = CreateExternalLinkDict();
@@ -305,18 +277,16 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
     private async Task<(string, List<DotPartyPostResponse>)> GetAndCachePosts(string domainUrl)
     {
-        var (dirName, posts) = await GetPosts(domainUrl);
+        var(dirName, posts) = await GetPosts(domainUrl);
         var siteCache = new DotPartyCache
         {
             DirName = dirName,
             Posts = posts
         };
-
         var cache = new Dictionary<string, DotPartyCache>
         {
             [CurrentUrl] = siteCache
         };
-
         JsonUtility.Serialize(CachePath, cache);
         return (dirName, posts);
     }
@@ -332,15 +302,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var profileUrl = $"{baseUrl}/profile";
         Logger.Debug("Profile URL: {ProfileUrl}", profileUrl);
         var response = await RetryUntil(async () =>
-            {
-                var r = await HttpClient.GetAsync(profileUrl);
-                Logger.Debug("Profile page response: {StatusCode}", r.StatusCode);
-                return r;
-            },
-            (response) => response.IsSuccessStatusCode,
-            "Failed to get profile page",
-            delay: 5000);
-
+        {
+            var r = await HttpClient.GetAsync(profileUrl);
+            Logger.Debug("Profile page response: {StatusCode}", r.StatusCode);
+            return r;
+        }, (response) => response.IsSuccessStatusCode, "Failed to get profile page", delay: 5000);
         // var responseString = await response.Content.ReadAsByteArrayAsync();
         // await File.WriteAllBytesAsync("response.bin", responseString);
         var json = await response.Content.ReadFromJsonAsync<JsonNode>();
@@ -351,19 +317,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var page = 0;
         while (true)
         {
-            response = await RetryUntil(
-                async () =>
-                {
-                    var r = await HttpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
-                    Logger.Debug("Page response: {StatusCode}", r.StatusCode);
-                    return r;
-                },
-                (r) => r.IsSuccessStatusCode,
-                $"Failed to get page {page + 1}",
-                delay: 5000);
+            response = await RetryUntil(async () =>
+            {
+                var r = await HttpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
+                Logger.Debug("Page response: {StatusCode}", r.StatusCode);
+                return r;
+            }, (r) => r.IsSuccessStatusCode, $"Failed to get page {page + 1}", delay: 5000);
             page++;
             Logger.Debug("Retrieving page {PageNum} of size {PageSize}", page, PageSize);
-
             var jsonPosts = await response.Content.ReadFromJsonAsync<List<DotPartyPostShort>>();
             if (jsonPosts is null)
             {
@@ -372,20 +333,15 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
             var ids = jsonPosts.Select(post => post.Id);
             // Need to pull each post individually to get  the HTML content body of the post
-            foreach (var (i, id) in ids.Enumerate())
+            foreach (var(i, id)in ids.Enumerate())
             {
                 Logger.Debug("Retrieving post {PostId}", id);
-                response = await RetryUntil(
-                    async () =>
-                    {
-                        var r = await HttpClient.GetAsync($"{baseUrl}/post/{id}");
-                        Logger.Debug("Post response: {StatusCode}", r.StatusCode);
-                        return r;
-                    },
-                    (r) => r.IsSuccessStatusCode,
-                    $"Failed to get post {id}",
-                    delay: 15000);
-
+                response = await RetryUntil(async () =>
+                {
+                    var r = await HttpClient.GetAsync($"{baseUrl}/post/{id}");
+                    Logger.Debug("Post response: {StatusCode}", r.StatusCode);
+                    return r;
+                }, (r) => r.IsSuccessStatusCode, $"Failed to get post {id}", delay: 15000);
                 var postJson = await response.Content.ReadFromJsonAsync<DotPartyPostResponse>();
                 if (postJson is null)
                 {
@@ -411,14 +367,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         return (dirName, posts);
     }
 
-    private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string? attachmentName,
-                                                          string attachmentPath)
+    private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string? attachmentName, string attachmentPath)
     {
         List<string>? links = null;
         // ReSharper disable once InvertIf
-        if (attachmentName is not null &&
-            attachmentName.Contains("download", StringComparison.InvariantCultureIgnoreCase) &&
-            attachmentName.EndsWith(".txt")) // fanbox/user/4565149/
+        if (attachmentName is not null && attachmentName.Contains("download", StringComparison.InvariantCultureIgnoreCase) && attachmentName.EndsWith(".txt")) // fanbox/user/4565149/
         {
             links ??= [];
             var attachmentUrl = attachmentPath.StartsWith("https://") ? attachmentPath : domainUrl + attachmentPath;
@@ -432,8 +385,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
             var content = await response.Content.ReadAsStringAsync();
             var lines = content.Split('\n');
-            links.AddRange(lines.Where(line => line.StartsWith("https://mega.nz/"))
-                                .Select(line => line.Trim(' ', '\r', '\n', '\t')));
+            links.AddRange(lines.Where(line => line.StartsWith("https://mega.nz/")).Select(line => line.Trim(' ', '\r', '\n', '\t')));
         }
 
         return links;
@@ -452,7 +404,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
         // Track text nodes to remove
         var nodesToRemove = new List<HtmlNode>();
-
         HtmlNode? anchorToFix = null;
         foreach (var anchor in anchors)
         {
@@ -476,6 +427,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
                         break;
                     }
+
                     case HtmlNodeType.Text:
                     {
                         if (anchorToFix != null)
@@ -493,15 +445,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                             var newHref = anchorToFix.InnerText + text;
                             anchorToFix.InnerHtml = HtmlDocument.HtmlEncode(newHref); // display text
                             anchorToFix.SetAttributeValue("href", newHref); // link URL
-
                             // Schedule removal of trailing text node
                             nodesToRemove.Add(node);
-
                             anchorToFix = null;
                         }
 
                         break;
                     }
+
                     case HtmlNodeType.Document:
                     case HtmlNodeType.Comment:
                         anchorToFix = null; // This probably shouldn't happen, but just in case
@@ -528,80 +479,150 @@ public class DotPartyCache
 
 public class DotPartyPostShort
 {
-    [JsonPropertyName("id")] public string Id { get; set; } = null!;
-    [JsonPropertyName("user")] public string User { get; set; } = null!;
-    [JsonPropertyName("service")] public string Service { get; set; } = null!;
-    [JsonPropertyName("title")] public string Title { get; set; } = null!;
-    [JsonPropertyName("substring")] public string Substring { get; set; } = null!;
-    [JsonPropertyName("published")] public string Published { get; set; } = null!;
-    [JsonPropertyName("file")] public DotPartyFile File { get; set; } = null!;
-    [JsonPropertyName("attachments")] public List<DotPartyAttachment> Attachments { get; set; } = null!;
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = null!;
+
+    [JsonPropertyName("user")]
+    public string User { get; set; } = null!;
+
+    [JsonPropertyName("service")]
+    public string Service { get; set; } = null!;
+
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = null!;
+
+    [JsonPropertyName("substring")]
+    public string Substring { get; set; } = null!;
+
+    [JsonPropertyName("published")]
+    public string Published { get; set; } = null!;
+
+    [JsonPropertyName("file")]
+    public DotPartyFile File { get; set; } = null!;
+
+    [JsonPropertyName("attachments")]
+    public List<DotPartyAttachment> Attachments { get; set; } = null!;
 }
 
 public class DotPartyFile
 {
-    [JsonPropertyName("name")] public string? Name { get; set; }
-    [JsonPropertyName("path")] public string? Path { get; set; }
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("path")]
+    public string? Path { get; set; }
 }
 
 public class DotPartyAttachment
 {
-    [JsonPropertyName("name")] public string? Name { get; set; }
-    [JsonPropertyName("path")] public string Path { get; set; } = null!;
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("path")]
+    public string Path { get; set; } = null!;
 }
 
 public class DotPartyPostResponse
 {
-    [JsonPropertyName("post")] public DotPartyPostFull Post { get; set; } = null!;
-    [JsonPropertyName("attachments")] public List<DotPartyAttachment> Attachments { get; set; } = null!;
-    [JsonPropertyName("previews")] public List<DotPartyPreview> Previews { get; set; } = null!;
-    [JsonPropertyName("videos")] public List<DotPartyVideo> Videos { get; set; } = null!;
-    [JsonPropertyName("props")] public DotPartyProps Props { get; set; } = null!;
+    [JsonPropertyName("post")]
+    public DotPartyPostFull Post { get; set; } = null!;
+
+    [JsonPropertyName("attachments")]
+    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+
+    [JsonPropertyName("previews")]
+    public List<DotPartyPreview> Previews { get; set; } = null!;
+
+    [JsonPropertyName("videos")]
+    public List<DotPartyVideo> Videos { get; set; } = null!;
+
+    [JsonPropertyName("props")]
+    public DotPartyProps Props { get; set; } = null!;
 }
 
 public class DotPartyPostFull
 {
-    [JsonPropertyName("id")] public string Id { get; set; } = null!;
-    [JsonPropertyName("user")] public string User { get; set; } = null!;
-    [JsonPropertyName("service")] public string Service { get; set; } = null!;
-    [JsonPropertyName("title")] public string Title { get; set; } = null!;
-    [JsonPropertyName("content")] public string Content { get; set; } = null!;
-    [JsonPropertyName("embed")] public JsonElement Embed { get; set; }
-    [JsonPropertyName("shared_file")] public bool SharedFile { get; set; }
-    [JsonPropertyName("added")] public string? Added { get; set; }
-    [JsonPropertyName("published")] public string Published { get; set; } = null!;
-    [JsonPropertyName("edited")] public string Edited { get; set; } = null!;
-    [JsonPropertyName("file")] public DotPartyFile File { get; set; } = null!;
-    [JsonPropertyName("attachments")] public List<DotPartyAttachment> Attachments { get; set; } = null!;
-    [JsonPropertyName("poll")] public JsonElement? Poll { get; set; }
-    [JsonPropertyName("captions")] public JsonElement? Captions { get; set; }
-    [JsonPropertyName("tags")] public JsonArray Tags { get; set; } = null!;
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = null!;
+
+    [JsonPropertyName("user")]
+    public string User { get; set; } = null!;
+
+    [JsonPropertyName("service")]
+    public string Service { get; set; } = null!;
+
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = null!;
+
+    [JsonPropertyName("content")]
+    public string Content { get; set; } = null!;
+
+    [JsonPropertyName("embed")]
+    public JsonElement Embed { get; set; }
+
+    [JsonPropertyName("shared_file")]
+    public bool SharedFile { get; set; }
+
+    [JsonPropertyName("added")]
+    public string? Added { get; set; }
+
+    [JsonPropertyName("published")]
+    public string Published { get; set; } = null!;
+
+    [JsonPropertyName("edited")]
+    public string Edited { get; set; } = null!;
+
+    [JsonPropertyName("file")]
+    public DotPartyFile File { get; set; } = null!;
+
+    [JsonPropertyName("attachments")]
+    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+
+    [JsonPropertyName("poll")]
+    public JsonElement? Poll { get; set; }
+
+    [JsonPropertyName("captions")]
+    public JsonElement? Captions { get; set; }
+
+    [JsonPropertyName("tags")]
+    public JsonArray Tags { get; set; } = null!;
 
     [JsonPropertyName("incomplete_rewards")]
     public JsonObject? IncompleteRewards { get; set; }
 
-    [JsonPropertyName("next")] public string? Next { get; set; }
-    [JsonPropertyName("prev")] public string? Prev { get; set; }
+    [JsonPropertyName("next")]
+    public string? Next { get; set; }
+
+    [JsonPropertyName("prev")]
+    public string? Prev { get; set; }
 }
 
 public class DotPartyPreview
 {
-    [JsonPropertyName("type")] public string Type { get; set; } = null!;
-    [JsonPropertyName("server")] public string Server { get; set; } = null!;
-    [JsonPropertyName("name")] public string Name { get; set; } = null!;
-    [JsonPropertyName("path")] public string Path { get; set; } = null!;
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = null!;
+
+    [JsonPropertyName("server")]
+    public string Server { get; set; } = null!;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = null!;
+
+    [JsonPropertyName("path")]
+    public string Path { get; set; } = null!;
 }
 
 public class DotPartyVideo
 {
-    [JsonExtensionData] private Dictionary<string, JsonElement> Fields { get; set; } = null!;
+    [JsonExtensionData]
+    private Dictionary<string, JsonElement> Fields { get; set; } = null!;
 }
 
 public class DotPartyProps
 {
-    [JsonPropertyName("flagged")] public string? Flagged { get; set; }
+    [JsonPropertyName("flagged")]
+    public string? Flagged { get; set; }
 
     [JsonPropertyName("revisions")]
-    public List<List<JsonNode>> Revisions { get; set; } =
-        null!; // Each sublist contains [revision number, DotPartyPostFull]
+    public List<List<JsonNode>> Revisions { get; set; } = null!; // Each sublist contains [revision number, DotPartyPostFull]
 }

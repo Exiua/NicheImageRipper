@@ -27,7 +27,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify( /*delay: 5000, */lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
+        var soup = await Soupify( /*delay: 5000, */lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
         List<StringFileLinkWrapper> images;
         var video = soup.SelectSingleNode("//iframe");
@@ -41,7 +41,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
                 if (links.Count == 0)
                 {
                     Logger.Debug("No links found, retrying...");
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken: cancellationToken);
                     continue;
                 }
 

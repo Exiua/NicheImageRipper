@@ -4,21 +4,17 @@ using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
 using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class GelbooruParser : BooruParser, IHtmlParser
 {
     public static string ParserName => "gelbooru";
     public static string[] SupportedUrls => ["https://gelbooru.com/"];
 
-    public GelbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<GelbooruParser>(filenameScheme))
+    public GelbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GelbooruParser>(filenameScheme))
     {
     }
 
@@ -28,6 +24,6 @@ public class GelbooruParser : BooruParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Booru.Gelbooru);
+        return BooruParse(Booru.Gelbooru, cancellationToken: cancellationToken);
     }
 }

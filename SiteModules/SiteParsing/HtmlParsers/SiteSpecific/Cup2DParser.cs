@@ -26,7 +26,7 @@ public class Cup2DParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var node = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridshow-clearfix']/div").SelectNodesOrThrow("./*[self::a or self::iframe]");

@@ -26,13 +26,13 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await SolveParseAddCookies();
+        var soup = await SolveParseAddCookies(cancellationToken: cancellationToken);
         var images = new List<StringFileLinkWrapper>();
         string dirName;
         if (CurrentUrl.Contains("/watch/"))
         {
             dirName = soup.SelectSingleNodeOrThrow("//div[@class='l_info']/h1").InnerText;
-            var src = await GetVideoUrl();
+            var src = await GetVideoUrl(cancellationToken: cancellationToken);
             if (src is null)
             {
                 Logger.Warning("Video has been deleted: {Url}", CurrentUrl);
@@ -49,7 +49,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
             {
                 var url = $"https://noodlemagazine.com{video}";
                 CurrentUrl = url;
-                var src = await GetVideoUrl();
+                var src = await GetVideoUrl(cancellationToken: cancellationToken);
                 if (src is null)
                 {
                     Logger.Warning("Video has been deleted: {Url}", url);
@@ -66,7 +66,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
     private async Task<string?> GetVideoUrl(CancellationToken cancellationToken = default)
     {
         start:
-            await SolveParseAddCookies();
+            await SolveParseAddCookies(cancellationToken: cancellationToken);
         var deletedAlert = Driver.TryFindElement(By.XPath("//div[@class='alert_warning']"));
         if (deletedAlert is not null)
         {
@@ -78,7 +78,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
         while (true)
         {
             Logger.Debug("Starting video");
-            var success = await TryClickElementByXPath("//div[@class='jw-icon jw-icon-display jw-button-color jw-reset']");
+            var success = await TryClickElementByXPath("//div[@class='jw-icon jw-icon-display jw-button-color jw-reset']", cancellationToken: cancellationToken);
             if (!success)
             {
                 Logger.Debug("Could not find play button, retrying");
@@ -94,18 +94,18 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
                 }
             }
 
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
             Logger.Debug("Finding settings button");
-            success = await TryClickElementByXPath("//div[@class='jw-icon jw-icon-inline jw-button-color jw-reset jw-icon-settings jw-settings-submenu-button']");
+            success = await TryClickElementByXPath("//div[@class='jw-icon jw-icon-inline jw-button-color jw-reset jw-icon-settings jw-settings-submenu-button']", cancellationToken: cancellationToken);
             if (!success)
             {
                 Logger.Debug("Could not find settings button, retrying");
                 continue;
             }
 
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
             Logger.Debug("Finding highest quality button");
-            success = await TryClickElementByXPath("//div[@id='jw-player_box-settings-submenu-quality']//button");
+            success = await TryClickElementByXPath("//div[@id='jw-player_box-settings-submenu-quality']//button", cancellationToken: cancellationToken);
             if (!success)
             {
                 tries.Quality++;
@@ -119,11 +119,11 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
                 continue;
             }
 
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
             break;
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var vid = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']");
         var src = vid.GetSrc().DecodeUrl();
         if (!src.Contains("rs=") && !src.Contains("url="))

@@ -32,7 +32,7 @@ public class HotGirlParser : HtmlParser, IHtmlParser
             CurrentUrl = "/".Join(urlParts) + "/?stype=slideshow";
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@itemprop='name']").InnerText;
         var images = soup.SelectNodesOrThrow("//img[@class='center-block w-100']").Select(image => image.GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

@@ -26,7 +26,7 @@ public class EahentaiParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(delay: 1000, lazyLoadArgs: new LazyLoadArgs());
+        var soup = await Soupify(delay: 1000, lazyLoadArgs: new LazyLoadArgs(), cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h2").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']").SelectNodesOrThrow(".//a").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("/thumbnail").Replace("t.", ".")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

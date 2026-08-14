@@ -26,7 +26,7 @@ public class Cool18Parser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var showContent = soup.SelectSingleNodeOrThrow("//td[@class='show_content']");
         var dirName = showContent.SelectSingleNodeOrThrow(".//b").InnerText;
         var images = showContent.SelectSingleNodeOrThrow(".//pre").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).Select(dummy => (StringFileLinkWrapper)dummy).ToList();

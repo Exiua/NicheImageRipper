@@ -39,11 +39,11 @@ public class SpankBangParser : HtmlParser, IHtmlParser
             Driver.Click(ageCheck);
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var blockedHeadline = soup.SelectSingleNode("//h1[@data-translate='block_headline']");
         if (blockedHeadline is not null)
         {
-            soup = await SolveParseAddCookies();
+            soup = await SolveParseAddCookies(cancellationToken: cancellationToken);
         }
 
         string dirName;
@@ -63,7 +63,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
                 {
                     Logger.Information("Parsing video: {Video}", video);
                     CurrentUrl = video;
-                    var src = await GetVideoUrl();
+                    var src = await GetVideoUrl(cancellationToken: cancellationToken);
                     images.Add(src);
                 }
 
@@ -73,7 +73,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
             case UrlType.SingleVideo:
             {
                 dirName = soup.SelectSingleNodeOrThrow("//h1[@class='main_content_title']").InnerText;
-                var src = await GetVideoUrl();
+                var src = await GetVideoUrl(cancellationToken: cancellationToken);
                 images.Add(src);
                 break;
             }
@@ -82,11 +82,11 @@ public class SpankBangParser : HtmlParser, IHtmlParser
             {
                 dirName = soup.SelectSingleNodeOrThrow("//h1[@class='main_content_title']").InnerText + $" ({id})";
                 var videos = soup.SelectSingleNodeOrThrow(playlistXPath).SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref()).Select(src => $"https://spankbang.com{src}");
-                await File.WriteAllTextAsync("test2.html", Driver.PageSource);
+                await File.WriteAllTextAsync("test2.html", Driver.PageSource, cancellationToken: cancellationToken);
                 foreach (var video in videos)
                 {
                     CurrentUrl = video;
-                    var src = await GetVideoUrl();
+                    var src = await GetVideoUrl(cancellationToken: cancellationToken);
                     images.Add(src);
                 }
 
@@ -132,7 +132,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
         }
 
         var settingsButton = Driver.FindElement(By.XPath("//button[@class='vjs-control vjs-button vjs-settings-button']"));
@@ -144,7 +144,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
         var highestQualityButton = Driver.FindElement(By.XPath("//button[@class='quality-item submenu-item'][2]"));
         //highestQualityButton.Click();
         Driver.Click(highestQualityButton);
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var src = soup.SelectSingleNodeOrThrow("//video[@id='main_video_player_html5_api']").GetSrc().DecodeUrl();
         return src;
     }

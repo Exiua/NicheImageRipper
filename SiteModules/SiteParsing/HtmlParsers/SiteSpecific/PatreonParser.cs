@@ -7,20 +7,16 @@ using NicheImageRipper.Core.SiteParsing;
 using OpenQA.Selenium;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using OpenQA.Selenium;
 using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class PatreonParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "patreon";
     public static string[] SupportedUrls { get; } = ["https://www.patreon.com"];
 
-    public PatreonParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<PatreonParser>(filenameScheme))
+    public PatreonParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PatreonParser>(filenameScheme))
     {
     }
 
@@ -45,8 +41,6 @@ public class PatreonParser : HtmlParser, IHtmlParser
             {
                 break;
             }
-            
-            
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

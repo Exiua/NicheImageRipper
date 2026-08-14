@@ -7,26 +7,22 @@ using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 
 namespace NicheImageRipper.Gui.Services.Full;
-
 public class LocalRipperClient : IRipperClient
 {
     private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
-
     public int UrlQueueCount => _ripper.UrlQueue.Count;
     public bool Connected => true;
 
     private bool _disposed;
-    
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
-
     public LocalRipperClient()
     {
         _ripper = new NicheImageRipper.Core.NicheImageRipper();
         _ripper.OnUrlQueueUpdated += () => OnUrlQueueUpdated?.Invoke();
         _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
     }
-    
+
     public Task<bool> Rip(CancellationToken cancellationToken = default)
     {
         return _ripper.Rip(cancellationToken);
@@ -79,14 +75,14 @@ public class LocalRipperClient : IRipperClient
 
     public Task SaveData(CancellationToken cancellationToken = default)
     {
-        return _ripper.SaveData();
+        return _ripper.SaveData(cancellationToken: cancellationToken);
     }
 
     public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.Version);
     }
-    
+
     public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.GetHistoryPage(start, offset, filter));
@@ -105,7 +101,7 @@ public class LocalRipperClient : IRipperClient
 
     public Task SkipCurrentEntry(CancellationToken cancellationToken = default)
     {
-        return NicheImageRipper.Core.NicheImageRipper.SkipEntry();
+        return NicheImageRipper.Core.NicheImageRipper.SkipEntry(cancellationToken: cancellationToken);
     }
 
     public void Dispose()
@@ -114,7 +110,7 @@ public class LocalRipperClient : IRipperClient
         {
             return;
         }
-        
+
         _disposed = true;
         _ripper.Dispose();
         GC.SuppressFinalize(this);

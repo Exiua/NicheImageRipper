@@ -66,12 +66,12 @@ public class EightSeParser : HtmlParser, IHtmlParser
         foreach (var(i, link)in imageLinks.Enumerate())
         {
             Logger.Information("Parsing image page {Link}", link);
-            var soup = await Soupify(link, delay: 250);
+            var soup = await Soupify(link, delay: 250, cancellationToken: cancellationToken);
             var img = soup.SelectSingleNodeOrThrow("//div[@class='container']/img").GetSrc();
             images.Add(img);
             if (i % 100 == 0 && i > 0)
             {
-                await Sleep(2500); // Sleep every 100 images to avoid being rate-limited
+                await Sleep(2500, cancellationToken: cancellationToken); // Sleep every 100 images to avoid being rate-limited
             }
         }
 

@@ -26,7 +26,7 @@ public class HundredBucksBabesParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']").SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

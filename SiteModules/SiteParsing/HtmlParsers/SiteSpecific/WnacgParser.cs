@@ -31,13 +31,13 @@ public class WnacgParser : HtmlParser, IHtmlParser
             CurrentUrl = CurrentUrl.Replace("-slist-", "-index-");
         }
 
-        var soup = await SolveParseAddCookies();
+        var soup = await SolveParseAddCookies(cancellationToken: cancellationToken);
         Logger.Debug("Fetching directory name");
         var dirNode = soup.SelectSingleNode("//h2");
         if (dirNode is null)
         {
             Driver.Refresh();
-            soup = await Soupify();
+            soup = await Soupify(cancellationToken: cancellationToken);
             dirNode = soup.SelectSingleNodeOrThrow("//h2");
         }
 
@@ -59,17 +59,17 @@ public class WnacgParser : HtmlParser, IHtmlParser
             }
 
             var nextPageUrl = nextPageButton.SelectSingleNodeOrThrow(".//a").GetHref();
-            soup = await Soupify($"https://www.wnacg.com{nextPageUrl}");
+            soup = await Soupify($"https://www.wnacg.com{nextPageUrl}", cancellationToken: cancellationToken);
         }
 
         Logger.Debug("Found {NumImages} images", imageLinks.Count);
         var images = new List<StringFileLinkWrapper>();
         foreach (var image in imageLinks)
         {
-            await JitterSleep(max: 350);
+            await JitterSleep(max: 350, cancellationToken: cancellationToken);
             Logger.Debug("Fetching image {Image}", image);
             CurrentUrl = $"https://www.wnacg.com{image}";
-            soup = await SolveParse();
+            soup = await SolveParse(cancellationToken: cancellationToken);
             var img = soup.SelectSingleNodeOrThrow("//img[@id='picarea']");
             var imgSrc = img.GetSrc();
             images.Add(imgSrc.Contains("https:") ? imgSrc : $"https:{imgSrc}");

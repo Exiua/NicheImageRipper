@@ -31,7 +31,7 @@ public class JRantsParser : HtmlParser, IHtmlParser
             ScrollBy = true,
             Increment = 1250
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var pageCount = 1;
@@ -63,7 +63,7 @@ public class JRantsParser : HtmlParser, IHtmlParser
                 throw new RipperException("No images found");
             }
 
-            soup = await Soupify(nextPage.GetHref(), lazyLoadArgs: lazyLoadArgs);
+            soup = await Soupify(nextPage.GetHref(), lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

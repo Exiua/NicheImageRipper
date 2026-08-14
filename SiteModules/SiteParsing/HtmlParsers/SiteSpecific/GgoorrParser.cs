@@ -27,7 +27,7 @@ public class GgoorrParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const string schema = "https://cdn.ggoorr.net";
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var id = CurrentUrl.Split("/")[4];
         var dirName = $"[ggoorr]{soup.SelectSingleNodeOrThrow("//h1//a").InnerText} ({id})";
         var posts = soup.SelectSingleNodeOrThrow("//div[@id='article_1']").SelectSingleNodeOrThrow(".//div").SelectNodesOrThrow(".//img|.//video");

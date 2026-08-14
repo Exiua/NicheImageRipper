@@ -28,7 +28,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var imagePosts = new List<string>();
@@ -43,7 +43,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
             if (nextButton is not null)
             {
                 var nextUrl = nextButton.GetHref();
-                soup = await Soupify($"https://www.flickr.com{nextUrl}", lazyLoadArgs: new LazyLoadArgs { ScrollBy = true });
+                soup = await Soupify($"https://www.flickr.com{nextUrl}", lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
             }
             else
             {
@@ -55,7 +55,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing post {i}: {post}", i + 1, post);
             var delay = 100;
-            soup = await Soupify(post, delay: delay);
+            soup = await Soupify(post, delay: delay, cancellationToken: cancellationToken);
             var script = soup.SelectSingleNodeOrThrow("//script[@class='modelExport']").InnerText;
             string paramValues;
             while (true)
@@ -68,7 +68,7 @@ public class FlickrParser : HtmlParser, IHtmlParser
                 catch (IndexOutOfRangeException)
                 {
                     delay *= 2;
-                    soup = await Soupify(post, delay: delay);
+                    soup = await Soupify(post, delay: delay, cancellationToken: cancellationToken);
                     script = soup.SelectSingleNodeOrThrow("//script[@class='modelExport']").InnerText;
                 }
             }

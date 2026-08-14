@@ -50,7 +50,7 @@ public class ImgurParser : HtmlParser, IHtmlParser
             throw new RipperCredentialException("Client Id Incorrect");
         }
 
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
         var jsonData = json!["data"]!.AsObject();
         var dirName = jsonData["title"]!.Deserialize<string>()!;
         var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();

@@ -31,7 +31,7 @@ public class ThreeHentaiParser : HtmlParser, IHtmlParser
             ScrollBy = true,
             Increment = 1250,
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='text-left font-weight-bold']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@id='thumbnail-gallery']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).Select(src => src.Replace("t.", ".")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

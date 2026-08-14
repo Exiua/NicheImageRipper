@@ -31,7 +31,7 @@ public class CosblayParser : HtmlParser, IHtmlParser
             ScrollBy = true,
             Increment = 1250,
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 250);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 250, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var pageCount = 1;
@@ -62,7 +62,7 @@ public class CosblayParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250);
+            soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

@@ -11,7 +11,6 @@ using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class VGenParser : HtmlParser
 {
     public VGenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
@@ -32,14 +31,14 @@ public class VGenParser : HtmlParser
         {
             var clickZone = child.FindElement(By.XPath(".//div[@class='showcaseContainer']"));
             clickZone.Click();
-            await Sleep(250);
-            var containerName = await WaitForElement("//div[@class='galleryContainer']");
+            await Sleep(250, cancellationToken: cancellationToken);
+            var containerName = await WaitForElement("//div[@class='galleryContainer']", cancellationToken: cancellationToken);
             while (containerName is null)
             {
-                await Sleep(250);
-                containerName = await WaitForElement("//div[@class='galleryContainer']");
+                await Sleep(250, cancellationToken: cancellationToken);
+                containerName = await WaitForElement("//div[@class='galleryContainer']", cancellationToken: cancellationToken);
             }
-            
+
             var imageContainer = Driver.FindElement(By.XPath("//div[@class='galleryContainer']"));
             var imgs = imageContainer.FindElements(By.XPath("./img"));
             foreach (var img in imgs)
@@ -50,13 +49,13 @@ public class VGenParser : HtmlParser
                     Logger.Warning("Image src is null, skipping");
                     continue;
                 }
-                
+
                 images.Add(src);
             }
-            
+
             var closeButton = Driver.FindElement(By.XPath("//div[@class='sc-389b16ca-0 kmkUyu sc-c6245413-0']//svg"));
             closeButton.Click();
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

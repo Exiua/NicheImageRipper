@@ -32,9 +32,9 @@ public class QuatvnParser : HtmlParser, IHtmlParser
         HtmlNode soup = null!;
         for (var i = 0; i < 4; i++)
         {
-            await File.WriteAllTextAsync("test.html", Driver.PageSource);
+            await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken: cancellationToken);
             var startTime = DateTime.Now;
-            soup = await Soupify(xpath: "//div[@class='fp-playlist']|//div[@class='fp-player']|//ul[@role='tablist']", xpathTimeout: 120);
+            soup = await Soupify(xpath: "//div[@class='fp-playlist']|//div[@class='fp-player']|//ul[@role='tablist']", xpathTimeout: 120, cancellationToken: cancellationToken);
             var endTime = DateTime.Now;
             if (endTime - startTime < TimeSpan.FromSeconds(120))
             {
@@ -81,7 +81,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                     closeBtn?.Click();
                     var nextTab = Driver.FindElement(By.XPath($"//li[@tabindex='{i}']"));
                     nextTab.Click();
-                    soup = await Soupify();
+                    soup = await Soupify(cancellationToken: cancellationToken);
                 }
             }
         }

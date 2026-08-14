@@ -26,7 +26,7 @@ public class FapelloParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='font-semibold lg:text-2xl text-lg mb-2 mt-4']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("_300px", "")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

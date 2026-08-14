@@ -26,7 +26,7 @@ public class AHottieParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='text-xl font-bold pl-3 text-yellow-500']").InnerText;
         var images = new List<StringFileLinkWrapper>();
         while (true)
@@ -46,7 +46,7 @@ public class AHottieParser : HtmlParser, IHtmlParser
             }
 
             var nextUrl = nextButton.GetHref();
-            soup = await Soupify(nextUrl);
+            soup = await Soupify(nextUrl, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

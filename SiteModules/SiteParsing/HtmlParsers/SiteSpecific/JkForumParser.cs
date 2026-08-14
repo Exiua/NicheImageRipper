@@ -26,7 +26,7 @@ public class JkForumParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(delay: 1000);
+        var soup = await Soupify(delay: 1000, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title-cont']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//td[@class='t_f']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Remove(".thumb.jpg")).ToStringImageLinkWrapperList();
         // TODO: Find a way to download videos as well

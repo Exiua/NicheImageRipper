@@ -23,7 +23,6 @@ using NicheImageRipper.Gui.ViewModels;
 using ReactiveUI;
 
 namespace NicheImageRipper.Gui.Views;
-
 public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 {
     private static FilePickerFileType Json { get; } = new("JSON")
@@ -33,13 +32,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     };
 
     private readonly ITaskbarProgressService _taskbarProgressService;
-
     private Key _lastKeyPressed;
     private bool _copyReady;
     private IntPtr _windowHandle;
     private readonly ILogger<MainWindow> _logger;
     private readonly ISnackbar _snackbar;
-
     public MainWindow(MainWindowViewModelBase viewModel, ITaskbarProgressService taskbarProgressService, ILogger<MainWindow> logger)
     {
         var manager = new WindowNotificationManager(this)
@@ -47,12 +44,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             Position = NotificationPosition.BottomCenter,
             MaxItems = 3,
         };
-        
         _snackbar = new Snackbar(manager);
         _taskbarProgressService = taskbarProgressService;
         _logger = logger;
         DataContext = viewModel;
-        
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();
         Focusable = true;
@@ -61,7 +56,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.Core.NicheImageRipper.FilenameScheme;
         UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
         UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.Core.NicheImageRipper.UnzipProtocol;
-
         viewModel.OnNotification += Show;
         viewModel.LogTextChanged += OnLogTextChanged;
         viewModel.ProgressChanged += (current, total) =>
@@ -89,92 +83,89 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 
             _taskbarProgressService.SetError(_windowHandle);
         };
-        
         Closing += OnClosing;
         Opened += OnOpened;
-        
         this.WhenActivated(disposables =>
         {
             ViewModel!.ShowConfirmationDialog.RegisterHandler((vm) => DoShowDialogAsync(vm)).DisposeWith(disposables);
         });
-        
-        // this.WhenActivated(disposables =>
-        // {
-        //     ViewModel!.WhenAnyValue(x => x.ProgressCurrent, x => x.ProgressTotal)
-        //         .Subscribe(tuple =>
-        //         {
-        //             var (current, total) = tuple;
-        //
-        //             if (_windowHandle == IntPtr.Zero)
-        //             {
-        //                 return;
-        //             }
-        //
-        //             if (total == 0)
-        //             {
-        //                 _taskbarProgressService.ClearProgress(_windowHandle);
-        //             }
-        //             else
-        //             {
-        //                 _taskbarProgressService.SetProgress(_windowHandle, current, total);
-        //             }
-        //         })
-        //         .DisposeWith(disposables);
-        //
-        //     ViewModel!.WhenAnyValue(x => x.ProgressHasError)
-        //         .Subscribe(hasError =>
-        //         {
-        //             if (_windowHandle == IntPtr.Zero)
-        //             {
-        //                 return;
-        //             }
-        //
-        //             if (hasError)
-        //             {
-        //                 _taskbarProgressService.SetError(_windowHandle);
-        //             }
-        //             else if (ViewModel.ProgressTotal == 0)
-        //             {
-        //                 _taskbarProgressService.ClearProgress(_windowHandle);
-        //             }
-        //             else if (ViewModel.ProgressIsPaused)
-        //             {
-        //                 _taskbarProgressService.SetPaused(_windowHandle);
-        //             }
-        //             else
-        //             {
-        //                 _taskbarProgressService.SetProgress(
-        //                     _windowHandle,
-        //                     ViewModel.ProgressCurrent,
-        //                     ViewModel.ProgressTotal);
-        //             }
-        //         })
-        //         .DisposeWith(disposables);
-        //
-        //     ViewModel!.WhenAnyValue(x => x.ProgressIsPaused)
-        //         .Subscribe(isPaused =>
-        //         {
-        //             if (_windowHandle == IntPtr.Zero || ViewModel.ProgressTotal == 0 || ViewModel.ProgressHasError)
-        //             {
-        //                 return;
-        //             }
-        //
-        //             if (isPaused)
-        //             {
-        //                 _taskbarProgressService.SetPaused(_windowHandle);
-        //             }
-        //             else
-        //             {
-        //                 _taskbarProgressService.SetProgress(
-        //                     _windowHandle,
-        //                     ViewModel.ProgressCurrent,
-        //                     ViewModel.ProgressTotal);
-        //             }
-        //         })
-        //         .DisposeWith(disposables);
-        // });
+    // this.WhenActivated(disposables =>
+    // {
+    //     ViewModel!.WhenAnyValue(x => x.ProgressCurrent, x => x.ProgressTotal)
+    //         .Subscribe(tuple =>
+    //         {
+    //             var (current, total) = tuple;
+    //
+    //             if (_windowHandle == IntPtr.Zero)
+    //             {
+    //                 return;
+    //             }
+    //
+    //             if (total == 0)
+    //             {
+    //                 _taskbarProgressService.ClearProgress(_windowHandle);
+    //             }
+    //             else
+    //             {
+    //                 _taskbarProgressService.SetProgress(_windowHandle, current, total);
+    //             }
+    //         })
+    //         .DisposeWith(disposables);
+    //
+    //     ViewModel!.WhenAnyValue(x => x.ProgressHasError)
+    //         .Subscribe(hasError =>
+    //         {
+    //             if (_windowHandle == IntPtr.Zero)
+    //             {
+    //                 return;
+    //             }
+    //
+    //             if (hasError)
+    //             {
+    //                 _taskbarProgressService.SetError(_windowHandle);
+    //             }
+    //             else if (ViewModel.ProgressTotal == 0)
+    //             {
+    //                 _taskbarProgressService.ClearProgress(_windowHandle);
+    //             }
+    //             else if (ViewModel.ProgressIsPaused)
+    //             {
+    //                 _taskbarProgressService.SetPaused(_windowHandle);
+    //             }
+    //             else
+    //             {
+    //                 _taskbarProgressService.SetProgress(
+    //                     _windowHandle,
+    //                     ViewModel.ProgressCurrent,
+    //                     ViewModel.ProgressTotal);
+    //             }
+    //         })
+    //         .DisposeWith(disposables);
+    //
+    //     ViewModel!.WhenAnyValue(x => x.ProgressIsPaused)
+    //         .Subscribe(isPaused =>
+    //         {
+    //             if (_windowHandle == IntPtr.Zero || ViewModel.ProgressTotal == 0 || ViewModel.ProgressHasError)
+    //             {
+    //                 return;
+    //             }
+    //
+    //             if (isPaused)
+    //             {
+    //                 _taskbarProgressService.SetPaused(_windowHandle);
+    //             }
+    //             else
+    //             {
+    //                 _taskbarProgressService.SetProgress(
+    //                     _windowHandle,
+    //                     ViewModel.ProgressCurrent,
+    //                     ViewModel.ProgressTotal);
+    //             }
+    //         })
+    //         .DisposeWith(disposables);
+    // });
     }
-    
+
     private void OnOpened(object? sender, EventArgs e)
     {
         _windowHandle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
@@ -194,12 +185,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                 ViewModel!.Cleanup();
             }
         });
-        
         task.Wait();
     }
 
     private bool _paused;
-
     private void OnLogTextChanged()
     {
         Dispatcher.UIThread.Post(() =>
@@ -207,17 +196,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             LogTextBox.CaretIndex = int.MaxValue;
         }, DispatcherPriority.Background);
     }
-    
+
     private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)
     {
         try
         {
-            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "Select Directory",
-                SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.Core.NicheImageRipper.SavePath)
-            });
-
+            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Select Directory", SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.Core.NicheImageRipper.SavePath) });
             if (folder.Count == 0)
             {
                 return;
@@ -237,14 +221,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         try
         {
-            var file = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-            {
-                Title = "Select Unfinished URL File",
-                FileTypeFilter = [Json],
-                SuggestedStartLocation =
-                    await StorageProvider.TryGetFolderFromPathAsync(".") // TODO: Change to executable path
-            });
-
+            var file = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Select Unfinished URL File", FileTypeFilter = [Json], SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(".") // TODO: Change to executable path
+ });
             if (file.Count == 0)
             {
                 return;
@@ -311,7 +289,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                 await LoadHistory();
                 return;
             }
-        
+
             var filter = HistoryFilter.Parse(input);
             await LoadHistory(filter);
         }
@@ -320,7 +298,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             _logger.LogError(exception, "Failed to apply history filter");
         }
     }
-    
+
     private async void ClearHistoryFilter(object? sender, RoutedEventArgs e)
     {
         try
@@ -336,7 +314,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 
     private async Task LoadHistory(HistoryFilter? filter = null, CancellationToken cancellationToken = default)
     {
-        await ViewModel!.LoadHistory(filter);
+        await ViewModel!.LoadHistory(filter, cancellationToken: cancellationToken);
         PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
         NextHistoryPageButton.IsEnabled = ViewModel.NextHistoryPageExists();
     }
@@ -367,7 +345,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         {
             DataContext = interaction.Input
         };
-
         var result = await dialog.ShowDialog<ConfirmationViewModel?>(this);
         interaction.SetOutput(result);
     }
@@ -416,7 +393,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                 break;
         }
     }
-    
+
     private void HistoryDataGrid_OnKeyUp(object? sender, KeyEventArgs e)
     {
         _logger.LogDebug("Key Up: {Key}", e.Key);
@@ -431,10 +408,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             Key.C => e.Key is Key.LeftCtrl or Key.RightCtrl,
             _ => _copyReady
         };
-
         _logger.LogDebug("Copy Ready: {CopyReady}", _copyReady);
         _lastKeyPressed = e.Key;
-
         if (_copyReady)
         {
             var descendants = dataGrid.GetVisualDescendants();
@@ -444,7 +419,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                 {
                     continue;
                 }
-                
+
                 var textBlock = cell.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault();
                 if (textBlock is not null)
                 {
@@ -452,16 +427,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
                     Clipboard?.SetTextAsync(textBlock.Text).Wait();
                 }
             }
-            
+
             _copyReady = false;
         }
     }
-    
+
     private void PlayPauseButton_OnClick(object? sender, RoutedEventArgs e)
     {
         PlayPauseToggle();
     }
-    
+
     private async void PlayPauseToggle()
     {
         try
@@ -498,9 +473,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         else
         {
-            playing = await ViewModel.Resume();
+            playing = await ViewModel.Resume(cancellationToken: cancellationToken);
         }
-        
+
         _paused = !playing;
     }
 
@@ -511,7 +486,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         {
             PlayPauseButtonIcon.Data = (StreamGeometry)icon!;
         }
-        
+
         bool paused;
         if (ViewModel is null)
         {
@@ -519,14 +494,13 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
         else
         {
-            paused = await ViewModel.Pause();
+            paused = await ViewModel.Pause(cancellationToken: cancellationToken);
         }
-        
+
         _paused = paused;
     }
 
-    private void Show(string message, string title = "Snackbar", NotificationType type = NotificationType.Information,
-                      long expirationMs = 3000)
+    private void Show(string message, string title = "Snackbar", NotificationType type = NotificationType.Information, long expirationMs = 3000)
     {
         Dispatcher.UIThread.Post(() =>
         {

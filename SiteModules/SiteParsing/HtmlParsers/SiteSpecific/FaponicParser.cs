@@ -26,7 +26,7 @@ public class FaponicParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, ScrollPauseTime = 1000 });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, ScrollPauseTime = 1000 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='author-content']").SelectSingleNodeOrThrow(".//a").InnerText;
         var posts = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//div[@class='photo-item col-4-width']");
         var images = new List<StringFileLinkWrapper>();
@@ -50,7 +50,7 @@ public class FaponicParser : HtmlParser, IHtmlParser
                 continue;
             }
 
-            soup = await Soupify(((string)img).Remove("video:"));
+            soup = await Soupify(((string)img).Remove("video:"), cancellationToken: cancellationToken);
             var vid = soup.SelectSingleNodeOrThrow("//source").GetSrc();
             images[i] = vid;
         }

@@ -11,15 +11,12 @@ using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public class SpaceMissParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "spacemiss";
     public static string[] SupportedUrls => ["https://spacemiss.com/"];
 
-    public SpaceMissParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<SpaceMissParser>(filenameScheme))
+    public SpaceMissParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SpaceMissParser>(filenameScheme))
     {
     }
 
@@ -29,12 +26,9 @@ public class SpaceMissParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='tdb-title-text']").InnerText;
-        var images = soup
-                    .SelectSingleNodeOrThrow(
-                         "//figure[@class='wp-block-gallery has-nested-images columns-2 is-cropped td-modal-on-gallery wp-block-gallery-1 is-layout-flex wp-block-gallery-is-layout-flex']")
-                    .SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images columns-2 is-cropped td-modal-on-gallery wp-block-gallery-1 is-layout-flex wp-block-gallery-is-layout-flex']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -26,7 +26,7 @@ public class HentaiRoxParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='col-md-7 col-sm-7 col-lg-8 right_details']").SelectSingleNodeOrThrow(".//h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@id='append_thumbs']").SelectSingleNodeOrThrow(".//img[@class='lazy preloader']").GetAttributeValue("data-src");
         var numFiles = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[0]);

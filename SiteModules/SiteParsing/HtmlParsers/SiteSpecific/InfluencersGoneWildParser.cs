@@ -26,7 +26,7 @@ public class InfluencersGoneWildParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 625, ScrollPauseTime = 1000 });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 625, ScrollPauseTime = 1000 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
         var posts = soup.SelectSingleNodeOrThrow("//div[@class='g1-content-narrow g1-typography-xl entry-content']").SelectNodesOrThrow(".//img|.//video");
         var images = new List<StringFileLinkWrapper>();

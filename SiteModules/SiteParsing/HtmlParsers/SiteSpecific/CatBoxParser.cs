@@ -27,7 +27,7 @@ public class CatBoxParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         Logger.Warning("Catbox.moe support is experimental and may not work as expected");
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']/h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='imagecontainer']").SelectNodesOrThrow("./video").Select(vid => vid.GetSrc()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

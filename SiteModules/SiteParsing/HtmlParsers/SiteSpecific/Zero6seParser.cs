@@ -28,7 +28,7 @@ public class Zero6SeParser : HtmlParser, IHtmlParser
     {
         // var readMoreButton = Driver.TryFindElement(By.XPath("//div[@class='read-more']/a"));
         // readMoreButton?.Click();
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='article-title']/a").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='article-content']").SelectNodesOrThrow(".//img").Select(GetUrl).OfType<string>().ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

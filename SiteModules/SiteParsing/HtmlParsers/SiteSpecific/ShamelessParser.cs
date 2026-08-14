@@ -26,7 +26,7 @@ public class ShamelessParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h4[@class='title']").InnerText;
         var script = soup.SelectSingleNodeOrThrow("//div[@class='player-holder']//script[not(@src)]").InnerText.Split("var flashvars = ")[1].Split("};")[0] + "}";
         var rawJson = ExtractJsonObject(script);

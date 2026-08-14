@@ -8,20 +8,16 @@ using NicheImageRipper.Core.SiteParsing;
 using OpenQA.Selenium;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using OpenQA.Selenium;
 using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
-
 public partial class NHentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nhentai";
     public static string[] SupportedUrls { get; } = ["https://nhentai.net"];
 
-    public NHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
+    public NHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
     {
     }
 
@@ -47,15 +43,9 @@ public partial class NHentaiParser : HtmlParser, IHtmlParser
         await LazyLoad(lazyLoadArgs, cancellationToken);
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
-        var thumbnails = soup.SelectSingleNodeOrThrow("//div[@class='thumbs']")
-                             .SelectNodesOrThrow(".//img")
-                             .Select(img => img.GetNullableAttributeValue("data-src"))
-                             .ToList();
+        var thumbnails = soup.SelectSingleNodeOrThrow("//div[@class='thumbs']").SelectNodesOrThrow(".//img").Select(img => img.GetNullableAttributeValue("data-src")).ToList();
         var images = thumbnails.Where(thumb => !string.IsNullOrEmpty(thumb)) // Remove nulls
-                               .Select(thumb => NHentaiRegex().Replace(thumb!, "i7."))
-                               .Select(newThumb => newThumb.Replace("t.", "."))
-                               .ToStringImageLinkWrapperList();
-
+        .Select(thumb => NHentaiRegex().Replace(thumb!, "i7.")).Select(newThumb => newThumb.Replace("t.", ".")).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 

@@ -27,9 +27,9 @@ public class JieAvParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='works']/h1").InnerText;
-        var(capturer, b) = await ConfigureNetworkCapture<JieAvCapturer>();
+        var(capturer, b) = await ConfigureNetworkCapture<JieAvCapturer>(cancellationToken: cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var images = new List<StringFileLinkWrapper>();
@@ -38,7 +38,7 @@ public class JieAvParser : HtmlParser, IHtmlParser
             var videoLinks = capturer.GetNewVideoLinks();
             if (videoLinks.Count == 0)
             {
-                await Sleep(250);
+                await Sleep(250, cancellationToken: cancellationToken);
                 continue;
             }
 

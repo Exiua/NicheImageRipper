@@ -32,7 +32,7 @@ public class PornzogParser : HtmlParser, IHtmlParser
         var iframeSrc = iframe.GetAttribute("src")!;
         var baseUrl = iframeSrc.Split("/").Take(3).Join("/");
         Driver.SwitchTo().Frame(iframe);
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']").GetSrc();
         images.Add(baseUrl + url);

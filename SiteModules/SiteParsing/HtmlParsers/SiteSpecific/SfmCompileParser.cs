@@ -26,7 +26,7 @@ public class SfmCompileParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-alpha g1-alpha-2nd page-title archive-title']").InnerText.Replace("\"", "");
         var elements = new List<HtmlNode>();
         var images = new List<StringFileLinkWrapper>();
@@ -41,7 +41,7 @@ public class SfmCompileParser : HtmlParser, IHtmlParser
             }
 
             var nextPageUrl = nextPage.GetHref();
-            soup = await Soupify(nextPageUrl);
+            soup = await Soupify(nextPageUrl, cancellationToken: cancellationToken);
         }
 
         foreach (var element in elements)
@@ -56,7 +56,7 @@ public class SfmCompileParser : HtmlParser, IHtmlParser
             else
             {
                 var videoLink = element.SelectSingleNodeOrThrow(".//a[@class='g1-frame']").GetHref();
-                soup = await Soupify(videoLink);
+                soup = await Soupify(videoLink, cancellationToken: cancellationToken);
                 videoSrc = soup.SelectSingleNodeOrThrow("//video").SelectSingleNodeOrThrow(".//source").GetSrc();
             }
 

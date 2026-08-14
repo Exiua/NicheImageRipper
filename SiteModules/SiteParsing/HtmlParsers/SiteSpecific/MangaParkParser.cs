@@ -33,7 +33,7 @@ public class MangaParkParser : HtmlParser, IHtmlParser
         }
 
         ];
-        var soup = await SolveParseAddCookies(cookies: cookies);
+        var soup = await SolveParseAddCookies(cookies: cookies, cancellationToken: cancellationToken);
         Driver.SetCookie("nsfw", "2");
         ;
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='text-lg md:text-2xl font-bold']/a").InnerText;
@@ -43,7 +43,7 @@ public class MangaParkParser : HtmlParser, IHtmlParser
         {
             var chapterUrl = $"https://mangapark.net{chapter}";
             Logger.Debug("Parsing chapter {ChapterUrl}", chapterUrl);
-            soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']");
+            soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']", cancellationToken: cancellationToken);
             var pages = soup.SelectNodesOrThrow("//div[@data-name='image-item']").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinks();
             images.AddRange(pages);
         }

@@ -26,7 +26,7 @@ public class CherryNudesParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//title").InnerText.Split("-")[0].Trim();
         var contentUrl = CurrentUrl.Replace("www", "cdn");
         var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();

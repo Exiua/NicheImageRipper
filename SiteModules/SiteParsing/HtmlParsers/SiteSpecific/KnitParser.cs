@@ -41,7 +41,7 @@ public class KnitParser : HtmlParser, IHtmlParser
         var retry = 0;
         while (true)
         {
-            await LazyLoad(lazyLoadArgs);
+            await LazyLoad(lazyLoadArgs, cancellationToken: cancellationToken);
             var scrollHeight = Driver.GetScrollHeight();
             if (scrollHeight <= 650)
             {
@@ -66,7 +66,7 @@ public class KnitParser : HtmlParser, IHtmlParser
             loadMoreButton.Click();
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='focusbox-title']").InnerText;
         var baseUrl = CurrentUrl.Split("/").Take(6).Join("/");
         var images = new List<StringFileLinkWrapper>();
@@ -87,7 +87,7 @@ public class KnitParser : HtmlParser, IHtmlParser
             var nextPageButton = soup.SelectSingleNode("//li[@class='next-page']");
             if (nextPageButton is not null)
             {
-                soup = await Soupify($"{baseUrl}/page/{page}", lazyLoadArgs: lazyLoadArgs);
+                soup = await Soupify($"{baseUrl}/page/{page}", lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
             }
             else
             {

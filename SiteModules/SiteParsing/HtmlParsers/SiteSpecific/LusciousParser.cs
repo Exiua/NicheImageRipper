@@ -35,7 +35,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
             CurrentUrl = CurrentUrl.Replace("members.", "www.");
         }
 
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='o-h1 album-heading']|//h1[@class='o-h1 video-heading o-padding-sides']").InnerText;
         const string endpoint = "https://members.luscious.net/graphqli/?";
         var albumId = CurrentUrl.Split("/")[4].Split("_")[^1];
@@ -61,7 +61,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
                     fragment VideoStandard on Video{id title tags content genres description audiences url poster_url subtitle_url v240p v360p v720p v1080p}
                     """;
             var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new { operationName = "getVideoInfo", query, variables }), Encoding.UTF8, "application/json"));
-            var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+            var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             var jsonData = json!["data"]!["video"]!["get"]!;
             string videoUrl;
             if (!jsonData["v1080p"].IsNull())
@@ -126,7 +126,7 @@ public class LusciousParser : HtmlParser, IHtmlParser
             while (nextPage)
             {
                 var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new { operationName = "PictureQuery", query, variables }), Encoding.UTF8, "application/json"));
-                var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+                var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
                 var jsonData = json!["data"]!["picture"]!["list"]!;
                 nextPage = jsonData["info"]!["has_next_page"]!.Deserialize<bool>();
                 var inputDict = (Dictionary<string, object>)variables["input"];

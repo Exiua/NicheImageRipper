@@ -26,6 +26,6 @@ public class Rule34Parser : BooruParser, IHtmlParser
     /// <returns></returns>
     protected override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Booru.Rule34);
+        return BooruParse(Booru.Rule34, cancellationToken: cancellationToken);
     }
 }

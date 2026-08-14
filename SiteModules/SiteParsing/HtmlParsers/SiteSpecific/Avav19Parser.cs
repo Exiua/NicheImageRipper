@@ -26,6 +26,6 @@ public class Avav19Parser : Av19aParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return await base.Parse();
+        return await base.Parse(cancellationToken: cancellationToken);
     }
 }

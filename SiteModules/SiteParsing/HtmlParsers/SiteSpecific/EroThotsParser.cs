@@ -26,7 +26,7 @@ public class EroThotsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         string dirName;
         List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/gif/"))

@@ -26,7 +26,7 @@ public class Six9TangParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
         var video = soup.SelectSingleNodeOrThrow("//div[@class='fp-player']/video").GetSrc();
         return RipInfo.FromUrlList([video], dirName, FilenameScheme);

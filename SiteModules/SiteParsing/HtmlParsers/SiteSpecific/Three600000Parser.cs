@@ -26,7 +26,7 @@ public class Three600000Parser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

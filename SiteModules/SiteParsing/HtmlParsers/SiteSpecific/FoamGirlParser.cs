@@ -26,7 +26,7 @@ public class FoamGirlParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='item_title']/h1").InnerText.Split('(')[0];
         var images = new List<StringFileLinkWrapper>();
         var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") ?? soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']").SelectNodesOrThrow("./a")[^2];
@@ -38,7 +38,7 @@ public class FoamGirlParser : HtmlParser, IHtmlParser
             images.AddRange(imgs);
             if (i != pageCount - 1)
             {
-                soup = await Soupify(baseUrl.Replace(".html", $"_{i + 2}.html"));
+                soup = await Soupify(baseUrl.Replace(".html", $"_{i + 2}.html"), cancellationToken: cancellationToken);
             }
         }
 

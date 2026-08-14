@@ -42,7 +42,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
             Increment = 625,
             ScrollPauseTime = 1
         };
-        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000);
+        var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, delay: 1000, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']").SelectSingleNodeOrThrow(".//h1").InnerText;
         List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/videos/"))
@@ -62,9 +62,9 @@ public class ThothubParser : HtmlParser, IHtmlParser
                 var posts = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("/main/200x150/", "/sources/")).ToArray();
                 if (posts.Any(p => p.Contains("data:")))
                 {
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken: cancellationToken);
                     ScrollToTop();
-                    soup = await Soupify(lazyLoadArgs: lazyLoadArgs);
+                    soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
                     continue;
                 }
 

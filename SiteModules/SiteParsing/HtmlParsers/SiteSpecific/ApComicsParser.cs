@@ -26,8 +26,8 @@ public class ApComicsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await WaitForElement("//ul[@class='main version-chap no-volumn']/li/a", timeout: 60);
-        var soup = await Soupify();
+        await WaitForElement("//ul[@class='main version-chap no-volumn']/li/a", timeout: 60, cancellationToken: cancellationToken);
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='post-title']/h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
         var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']").SelectNodesOrThrow("./li").Select(li => li.SelectSingleNodeOrThrow("./a").GetHref()).Reverse();
@@ -38,7 +38,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
         foreach (var chapter in chapters)
         {
             Logger.Debug("Parsing chapter {Chapter}", chapter);
-            soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs);
+            soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
             var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim()).ToStringImageLinks();
             images.AddRange(imgs);
         }

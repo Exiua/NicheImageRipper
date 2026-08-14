@@ -38,7 +38,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
         }
 
         // TODO: Add anti-bot page detection handling
-        var soup = await SolveParse();
+        var soup = await SolveParse(cancellationToken: cancellationToken);
         await Task.Delay(GenerateDelay()); // Delay to avoid overwhelming the server
         var dirName = soup.SelectSingleNodeOrThrow("//a[@class='profile-card-username']").InnerText[1..]; // Skip the '@' at the start
         var images = new List<StringFileLinkWrapper>();
@@ -67,7 +67,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
 
             var nextUrl = nextButton.GetHref();
             CurrentUrl = $"{baseUrl}{nextUrl}";
-            soup = await SolveParse();
+            soup = await SolveParse(cancellationToken: cancellationToken);
             var multiplier = page % 10 == 0 ? 10 : 1; // Increase delay every 10 pages to avoid overwhelming the server
             await Task.Delay(GenerateDelay() * multiplier); // Delay to avoid overwhelming the server
         }

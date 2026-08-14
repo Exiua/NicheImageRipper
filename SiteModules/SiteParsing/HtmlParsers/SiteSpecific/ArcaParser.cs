@@ -26,7 +26,7 @@ public class ArcaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").InnerText;
         var mainTag = soup.SelectSingleNodeOrThrow("//div[@class='fr-view article-content']");
         var images = new List<StringFileLinkWrapper>();

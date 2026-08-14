@@ -8,7 +8,6 @@ using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
-using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -27,12 +26,12 @@ public class KbjFanParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify();
+        var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='article-title']/a").InnerText;
         var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < 4; i++)
         {
-            var success = await GetVideos(soup, images);
+            var success = await GetVideos(soup, images, cancellationToken: cancellationToken);
             if (success)
             {
                 break;
@@ -45,7 +44,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
 
             Driver.ClearCookies();
             Driver.Refresh(true);
-            await Sleep(250);
+            await Sleep(250, cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
@@ -86,7 +85,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
                 }
 
                 nextButton.Click();
-                soup = await Soupify(delay: 250);
+                soup = await Soupify(delay: 250, cancellationToken: cancellationToken);
             }
         }
 

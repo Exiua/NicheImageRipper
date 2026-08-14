@@ -26,7 +26,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250, });
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250, }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
         List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/albums/"))
@@ -38,7 +38,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
             var playButton = Driver.FindElement(By.XPath("//a[@class='fp-play']"));
             Driver.ScrollElementIntoView(playButton);
             Driver.Click(playButton);
-            var waitedElement = await WaitForElement("//video");
+            var waitedElement = await WaitForElement("//video", cancellationToken: cancellationToken);
             if (waitedElement is null)
             {
                 throw new RipperException("Video not found");
@@ -62,7 +62,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
                 }
             }
 
-            await Sleep(1000);
+            await Sleep(1000, cancellationToken: cancellationToken);
             var video = Driver.TryFindElement(By.XPath("//video"));
             var src = video!.GetSrc()!;
             images = [src];
