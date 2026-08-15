@@ -19,7 +19,7 @@ public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
         Directory.CreateDirectory(destinationFolder);
         var ids = link.Url.Split('/')[^1].Split('|');
         var fileId = ids[1];
-        var (username, password) = Config.Logins.SteamCommunity;
+        var (username, password) = Config.Logins.GetValueOrDefault("steamcommunity");
         var client = context.ClientManager.SteamApiClient;
 
         try

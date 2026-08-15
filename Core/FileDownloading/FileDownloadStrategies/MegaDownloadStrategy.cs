@@ -20,7 +20,7 @@ public sealed class MegaDownloadStrategy : IFileDownloadStrategy
         }
 
         context.Logger.Debug("Logging in to MegaCmd");
-        var (email, password) = Config.Logins.Mega;
+        var (email, password) = Config.Logins.GetValueOrDefault("mega");
         if (!MegaSessionManager.EnsureLoggedIn(email, password))
         {
             var e = new RipperException("Unable to login to MegaCmd");

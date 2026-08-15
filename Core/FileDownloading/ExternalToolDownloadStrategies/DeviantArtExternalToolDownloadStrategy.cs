@@ -13,10 +13,11 @@ public sealed class DeviantArtExternalToolDownloadStrategy : IExternalToolDownlo
                                                     CancellationToken cancellationToken)
     {
         var url = folderInfo.Urls[0].Url;
+        var login = Config.Logins.GetValueOrDefault("deviantart");
         var cmd = new[]
         {
-            "-D", $"\"{fullPath}\"", "-u", Config.Logins.DeviantArt.Username, "-p",
-            Config.Logins.DeviantArt.Password, "--write-log", "log.txt", url
+            "-D", $"\"{fullPath}\"", "-u", login.Username, "-p",
+            login.Password, "--write-log", "log.txt", url
         };
         var (exitCode, _, _) = await ProcessRunner.RunSubprocess("gallery-dl", cmd,
             startMessage: "Starting Deviantart download", endMessage: "Deviantart download finished",

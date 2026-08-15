@@ -8,6 +8,7 @@ using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
 using HtmlAgilityPack;
+using NicheImageRipper.Core.Configuration;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -34,7 +35,12 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         const string loginUrl = "https://forums.e-hentai.org/index.php?act=Login&CODE=00";
-        var (username, password) = Config.Logins.EHentai;
+        var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        {
+            return false;
+        }
+        
         var currentUrl = CurrentUrl;
         CurrentUrl = loginUrl;
         Driver.FindElement(By.XPath("//input[@name='UserName']")).SendKeys(username);

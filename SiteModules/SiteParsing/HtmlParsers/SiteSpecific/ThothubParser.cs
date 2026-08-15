@@ -34,7 +34,14 @@ public class ThothubParser : HtmlParser, IHtmlParser
             cookieJar.DeleteCookie(cookie);
         }
 
-        cookieJar.AddCookie(new Cookie(sessionCookieName, Config.Cookies.Thothub));
+        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        if (cookies.Length == 0)
+        {
+            throw new MissingCookieException(sessionCookieName, ParserName);
+        }
+        
+        var cookieValue = cookies[0];
+        cookieJar.AddCookie(new Cookie(sessionCookieName, cookieValue));
         Driver.Refresh();
         var lazyLoadArgs = new LazyLoadArgs
         {

@@ -27,7 +27,7 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
         context.Logger.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
 
         var sessionId = TokenManager.Instance.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24),
-            Config.Cookies.Pixiv);
+            Config.Cookies.GetValueOrDefault("pixiv"));
         var driver = context.WebDriver.Driver;
         driver.Url = "https://www.pixiv.net/";
         driver.SetCookie("PHPSESSID", sessionId);

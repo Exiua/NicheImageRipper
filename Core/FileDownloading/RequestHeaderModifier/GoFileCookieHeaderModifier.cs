@@ -1,3 +1,5 @@
+using System.Text.Json;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
@@ -13,7 +15,8 @@ public sealed class GoFileCookieHeaderModifier : IRequestHeaderModifier
                                                                  string url, FileLink link, DownloadContext context, CancellationToken cancellationToken)
     {
         var oldCookies = requestHeaders[RequestHeaderKeys.Cookie];
-        var cookieValue = ConfigAccess.Config.Custom.GoFile.AccountToken;
+        var config = ConfigAccess.Config.Custom.GetValueOrDefault("gofile").Deserialize<CustomConfig.GoFileConfig>();
+        var cookieValue = config.AccountToken;
         requestHeaders[RequestHeaderKeys.Cookie] = $"accountToken={cookieValue}";
 
         IReadOnlyDictionary<string, string?> restoreMap =

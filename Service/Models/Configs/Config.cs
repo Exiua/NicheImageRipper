@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Enums;
 
@@ -20,10 +21,10 @@ public class Config
     public string? FlareSolverrUri { get; set; }
     public bool? CloseFlareSolverrSession { get; set; }
     public string? CSWebDriverUri { get; set; }
-    public LoginConfig? Logins { get; set; }
-    public KeyConfig? Keys { get; set; }
-    public CookieConfig? Cookies { get; set; }
-    public CustomConfig? Custom { get; set; }
+    public Dictionary<string, Credentials>? Logins { get; set; }
+    public Dictionary<string, string>? Keys { get; set; }
+    public Dictionary<string, string[]>? Cookies { get; set; }
+    public Dictionary<string, JsonElement>? Custom { get; set; }
     public Dictionary<string, SettingsOverride>? ParserSpecificSettingsOverrides { get; set; }
 
     public static Config FromCoreConfig(GeneralConfig generalConfig)
@@ -45,11 +46,16 @@ public class Config
             FlareSolverrUri = generalConfig.FlareSolverrUri,
             CloseFlareSolverrSession = generalConfig.CloseFlareSolverrSession,
             CSWebDriverUri = generalConfig.CSWebDriverUri,
-            Logins = LoginConfig.FromCoreLoginConfig(generalConfig.Logins),
-            Keys = KeyConfig.FromCoreKeyConfig(generalConfig.Keys),
-            Cookies = CookieConfig.FromCoreCookieConfig(generalConfig.Cookies),
-            Custom = CustomConfig.FromCoreCustomConfig(generalConfig.Custom),
-            ParserSpecificSettingsOverrides = generalConfig.ParserSpecificSettingsOverrides.ToDictionary(kvp => kvp.Key, kvp => SettingsOverride.FromCoreSettingsOverride(kvp.Value))
+            Logins = generalConfig.Logins
+                                  .Select(kvp =>
+                                       new KeyValuePair<string, Credentials>(kvp.Key,
+                                           Credentials.FromCoreCredentials(kvp.Value)))
+                                  .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+            Keys = generalConfig.Keys,
+            Cookies = generalConfig.Cookies,
+            Custom = generalConfig.Custom,
+            ParserSpecificSettingsOverrides = generalConfig.ParserSpecificSettingsOverrides.ToDictionary(kvp => kvp.Key,
+                kvp => SettingsOverride.FromCoreSettingsOverride(kvp.Value))
         };
         return config;
     }

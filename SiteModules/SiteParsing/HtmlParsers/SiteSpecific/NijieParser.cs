@@ -9,6 +9,7 @@ using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
 using HtmlAgilityPack;
+using NicheImageRipper.Core.Configuration;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -134,7 +135,13 @@ public partial class NijieParser : HtmlParser, IHtmlParser
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
-        var(username, password) = Config.Logins.Nijie;
+        var(username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
+        {
+            Logger.Warning("No login credentials found for {ParserName}. Please set them in the config file.", ParserName);
+            return false;
+        }
+        
         CurrentUrl = "https://nijie.info/login.php";
         if (CurrentUrl.Contains("age_ver.php"))
         {

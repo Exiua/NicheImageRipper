@@ -30,14 +30,21 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
+        const string cookieName = "vmk1du5I8m";
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true
         };
-        var cookieValue = Config.Cookies.Newgrounds;
+        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        if (cookies.Length == 0)
+        {
+            throw new MissingCookieException(cookieName, ParserName);
+        }
+        
+        var cookie = cookies[0];
         var cookieJar = Driver.Manage().Cookies;
         cookieJar.DeleteAllCookies();
-        cookieJar.AddCookie(new Cookie("vmk1du5I8m", cookieValue));
+        cookieJar.AddCookie(new Cookie(cookieName, cookie));
         var baseUri = CurrentUrl.Split("/")[..3];
         var baseUriString = string.Join("/", baseUri);
         var soup = await Soupify(baseUriString, cancellationToken: cancellationToken);

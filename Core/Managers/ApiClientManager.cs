@@ -9,7 +9,6 @@ public class ApiClientManager
 {
     private static GeneralConfig Config => Configuration.Config.Instance;
     
-    public PixivApiClient PixivClient { get; set; } = new();
     public SteamApiClient.SteamApiClient SteamApiClient { get; set; } = new();
-    public IwaraClient IwaraClient { get; set; } = new(Config.Logins.Iwara.Username, Config.Logins.Iwara.Password);
+    public IwaraClient IwaraClient { get; set; } = new(Config.Logins.GetValueOrDefault("iwara").Username, Config.Logins.GetValueOrDefault("iwara").Password);
 }

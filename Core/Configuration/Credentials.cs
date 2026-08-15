@@ -20,3 +20,11 @@ public class Credentials
         };
     }
 }
+
+public static class CredentialsExtensions
+{
+    public static (string? username, string? password) Deconstruct(this Credentials? credentials)
+    {
+        return credentials is null ? (null, null) : (credentials.Username, credentials.Password);
+    }
+}

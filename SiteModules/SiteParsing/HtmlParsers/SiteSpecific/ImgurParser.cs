@@ -30,7 +30,7 @@ public class ImgurParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var clientId = Config.Keys.Imgur;
+        var clientId = Config.Keys.GetValueOrDefault(ParserName, "");
         if (clientId == "")
         {
             Logger.Error("Client Id not set");

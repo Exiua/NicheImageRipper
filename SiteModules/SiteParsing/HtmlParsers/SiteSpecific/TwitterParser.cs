@@ -13,13 +13,16 @@ using NicheImageRipper.SiteModules.SiteParsing.VideoCapturers;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
+
 public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
 {
     public static string ParserName => "twitter";
     public static string[] SupportedUrls => ["https://x.com/"];
     public static string[] AdditionalParserNames { get; } = ["x"];
 
-    public TwitterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TwitterParser>(filenameScheme))
+    public TwitterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<TwitterParser>(filenameScheme))
     {
     }
 
@@ -29,17 +32,27 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-#region Method-Global Variables
+        #region Method-Global Variables
+
         const int trueBaseWaitTime = 2500;
         const int baseWaitTime = trueBaseWaitTime;
         const int maxWaitTime = 60000;
         var waitTime = baseWaitTime;
         const int maxRetries = 4;
         var streak = 0;
-#endregion
-        var cookieValue = Config.Cookies.Twitter;
+
+        #endregion
+
+        const string cookieName = "auth_token";
+        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        if (cookies.Length == 0)
+        {
+            throw new MissingCookieException(cookieName, ParserName);
+        }
+        
+        var cookieValue = cookies[0];
         var cookieJar = Driver.GetCookieJar();
-        cookieJar.AddCookie("auth_token", cookieValue);
+        cookieJar.AddCookie(cookieName, cookieValue);
         var dirName = CurrentUrl.Split("/")[3];
         if (!CurrentUrl.Contains("/media"))
         {
@@ -53,7 +66,8 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
         {
             newPosts = false;
             var soup = await Soupify(cancellationToken: cancellationToken);
-            var rows = soup.SelectSingleNodeOrThrow("//section").SelectSingleNodeOrThrow(".//div").SelectNodesOrThrow("./div");
+            var rows = soup.SelectSingleNodeOrThrow("//section").SelectSingleNodeOrThrow(".//div")
+                           .SelectNodesOrThrow("./div");
             foreach (var row in rows)
             {
                 var posts = row.SelectNodesOrThrow(".//li");
@@ -80,23 +94,23 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
             }
         }
 
-        var(capturer, b) = await ConfigureNetworkCapture<TwitterVideoCapturer>(cancellationToken);
+        var (capturer, b) = await ConfigureNetworkCapture<TwitterVideoCapturer>(cancellationToken);
         await using var bidi = b;
         // var capturer = new TwitterVideoCapturer();
         // var bidi = await Driver.AsBiDiAsync();
         // await bidi.Network.OnResponseCompletedAsync(capturer.CaptureHook);
         var images = new List<StringFileLinkWrapper>();
         var failedUrls = new List<(int, string)>();
-        foreach (var(i, link)in postLinks.Enumerate())
+        foreach (var (i, link)in postLinks.Enumerate())
         {
             var postLink = $"https://twitter.com{link}";
             Logger.Information("Post {index}/{totalLinks}: {postLink}", i + 1, postLinks.Count, postLink);
-            var(links, retryUrls) = await TwitterParserHelper(postLink, false);
+            var (links, retryUrls) = await TwitterParserHelper(postLink, false);
             var videoLinks = capturer.GetNewVideoLinks();
             images.AddRange(videoLinks.ToStringImageLinks());
             var totalFound = images.Count;
             images.AddRange(links.ToStringImageLinks());
-            foreach (var(j, url)in retryUrls)
+            foreach (var (j, url)in retryUrls)
             {
                 failedUrls.Add((totalFound + j, url));
             }
@@ -111,10 +125,10 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
             var failed = failedUrls.Select(url => url).ToList();
             failedUrls = [];
             var offset = 0;
-            foreach (var(i, (index, link))in failed.Enumerate())
+            foreach (var (i, (index, link))in failed.Enumerate())
             {
                 Logger.Information("Retrying failed post {index}/{totalLinks}: {postLink}", i + 1, failed.Count, link);
-                var(links, retryUrls) = await TwitterParserHelper(link, true);
+                var (links, retryUrls) = await TwitterParserHelper(link, true);
                 var linkTemp = links.Select(x => (StringFileLinkWrapper)x);
                 failedUrls.AddRange(retryUrls);
                 images.InsertRange(index + offset, linkTemp);
@@ -123,6 +137,7 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+
         async Task<(List<string>, List<(int, string)>)> TwitterParserHelper(string postLink, bool logFailure)
         {
             var postImages = new List<string>();
@@ -134,7 +149,8 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
                 var mediaFound = false;
                 try
                 {
-                    var soup = await Soupify(postLink, delay: baseWaitTime, xpath: "//article", cancellationToken: cancellationToken);
+                    var soup = await Soupify(postLink, delay: baseWaitTime, xpath: "//article",
+                        cancellationToken: cancellationToken);
                     var articles = soup.SelectNodesOrThrow("//article");
                     foreach (var article in articles)
                     {
@@ -199,13 +215,14 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
                     {
                         //baseWaitTime = waitTime
                         waitBoost = 300_000; // Wait 5 minutes before retrying
-                    // Arbitrary, but should be enough time to get around rate limiting
+                        // Arbitrary, but should be enough time to get around rate limiting
                     }
 
                     waitTime = Math.Min(baseWaitTime * (int)Math.Pow(2, i), maxWaitTime);
                     var jitter = (int)(Random.Shared.NextDouble() * waitTime);
                     waitTime += jitter + waitBoost;
-                    Logger.Warning("Attempt {Attempt} failed. Retrying in {WaitTime:F2} seconds...", i + 1, waitTime / 1000.0);
+                    Logger.Warning("Attempt {Attempt} failed. Retrying in {WaitTime:F2} seconds...", i + 1,
+                        waitTime / 1000.0);
                     await Task.Delay(waitTime, cancellationToken);
                 }
 

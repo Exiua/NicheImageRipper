@@ -9,6 +9,7 @@ using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.WebUtilities;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.FileDownloading;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
@@ -28,14 +29,14 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var(username, password) = Config.Logins.SteamCommunity;
+        var(username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
         if (username.IsNullOrEmpty())
         {
             throw new RipperException("No username found for steamcommunity.com, cannot parse. Please provide a username in the config file.");
         }
 
         var client = ImageRipper.ClientManager.SteamApiClient;
-        await client.LoginAsync(username, password, cancellationToken);
+        await client.LoginAsync(username, password ?? "", cancellationToken);
         ulong steamId;
         string dirName;
         if (CurrentUrl.Contains("/profiles/"))

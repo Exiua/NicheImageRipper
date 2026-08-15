@@ -22,12 +22,23 @@ public class GeneralConfig
     public string FlareSolverrUri { get; set; }
     public bool CloseFlareSolverrSession { get; set; }
     public string CSWebDriverUri { get; set; }
-    public LoginConfig Logins { get; set; }
-    public KeyConfig Keys { get; set; }
-    public CookieConfig Cookies { get; set; }
-    public CustomConfig Custom { get; set; }
+
+    /// <summary>Login credentials keyed by IHtmlParser.ParserName.</summary>
+    public Dictionary<string, Credentials> Logins { get; set; }
+
+    /// <summary>API keys/tokens keyed by IHtmlParser.ParserName.</summary>
+    public Dictionary<string, string> Keys { get; set; }
+
+    /// <summary>Cookie values keyed by IHtmlParser.ParserName. Always an array (single-value sites use a
+    /// one-element array).</summary>
+    public Dictionary<string, string[]> Cookies { get; set; }
+
+    /// <summary>Arbitrary per-site config keyed by IHtmlParser.ParserName. Each parser owns and deserializes
+    /// its own shape from the JsonElement.</summary>
+    public Dictionary<string, JsonElement> Custom { get; set; }
+
     public Dictionary<string, SettingsOverride> ParserSpecificSettingsOverrides { get; set; }
-    
+
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtraData { get; set; }
 
@@ -48,14 +59,14 @@ public class GeneralConfig
         FlareSolverrUri = "";
         CloseFlareSolverrSession = true;
         CSWebDriverUri = "";
-        Logins = LoginConfig.New();
-        Keys = KeyConfig.New();
-        Cookies = CookieConfig.New();
-        Custom = CustomConfig.New();
+        Logins = new Dictionary<string, Credentials>();
+        Keys = new Dictionary<string, string>();
+        Cookies = new Dictionary<string, string[]>();
+        Custom = new Dictionary<string, JsonElement>();
         ExtraData = new Dictionary<string, JsonElement>();
         ParserSpecificSettingsOverrides = new Dictionary<string, SettingsOverride>();
     }
-    
+
     public void SaveConfig()
     {
         JsonUtility.Serialize(Config.ConfigPath, this);

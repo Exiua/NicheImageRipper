@@ -36,7 +36,12 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
     protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
         var url = GivenUrl;
-        var apiKey = Config.Keys.Pixeldrain;
+        var apiKey = Config.Keys.GetValueOrDefault(ParserName);
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            throw new RipperException("No API key found for " + ParserName);
+        }
+        
         var counter = 0;
         var images = new List<StringFileLinkWrapper>();
         string dirName;

@@ -26,8 +26,13 @@ public class PatreonParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var sessionId = Config.Cookies.Patreon;
-        Driver.SetCookie("session_id", sessionId);
+        var sessionIds = Config.Cookies.GetValueOrDefault(ParserName, []);
+        if (sessionIds.Length == 0)
+        {
+            throw new RipperException("No session found for " + ParserName);
+        }
+        
+        Driver.SetCookie("session_id", sessionIds[0]);
         var postUrl = ParseUrl(CurrentUrl);
         CurrentUrl = postUrl;
         var soup = await Soupify(cancellationToken: cancellationToken);

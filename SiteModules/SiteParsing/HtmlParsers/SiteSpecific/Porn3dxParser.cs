@@ -11,12 +11,15 @@ using HtmlAgilityPack;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
+
 public class Porn3dxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "porn3dx";
     public static string[] SupportedUrls => ["https://porn3dx.com/"];
 
-    public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Porn3dxParser>(filenameScheme))
+    public Porn3dxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+        requestHeaders, IHtmlParser.GetFilenameScheme<Porn3dxParser>(filenameScheme))
     {
     }
 
@@ -27,22 +30,35 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
     protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const int maxRetries = 4;
-        var cookie = Config.Cookies.Porn3dx;
+        const string cookieName = "porn3dx_session";
+
+        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        if (cookies.Length == 0)
+        {
+            throw new MissingCookieException(cookieName, ParserName);
+        }
+
+        var cookie = cookies[0];
         var cookieJar = Driver.Manage().Cookies;
-        cookieJar.DeleteCookieNamed("porn3dx_session");
-        cookieJar.AddCookie(new Cookie("porn3dx_session", cookie));
+        cookieJar.DeleteCookieNamed(cookieName);
+        cookieJar.AddCookie(new Cookie(cookieName, cookie));
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true,
             Increment = 1250,
             ScrollPauseTime = 1000
         };
+
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='items-center self-center text-sm font-bold leading-none text-white ']").InnerText;
+        var dirName = soup
+                     .SelectSingleNodeOrThrow(
+                          "//div[@class='items-center self-center text-sm font-bold leading-none text-white ']")
+                     .InnerText;
         var origUrl = CurrentUrl;
         var posts = new List<string>();
         var id = 0;
-        var waitedElement = await WaitForElement("//a[@id='gallery-0']", timeout: 50, cancellationToken: cancellationToken);
+        var waitedElement =
+            await WaitForElement("//a[@id='gallery-0']", timeout: 50, cancellationToken: cancellationToken);
         if (waitedElement is not null)
         {
             throw new RipperException("Element could not be found");
@@ -61,7 +77,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
         }
 
         var images = new List<StringFileLinkWrapper>();
-        foreach (var(i, post)in posts.Enumerate())
+        foreach (var (i, post)in posts.Enumerate())
         {
             var contentFound = false;
             Logger.Information("Parsing post {i} of {totalPosts}", i + 1, posts.Count);
@@ -76,7 +92,8 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                     await Sleep(5000, cancellationToken: cancellationToken);
                     if (CurrentUrl == origUrl)
                     {
-                        var ad = Driver.TryFindElement(By.XPath("//div[@class='ex-over-top ex-opened']//div[@class='ex-over-btn']"));
+                        var ad = Driver.TryFindElement(
+                            By.XPath("//div[@class='ex-over-top ex-opened']//div[@class='ex-over-btn']"));
                         ad?.Click();
                     }
 
@@ -101,7 +118,8 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                         var maxQuality = 0;
                         for (var _ = 0; _ < maxRetries; _++)
                         {
-                            var source = Driver.TryFindElement(By.XPath("//video/source")) ?? Driver.FindElement(By.XPath("//video"));
+                            var source = Driver.TryFindElement(By.XPath("//video/source")) ??
+                                         Driver.FindElement(By.XPath("//video"));
                             url = source.GetSrc();
                             if (url.StartsWith("blob:") || url == "")
                             {
@@ -110,7 +128,8 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                             }
 
                             var qualities = Driver.FindElements(By.XPath("//button[@data-plyr='quality']"));
-                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")!)).Prepend(0).Max();
+                            maxQuality = qualities.Select(quality => int.Parse(quality.GetDomAttribute("value")!))
+                                                  .Prepend(0).Max();
                             break;
                         }
 
@@ -125,7 +144,10 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
                     {
                         contentFound = true;
                         var imgs = picture.FindElements(By.XPath(".//img"));
-                        images.AddRange(imgs.Select(img => img.GetSrc()).Where(url => url.Contains("m.porn3dx.com") && !url.Contains("avatar") && !url.Contains("thumb")).Select(url => (StringFileLinkWrapper)url));
+                        images.AddRange(imgs.Select(img => img.GetSrc())
+                                            .Where(url =>
+                                                 url.Contains("m.porn3dx.com") && !url.Contains("avatar") &&
+                                                 !url.Contains("thumb")).Select(url => (StringFileLinkWrapper)url));
                     }
                 }
             }

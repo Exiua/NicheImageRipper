@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
@@ -116,12 +117,12 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public GeneralConfig GetConfig()
     {
-        return NicheImageRipper.Core.NicheImageRipper.Config;
+        return Core.NicheImageRipper.Config;
     }
 
     public void UpdateConfig(Config config)
     {
-        var existingConfig = NicheImageRipper.Core.NicheImageRipper.Config;
+        var existingConfig = Core.NicheImageRipper.Config;
         if (config.UserAgent is not null)
         {
             existingConfig.UserAgent = config.UserAgent;
@@ -199,135 +200,52 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
         if (config.Logins is not null)
         {
-            var logins = config.Logins;
-            var existingLogins = existingConfig.Logins;
-            existingLogins.DeviantArt.UpdateCredentials(logins.DeviantArt);
-            existingLogins.Mega.UpdateCredentials(logins.Mega);
-            existingLogins.TitsInTops.UpdateCredentials(logins.TitsInTops);
-            existingLogins.Nijie.UpdateCredentials(logins.Nijie);
-            existingLogins.Danbooru.UpdateCredentials(logins.Danbooru);
-            existingLogins.Gelbooru.UpdateCredentials(logins.Gelbooru);
-            existingLogins.Rule34.UpdateCredentials(logins.Rule34);
-            existingLogins.Yandere.UpdateCredentials(logins.Yandere);
-            existingLogins.E621.UpdateCredentials(logins.E621);
-            existingLogins.EHentai.UpdateCredentials(logins.EHentai);
-            existingLogins.SteamCommunity.UpdateCredentials(logins.SteamCommunity);
+            foreach (var (key, incoming) in config.Logins)
+            {
+                if (incoming is null)
+                {
+                    continue;
+                }
+
+                if (!existingConfig.Logins.TryGetValue(key, out var existing))
+                {
+                    existing = new Credentials { Username = "", Password = "" };
+                    existingConfig.Logins[key] = existing;
+                }
+
+                existing.UpdateCredentials(incoming);
+            }
         }
 
         if (config.Keys is not null)
         {
-            var keys = config.Keys;
-            var existingKeys = existingConfig.Keys;
-            if (keys.Imgur is not null)
+            foreach (var (key, value) in config.Keys)
             {
-                existingKeys.Imgur = keys.Imgur;
-            }
-
-            if (keys.Google is not null)
-            {
-                existingKeys.Google = keys.Google;
-            }
-
-            if (keys.Dropbox is not null)
-            {
-                existingKeys.Dropbox = keys.Dropbox;
-            }
-
-            if (keys.Pixeldrain is not null)
-            {
-                existingKeys.Pixeldrain = keys.Pixeldrain;
-            }
-
-            if (keys.Pixiv is not null)
-            {
-                existingKeys.Pixiv = keys.Pixiv;
+                if (value is not null)
+                {
+                    existingConfig.Keys[key] = value;
+                }
             }
         }
 
         if (config.Cookies is not null)
         {
-            var cookies = config.Cookies;
-            var existingCookies = existingConfig.Cookies;
-            if (cookies.Twitter is not null)
+            foreach (var (key, value) in config.Cookies)
             {
-                existingCookies.Twitter = cookies.Twitter;
-            }
-
-            if (cookies.Newgrounds is not null)
-            {
-                existingCookies.Newgrounds = cookies.Newgrounds;
-            }
-
-            if (cookies.Porn3dx is not null)
-            {
-                existingCookies.Porn3dx = cookies.Porn3dx;
-            }
-
-            if (cookies.Pornhub is not null)
-            {
-                existingCookies.Pornhub = cookies.Pornhub;
-            }
-
-            if (cookies.Thothub is not null)
-            {
-                existingCookies.Thothub = cookies.Thothub;
-            }
-
-            if (cookies.Kemono is not null)
-            {
-                existingCookies.Kemono = cookies.Kemono;
-            }
-
-            if (cookies.SimpCity is not null)
-            {
-                existingCookies.SimpCity = cookies.SimpCity;
-            }
-
-            if (cookies.Pixiv is not null)
-            {
-                existingCookies.Pixiv = cookies.Pixiv;
-            }
-
-            if (cookies.SteamCommunity is not null)
-            {
-                existingCookies.SteamCommunity = cookies.SteamCommunity;
+                if (value is not null)
+                {
+                    existingConfig.Cookies[key] = value;
+                }
             }
         }
 
         if (config.Custom is not null)
         {
-            var custom = config.Custom;
-            var existingCustom = existingConfig.Custom;
-            if (custom.V2PH is not null)
+            foreach (var (key, value) in config.Custom)
             {
-                var v2ph = custom.V2PH;
-                if (v2ph.Frontend is not null)
+                if (value.ValueKind != JsonValueKind.Null)
                 {
-                    existingCustom.V2PH.Frontend = v2ph.Frontend;
-                }
-
-                if (v2ph.FrontendRmt is not null)
-                {
-                    existingCustom.V2PH.FrontendRmt = v2ph.FrontendRmt;
-                }
-
-                if (v2ph.CfClearance is not null)
-                {
-                    existingCustom.V2PH.CfClearance = v2ph.CfClearance;
-                }
-            }
-
-            if (custom.GoFile is not null)
-            {
-                var goFile = custom.GoFile;
-                if (goFile.AccountToken is not null)
-                {
-                    existingCustom.GoFile.AccountToken = goFile.AccountToken;
-                }
-
-                if (goFile.LoginLink is not null)
-                {
-                    existingCustom.GoFile.LoginLink = goFile.LoginLink;
+                    existingConfig.Custom[key] = value;
                 }
             }
         }

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
@@ -56,7 +58,8 @@ public sealed class GoFilePostDownloadValidator : IPostDownloadValidator
     {
         var driver = context.WebDriver.Driver;
         var origUrl = driver.Url;
-        driver.Url = ConfigAccess.Config.Custom.GoFile.LoginLink;
+        var config = ConfigAccess.Config.Custom.GetValueOrDefault("gofile").Deserialize<CustomConfig.GoFileConfig>();
+        driver.Url = config.LoginLink;
         await Task.Delay(10000, cancellationToken);
 
         for (var i = 0; i < RetryCount; i++)

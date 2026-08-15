@@ -14,7 +14,7 @@ public sealed class PixelDrainDownloadStrategy : IFileDownloadStrategy
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)
     {
-        var apiKey = Config.Keys.Pixeldrain;
+        var apiKey = Config.Keys.GetValueOrDefault("pixeldrain");
         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($":{apiKey}"));
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add(RequestHeaderKeys.UserAgent, Config.UserAgent);

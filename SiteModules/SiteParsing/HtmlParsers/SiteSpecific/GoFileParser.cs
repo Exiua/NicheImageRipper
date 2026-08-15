@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
@@ -8,6 +9,7 @@ using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using OpenQA.Selenium;
 using HtmlAgilityPack;
+using NicheImageRipper.SiteModules.Modules.GoFile;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.SiteParsing.HtmlParsers.SiteSpecific;
@@ -157,7 +159,13 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
-        var loginLink = Config.Custom.GoFile.LoginLink;
+        var config = Config.Custom.GetValueOrDefault(ParserName).Deserialize<GoFileConfig>();
+        if (config is null)
+        {
+            return false;
+        }
+        
+        var loginLink = config.LoginLink;
         CurrentUrl = loginLink;
         await Sleep(10000, cancellationToken);
         for (var i = 0; i < 4; i++)
