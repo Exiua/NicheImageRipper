@@ -1,6 +1,6 @@
 ﻿using NicheImageRipper.Core.ExtensionMethods;
 
-namespace NicheImageRipper.Core.ArgParse;
+namespace NicheImageRipper.Tui.ArgParse;
 
 public static class ArgumentParser
 {
