@@ -96,30 +96,6 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, title, FilenameScheme);
     }
 
-    private async Task<string> GetChannelDisplayName(string url, CancellationToken cancellationToken)
-    {
-        var metadataArgs = new SubprocessArgs("yt-dlp")
-                          .WithArgs("--flat-playlist", "--playlist-items", "0", "--dump-single-json", url)
-                          .EnableOutputCapture()
-                          .EnableErrorCapture();
-        var (exitCode, output, error) = await RunSubprocess(metadataArgs, cancellationToken: cancellationToken);
-        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
-        {
-            Logger.Warning("Failed to fetch channel metadata via yt-dlp (exit {ExitCode}): {Error}", exitCode, error);
-            return "Unknown Channel";
-        }
-
-        var json = JsonSerializer.Deserialize<JsonNode>(output);
-        var displayName = json?["channel"]?.GetValue<string>() ?? json?["uploader"]?.GetValue<string>();
-        var username = json?["uploader_id"]?.GetValue<string>() ?? json?["channel_id"]?.GetValue<string>();
-
-        return displayName is null
-            ? "Unknown Channel"
-            : username is null
-                ? displayName
-                : $"{displayName} ({username})";
-    }
-
     private class SubprocessArgs
     {
         public string Executable { get; set; }
