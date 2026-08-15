@@ -44,29 +44,56 @@ public class YoutubeParser : HtmlParser, IHtmlParser
 
         var url = GivenUrl.Split("/").Take(4).Join('/');
 
-        var dirName = await GetChannelDisplayName(url, cancellationToken);
-
-        var listArgs = new SubprocessArgs("yt-dlp")
-                      .WithArgs("--flat-playlist", "--encoding", "utf-8", "--print", "\"%(title)s|%(id)s\"", url)
-                      .EnableOutputCapture();
-        var (exitCode, output, error) = await RunSubprocess(listArgs, cancellationToken: cancellationToken);
-        if (exitCode != 0)
+        var metadataArgs = new SubprocessArgs("yt-dlp")
+                          .WithArgs("--flat-playlist", "--dump-single-json", "--encoding", "utf-8", url)
+                          .EnableOutputCapture()
+                          .EnableErrorCapture();
+        var (exitCode, output, error) = await RunSubprocess(metadataArgs, cancellationToken: cancellationToken);
+        if (exitCode != 0 || string.IsNullOrWhiteSpace(output))
         {
             Logger.Error("yt-dlp failed with exit code {ExitCode}. Error: {Error}", exitCode, error);
             throw new RipperException("yt-dlp subprocess failed");
         }
 
-        var images = output!.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line =>
+        var json = JsonSerializer.Deserialize<JsonNode>(output)!.AsObject();
+        var entries = json["entries"]?.AsArray();
+
+        return entries is not null
+            ? ParseChannel(json, entries)
+            : ParseSingleVideo(json);
+    }
+
+    private RipInfo ParseChannel(JsonObject json, JsonArray entries)
+    {
+        var displayName = json["channel"]?.GetValue<string>() ?? json["uploader"]?.GetValue<string>();
+        var username = json["uploader_id"]?.GetValue<string>() ?? json["channel_id"]?.GetValue<string>();
+        var dirName = displayName is null
+            ? "Unknown Channel"
+            : username is null
+                ? displayName
+                : $"{displayName} ({username})";
+
+        var images = entries.Select(entry =>
         {
-            var split = line.LastIndexOf('|');
-            var title = line[..split];
-            var id = line[(split + 1)..];
+            var title = entry!["title"]!.GetValue<string>();
+            var id = entry["id"]!.GetValue<string>();
             var videoUrl = $"https://www.youtube.com/watch?v={id}";
-            var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
-            return fileLink;
+            return FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
         }).ToStringImageLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+
+    private RipInfo ParseSingleVideo(JsonObject json)
+    {
+        var title = json["title"]?.GetValue<string>() ?? "Unknown Video";
+        var id = json["id"]!.GetValue<string>();
+        var videoUrl = $"https://www.youtube.com/watch?v={id}";
+
+        var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
+        List<StringFileLinkWrapper> images = [fileLink];
+
+        return RipInfo.FromUrlList(images, title, FilenameScheme);
     }
 
     private async Task<string> GetChannelDisplayName(string url, CancellationToken cancellationToken)
