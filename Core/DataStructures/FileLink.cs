@@ -57,8 +57,9 @@ public partial class FileLink
     ///     Does nothing if <paramref name="filename"/> was not provided.
     /// </param>
     private FileLink(string url, FilenameScheme filenameScheme, int index, string filename = "",
-                     LinkInfo linkInfo = LinkInfo.None, string? referer = "", bool cleanFilename = false)
+                     LinkInfo? linkInfo = null, string? referer = "", bool cleanFilename = false)
     {
+        linkInfo ??= LinkInfo.None;
         url = HttpUtility.HtmlDecode(url.Trim());
 
         if (url.StartsWith("text:"))
@@ -75,7 +76,7 @@ public partial class FileLink
 
         Url = siteResult?.Url ?? (url.StartsWith("//") ? $"https:{url}" : url);
         Referer = siteResult?.Referer ?? (referer == "" ? null : referer);
-        LinkInfo = siteResult?.LinkInfo ?? linkInfo;
+        LinkInfo = siteResult?.LinkInfo ?? linkInfo.Value;
 
         Filename = GenerateFilename(Url, filenameScheme, index, filename, cleanFilename, siteResult?.Filename);
     }
@@ -84,7 +85,7 @@ public partial class FileLink
         string url,
         FilenameScheme filenameScheme,
         int index = 0,
-        LinkInfo linkInfo = LinkInfo.None,
+        LinkInfo? linkInfo = null,
         string? referer = null)
     {
         return CreateCore(
@@ -103,7 +104,7 @@ public partial class FileLink
         string filename,
         FilenameScheme filenameScheme,
         int index = 0,
-        LinkInfo linkInfo = LinkInfo.None,
+        LinkInfo? linkInfo = null,
         string? referer = null,
         bool cleanFilename = false)
     {
@@ -121,7 +122,7 @@ public partial class FileLink
     public static FileLink WithDownloadResolvedFilename(
         string url,
         FilenameScheme filenameScheme,
-        LinkInfo linkInfo = LinkInfo.None,
+        LinkInfo? linkInfo = null,
         string? referer = null)
     {
         return CreateCore(
@@ -141,7 +142,7 @@ public partial class FileLink
         int index,
         string? suppliedFilename,
         bool resolveFilenameDuringDownload,
-        LinkInfo linkInfo,
+        LinkInfo? linkInfo,
         string? referer,
         bool cleanFilename)
     {

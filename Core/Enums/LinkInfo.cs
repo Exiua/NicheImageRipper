@@ -1,23 +1,35 @@
 ﻿namespace NicheImageRipper.Core.Enums;
 
-public enum LinkInfo
+/// <summary>
+///     Identifies which download mechanism a FileLink requires. Core defines the generic, non-site-specific
+///     mechanisms as constants below; site modules define their own string constants for site-specific
+///     mechanisms (e.g. "mega", "gdrive") next to whichever IFileDownloadStrategy handles them.
+/// </summary>
+public readonly record struct LinkInfo(string Name)
 {
-    None,           // Normal
-    M3U8Ffmpeg,     // Requires ffmpeg to download m3u8 files
-    GDrive,         // Requires using the Google Drive API to download
-    IframeMedia,    // Requires BunnyVideoDrm to download
-    Mega,           // Requires MegaCmd to download
-    PixelDrain,     // Requires PixelDrain API to download
-    YoutubeVideo,   // Requires yt-dlp to download video
-    Text,           // Save as text file
-    GoFile,         // Requires cookies and special re-check logic
-    MpegDash,       // Requires yt-dlp to download
-    ResolveImage,   // Requires the image link to be resolved to the download link in the ImageRipper
-    M3U8YtDlp,      // Requires yt-dlp to download m3u8 files
-    SeleniumImage,  // Requires Selenium to download the image
-    Base64,         // Base64 encoded image
-    ObfuscatedM3U8, // Requires deobfuscation of each segment before concatenation with ffmpeg
-    PixivUgoira,    // Requires downloading the Ugoira zip and converting to gif or mp4
-    SteamCommunity, // Requires SteamCMD to download, and special handling to move the file from the SteamCMD directory to the final destination
-    Iwara,          // Requires using IwaraClient to query and download,
+    public const string NoneValue = "none";
+    public const string TextValue = "text";
+    public const string Base64Value = "base64";
+    public const string ResolveImageValue = "resolve-image";
+    public const string SeleniumImageValue = "selenium-image";
+    public const string M3U8FfmpegValue = "m3u8-ffmpeg";
+    public const string M3U8YtDlpValue = "m3u8-ytdlp";
+    public const string ObfuscatedM3U8Value = "obfuscated-m3u8";
+    public const string MpegDashValue = "mpeg-dash";
+    public const string IframeMediaValue = "iframe-media";
+
+    public static readonly LinkInfo None = new(NoneValue);
+    public static readonly LinkInfo Text = new(TextValue);
+    public static readonly LinkInfo Base64 = new(Base64Value);
+    public static readonly LinkInfo ResolveImage = new(ResolveImageValue);
+    public static readonly LinkInfo SeleniumImage = new(SeleniumImageValue);
+    public static readonly LinkInfo M3U8Ffmpeg = new(M3U8FfmpegValue);
+    public static readonly LinkInfo M3U8YtDlp = new(M3U8YtDlpValue);
+    public static readonly LinkInfo ObfuscatedM3U8 = new(ObfuscatedM3U8Value);
+    public static readonly LinkInfo MpegDash = new(MpegDashValue);
+    public static readonly LinkInfo IframeMedia = new(IframeMediaValue);
+
+    public bool Equals(LinkInfo other) => string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase);
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Name);
+    public override string ToString() => Name;
 }
