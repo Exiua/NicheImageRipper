@@ -36,7 +36,7 @@ public class BooruMetadata
         {
             case Booru.Danbooru:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("danbooru");
+                var (username, password) = Config.Logins.GetValueOrDefault("danbooru").Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&login={username}&";
@@ -46,7 +46,7 @@ public class BooruMetadata
             }
             case Booru.Gelbooru:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("gelbooru");
+                var (username, password) = Config.Logins.GetValueOrDefault("gelbooru").Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&user_id={username}&";
@@ -56,7 +56,7 @@ public class BooruMetadata
             }
             case Booru.Rule34:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("rule34");
+                var (username, password) = Config.Logins.GetValueOrDefault("rule34").Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&user_id={username}&";
@@ -66,14 +66,14 @@ public class BooruMetadata
             }
             case Booru.Yandere:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("yandere");
+                var (username, password) = Config.Logins.GetValueOrDefault("yandere").Deconstruct();
                 // TODO: Find out how to authenticate with Yandere if it's possible
                 // Signups are disabled (as of 2025-05-06), so unable to test this
                 return BaseUrl;
             }
             case Booru.E621:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("e621");
+                var (username, password) = Config.Logins.GetValueOrDefault("e621").Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}login={username}&api_key={password}&";

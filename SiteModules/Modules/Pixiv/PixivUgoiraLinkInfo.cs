@@ -1,0 +1,9 @@
+using NicheImageRipper.Core.Enums;
+
+namespace NicheImageRipper.SiteModules.Modules.Pixiv;
+
+public static class PixivUgoiraLinkInfo
+{
+    private const string PixivUgoiraValue = "pixiv-ugoira";
+    public static readonly LinkInfo PixivUgoira = new(PixivUgoiraValue);
+}

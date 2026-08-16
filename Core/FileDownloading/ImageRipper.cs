@@ -848,11 +848,6 @@ public class ImageRipper : IDisposable
             }
         }
 
-        if (link.LinkInfo == LinkInfo.YoutubeVideo)
-        {
-            await Sleep(1250, cancellationToken);
-        }
-
         RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
         await Sleep(50, cancellationToken);
 

@@ -7,16 +7,16 @@
 /// </summary>
 public readonly record struct LinkInfo(string Name)
 {
-    public const string NoneValue = "none";
-    public const string TextValue = "text";
-    public const string Base64Value = "base64";
-    public const string ResolveImageValue = "resolve-image";
-    public const string SeleniumImageValue = "selenium-image";
-    public const string M3U8FfmpegValue = "m3u8-ffmpeg";
-    public const string M3U8YtDlpValue = "m3u8-ytdlp";
-    public const string ObfuscatedM3U8Value = "obfuscated-m3u8";
-    public const string MpegDashValue = "mpeg-dash";
-    public const string IframeMediaValue = "iframe-media";
+    private const string NoneValue = "none";
+    private const string TextValue = "text";
+    private const string Base64Value = "base64";
+    private const string ResolveImageValue = "resolve-image";
+    private const string SeleniumImageValue = "selenium-image";
+    private const string M3U8FfmpegValue = "m3u8-ffmpeg";
+    private const string M3U8YtDlpValue = "m3u8-ytdlp";
+    private const string ObfuscatedM3U8Value = "obfuscated-m3u8";
+    private const string MpegDashValue = "mpeg-dash";
+    private const string IframeMediaValue = "iframe-media";
 
     public static readonly LinkInfo None = new(NoneValue);
     public static readonly LinkInfo Text = new(TextValue);

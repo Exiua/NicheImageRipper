@@ -21,9 +21,11 @@ public partial class FileLink
     public string Url { get; set; } = null!;
     public string Filename { get; set; } = null!;
 
-    [JsonIgnore] public bool IsBlob => Url.StartsWith("blob:");
+    [JsonIgnore]
+    public bool IsBlob => Url.StartsWith("blob:");
 
-    [JsonIgnore] public bool IsInvalid => Url == "";
+    [JsonIgnore]
+    public bool IsInvalid => Url == "";
 
     [JsonIgnore]
     [MemberNotNullWhen(true, nameof(Referer))]
@@ -56,8 +58,12 @@ public partial class FileLink
     ///     Whether to clean the provided filename or not (default: false).
     ///     Does nothing if <paramref name="filename"/> was not provided.
     /// </param>
+    /// <param name="resolveFilenameDuringDownload">
+    ///     Whether to resolve the filename during download (default: false).
+    /// </param>
     private FileLink(string url, FilenameScheme filenameScheme, int index, string filename = "",
-                     LinkInfo? linkInfo = null, string? referer = "", bool cleanFilename = false)
+                     LinkInfo? linkInfo = null, string? referer = "", bool cleanFilename = false,
+                     bool resolveFilenameDuringDownload = false)
     {
         linkInfo ??= LinkInfo.None;
         url = HttpUtility.HtmlDecode(url.Trim());
@@ -78,7 +84,8 @@ public partial class FileLink
         Referer = siteResult?.Referer ?? (referer == "" ? null : referer);
         LinkInfo = siteResult?.LinkInfo ?? linkInfo.Value;
 
-        Filename = GenerateFilename(Url, filenameScheme, index, filename, cleanFilename, siteResult?.Filename);
+        Filename = GenerateFilename(Url, filenameScheme, index, filename, cleanFilename, siteResult?.Filename,
+            resolveFilenameDuringDownload);
     }
 
     public static FileLink Create(
@@ -148,7 +155,8 @@ public partial class FileLink
     {
         // Useful shape for later refactoring
         return new FileLink(url, filenameScheme, index, filename: suppliedFilename ?? "", linkInfo: linkInfo,
-            referer: referer ?? "", cleanFilename: cleanFilename);
+            referer: referer ?? "", cleanFilename: cleanFilename,
+            resolveFilenameDuringDownload: resolveFilenameDuringDownload);
     }
 
     public void Rename(int index)
@@ -174,7 +182,8 @@ public partial class FileLink
     }
 
     private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename,
-                                    bool cleanFilename, string? siteFilename)
+                                    bool cleanFilename, string? siteFilename,
+                                    bool resolveFilenameDuringDownload = false)
     {
         var filenameProvided = filename != "";
 
@@ -182,7 +191,7 @@ public partial class FileLink
         {
             // GDrive filenames come from the Drive API and are expected to be supplied by the caller —
             // deliberately skip the generic URI-based fallback for this one case.
-            filename = LinkInfo == LinkInfo.GDrive
+            filename = resolveFilenameDuringDownload
                 ? ""
                 : FinalizeFilename(url, siteFilename ?? ExtractFallbackFilename(url));
         }
@@ -270,7 +279,7 @@ public partial class FileLink
             {
                 Logger.Warning("No file name provided: {Url}", url);
             }
-            
+
             return Guid.NewGuid().ToString();
         }
 
@@ -279,7 +288,7 @@ public partial class FileLink
 
     public override string ToString()
     {
-        var linkInfo = Enum.GetName(LinkInfo);
+        var linkInfo = LinkInfo.Name;
         var url = LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(Url) : Url;
         return !Referer.IsNullOrEmpty()
             ? $"({url}, {Filename}, {Referer}, {linkInfo})"
