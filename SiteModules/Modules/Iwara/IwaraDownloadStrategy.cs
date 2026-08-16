@@ -9,7 +9,7 @@ namespace NicheImageRipper.SiteModules.Modules.Iwara;
 
 public sealed class IwaraDownloadStrategy : IFileDownloadStrategy
 {
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.Iwara];
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [IwaraLinkInfo.Iwara];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)

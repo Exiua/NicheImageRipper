@@ -7,7 +7,7 @@ using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading;
 
-internal static class ProcessRunner
+public static class ProcessRunner
 {
     private static readonly ILogger Logger = Log.ForContext(typeof(ProcessRunner));
     

@@ -1,3 +1,4 @@
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
@@ -6,6 +7,8 @@ namespace NicheImageRipper.Core.FileDownloading;
 
 public interface IFileDownloadStrategy
 {
+    protected static GeneralConfig Config => NicheImageRipper.Config;
+    
     IEnumerable<LinkInfo> HandlesLinkInfo { get; }
     bool SupportsPostProcessing => true; // default; override to false where an external tool owns the result
 

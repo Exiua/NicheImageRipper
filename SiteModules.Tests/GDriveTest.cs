@@ -2,8 +2,10 @@ using System.Reflection;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.SiteModules.Modules.Google;
+using Xunit.Abstractions;
 
-namespace NicheImageRipper.Core.Tests;
+namespace SiteModules.Tests;
 
 public class GDriveTest
 {
@@ -29,7 +31,7 @@ public class GDriveTest
         var imageLink = new FileLink
         {
             Referer = "",
-            LinkInfo = LinkInfo.GDrive,
+            LinkInfo = GDriveLinkInfo.GDrive,
             Url = "",
             Filename = "11",
         };

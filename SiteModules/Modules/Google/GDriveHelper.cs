@@ -29,7 +29,7 @@ public static class GDriveHelper
         var counter = index;
         foreach (var file in files.Where(f => !f.IsFolder))
         {
-            var fileLink = FileLink.WithFilename(file.Id, file.GetPath(), filenameScheme, index: counter, linkInfo: LinkInfo.GDrive);
+            var fileLink = FileLink.WithFilename(file.Id, file.GetPath(), filenameScheme, index: counter, linkInfo: GDriveLinkInfo.GDrive);
             fileLinks.Add(fileLink);
             counter++;
         }

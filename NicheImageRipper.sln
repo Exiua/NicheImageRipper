@@ -38,6 +38,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NHentaiApi", "NHentaiApi\NH
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SiteModules", "SiteModules\SiteModules.csproj", "{AC82B474-33BD-4AC0-ABB2-B5A50EF574CD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SiteModules.Tests", "SiteModules.Tests\SiteModules.Tests.csproj", "{3B624063-2585-424E-8919-DBE96E9E20FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -120,5 +122,9 @@ Global
 		{AC82B474-33BD-4AC0-ABB2-B5A50EF574CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC82B474-33BD-4AC0-ABB2-B5A50EF574CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC82B474-33BD-4AC0-ABB2-B5A50EF574CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B624063-2585-424E-8919-DBE96E9E20FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B624063-2585-424E-8919-DBE96E9E20FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B624063-2585-424E-8919-DBE96E9E20FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B624063-2585-424E-8919-DBE96E9E20FD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

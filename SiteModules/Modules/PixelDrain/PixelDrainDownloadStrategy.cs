@@ -1,4 +1,5 @@
 using System.Text;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.FileDownloading;
@@ -7,16 +8,16 @@ using NicheImageRipper.Core.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.PixelDrain;
 
-using static ConfigAccess;
-
 public sealed class PixelDrainDownloadStrategy : IFileDownloadStrategy
 {
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.PixelDrain];
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [PixelDrainLinkInfo.PixelDrain];
+
+    private static GeneralConfig Config => IFileDownloadStrategy.Config;
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)
     {
-        var apiKey = ConfigAccess.Config.Keys.GetValueOrDefault("pixeldrain");
+        var apiKey = Config.Keys.GetValueOrDefault("pixeldrain");
         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($":{apiKey}"));
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add(RequestHeaderKeys.UserAgent, Config.UserAgent);

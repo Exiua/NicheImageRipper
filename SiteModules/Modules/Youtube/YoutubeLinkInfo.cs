@@ -5,5 +5,5 @@ namespace NicheImageRipper.SiteModules.Modules.Youtube;
 public static class YoutubeLinkInfo
 {
     private const string YoutubeVideoValue = "youtube-video";
-    public static readonly LinkInfo Youtube = new(YoutubeVideoValue);
+    public static readonly LinkInfo YoutubeVideo = new(YoutubeVideoValue);
 }

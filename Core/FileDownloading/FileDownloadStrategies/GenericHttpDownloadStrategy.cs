@@ -18,7 +18,7 @@ public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
     private const int MinimumFileSize = 1024; // 1KB
 
     /// <inheritdoc />
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.None, LinkInfo.GoFile];
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.None];
 
     /// <inheritdoc />
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,

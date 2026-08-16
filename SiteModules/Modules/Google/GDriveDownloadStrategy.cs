@@ -9,7 +9,7 @@ namespace NicheImageRipper.SiteModules.Modules.Google;
 
 public sealed class GDriveDownloadStrategy : IFileDownloadStrategy
 {
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.GDrive];
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [GDriveLinkInfo.GDrive];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)

@@ -13,7 +13,7 @@ public sealed partial class YoutubeLinkRule : ISiteLinkRule
     {
         var normalizedUrl = NormalizeUrl(url);
         var filename = ExtractVideoId(normalizedUrl);
-        return new SiteLinkInfo(normalizedUrl, YoutubeLinkInfo.Youtube, Filename: filename);
+        return new SiteLinkInfo(normalizedUrl, YoutubeLinkInfo.YoutubeVideo, Filename: filename);
     }
 
     private static string NormalizeUrl(string url)

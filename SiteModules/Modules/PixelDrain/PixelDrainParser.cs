@@ -14,7 +14,7 @@ namespace NicheImageRipper.SiteModules.Modules.PixelDrain;
 public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "pixeldrain";
-    
+
     public static string[] SupportedUrls { get; } = ["https://pixeldrain.com/"];
 
     protected override bool RequiresNavigation => false;
@@ -37,7 +37,7 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
         {
             throw new RipperException("No API key found for " + ParserName);
         }
-        
+
         var counter = 0;
         var images = new List<StringFileLinkWrapper>();
         string dirName;
@@ -51,7 +51,8 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
             foreach (var file in files)
             {
                 var link = FileLink.WithFilename(file!["id"]!.Deserialize<string>()!,
-                    file["name"]!.Deserialize<string>()!, FilenameScheme, counter, linkInfo: LinkInfo.PixelDrain);
+                    file["name"]!.Deserialize<string>()!, FilenameScheme, counter,
+                    linkInfo: PixelDrainLinkInfo.PixelDrain);
                 counter++;
                 images.Add(link);
             }
@@ -63,7 +64,8 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
             var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             dirName = responseJson!["id"]!.Deserialize<string>()!;
             var link = FileLink.WithFilename(responseJson!["id"]!.Deserialize<string>()!,
-                responseJson["name"]!.Deserialize<string>()!, FilenameScheme, counter, linkInfo: LinkInfo.PixelDrain);
+                responseJson["name"]!.Deserialize<string>()!, FilenameScheme, counter,
+                linkInfo: PixelDrainLinkInfo.PixelDrain);
             images.Add(link);
         }
         else

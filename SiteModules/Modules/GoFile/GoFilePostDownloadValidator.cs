@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
@@ -6,6 +7,7 @@ using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
+using Serilog;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
 
@@ -13,7 +15,10 @@ public sealed class GoFilePostDownloadValidator : IPostDownloadValidator
 {
     private const int RetryCount = 4;
 
-    public bool AppliesTo(FileLink link, DownloadContext context) => link.LinkInfo == LinkInfo.GoFile;
+    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static ILogger Logger => Log.ForContext<GoFilePostDownloadValidator>();
+
+    public bool AppliesTo(FileLink link, DownloadContext context) => link.LinkInfo == GoFileLinkInfo.GoFile;
 
     public async Task<DownloadResult> ValidateAsync(string filePath, FileLink link, DownloadContext context,
                                                     CancellationToken cancellationToken)
@@ -58,7 +63,13 @@ public sealed class GoFilePostDownloadValidator : IPostDownloadValidator
     {
         var driver = context.WebDriver.Driver;
         var origUrl = driver.Url;
-        var config = ConfigAccess.Config.Custom.GetValueOrDefault("gofile").Deserialize<CustomConfig.GoFileConfig>();
+        var config = Config.Custom.GetValueOrDefault(GoFileParser.ParserName).Deserialize<GoFileConfig>();
+        if (config is null)
+        {
+            Logger.Warning("GoFileConfig is not set");
+            return false;
+        }
+        
         driver.Url = config.LoginLink;
         await Task.Delay(10000, cancellationToken);
 

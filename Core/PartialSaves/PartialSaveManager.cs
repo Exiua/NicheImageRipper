@@ -59,7 +59,7 @@ public class PartialSaveManager
                                                id INTEGER PRIMARY KEY AUTOINCREMENT,
                                                PartialSaveId INTEGER NOT NULL,
                                                Referer TEXT NOT NULL,
-                                               LinkInfo INTEGER NOT NULL,
+                                               LinkInfo TEXT NOT NULL,
                                                Url TEXT NOT NULL,
                                                Filename TEXT,
                                                FOREIGN KEY (PartialSaveId) REFERENCES partial_saves(id) ON DELETE CASCADE
@@ -217,7 +217,7 @@ public class PartialSaveManager
                     {
                         PartialSaveId = partialSaveId,
                         Referer = imageLink.Referer ?? string.Empty,
-                        LinkInfo = (int)imageLink.LinkInfo,
+                        LinkInfo = imageLink.LinkInfo,
                         imageLink.Url,
                         imageLink.Filename
                     };

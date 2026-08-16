@@ -1,12 +1,14 @@
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 using NicheImageRipper.Core.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 
 public sealed class DonmaiUserAgentHeaderModifier : IRequestHeaderModifier
 {
+    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    
     // Matches original: this branch checked fileLink.Url, not the ambient url param (unlike Redgifs).
     public bool AppliesTo(string url, FileLink link, DownloadContext context) => link.Url.Contains("donmai.us");
 
@@ -17,7 +19,7 @@ public sealed class DonmaiUserAgentHeaderModifier : IRequestHeaderModifier
         requestHeaders[RequestHeaderKeys.UserAgent] = "NicheImageRipper";
 
         IReadOnlyDictionary<string, string?> restoreMap =
-            new Dictionary<string, string?> { [RequestHeaderKeys.UserAgent] = ConfigAccess.Config.UserAgent };
+            new Dictionary<string, string?> { [RequestHeaderKeys.UserAgent] = Config.UserAgent };
         return Task.FromResult(restoreMap);
     }
 }

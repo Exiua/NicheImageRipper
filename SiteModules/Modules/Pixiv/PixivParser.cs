@@ -13,7 +13,7 @@ public class PixivParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "pixiv";
     public static string[] SupportedUrls => ["https://www.pixiv.net/"];
-    
+
     private PixivApiClient PixivClient { get; set; } = new();
 
     public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
@@ -83,7 +83,8 @@ public class PixivParser : HtmlParser, IHtmlParser
                         var illustId = illust.Id;
                         var filename = $"{illustId}.webp";
                         var url = $"https://www.pixiv.net/artworks/{illustId}";
-                        var img = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.PixivUgoira);
+                        var img = FileLink.WithFilename(url, filename, FilenameScheme,
+                            linkInfo: PixivUgoiraLinkInfo.PixivUgoira);
                         images.Add(img);
                         break;
                     }

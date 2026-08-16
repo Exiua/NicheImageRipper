@@ -10,7 +10,9 @@ namespace NicheImageRipper.SiteModules.Modules.Mega;
 
 public sealed class MegaDownloadStrategy : IFileDownloadStrategy
 {
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [ LinkInfo.Mega ];
+    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [ MegaLinkInfo.Mega ];
     public bool SupportsPostProcessing => false;
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
@@ -22,7 +24,7 @@ public sealed class MegaDownloadStrategy : IFileDownloadStrategy
         }
 
         context.Logger.Debug("Logging in to MegaCmd");
-        var (email, password) = ConfigAccess.Config.Logins.GetValueOrDefault("mega").Deconstruct();
+        var (email, password) = Config.Logins.GetValueOrDefault("mega").Deconstruct();
         if (email.IsNullOrWhiteSpace() || password.IsNullOrWhiteSpace())
         {
             throw new RipperException("MegaCmd login credentials are not set in the configuration");

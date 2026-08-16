@@ -1,6 +1,9 @@
 using System.Net.Sockets;
+using NicheImageRipper.Common.ExtensionMethods;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 using SteamKit2;
@@ -9,18 +12,25 @@ namespace NicheImageRipper.SiteModules.Modules.SteamCommunity;
 
 public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
 {
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.SteamCommunity];
+    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [SteamCommunityLinkInfo.SteamCommunity];
     public bool SupportsPostProcessing => false;
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
-                                                     CancellationToken cancellationToken = default)
+                                                    CancellationToken cancellationToken = default)
     {
         var destinationFolder = Path.GetDirectoryName(imagePath)!;
         Directory.CreateDirectory(destinationFolder);
         var ids = link.Url.Split('/')[^1].Split('|');
         var fileId = ids[1];
-        var (username, password) = ConfigAccess.Config.Logins.GetValueOrDefault("steamcommunity");
+        var (username, password) = Config.Logins.GetValueOrDefault(SteamCommunityParser.ParserName).Deconstruct();
         var client = context.ClientManager.SteamApiClient;
+        if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
+        {
+            throw new RipperException(
+                "Steam credentials are not set. Please add your Steam username and password to the config file.");
+        }
 
         try
         {

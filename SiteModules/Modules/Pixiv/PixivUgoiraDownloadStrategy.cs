@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ImageMagick;
 using NicheImageRipper.Common.ExtensionMethods;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
@@ -17,7 +18,9 @@ namespace NicheImageRipper.SiteModules.Modules.Pixiv;
 
 public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
 {
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.PixivUgoira];
+    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [PixivUgoiraLinkInfo.PixivUgoira];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)
@@ -26,8 +29,14 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
         context.Logger.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
 
+        var cookies = Config.Cookies.GetValueOrDefault(PixivParser.ParserName, []);
+        if (cookies.Length == 0)
+        {
+            throw new RipperException("Pixiv cookies not found in configuration");
+        }
+
         var sessionId = TokenManager.Instance.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24),
-            ConfigAccess.Config.Cookies.GetValueOrDefault("pixiv"));
+            cookies);
         var driver = context.WebDriver.Driver;
         driver.Url = "https://www.pixiv.net/";
         driver.SetCookie("PHPSESSID", sessionId);
