@@ -1,3 +1,5 @@
+using NicheImageRipper.Common.ExtensionMethods;
+using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
@@ -20,7 +22,12 @@ public sealed class MegaDownloadStrategy : IFileDownloadStrategy
         }
 
         context.Logger.Debug("Logging in to MegaCmd");
-        var (email, password) = Config.Logins.GetValueOrDefault("mega");
+        var (email, password) = Config.Logins.GetValueOrDefault("mega").Deconstruct();
+        if (email.IsNullOrWhiteSpace() || password.IsNullOrWhiteSpace())
+        {
+            throw new RipperException("MegaCmd login credentials are not set in the configuration");
+        }
+        
         if (!MegaSessionManager.EnsureLoggedIn(email, password))
         {
             var e = new RipperException("Unable to login to MegaCmd");

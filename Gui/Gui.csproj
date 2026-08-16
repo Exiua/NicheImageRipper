@@ -42,6 +42,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Core\Core.csproj" />
       <ProjectReference Include="..\Service\Service.csproj" />
+      <ProjectReference Include="..\SiteModules\SiteModules.csproj" />
     </ItemGroup>
 
     <ItemGroup>

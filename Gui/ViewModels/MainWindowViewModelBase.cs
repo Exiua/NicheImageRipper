@@ -15,6 +15,7 @@ using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Gui.ExtensionMethods;
 using NicheImageRipper.Gui.Services;
+using NicheImageRipper.SiteModules.Modules.Booru;
 using ReactiveUI;
 
 namespace NicheImageRipper.Gui.ViewModels;
@@ -495,6 +496,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
                 {
                     // May throw an exception, if the input is not a booru-like URL
+                    // TODO: Figure out how to remove dependency on SiteModules without duplicating code
                     var tagsString = BooruParser.ExtractTagsFromUrl(part);
                     if (tagsString.EndsWith('+'))
                     {
