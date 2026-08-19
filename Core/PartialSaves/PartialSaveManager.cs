@@ -217,7 +217,7 @@ public class PartialSaveManager
                     {
                         PartialSaveId = partialSaveId,
                         Referer = imageLink.Referer ?? string.Empty,
-                        LinkInfo = imageLink.LinkInfo,
+                        LinkInfo = imageLink.LinkInfo.Name,
                         imageLink.Url,
                         imageLink.Filename
                     };
@@ -353,7 +353,8 @@ public class PartialSaveManager
                     NumUrls = (int)row.NumUrls,
                     DirectoryName = row.DirectoryName,
                     Urls = imageLinks,
-                    MaxConcurrentDownloads = row.MaxConcurrentDownloads is not null ? (int?)row.MaxConcurrentDownloads : null
+                    MaxConcurrentDownloads =
+                        row.MaxConcurrentDownloads is not null ? (int?)row.MaxConcurrentDownloads : null
                 }
             };
         }
@@ -412,7 +413,7 @@ public class PartialSaveManager
             }
         }
     }
-    
+
     public void RemovePartialSave(string url)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
@@ -436,7 +437,8 @@ public class PartialSaveManager
                                                  LIMIT 1;
                                                  """;
 
-                var existingId = _connection.QuerySingleOrDefault<long?>(findExistingQuery, new { Url = url }, transaction);
+                var existingId =
+                    _connection.QuerySingleOrDefault<long?>(findExistingQuery, new { Url = url }, transaction);
                 if (existingId.HasValue)
                 {
                     DeletePartialSave(existingId.Value, transaction);

@@ -1,4 +1,4 @@
-using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.DataStructures;
 
 namespace NicheImageRipper.Core.SiteParsing.LinkRules;
 
