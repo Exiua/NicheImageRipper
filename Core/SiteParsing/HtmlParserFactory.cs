@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Linq.Expressions;
+using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Exceptions;
@@ -19,25 +20,26 @@ public static class HtmlParserFactory
 
     private static Dictionary<string, HtmlParserCtor> _parsers = new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, Type> _parserTypesByName = new(StringComparer.OrdinalIgnoreCase);
-    private static FrozenSet<string> _supportedUrls = FrozenSet<string>.Empty;
-    private static FrozenDictionary<string, int> _subdomainSignificantSuffixes = FrozenDictionary<string, int>.Empty;
-    private static FrozenDictionary<string, string> _refererOverridesBySuffix = FrozenDictionary<string, string>.Empty;
-    private static IReadOnlyList<(string From, string To)> _urlReplacements = [];
 
     /// <summary>
     ///     Every base URL (scheme+host+trailing slash) supported by any registered parser, derived from each
     ///     parser's <see cref="IHtmlParser.SupportedUrls"/>. Used by <c>UrlUtility.UrlCheck</c> instead of a
     ///     hardcoded list, so plugin-registered parsers are automatically recognized without touching core code.
     /// </summary>
-    public static FrozenSet<string> SupportedUrls => _supportedUrls;
+    public static FrozenSet<string> SupportedUrls { get; private set; } = FrozenSet<string>.Empty;
 
-    public static FrozenDictionary<string, int> SubdomainSignificantSuffixes => _subdomainSignificantSuffixes;
-    public static FrozenDictionary<string, string> RefererOverridesBySuffix => _refererOverridesBySuffix;
-    public static IReadOnlyList<(string From, string To)> UrlReplacements => _urlReplacements;
+    public static FrozenDictionary<string, int> SubdomainSignificantSuffixes { get; private set; } =
+        FrozenDictionary<string, int>.Empty;
+
+    public static FrozenDictionary<string, string> RefererOverridesBySuffix { get; private set; } =
+        FrozenDictionary<string, string>.Empty;
+
+    public static IReadOnlyList<(string From, string To)> UrlReplacements { get; private set; } = [];
 
     static HtmlParserFactory()
     {
         SiteModuleLoader.LoadModules();
+        LinkInfoDiscovery.EnsureAllRegistered();
         Rebuild();
     }
 
@@ -69,13 +71,13 @@ public static class HtmlParserFactory
 
         _parsers = BuildParsers(parserTypes);
         _parserTypesByName = BuildParserTypesByName(parserTypes);
-        _supportedUrls = BuildSupportedUrls(parserTypes);
-        _subdomainSignificantSuffixes = BuildSuffixLookup<int>(
+        SupportedUrls = BuildSupportedUrls(parserTypes);
+        SubdomainSignificantSuffixes = BuildSuffixLookup<int>(
             parserTypes, typeof(ISubdomainSignificantHtmlParser),
             nameof(ISubdomainSignificantHtmlParser.SignificantDomainLabels));
-        _refererOverridesBySuffix = BuildSuffixLookup<string>(
+        RefererOverridesBySuffix = BuildSuffixLookup<string>(
             parserTypes, typeof(IRefererOverrideHtmlParser), nameof(IRefererOverrideHtmlParser.RefererOverride));
-        _urlReplacements = BuildUrlReplacements(parserTypes);
+        UrlReplacements = BuildUrlReplacements(parserTypes);
     }
 
     private static Dictionary<string, HtmlParserCtor> BuildParsers(IEnumerable<Type> parserTypes)

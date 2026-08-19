@@ -193,6 +193,9 @@ public class ImageRipper : IDisposable
         WebDriver = driverPool.AcquireDriver(true);
         Logger = Log.ForContext<ImageRipper>();
 
+        // TODO: Hack to force HtmlParserFactory to initialize
+        _ = HtmlParserFactory.SupportedUrls;
+        
         StrategyRegistry = DownloadCompositionRoot.BuildStrategyRegistry();
         HeaderModifiers = DownloadCompositionRoot.BuildHeaderModifiers();
         ErrorHandlers = DownloadCompositionRoot.BuildErrorHandlers();

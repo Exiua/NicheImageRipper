@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Runtime.CompilerServices;
 using Dapper;
 
 namespace NicheImageRipper.Core.DataStructures;
@@ -56,10 +57,10 @@ public static class LinkInfoRegistry
 {
     private static readonly Dictionary<string, LinkInfo> LinkInfos = new();
 
-    static LinkInfoRegistry()
+    /*static LinkInfoRegistry()
     {
         SqlMapper.AddTypeHandler(new LinkInfoTypeHandler());
-    }
+    }*/
 
     public static LinkInfo Register(string name)
     {
@@ -78,7 +79,32 @@ public static class LinkInfoRegistry
     }
 }
 
-public sealed class LinkInfoTypeHandler : SqlMapper.TypeHandler<LinkInfo>
+internal static class LinkInfoDiscovery
+{
+    /// <summary>
+    ///     Forces the static constructor of every loaded ILinkInfoProvider to run, registering its LinkInfo
+    ///     values before anything (e.g. PartialSaveManager deserializing a cached FileLink) might need to
+    ///     resolve them by name. Call once during startup, after SiteModuleLoader.LoadModules().
+    /// </summary>
+    public static void EnsureAllRegistered()
+    {
+        var providerTypes = AppDomain.CurrentDomain
+                                     .GetAssemblies()
+                                     .SelectMany(a =>
+                                      {
+                                          try { return a.GetTypes(); }
+                                          catch { return []; }
+                                      })
+                                     .Where(t => typeof(ILinkInfoProvider).IsAssignableFrom(t) && !t.IsAbstract);
+
+        foreach (var type in providerTypes)
+        {
+            RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+        }
+    }
+}
+
+/*public sealed class LinkInfoTypeHandler : SqlMapper.TypeHandler<LinkInfo>
 {
     public override LinkInfo Parse(object value)
     {
@@ -90,4 +116,4 @@ public sealed class LinkInfoTypeHandler : SqlMapper.TypeHandler<LinkInfo>
         parameter.Value = value.Name;
         parameter.DbType = DbType.String;
     }
-}
+}*/
