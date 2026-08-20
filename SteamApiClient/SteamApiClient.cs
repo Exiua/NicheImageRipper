@@ -252,6 +252,13 @@ public class SteamApiClient
                                                   "steamcontent.com")).Select(s =>
                                               (SteamKit2.CDN.Server)new DnsEndPoint(
                                                   s["vhost"].AsString() ?? s["host"].AsString()!, 443)).ToList();
+        if (servers.Count == 0)
+        {
+            Logger.Warning("No depot servers found.");
+            await Task.Delay(5000, cancellationToken);
+            throw new InvalidOperationException("No depot servers found.");
+        }
+        
         return new DepotDownloadTarget(AppId: appId, ManifestId: hcontentFile, DepotKey: depotKeyResult.DepotKey,
             ServerPool: new CdnServerPool(servers));
     }

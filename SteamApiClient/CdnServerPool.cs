@@ -12,7 +12,7 @@ internal sealed class CdnServerPool
 
     public CdnServerPool(IReadOnlyList<SteamKit2.CDN.Server> servers)
     {
-        _available = new ConcurrentBag<SteamKit2.CDN.Server>(servers);
+        _available = [.. servers];
         _availableSignal = new SemaphoreSlim(servers.Count, servers.Count);
     }
 
