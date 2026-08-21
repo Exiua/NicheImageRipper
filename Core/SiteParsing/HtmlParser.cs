@@ -590,7 +590,7 @@ public abstract class HtmlParser : IDisposable
         return (capturer, bidi);
     }
 
-    protected static Dictionary<string, List<string>> CreateExternalLinkDict()
+    public static Dictionary<string, List<string>> CreateExternalLinkDict()
     {
         var externalLinks = new Dictionary<string, List<string>>();
         foreach (var site in ExternalSites)
