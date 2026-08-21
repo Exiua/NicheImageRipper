@@ -258,7 +258,7 @@ public class SteamApiClient
             await Task.Delay(5000, cancellationToken);
             throw new InvalidOperationException("No depot servers found.");
         }
-        
+
         return new DepotDownloadTarget(AppId: appId, ManifestId: hcontentFile, DepotKey: depotKeyResult.DepotKey,
             ServerPool: new CdnServerPool(servers));
     }
@@ -341,8 +341,12 @@ public class SteamApiClient
                 MaxDegreeOfParallelism = 10,
                 CancellationToken = cancellationToken,
             };
-            await Parallel.ForEachAsync(chunkQueue, parallelOptions,
-                async (request, ct) => { await DownloadChunkWithRetryAsync(request, ct); });
+            await Parallel.ForEachAsync(chunkQueue.Select((request, index) => (index, request)), parallelOptions,
+                async (data, ct) =>
+                {
+                    await DownloadChunkWithRetryAsync(data.request, ct);
+                    Logger.Debug("Finished downloading chunk {Chunk}", data.index);
+                });
         }
         catch (IOException e) when (e.Message.Contains("There is not enough space on the disk"))
         {
@@ -518,7 +522,7 @@ public class SteamApiClient
         return name;
     }
 
-    public async Task<ulong> ResolveVanityUrlAsync(string vanityUrl, CancellationToken cancellationToken = default)
+    public static async Task<ulong> ResolveVanityUrlAsync(string vanityUrl, CancellationToken cancellationToken = default)
     {
         Logger.Information("Resolving vanity URL {VanityUrl}", vanityUrl);
         var response = await Http.GetAsync($"https://steamcommunity.com/id/{Uri.EscapeDataString(vanityUrl)}/?xml=1",

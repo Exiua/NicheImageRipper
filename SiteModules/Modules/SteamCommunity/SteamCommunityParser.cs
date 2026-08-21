@@ -49,7 +49,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
         else if (CurrentUrl.Contains("/id/"))
         {
             var vanityName = CurrentUrl.Split("/")[4];
-            steamId = await client.ResolveVanityUrlAsync(vanityName, cancellationToken);
+            steamId = await SteamApiClient.SteamApiClient.ResolveVanityUrlAsync(vanityName, cancellationToken);
             dirName = vanityName;
         }
         else
