@@ -8,6 +8,7 @@ using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
+using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
@@ -187,6 +188,13 @@ public abstract class HtmlParser : IDisposable
         return HtmlParserFactory.Create(siteName, webDriver, clientManager, requestHeaders, filenameScheme);
     }
 
+    protected ParameterizedHtmlParser CreateParser(string url)
+    {
+        var (siteName, _) = UrlUtility.SiteCheck(url, RequestHeaders);
+        var parser = HtmlParserFactory.CreateParameterized(siteName, WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
+        return parser;
+    }
+    
     private void WritePartialSave(RipInfo ripInfo, string url)
     {
         var partialSaveEntry = new PartialSaveEntry
