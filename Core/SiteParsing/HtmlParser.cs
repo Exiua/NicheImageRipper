@@ -29,8 +29,7 @@ public abstract class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
 
-    protected static readonly string[] ExternalSites =
-        ["drive.google.com", "mega.nz", "mediafire.com", "sendvid.com", "dropbox.com", "youtube.com"];
+    protected static IReadOnlySet<string> ExternalSites => HtmlParserFactory.DelegatableDomains;
 
     protected static GeneralConfig Config => Configuration.Config.Instance;
 
