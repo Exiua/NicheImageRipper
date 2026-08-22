@@ -25,7 +25,7 @@ public class HentaiClubParser : HtmlParser, IHtmlParser
         await LazyLoad(new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//span[@class='post-info-text']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='masonry']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='masonry']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

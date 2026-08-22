@@ -27,7 +27,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='elementor-heading-title elementor-size-xxl']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-1']").SelectNodesOrThrow("./figure").Select(fig => fig.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-1']").SelectNodesOrThrow("./figure").Select(fig => fig.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringFileLinkWrapperList();
         var videos = soup.SelectSingleNode("//main[@id='main']");
         if (videos is not null)
         {

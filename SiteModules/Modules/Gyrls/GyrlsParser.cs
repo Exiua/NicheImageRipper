@@ -24,7 +24,7 @@ public class GyrlsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single_title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//div[@id='gallery-1']//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@id='gallery-1']//a").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

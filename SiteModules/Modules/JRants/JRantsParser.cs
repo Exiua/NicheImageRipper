@@ -37,7 +37,7 @@ public class JRantsParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {pageCount}", pageCount);
             pageCount++;
-            var imgs = soup.SelectNodes("//div[@class='inside-article']//p/img")?.Select(img => img.GetSrc()).ToStringImageLinks();
+            var imgs = soup.SelectNodes("//div[@class='inside-article']//p/img")?.Select(img => img.GetSrc()).ToStringFileLinks();
             if (imgs is not null)
             {
                 images.AddRange(imgs);

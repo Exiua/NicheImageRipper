@@ -34,7 +34,7 @@ public partial class FourKHdParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {page} of {numPages}", page, numPages);
             var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ?? soup.SelectSingleNodeOrThrow("//div[@id='basicE']");
-            var imgs = baseElement.SelectNodesOrThrow("./a").Select(a => a.GetHref().Split("?")[0]).ToStringImageLinks();
+            var imgs = baseElement.SelectNodesOrThrow("./a").Select(a => a.GetHref().Split("?")[0]).ToStringFileLinks();
             images.AddRange(imgs);
             // The first page is already loaded
             soup = await Soupify($"{baseUrl}/{page + 1}", lazyLoadArgs: new LazyLoadArgs { StopElement = By.XPath("//ul[@class='page-links']") }, cancellationToken: cancellationToken);

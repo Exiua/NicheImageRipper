@@ -24,7 +24,7 @@ public class JapaneseAsmrParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='page-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
         var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']").SelectNodesOrThrow(".//a").Select(a => a.GetHref());
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var link in megaLinks)

@@ -36,7 +36,7 @@ public class MeirentuParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {Counter}", counter);
             counter++;
-            var imgs = soup.SelectNodesOrThrow("//div[@class='content_left']//img").Select(img => img.GetSrc()).ToStringImageLinks();
+            var imgs = soup.SelectNodesOrThrow("//div[@class='content_left']//img").Select(img => img.GetSrc()).ToStringFileLinks();
             images.AddRange(imgs);
             var nextPageButton = soup.SelectNodesOrThrow("//div[@class='page']/a")[^1];
             var nextPageButtonText = nextPageButton.InnerText.Trim();

@@ -24,7 +24,7 @@ public class EightBoobsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//div[@class='title']")[1].InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery clear']").SelectNodesOrThrow("./a").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery clear']").SelectNodesOrThrow("./a").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

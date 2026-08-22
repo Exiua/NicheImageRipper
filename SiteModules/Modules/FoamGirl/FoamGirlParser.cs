@@ -30,7 +30,7 @@ public class FoamGirlParser : HtmlParser, IHtmlParser
         var baseUrl = CurrentUrl;
         for (var i = 0; i < pageCount; i++)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='image_div']/p").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='image_div']/p").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringFileLinks();
             images.AddRange(imgs);
             if (i != pageCount - 1)
             {

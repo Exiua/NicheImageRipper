@@ -35,7 +35,7 @@ public class ApComicsParser : HtmlParser, IHtmlParser
         {
             Logger.Debug("Parsing chapter {Chapter}", chapter);
             soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim()).ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim()).ToStringFileLinks();
             images.AddRange(imgs);
         }
 

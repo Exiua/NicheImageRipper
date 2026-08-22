@@ -26,7 +26,7 @@ public class HottyStopParser : HtmlParser, IHtmlParser
         var boxLargeContent = soup.SelectSingleNodeOrThrow("//div[@class='content-center content-center-2']");
         var titleNode = boxLargeContent.SelectSingleNode(".//h1") ?? boxLargeContent.SelectSingleNodeOrThrow(".//u");
         var dirName = titleNode.InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gallery']").SelectNodesOrThrow(".//a").Select(a => a.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gallery']").SelectNodesOrThrow(".//a").Select(a => a.GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

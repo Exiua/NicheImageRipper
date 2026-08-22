@@ -24,7 +24,7 @@ public class BabesAndGirlsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='block-post album-item']").SelectNodesOrThrow(".//a[@class='item-post']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='block-post album-item']").SelectNodesOrThrow(".//a[@class='item-post']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

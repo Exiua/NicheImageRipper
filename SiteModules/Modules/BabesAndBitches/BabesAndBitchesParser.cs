@@ -24,7 +24,7 @@ public class BabesAndBitchesParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='title']").InnerText.Split("picture")[0].Trim();
-        var images = soup.SelectNodesOrThrow("//a[@class='gallery-thumb']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//a[@class='gallery-thumb']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

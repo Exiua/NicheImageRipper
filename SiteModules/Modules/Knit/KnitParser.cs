@@ -72,11 +72,11 @@ public class KnitParser : HtmlParser, IHtmlParser
         while (true)
         {
             Logger.Information("Parsing page {Page}", page);
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']").SelectNodesOrThrow("./p").Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringImageLinkWrapperList();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='image-container']").SelectNodesOrThrow("./p").Select(p => "https://xx-media.knit.bid" + p.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringFileLinkWrapperList();
             var imageGallery = soup.SelectSingleNode("//article[@id='image-gallery']");
             if (imageGallery is not null)
             {
-                var videos = imageGallery.SelectSingleNodeOrThrow(".//div[@class='wrapper']").SelectNodesSafe(".//source").Select(source => source.GetSrc()).ToStringImageLinks();
+                var videos = imageGallery.SelectSingleNodeOrThrow(".//div[@class='wrapper']").SelectNodesSafe(".//source").Select(source => source.GetSrc()).ToStringFileLinks();
                 imgs.AddRange(videos);
             }
 

@@ -24,7 +24,7 @@ public class XiurenParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='jeg_post_title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

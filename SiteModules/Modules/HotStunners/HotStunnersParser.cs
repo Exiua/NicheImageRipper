@@ -24,7 +24,7 @@ public class HotStunnersParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title_content']").SelectSingleNodeOrThrow(".//h2").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery_janna2']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetSrc().Remove("tn_")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery_janna2']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

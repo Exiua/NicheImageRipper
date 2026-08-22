@@ -27,7 +27,7 @@ public class AHottieParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToStringFileLinks();
             images.AddRange(imgs);
             var selector = soup.SelectSingleNode("//span[@class='relative z-0 inline-flex flex-wrap shadow-sm rounded-md']");
             if (selector is null)

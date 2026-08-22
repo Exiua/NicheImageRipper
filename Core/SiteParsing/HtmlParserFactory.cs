@@ -317,8 +317,7 @@ public static class HtmlParserFactory
         FilenameScheme scheme)
     {
         return !_parameterizedParsers.TryGetValue(site, out var ctor)
-            ? throw new RipperException(
-                $"No delegatable (ParameterizedHtmlParser) parser is registered for site: {site}")
+            ? throw new ParameterizedParserNotFound(site)
             : ctor(driver, client, headers, scheme);
     }
 }

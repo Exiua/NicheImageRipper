@@ -24,7 +24,7 @@ public class ImgBoxParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']").SelectSingleNodeOrThrow(".//h1").InnerText.Split(" - ")[0];
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

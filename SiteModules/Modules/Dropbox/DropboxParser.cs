@@ -102,7 +102,7 @@ public class DropboxParser : HtmlParser, IHtmlParser
             GetDropboxFile(soup, CurrentUrl, filenames, images, posts);
         }
 
-        return RipInfo.FromUrlListWithFilenames(images.ToStringImageLinkWrapperList(), dirName, FilenameScheme,
+        return RipInfo.FromUrlListWithFilenames(images.ToStringFileLinkWrapperList(), dirName, FilenameScheme,
             filenames);
     }
 

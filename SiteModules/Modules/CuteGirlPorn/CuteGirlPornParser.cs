@@ -24,7 +24,7 @@ public class CuteGirlPornParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='gal-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gal-thumbs']").SelectNodesOrThrow(".//li").Select(img => "https://cutegirlporn.com" + img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gal-thumbs']").SelectNodesOrThrow(".//li").Select(img => "https://cutegirlporn.com" + img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

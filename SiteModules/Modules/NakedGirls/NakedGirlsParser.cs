@@ -24,7 +24,7 @@ public class NakedGirlsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='content']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='content']").SelectNodesOrThrow(".//div[@class='thumb']").Select(img => "https://www.nakedgirls.xxx" + img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content']").SelectNodesOrThrow(".//div[@class='thumb']").Select(img => "https://www.nakedgirls.xxx" + img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

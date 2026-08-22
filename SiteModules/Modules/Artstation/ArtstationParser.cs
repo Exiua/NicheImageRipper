@@ -92,7 +92,7 @@ public class ArtstationParser : HtmlParser
             var responseData = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             var assets = responseData!["assets"]!.AsArray();
             var urls = assets.Select(asset => asset!["image_url"]!.Deserialize<string>()!.Replace("/large/", "/4k/"));
-            images.AddRange(urls.ToStringImageLinks());
+            images.AddRange(urls.ToStringFileLinks());
         }
 
 #endregion

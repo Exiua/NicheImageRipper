@@ -24,7 +24,7 @@ public class NudeBirdParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title single-title entry-title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -103,7 +103,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             if (videoPlaylist is not null)
             {
                 Logger.Debug("Parsing video playlist");
-                var videos = videoPlaylist.SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinks();
+                var videos = videoPlaylist.SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringFileLinks();
                 images.AddRange(videos);
             }
             else
@@ -115,7 +115,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                     var dataItem = playerContainer.GetAttributeValue("data-item");
                     dataItem = WebUtility.HtmlDecode(dataItem);
                     var videoData = JsonSerializer.Deserialize<JsonNode>(dataItem)!.AsObject()["sources"]!.AsArray();
-                    var videos = videoData.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!).ToStringImageLinks();
+                    var videos = videoData.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!).ToStringFileLinks();
                     images.AddRange(videos);
                 }
             }

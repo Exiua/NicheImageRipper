@@ -24,7 +24,7 @@ public class NovoPornParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//section[@class='outer-section']").SelectSingleNodeOrThrow(".//h2").InnerText.Split("porn")[0].Trim();
-        var images = soup.SelectNodesOrThrow("//div[@class='thumb grid-item']").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("tn_", "")).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@class='thumb grid-item']").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("tn_", "")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

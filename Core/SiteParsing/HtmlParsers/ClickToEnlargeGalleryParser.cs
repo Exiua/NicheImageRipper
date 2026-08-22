@@ -30,7 +30,7 @@ public abstract class ClickToEnlargeGalleryParser : HtmlParser
                           .Join(" ");
         var images = soup.SelectNodesOrThrow("//div[@class='gallery_thumb']")
                          .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
-                         .ToStringImageLinkWrapperList();
+                         .ToStringFileLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

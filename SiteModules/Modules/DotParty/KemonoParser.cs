@@ -12,6 +12,8 @@ public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
     public static string[] SupportedUrls => ["https://kemono.party/", "https://kemono.su/", "https://kemono.cr/"];
     public static string RefererOverride => "";
 
+    protected override string[] OwnHosts { get; } = SupportedUrls.Select(u => new Uri(u).Host).ToArray();
+
     public KemonoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
         requestHeaders, IHtmlParser.GetFilenameScheme<KemonoParser>(filenameScheme))
@@ -24,6 +26,6 @@ public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        return DotPartyParse("https://kemono.cr", cancellationToken);
+        return DotPartyParse(cancellationToken);
     }
 }

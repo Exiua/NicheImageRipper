@@ -46,7 +46,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
             var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']").SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
             foreach (var div in timeline)
             {
-                var imgs = div.SelectNodesSafe(".//a[@class='still-image']").Select(a => a.GetHref()).ToStringImageLinks();
+                var imgs = div.SelectNodesSafe(".//a[@class='still-image']").Select(a => a.GetHref()).ToStringFileLinks();
                 images.AddRange(imgs);
                 var video = div.SelectSingleNode(".//video/source")?.GetSrc();
                 if (video is not null)

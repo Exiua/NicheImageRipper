@@ -34,7 +34,7 @@ public class MicMicDollParser : HtmlParser, IHtmlParser
 
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='post-title entry-title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a").Select(a => a.GetNullableHref()).Where(item => item is not null).Select(item => item!).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a").Select(a => a.GetNullableHref()).Where(item => item is not null).Select(item => item!).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

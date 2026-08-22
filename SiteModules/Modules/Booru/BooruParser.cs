@@ -110,7 +110,7 @@ public abstract partial class BooruParser : HtmlParser
             Logger.Debug("Parsing page {PageNumber}", pid);
             var urls = data.Select(post => GetUrl(post!, jsonObjectNavigationToUrl))
                            .OfType<string>()
-                           .ToStringImageLinks();
+                           .ToStringFileLinks();
             images.AddRange(urls);
             if (data.Count < limit)
             {

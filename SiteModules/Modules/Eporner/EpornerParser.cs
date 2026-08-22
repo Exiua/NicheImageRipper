@@ -84,7 +84,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
                 {
                     Logger.Information("Parsing gallery: {post}", post);
                     soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
-                    var postImages = soup.SelectSingleNodeOrThrow("//div[@class='photosgrid gallerygrid']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).Select(ExtractFullImageLink).ToStringImageLinks();
+                    var postImages = soup.SelectSingleNodeOrThrow("//div[@class='photosgrid gallerygrid']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).Select(ExtractFullImageLink).ToStringFileLinks();
                     images.AddRange(postImages);
                 }
             }

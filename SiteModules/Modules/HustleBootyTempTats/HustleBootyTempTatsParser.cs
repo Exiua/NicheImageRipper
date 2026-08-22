@@ -31,7 +31,7 @@ public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
         List<StringFileLinkWrapper> images;
         if (imagesNode is not null)
         {
-            images = imagesNode.Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0]).ToStringImageLinkWrapperList();
+            images = imagesNode.Select(img => img.GetSrc().Remove("/cache").Split("-nggid")[0]).ToStringFileLinkWrapperList();
         }
         else
         {

@@ -116,7 +116,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
             }
 
             var imgs = post.SelectNodesOrThrow(".//img[@src]").Select(img => img.GetNullableSrc() ?? img.GetAttributeValue("data-src"));
-            images.AddRange(imgs.ToStringImageLinks());
+            images.AddRange(imgs.ToStringFileLinks());
             await Sleep(250, cancellationToken: cancellationToken);
         }
 

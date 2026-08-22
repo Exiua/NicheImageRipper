@@ -39,7 +39,7 @@ public class BitchesGirlsParser : HtmlParser, IHtmlParser
                 soup = await Soupify($"{baseUrl}{page}", cancellationToken: cancellationToken);
             }
 
-            var posts = soup.SelectSingleNodeOrThrow("//div[@class='albumgrid']").SelectNodesOrThrow("./a[@class='post-container']").Select(post => post.GetHref()).ToStringImageLinkWrapperList();
+            var posts = soup.SelectSingleNodeOrThrow("//div[@class='albumgrid']").SelectNodesOrThrow("./a[@class='post-container']").Select(post => post.GetHref()).ToStringFileLinkWrapperList();
             images.AddRange(posts);
             var loadBtn = soup.SelectSingleNode("//a[@id='loadMore']");
             if (loadBtn is not null)

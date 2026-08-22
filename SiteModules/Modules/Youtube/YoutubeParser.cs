@@ -79,7 +79,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
             var id = entry["id"]!.GetValue<string>();
             var videoUrl = $"https://www.youtube.com/watch?v={id}";
             return FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
-        }).ToStringImageLinkWrapperList();
+        }).ToStringFileLinkWrapperList();
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

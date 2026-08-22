@@ -64,7 +64,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
                     soup = await Soupify(cancellationToken: cancellationToken);
                 }
 
-                var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc().Remove(".md")).ToStringImageLinks();
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc().Remove(".md")).ToStringFileLinks();
                 images.AddRange(posts);
                 var nextPage = soup.SelectSingleNode("//a[@data-pagination='next']");
                 var nextPageUrl = nextPage?.GetNullableHref();

@@ -1,6 +1,8 @@
-﻿using Google;
+﻿using System.Collections;
+using Google;
 using JetBrains.Annotations;
 using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.SiteParsing.LinkRules;
 using NicheImageRipper.Core.Utility;
@@ -11,7 +13,7 @@ namespace NicheImageRipper.Core.DataStructures;
 /// <summary>
 ///     Represents the information necessary for ripping images from a website, including the list of image links, the directory name, and the filename scheme.
 /// </summary>
-public class RipInfo
+public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
 {
     /// <summary>
     ///     The maximum length allowed for a directory name. If the provided directory name exceeds this length, it will be truncated.
@@ -118,6 +120,11 @@ public class RipInfo
         return this;
     }
 
+    public IEnumerable<StringFileLinkWrapper> GetStringFileLinks()
+    {
+        return Urls.ToStringFileLinks();
+    }
+
     private async Task<List<FileLink>> ConvertUrlsToFileLink(List<StringFileLinkWrapper> urls, bool discardBlob,
                                                              List<string>? filenames = null, string? referer = "")
     {
@@ -192,6 +199,26 @@ public class RipInfo
         }
 
         return newUrls;
+    }
+
+    public IEnumerator<FileLink> GetEnumerator()
+    {
+        return Urls.GetEnumerator();
+    }
+    
+    IEnumerator<FileLink> IEnumerable<FileLink>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator<StringFileLinkWrapper> IEnumerable<StringFileLinkWrapper>.GetEnumerator()
+    {
+        return Urls.ToStringFileLinks().GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 
     public override string ToString()

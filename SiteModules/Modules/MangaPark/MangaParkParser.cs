@@ -40,7 +40,7 @@ public class MangaParkParser : HtmlParser, IHtmlParser
             var chapterUrl = $"https://mangapark.net{chapter}";
             Logger.Debug("Parsing chapter {ChapterUrl}", chapterUrl);
             soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']", cancellationToken: cancellationToken);
-            var pages = soup.SelectNodesOrThrow("//div[@data-name='image-item']").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinks();
+            var pages = soup.SelectNodesOrThrow("//div[@data-name='image-item']").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringFileLinks();
             images.AddRange(pages);
         }
 

@@ -52,7 +52,7 @@ public class CosblayParser : HtmlParser, IHtmlParser
             {
                 var src = img.GetNullableSrc();
                 return src ?? img.ParentNode.GetHref();
-            }).ToStringImageLinks();
+            }).ToStringFileLinks();
             images.AddRange(imgs);
             var nextButton = GetNextButton(soup);
             if (nextButton is null)

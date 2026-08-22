@@ -103,9 +103,9 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
             Logger.Information("Post {index}/{totalLinks}: {postLink}", i + 1, postLinks.Count, postLink);
             var (links, retryUrls) = await TwitterParserHelper(postLink, false);
             var videoLinks = capturer.GetNewVideoLinks();
-            images.AddRange(videoLinks.ToStringImageLinks());
+            images.AddRange(videoLinks.ToStringFileLinks());
             var totalFound = images.Count;
-            images.AddRange(links.ToStringImageLinks());
+            images.AddRange(links.ToStringFileLinks());
             foreach (var (j, url)in retryUrls)
             {
                 failedUrls.Add((totalFound + j, url));

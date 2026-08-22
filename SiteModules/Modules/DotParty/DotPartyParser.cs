@@ -11,7 +11,6 @@ using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.Utility;
-using NicheImageRipper.SiteModules.Modules.Dropbox;
 using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
@@ -25,6 +24,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
 
     private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
+    
+    protected abstract string[] OwnHosts { get; }
 
     protected DotPartyParser(WebDriver driver, ApiClientManager clientManager,
                              Dictionary<string, string> requestHeaders,
@@ -43,159 +44,80 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     /// <summary>
     ///     Parses  the HTML for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
-    /// <param name = "domainUrl">The domain url of the site</param>
     /// <param name = "cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns></returns>
-    protected async Task<RipInfo> DotPartyParse(string domainUrl, CancellationToken cancellationToken = default)
+    protected async Task<RipInfo> DotPartyParse(CancellationToken cancellationToken = default)
     {
-        string dirName;
-        List<DotPartyPostResponse> posts;
-        if (File.Exists(CachePath))
+        var domainUrl = new Uri(CurrentUrl).GetLeftPart(UriPartial.Authority); // e.g. "https://kemono.cr", "https://coomer.st"
+        
+        var cached = TryLoadCachedPosts();
+        var (dirName, posts) = cached ?? await GetAndCachePosts(domainUrl);
+
+        var (files, externalLinks) = await ParseAllPosts(domainUrl, posts, cancellationToken);
+
+        var dedupExternalLinks = DeduplicateExternalLinks(externalLinks);
+        SaveExternalLinks(dedupExternalLinks);
+        var resolvedLinks = await ResolveEmbeddedLinks(files, cancellationToken);
+        var unique = DeduplicateFileLinks(resolvedLinks);
+
+        File.Delete(CachePath);
+        return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
+    }
+    
+    private bool IsNativeLink(string link)
+    {
+        try
         {
-            var cache = JsonUtility.Deserialize<Dictionary<string, DotPartyCache>>(CachePath);
-            if (cache is not null && cache.TryGetValue(CurrentUrl, out var siteCache))
-            {
-                dirName = siteCache.DirName;
-                posts = siteCache.Posts;
-                Logger.Information("Using cached data for {Url}", CurrentUrl);
-            }
-            else
-            {
-                (dirName, posts) = await GetAndCachePosts(domainUrl);
-            }
+            var linkHost = new Uri(link).Host;
+            return OwnHosts.Contains(linkHost, StringComparer.OrdinalIgnoreCase);
         }
-        else
+        catch (UriFormatException)
         {
-            (dirName, posts) = await GetAndCachePosts(domainUrl);
+            return false;
         }
+    }
 
-        #region Parse All Posts
-
-        var files = new List<StringFileLinkWrapper>();
-        var externalLinks = CreateExternalLinkDict();
-        var numPosts = posts.Count;
-        foreach (var (i, postResponse)in posts.Enumerate())
+    private async Task<List<StringFileLinkWrapper>> ResolveEmbeddedLinks(List<StringFileLinkWrapper> files,
+                                                                         CancellationToken cancellationToken)
+    {
+        var stringLinks = new List<StringFileLinkWrapper>();
+        foreach (var link in files)
         {
-            Logger.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
-            var post = postResponse.Post;
-            var id = post.Id;
-            Logger.Debug("Post ID: {PostId}", id);
-            var content = post.Content;
-            var soup = await Soupify(content, urlString: false, cancellationToken: cancellationToken);
-            DotPartyLinkFixer.FixLinks(soup);
-            var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
-            var possibleLinks = new List<string>();
-            var possibleLinksP = soup.SelectNodes("//p");
-            if (possibleLinksP is not null)
+            if (IsNativeLink(link))
             {
-                possibleLinks.AddRange(possibleLinksP.Select(p => p.InnerText));
+                stringLinks.Add(link);
+                continue;
             }
 
-            var possibleLinksDiv = soup.SelectNodes("//div");
-            if (possibleLinksDiv is not null)
+            try
             {
-                possibleLinks.AddRange(possibleLinksDiv.Select(d => d.InnerText));
+                var parser = CreateParser(link);
+                var ripInfo = await parser.Parse(link, cancellationToken);
+                stringLinks.AddRange(ripInfo);
             }
-
-            var extLinks = ExtractExternalUrls(links);
-            foreach (var site in extLinks.Keys)
+            catch (ParameterizedParserNotFound)
             {
-                externalLinks[site].AddRange(extLinks[site]);
-            }
-
-            extLinks = DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks);
-            foreach (var site in extLinks.Keys)
-            {
-                externalLinks[site].AddRange(extLinks[site]);
-            }
-
-            var file = post.File;
-            var name = file.Name;
-            var path = file.Path;
-            if (path is not null)
-            {
-                if (path[0] == '/')
-                {
-                    path = domainUrl + path;
-                }
-
-                if (domainUrl.Contains("kemono"))
-                {
-                    path = path.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
-                }
-
-                // if path is not null, name should also not be null
-                var fileLink = FileLink.WithFilename(path, name!, FilenameScheme);
-                files.Add(fileLink);
-            }
-
-            var attachments = post.Attachments;
-            foreach (var attachment in attachments)
-            {
-                var attachmentName = attachment.Name;
-                var attachmentPath = attachment.Path;
-                if (attachmentPath[0] == '/')
-                {
-                    attachmentPath = domainUrl + attachmentPath;
-                }
-
-                if (domainUrl.Contains("kemono"))
-                {
-                    attachmentPath =
-                        attachmentPath.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
-                }
-
-                var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachmentName, attachmentPath);
-                if (specialCaseLinks is null)
-                {
-                    var filename = attachmentName is not null
-                        ? DotPartyExternalLinkExtractor.ReplacePlusWithSpaceInFilename(attachmentName)
-                        : "";
-                    var attachmentLink = FileLink.WithFilename(attachmentPath, filename, FilenameScheme);
-                    files.Add(attachmentLink);
-                }
-                else
-                {
-                    files.AddRange(specialCaseLinks.ToStringImageLinks());
-                }
-            }
-
-            var extractedAttachments = links.Where(l => AttachmentExtensions.Any(l.Contains))
-                                            .Select(l =>
-                                                 (l.Contains(domainUrl) || l.Contains("http")) ? l : domainUrl + l)
-                                            .ToList();
-            files.AddRange(extractedAttachments.ToStringImageLinks());
-            foreach (var site in ParsableSites)
-            {
-                files.AddRange(externalLinks[site].ToStringImageLinkWrapperList());
+                stringLinks.Add(link);
             }
         }
 
-        #endregion
+        return stringLinks;
+    }
 
+    private static Dictionary<string, List<string>> DeduplicateExternalLinks(
+        Dictionary<string, List<string>> externalLinks)
+    {
         foreach (var site in ExternalSites)
         {
             externalLinks[site] = externalLinks[site].RemoveDuplicates();
         }
 
-        SaveExternalLinks(externalLinks);
-        var stringLinks = new List<StringFileLinkWrapper>();
-        foreach (var link in files)
-        {
-            if (!link.Contains("dropbox.com/"))
-            {
-                stringLinks.Add(link);
-            }
-            else
-            {
-                var dropboxParser = new DropboxParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
-                var ripInfo = await dropboxParser.Parse(link, cancellationToken);
-                stringLinks.AddRange(ripInfo.Urls.ToStringImageLinks());
-            }
-        }
+        return externalLinks;
+    }
 
+    private static List<StringFileLinkWrapper> DeduplicateFileLinks(List<StringFileLinkWrapper> stringLinks)
+    {
         // This may be able to be removed as RipInfo.FromUrlList also removes duplicates
-        // Remove duplicates
         var seen = new HashSet<string>();
         var unique = new List<StringFileLinkWrapper>();
         foreach (var link in stringLinks)
@@ -221,8 +143,145 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             }
         }
 
-        File.Delete(CachePath);
-        return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
+        return unique;
+    }
+
+    private async Task<(List<StringFileLinkWrapper> Files, Dictionary<string, List<string>> ExternalLinks)>
+        ParseAllPosts(
+            string domainUrl, List<DotPartyPostResponse> posts, CancellationToken cancellationToken)
+    {
+        var files = new List<StringFileLinkWrapper>();
+        var externalLinks = CreateExternalLinkDict();
+        var numPosts = posts.Count;
+
+        foreach (var (i, postResponse) in posts.Enumerate())
+        {
+            Logger.Information("Parsing post {PostNum} of {TotalPosts}", i + 1, numPosts);
+            await ParsePost(postResponse.Post, domainUrl, files, externalLinks, cancellationToken);
+        }
+
+        return (files, externalLinks);
+    }
+
+    private async Task ParsePost(DotPartyPostFull post, string domainUrl, List<StringFileLinkWrapper> files,
+                                 Dictionary<string, List<string>> externalLinks, CancellationToken cancellationToken)
+    {
+        Logger.Debug("Post ID: {PostId}", post.Id);
+        var soup = await Soupify(post.Content, urlString: false, cancellationToken: cancellationToken);
+        DotPartyLinkFixer.FixLinks(soup);
+
+        var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
+        var possibleLinks = ExtractPossibleLinkText(soup);
+
+        MergeExternalLinks(externalLinks, ExtractExternalUrls(links));
+        MergeExternalLinks(externalLinks, DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks));
+
+        AddMainFile(post.File, domainUrl, files);
+        await AddAttachments(post.Attachments, domainUrl, files);
+
+        var extractedAttachments = links.Where(l => AttachmentExtensions.Any(l.Contains))
+                                        .Select(l => l.Contains(domainUrl) || l.Contains("http") ? l : domainUrl + l)
+                                        .ToList();
+        files.AddRange(extractedAttachments.ToStringFileLinks());
+
+        foreach (var site in ParsableSites)
+        {
+            files.AddRange(externalLinks[site].ToStringFileLinkWrapperList());
+        }
+    }
+
+    private static List<string> ExtractPossibleLinkText(HtmlAgilityPack.HtmlNode soup)
+    {
+        var possibleLinks = new List<string>();
+
+        var possibleLinksP = soup.SelectNodes("//p");
+        if (possibleLinksP is not null)
+        {
+            possibleLinks.AddRange(possibleLinksP.Select(p => p.InnerText));
+        }
+
+        var possibleLinksDiv = soup.SelectNodes("//div");
+        if (possibleLinksDiv is not null)
+        {
+            possibleLinks.AddRange(possibleLinksDiv.Select(d => d.InnerText));
+        }
+
+        return possibleLinks;
+    }
+
+    private static void MergeExternalLinks(Dictionary<string, List<string>> into, Dictionary<string, List<string>> from)
+    {
+        foreach (var site in from.Keys)
+        {
+            into[site].AddRange(from[site]);
+        }
+    }
+
+    private void AddMainFile(DotPartyFile file, string domainUrl, List<StringFileLinkWrapper> files)
+    {
+        var path = file.Path;
+        if (path is null)
+        {
+            return;
+        }
+
+        path = NormalizePath(path, domainUrl);
+        // if path is not null, name should also not be null
+        files.Add(FileLink.WithFilename(path, file.Name!, FilenameScheme));
+    }
+
+    private async Task AddAttachments(List<DotPartyAttachment> attachments, string domainUrl,
+                                      List<StringFileLinkWrapper> files)
+    {
+        foreach (var attachment in attachments)
+        {
+            var attachmentPath = NormalizePath(attachment.Path, domainUrl);
+            var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachment.Name, attachmentPath);
+
+            if (specialCaseLinks is null)
+            {
+                var filename = attachment.Name is not null
+                    ? DotPartyExternalLinkExtractor.ReplacePlusWithSpaceInFilename(attachment.Name)
+                    : "";
+                files.Add(FileLink.WithFilename(attachmentPath, filename, FilenameScheme));
+            }
+            else
+            {
+                files.AddRange(specialCaseLinks.ToStringFileLinks());
+            }
+        }
+    }
+
+    private static string NormalizePath(string path, string domainUrl)
+    {
+        if (path[0] == '/')
+        {
+            path = domainUrl + path;
+        }
+
+        if (domainUrl.Contains("kemono"))
+        {
+            path = path.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
+        }
+
+        return path;
+    }
+
+    private (string DirName, List<DotPartyPostResponse> Posts)? TryLoadCachedPosts()
+    {
+        if (!File.Exists(CachePath))
+        {
+            return null;
+        }
+
+        var cache = JsonUtility.Deserialize<Dictionary<string, DotPartyCache>>(CachePath);
+        if (cache is null || !cache.TryGetValue(CurrentUrl, out var siteCache))
+        {
+            return null;
+        }
+
+        Logger.Information("Using cached data for {Url}", CurrentUrl);
+        return (siteCache.DirName, siteCache.Posts);
     }
 
     private async Task<(string, List<DotPartyPostResponse>)> GetAndCachePosts(string domainUrl)

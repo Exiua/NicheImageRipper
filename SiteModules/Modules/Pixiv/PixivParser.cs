@@ -101,7 +101,7 @@ public class PixivParser : HtmlParser, IHtmlParser
                     var soup = await Soupify(descHtml, urlString: false, cancellationToken: cancellationToken);
                     var links = soup.SelectNodesSafe("./a").Select(a => a.GetHref())
                                     .Select(href => href.Remove("/jump.php?")).Select(Uri.UnescapeDataString)
-                                    .Where(UrlCanBeParsed).ToStringImageLinks();
+                                    .Where(UrlCanBeParsed).ToStringFileLinks();
                     images.AddRange(links);
                 }
             }

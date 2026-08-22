@@ -81,22 +81,22 @@ public static class ExtensionMethods
         return string.Join(separator, values);
     }
     
-    public static IEnumerable<StringFileLinkWrapper> ToStringImageLinks(this IEnumerable<string> src)
+    public static IEnumerable<StringFileLinkWrapper> ToStringFileLinks(this IEnumerable<string> src)
     {
         return src.Select(url => new StringFileLinkWrapper(url));
     }
     
-    public static IEnumerable<StringFileLinkWrapper> ToStringImageLinks(this IEnumerable<FileLink> src)
+    public static IEnumerable<StringFileLinkWrapper> ToStringFileLinks(this IEnumerable<FileLink> src)
     {
         return src.Select(url => new StringFileLinkWrapper(url));
     }
     
-    public static List<StringFileLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<string> src)
+    public static List<StringFileLinkWrapper> ToStringFileLinkWrapperList(this IEnumerable<string> src)
     {
         return src.Select(url => new StringFileLinkWrapper(url)).ToList();
     }
     
-    public static List<StringFileLinkWrapper> ToStringImageLinkWrapperList(this IEnumerable<FileLink> src)
+    public static List<StringFileLinkWrapper> ToStringFileLinkWrapperList(this IEnumerable<FileLink> src)
     {
         return src.Select(url => new StringFileLinkWrapper(url)).ToList();
     }

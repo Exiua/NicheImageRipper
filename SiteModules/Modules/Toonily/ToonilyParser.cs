@@ -36,7 +36,7 @@ public class ToonilyParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing {ChapterName}", name);
             soup = await Soupify(chapter, lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 5000, ScrollPauseTime = 1000 }, cancellationToken: cancellationToken);
-            var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!.SelectNodes("./div")!.Select(div => div.SelectSingleNode("./img")).Select(img => img!.GetSrc().Trim()).ToStringImageLinks();
+            var imageList = soup.SelectSingleNode("//div[@class='reading-content']")!.SelectNodes("./div")!.Select(div => div.SelectSingleNode("./img")).Select(img => img!.GetSrc().Trim()).ToStringFileLinks();
             images.AddRange(imageList);
         }
 

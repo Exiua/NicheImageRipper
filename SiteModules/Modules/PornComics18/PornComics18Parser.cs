@@ -43,7 +43,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing chapter: {ChapterUrl}", chapter);
             soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs, xpath: "//div[@class='reading-content']/img", cancellationToken: cancellationToken);
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img")).Select(img => img.GetSrc()).ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img")).Select(img => img.GetSrc()).ToStringFileLinks();
             images.AddRange(imgs);
         }
 

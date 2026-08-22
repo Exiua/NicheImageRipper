@@ -25,7 +25,7 @@ public class CherryNudesParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//title").InnerText.Split("-")[0].Trim();
         var contentUrl = CurrentUrl.Replace("www", "cdn");
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -24,7 +24,7 @@ public class EightMusesParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(xpath: "//div[@class='gallery']", lazyLoadArgs: new LazyLoadArgs(), cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='top-menu-breadcrumb']").SelectNodesOrThrow(".//a").Last().InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']").SelectNodesOrThrow(".//img").Select(img => "https://comics.8muses.com" + img.GetSrc().Replace("/th/", "/fm/")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']").SelectNodesOrThrow(".//img").Select(img => "https://comics.8muses.com" + img.GetSrc().Replace("/th/", "/fm/")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

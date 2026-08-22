@@ -29,7 +29,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
         List<StringFileLinkWrapper> images;
         if (CurrentUrl.Contains("/albums/"))
         {
-            images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringImageLinkWrapperList();
+            images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringFileLinkWrapperList();
         }
         else if (CurrentUrl.Contains("/videos/"))
         {

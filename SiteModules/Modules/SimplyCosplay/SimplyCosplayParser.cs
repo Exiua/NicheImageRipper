@@ -36,7 +36,7 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
         }
         else
         {
-            images = soup.SelectSingleNodeOrThrow("//section/div[@class='row vertical-gutters']").SelectNodesOrThrow(".//img").Select(url => url.GetAttributeValue("data-src").Remove("thumb_")).ToStringImageLinkWrapperList();
+            images = soup.SelectSingleNodeOrThrow("//section/div[@class='row vertical-gutters']").SelectNodesOrThrow(".//img").Select(url => url.GetAttributeValue("data-src").Remove("thumb_")).ToStringFileLinkWrapperList();
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

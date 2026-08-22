@@ -40,13 +40,13 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
                     continue;
                 }
 
-                images = links.ToStringImageLinkWrapperList();
+                images = links.ToStringFileLinkWrapperList();
                 break;
             }
         }
         else
         {
-            images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridnext-clearfix']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringImageLinkWrapperList();
+            images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridnext-clearfix']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

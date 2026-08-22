@@ -101,7 +101,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
                 var info = await ResolveLink(link, cancellationToken);
                 Logger.Debug("Found {Count} files", info.Urls.Count);
 
-                images.InsertRange(index, info.Urls.ToStringImageLinks());
+                images.InsertRange(index, info.Urls.ToStringFileLinks());
                 offset += info.Urls.Count;
                 await Sleep(250, cancellationToken: cancellationToken);
             }
@@ -235,10 +235,10 @@ public class SimpCityParser : HtmlParser, IHtmlParser
 
             var imgs = content.SelectNodesSafe(".//img").Select(img => img.GetSrc().Remove(".md"))
                               .Where(url => !url.StartsWith("data:image/gif")) // Ignore emojis
-                              .ToStringImageLinks();
+                              .ToStringFileLinks();
             images.AddRange(imgs);
 
-            var vids = content.SelectNodesSafe(".//video").Select(VideoResolver).ToStringImageLinks();
+            var vids = content.SelectNodesSafe(".//video").Select(VideoResolver).ToStringFileLinks();
             images.AddRange(vids);
 
             var index = images.Count;

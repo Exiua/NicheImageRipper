@@ -30,7 +30,7 @@ public class KaiztyParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Split("?")[0]).Where(link => link.StartsWith("https")).ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Split("?")[0]).Where(link => link.StartsWith("https")).ToStringFileLinks();
             images.AddRange(imgs);
             var pagination = soup.SelectSingleNode("//ul[@class='pagination-site']");
             var nextPage = pagination?.SelectNodesOrThrow(".//a").Where(a => a.InnerText.StartsWith("Next")).Select(a => a.GetHref()).FirstOrDefault();

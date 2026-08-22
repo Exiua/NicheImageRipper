@@ -30,7 +30,7 @@ public class FoxHqParser : HtmlParser, IHtmlParser
         }
 
         var url = CurrentUrl;
-        var images = soup.SelectNodesOrThrow("//div[@class='thumb simple']").Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@class='thumb simple']").Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

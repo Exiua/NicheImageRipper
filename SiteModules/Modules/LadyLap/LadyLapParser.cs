@@ -33,7 +33,7 @@ public class LadyLapParser : HtmlParser, IHtmlParser
         for (var i = 0; i < numPages; i++)
         {
             Logger.Information("Parsing page {i} of {numPages}", i + 1, numPages);
-            var posts = soup.SelectNodesOrThrow("//div[@class='col-md-12 col-lg-12']")[2].SelectNodesOrThrow(".//a").Select(a => domain + a.GetHref()).ToStringImageLinks();
+            var posts = soup.SelectNodesOrThrow("//div[@class='col-md-12 col-lg-12']")[2].SelectNodesOrThrow(".//a").Select(a => domain + a.GetHref()).ToStringFileLinks();
             images.AddRange(posts);
             soup = await Soupify($"{baseUrl}/{i + 2}", cancellationToken: cancellationToken); // Pages are 1-indexed
             await Task.Delay(delay);

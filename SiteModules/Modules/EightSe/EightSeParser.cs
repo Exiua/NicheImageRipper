@@ -72,7 +72,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
             }
         }
 
-        images.AddRange(videos.ToStringImageLinks());
+        images.AddRange(videos.ToStringFileLinks());
         File.Delete(CachePath); // Clear the cache after parsing
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

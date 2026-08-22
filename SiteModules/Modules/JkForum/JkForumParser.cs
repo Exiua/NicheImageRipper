@@ -24,7 +24,7 @@ public class JkForumParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(delay: 1000, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title-cont']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//td[@class='t_f']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Remove(".thumb.jpg")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//td[@class='t_f']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Remove(".thumb.jpg")).ToStringFileLinkWrapperList();
         // TODO: Find a way to download videos as well
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

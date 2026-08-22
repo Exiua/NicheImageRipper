@@ -29,7 +29,7 @@ public class BaobuaParser : HtmlParser, IHtmlParser
         var baseUrl = CurrentUrl;
         for (var i = 0; i < pageCount; i++)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='entry-content read-details']").SelectNodesOrThrow("./figure").Select(figure => figure.SelectSingleNodeOrThrow("./a").GetHref()).ToStringImageLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='entry-content read-details']").SelectNodesOrThrow("./figure").Select(figure => figure.SelectSingleNodeOrThrow("./a").GetHref()).ToStringFileLinks();
             images.AddRange(imgs);
             if (i != pageCount - 1)
             {

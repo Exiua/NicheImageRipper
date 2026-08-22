@@ -24,7 +24,7 @@ public class MyHentaiGalleryParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='comic-description']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//ul[@class='comics-grid clear']").SelectNodesOrThrow("./li").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/thumbnail/", "/original/")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='comics-grid clear']").SelectNodesOrThrow("./li").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/thumbnail/", "/original/")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -28,7 +28,7 @@ public class XMissyParser : HtmlParser, IHtmlParser
         await Sleep(1000, cancellationToken: cancellationToken);
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='pagetitle']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery']").SelectNodesOrThrow(".//div[@class='noclick-image']").Select(img => img.SelectSingleNode(".//img")?.GetNullableSrc() ?? img.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery']").SelectNodesOrThrow(".//div[@class='noclick-image']").Select(img => img.SelectSingleNode(".//img")?.GetNullableSrc() ?? img.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

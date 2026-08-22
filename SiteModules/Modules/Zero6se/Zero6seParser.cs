@@ -27,7 +27,7 @@ public class Zero6SeParser : HtmlParser, IHtmlParser
         // readMoreButton?.Click();
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='article-title']/a").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='article-content']").SelectNodesOrThrow(".//img").Select(GetUrl).OfType<string>().ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='article-content']").SelectNodesOrThrow(".//img").Select(GetUrl).OfType<string>().ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 

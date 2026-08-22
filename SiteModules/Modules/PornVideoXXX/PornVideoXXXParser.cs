@@ -21,7 +21,7 @@ public class PornVideoXXXParser : HtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='blog-info--title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//video/source").Select(source => source.GetSrc()).ToStringImageLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//video/source").Select(source => source.GetSrc()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

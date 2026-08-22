@@ -25,7 +25,7 @@ public class BabesMachineParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var gallery = soup.SelectSingleNodeOrThrow("//div[@id='gallery']");
         var dirName = gallery.SelectSingleNodeOrThrow(".//h2").SelectSingleNodeOrThrow(".//a").InnerText;
-        var images = gallery.SelectSingleNodeOrThrow(".//table").SelectNodesOrThrow(".//tr").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).Select(img => Protocol + img).ToStringImageLinkWrapperList();
+        var images = gallery.SelectSingleNodeOrThrow(".//table").SelectNodesOrThrow(".//tr").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).Select(img => Protocol + img).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

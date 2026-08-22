@@ -73,7 +73,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
                     continue;
                 }
 
-                images = posts.ToStringImageLinkWrapperList();
+                images = posts.ToStringFileLinkWrapperList();
                 break;
             }
         }

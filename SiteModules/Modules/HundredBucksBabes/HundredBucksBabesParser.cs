@@ -24,7 +24,7 @@ public class HundredBucksBabesParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']").SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringImageLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

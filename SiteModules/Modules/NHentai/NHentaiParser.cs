@@ -42,7 +42,7 @@ public partial class NHentaiParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
         var thumbnails = soup.SelectSingleNodeOrThrow("//div[@class='thumbs']").SelectNodesOrThrow(".//img").Select(img => img.GetNullableAttributeValue("data-src")).ToList();
         var images = thumbnails.Where(thumb => !string.IsNullOrEmpty(thumb)) // Remove nulls
-        .Select(thumb => NHentaiRegex().Replace(thumb!, "i7.")).Select(newThumb => newThumb.Replace("t.", ".")).ToStringImageLinkWrapperList();
+        .Select(thumb => NHentaiRegex().Replace(thumb!, "i7.")).Select(newThumb => newThumb.Replace("t.", ".")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
