@@ -56,7 +56,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var (files, externalLinks) = await ParseAllPosts(domainUrl, posts, cancellationToken);
 
         var dedupExternalLinks = DeduplicateExternalLinks(externalLinks);
-        SaveExternalLinks(dedupExternalLinks);
+        ExternalLinkExtractor.SaveExternalLinks(dedupExternalLinks);
         var resolvedLinks = await ResolveEmbeddedLinks(files, cancellationToken);
         var unique = DeduplicateFileLinks(resolvedLinks);
 
@@ -151,7 +151,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             string domainUrl, List<DotPartyPostResponse> posts, CancellationToken cancellationToken)
     {
         var files = new List<StringFileLinkWrapper>();
-        var externalLinks = CreateExternalLinkDict();
+        var externalLinks = ExternalLinkExtractor.CreateExternalLinkDict();
         var numPosts = posts.Count;
 
         foreach (var (i, postResponse) in posts.Enumerate())
@@ -173,7 +173,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
         var possibleLinks = ExtractPossibleLinkText(soup);
 
-        MergeExternalLinks(externalLinks, ExtractExternalUrls(links));
+        MergeExternalLinks(externalLinks, ExternalLinkExtractor.ExtractExternalUrls(links));
         MergeExternalLinks(externalLinks, DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks));
 
         AddMainFile(post.File, domainUrl, files);

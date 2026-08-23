@@ -7,7 +7,7 @@ internal static class DotPartyExternalLinkExtractor
 {
     public static Dictionary<string, List<string>> ExtractPossibleExternalUrls(List<string> possibleUrls)
     {
-        var externalLinks = HtmlParser.CreateExternalLinkDict();
+        var externalLinks = ExternalLinkExtractor.CreateExternalLinkDict();
         foreach (var site in externalLinks.Keys)
         {
             foreach (var text in possibleUrls)

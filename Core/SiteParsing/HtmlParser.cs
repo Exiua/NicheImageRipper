@@ -597,52 +597,6 @@ public abstract class HtmlParser : IDisposable
         return (capturer, bidi);
     }
 
-    public static Dictionary<string, List<string>> CreateExternalLinkDict()
-    {
-        var externalLinks = new Dictionary<string, List<string>>();
-        foreach (var site in ExternalSites)
-        {
-            externalLinks[site] = [];
-        }
-
-        return externalLinks;
-    }
-
-    protected static Dictionary<string, List<string>> ExtractExternalUrls(IEnumerable<string> urls)
-    {
-        var externalLinks = CreateExternalLinkDict();
-        var urlList = urls.ToList();
-        foreach (var site in externalLinks.Keys)
-        {
-            foreach (var link in urlList.Where(url => !string.IsNullOrEmpty(url) && url.Contains(site))
-                                        .Select(UrlUtility.ExtractUrl)
-                                        .Where(link => link != ""))
-            {
-                externalLinks[site].Add(link + '\n');
-            }
-        }
-
-        return externalLinks;
-    }
-
-    protected static void SaveExternalLinks(Dictionary<string, List<string>> links)
-    {
-        foreach (var (site, siteLinks) in links)
-        {
-            if (siteLinks.Count == 0)
-            {
-                continue;
-            }
-
-            File.AppendAllLines($"{site}_links.txt", siteLinks);
-        }
-    }
-
-    protected static bool UrlCanBeParsed(string url)
-    {
-        return !string.IsNullOrEmpty(url) && ExternalSites.Any(url.Contains);
-    }
-
     /// <summary>Scrolls through the page to lazy load images</summary>
     /// <param name="args">Arguments for lazy loading</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>

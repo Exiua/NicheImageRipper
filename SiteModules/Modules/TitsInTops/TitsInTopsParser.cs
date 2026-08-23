@@ -40,7 +40,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='p-title-value']").InnerText;
         var images = new List<StringFileLinkWrapper>();
-        var externalLinks = CreateExternalLinkDict();
+        var externalLinks = ExternalLinkExtractor.CreateExternalLinkDict();
         var pageCount = 1;
         while (true)
         {
@@ -87,7 +87,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                 if (links is not null)
                 {
                     var linkList = links.Select(link => link.GetNullableHref()).Where(link => link is not null);
-                    var filteredLinks = ExtractExternalUrls(linkList!);
+                    var filteredLinks = ExternalLinkExtractor.ExtractExternalUrls(linkList!);
                     var downloadableLinks =
                         await ExtractDownloadableLinks(filteredLinks, externalLinks, cancellationToken);
                     images.AddRange(downloadableLinks.Select(link => (StringFileLinkWrapper)link));
@@ -97,7 +97,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
             var nextPage = soup.SelectSingleNode("//a[@class='pageNav-jump pageNav-jump--next']");
             if (nextPage is null)
             {
-                SaveExternalLinks(externalLinks);
+                ExternalLinkExtractor.SaveExternalLinks(externalLinks);
                 break;
             }
 
