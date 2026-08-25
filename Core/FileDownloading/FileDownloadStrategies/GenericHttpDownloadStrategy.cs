@@ -4,8 +4,10 @@ using System.Net.Sockets;
 using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.Utility;
+using Sdk.DataStructures;
+using Sdk.Exceptions;
+using Sdk.FileDownloading;
 
 namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 

@@ -181,7 +181,7 @@ public class SteamApiClient
     public async Task DownloadWorkshopFileAsync(ulong publishedFileId, string outputBaseDirectory,
                                                 CancellationToken cancellationToken = default)
     {
-        if (_username.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(_username))
         {
             throw new InvalidOperationException("Must call LoginAsync before downloading workshop file.");
         }

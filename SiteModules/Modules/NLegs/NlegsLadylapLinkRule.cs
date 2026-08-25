@@ -1,6 +1,6 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.SiteParsing.LinkRules;
+
+using Sdk.DataStructures;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.NLegs;
 

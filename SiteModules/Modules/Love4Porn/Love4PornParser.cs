@@ -1,9 +1,9 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Love4Porn;
 public class Love4PornParser : HtmlParser
@@ -16,7 +16,7 @@ public class Love4PornParser : HtmlParser
     ///     Parses the HTML for love4porn.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("/")[4];
         if (CurrentUrl.EndsWith('/'))

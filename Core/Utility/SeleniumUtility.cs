@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using OpenQA.Selenium;
+using Sdk.Utility;
 
 namespace NicheImageRipper.Core.Utility;
 

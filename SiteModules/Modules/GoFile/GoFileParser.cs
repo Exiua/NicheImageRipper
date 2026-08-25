@@ -1,14 +1,13 @@
 using System.Text.Json;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+
+
 using OpenQA.Selenium;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.Common.ExtensionMethods;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
 

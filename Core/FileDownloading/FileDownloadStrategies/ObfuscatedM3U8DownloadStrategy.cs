@@ -1,7 +1,9 @@
 using System.Net;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
+using Sdk.DataStructures;
+using Sdk.Exceptions;
+using Sdk.FileDownloading;
 
 namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 

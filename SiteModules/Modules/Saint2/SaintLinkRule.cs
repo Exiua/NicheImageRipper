@@ -1,4 +1,4 @@
-using NicheImageRipper.Core.SiteParsing.LinkRules;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Saint2;
 

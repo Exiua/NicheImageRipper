@@ -1,5 +1,5 @@
-using NicheImageRipper.Core.SiteParsing.VideoCapturers;
 using OpenQA.Selenium.BiDi.Network;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.JieAv;
 

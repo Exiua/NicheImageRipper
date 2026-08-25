@@ -1,10 +1,11 @@
 using System.Text;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
-using NicheImageRipper.Core.Utility;
+
+
+
+
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.PixelDrain;
 

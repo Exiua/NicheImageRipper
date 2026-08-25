@@ -1,5 +1,4 @@
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.SiteParsing.LinkRules;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Mega;
 

@@ -1,8 +1,9 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
+
 using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.SiteParsing.LinkRules;
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 

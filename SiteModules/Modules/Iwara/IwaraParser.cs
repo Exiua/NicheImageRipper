@@ -1,11 +1,16 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+
+using IwaraApiClient;
+using Sdk.Common;
+using Sdk.Common.ExtensionMethods;
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
+using NotSupportedException = Sdk.Exceptions.NotSupportedException;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Iwara;
 
@@ -14,6 +19,8 @@ public class IwaraParser : HtmlParser, IHtmlParser
     public static string ParserName => "iwara";
     public static string[] SupportedUrls => ["https://www.iwara.tv/"];
 
+    internal static IwaraClient Client { get; } = CreateClient();
+    
     public IwaraParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
         requestHeaders, IHtmlParser.GetFilenameScheme<IwaraParser>(filenameScheme))
@@ -24,9 +31,9 @@ public class IwaraParser : HtmlParser, IHtmlParser
     ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var client = ImageRipper.ClientManager.IwaraClient;
+        var client = Client;
         string dirName;
         var files = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/video/"))
@@ -127,5 +134,16 @@ public class IwaraParser : HtmlParser, IHtmlParser
         }
 
         return RipInfo.FromUrlList(files, dirName, FilenameScheme);
+    }
+    
+    private static IwaraClient CreateClient()
+    {
+        var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
+        {
+            throw new RipperCredentialException($"No login credentials found for {ParserName}. Please provide a username and password in the configuration."); 
+        }
+        
+        return new IwaraClient(username, password);
     }
 }

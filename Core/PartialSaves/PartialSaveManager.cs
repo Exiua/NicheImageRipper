@@ -4,6 +4,9 @@ using Dapper;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.SiteParsing;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
 using Serilog;
 
 namespace NicheImageRipper.Core.PartialSaves;

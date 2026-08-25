@@ -4,7 +4,7 @@ namespace NicheImageRipper.Service.Utilities.ExtensionMethods;
 
 public static class CoreConfigExtensionMethods
 {
-    public static void UpdateCredentials(this NicheImageRipper.Core.Configuration.Credentials credentials, Credentials? newCredentials)
+    public static void UpdateCredentials(this Sdk.Configuration.Credentials credentials, Credentials? newCredentials)
     {
         if (newCredentials is null)
         {

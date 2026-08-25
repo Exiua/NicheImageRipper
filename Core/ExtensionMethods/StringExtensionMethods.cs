@@ -1,5 +1,6 @@
 using System.Web;
 using NicheImageRipper.Core.SiteParsing;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.Core.ExtensionMethods;
 
@@ -40,11 +41,6 @@ public static class StringExtensionMethods
         public List<StringFileLinkWrapper> IntoStringImageLinkWrapperList()
         {
             return [new StringFileLinkWrapper(s)];
-        }
-        
-        public int ParseInt()
-        {
-            return int.Parse(s);
         }
         
         /// <summary>

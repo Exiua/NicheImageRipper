@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using NicheImageRipper.Core.SiteParsing.LinkRules;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.TitsInTops;
 

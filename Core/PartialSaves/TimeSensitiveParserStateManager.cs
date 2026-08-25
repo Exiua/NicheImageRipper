@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.SQLite;
 using NicheImageRipper.Core.SiteParsing.HtmlParsers;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.Core.PartialSaves;
 

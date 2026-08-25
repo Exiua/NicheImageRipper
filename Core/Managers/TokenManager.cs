@@ -9,6 +9,8 @@ using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Utility;
+using Sdk.Configuration;
+using Sdk.Utility;
 
 namespace NicheImageRipper.Core.Managers;
 
@@ -19,7 +21,7 @@ public class TokenManager
 {
     private const string TokenPath = "temp_tokens.json";
     
-    private static GeneralConfig Config => Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     
     public static TokenManager Instance { get; } = new();
 

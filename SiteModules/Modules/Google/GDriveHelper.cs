@@ -1,9 +1,10 @@
 ﻿using System.Text;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Managers;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
 using File = Google.Apis.Drive.v3.Data.File;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;

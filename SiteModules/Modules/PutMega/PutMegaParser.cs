@@ -1,9 +1,9 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PutMega;
 public class PutMegaParser : HtmlParser, IHtmlParser
@@ -19,7 +19,7 @@ public class PutMegaParser : HtmlParser, IHtmlParser
     ///     Parses the HTML for putmega.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         //const int maxRetries = 4;
         var soup = await Soupify(cancellationToken: cancellationToken);

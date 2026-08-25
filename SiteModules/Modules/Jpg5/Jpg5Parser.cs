@@ -1,12 +1,10 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using NicheImageRipper.Core.Utility;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.Common.ExtensionMethods;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Jpg5;
 public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser

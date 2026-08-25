@@ -1,10 +1,9 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Five1Cg1;
 public class Five1Cg1Parser : HtmlParser, IHtmlParser
@@ -12,7 +11,7 @@ public class Five1Cg1Parser : HtmlParser, IHtmlParser
     public static string ParserName => "51cg1";
     public static string[] SupportedUrls => ["https://51cg1.com/"];
 
-    public Five1Cg1Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Five1Cg1Parser>(filenameScheme))
+    public Five1Cg1Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Five1Cg1Parser>(filenameScheme))
     {
     }
 
@@ -20,11 +19,11 @@ public class Five1Cg1Parser : HtmlParser, IHtmlParser
     ///     Parses the html for 51cg1.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[contains(@class, 'post-title')]").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='post-content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
     }
 }

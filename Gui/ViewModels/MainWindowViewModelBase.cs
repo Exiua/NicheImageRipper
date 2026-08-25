@@ -12,11 +12,12 @@ using Microsoft.Extensions.Logging;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Gui.ExtensionMethods;
 using NicheImageRipper.Gui.Services;
 using NicheImageRipper.SiteModules.Modules.Booru;
 using ReactiveUI;
+using Sdk.Configuration;
+using Sdk.Enums;
 
 namespace NicheImageRipper.Gui.ViewModels;
 

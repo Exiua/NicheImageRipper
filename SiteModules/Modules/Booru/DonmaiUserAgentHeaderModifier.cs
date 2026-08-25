@@ -1,13 +1,15 @@
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.Utility;
+
+
+
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 
 public sealed class DonmaiUserAgentHeaderModifier : IRequestHeaderModifier
 {
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     
     // Matches original: this branch checked fileLink.Url, not the ambient url param (unlike Redgifs).
     public bool AppliesTo(string url, FileLink link, DownloadContext context) => link.Url.Contains("donmai.us");

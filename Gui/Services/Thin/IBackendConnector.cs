@@ -6,6 +6,7 @@ using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Service.Models.Requests;
+using Sdk.Configuration;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Gui.Services.Thin;

@@ -1,12 +1,11 @@
 using System.Text.Json;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
-using NicheImageRipper.Core.Utility;
+
+
+
+
 using OpenQA.Selenium;
+using Sdk.Configuration;
+using Sdk.DataStructures;
 using Serilog;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
@@ -15,7 +14,7 @@ public sealed class GoFilePostDownloadValidator : IPostDownloadValidator
 {
     private const int RetryCount = 4;
 
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     private static ILogger Logger => Log.ForContext<GoFilePostDownloadValidator>();
 
     public bool AppliesTo(FileLink link, DownloadContext context) => link.LinkInfo == GoFileLinkInfo.GoFile;

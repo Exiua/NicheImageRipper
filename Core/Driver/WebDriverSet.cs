@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Sdk.Driver;
 using Serilog;
 
 namespace NicheImageRipper.Core.Driver;

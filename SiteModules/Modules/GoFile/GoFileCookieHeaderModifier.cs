@@ -1,17 +1,18 @@
 using System.Text.Json;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
-using NicheImageRipper.Core.Utility;
+
+
+
+
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Exceptions;
+using Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
 
 public sealed class GoFileCookieHeaderModifier : IRequestHeaderModifier
 {
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     
     public bool AppliesTo(string url, FileLink link, DownloadContext context) => link.LinkInfo == GoFileLinkInfo.GoFile;
 

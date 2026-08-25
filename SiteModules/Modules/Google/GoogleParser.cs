@@ -1,8 +1,9 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 
@@ -21,7 +22,7 @@ public class GoogleParser : HtmlParser, IHtmlParser
     ///     Query the Google Drive API to get file information to download
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return await GoogleParse("", cancellationToken);
     }

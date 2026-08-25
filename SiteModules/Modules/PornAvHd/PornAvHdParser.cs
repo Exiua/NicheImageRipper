@@ -1,11 +1,10 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
+
+
 using NicheImageRipper.SiteModules.Modules.SexBjCam;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PornAvHd;
 public class PornAvHdParser : HtmlParser, IHtmlParser
@@ -21,7 +20,7 @@ public class PornAvHdParser : HtmlParser, IHtmlParser
     ///     Parses the HTML for pornavhd.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await SolveParseAddCookies(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@itemprop='name']").InnerText;

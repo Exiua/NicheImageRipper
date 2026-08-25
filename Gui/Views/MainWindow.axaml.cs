@@ -21,6 +21,8 @@ using NicheImageRipper.Gui.Services;
 using NicheImageRipper.Gui.Services.Shared;
 using NicheImageRipper.Gui.ViewModels;
 using ReactiveUI;
+using Sdk.Configuration;
+using Sdk.Enums;
 
 namespace NicheImageRipper.Gui.Views;
 public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>

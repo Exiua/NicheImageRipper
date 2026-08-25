@@ -1,6 +1,8 @@
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
 using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading;

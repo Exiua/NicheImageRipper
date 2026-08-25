@@ -1,7 +1,7 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+
+
+
+using Sdk.DataStructures;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
 

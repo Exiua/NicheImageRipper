@@ -1,14 +1,15 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+
+
+
+
+using Sdk.Configuration;
+using Sdk.DataStructures;
 
 namespace NicheImageRipper.SiteModules.Modules.Deviantart;
 
 public sealed class DeviantArtExternalToolDownloadStrategy : IExternalToolDownloadStrategy
 {
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     
     public bool AppliesTo(string siteName) => siteName == "deviantart";
 

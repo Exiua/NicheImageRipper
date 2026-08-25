@@ -1,4 +1,5 @@
 using NicheImageRipper.Core.Configuration;
+using Sdk.Configuration;
 
 namespace NicheImageRipper.Gui.Models;
 

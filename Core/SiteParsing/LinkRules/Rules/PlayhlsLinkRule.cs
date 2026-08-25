@@ -1,3 +1,5 @@
+using Sdk.SiteParsing;
+
 namespace NicheImageRipper.Core.SiteParsing.LinkRules.Rules;
 
 public sealed class PlayhlsLinkRule : ISiteLinkRule

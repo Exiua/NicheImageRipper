@@ -1,22 +1,27 @@
-﻿using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
+﻿using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.Utility;
+using Sdk.Common.ExtensionMethods;
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.FileDownloading;
+using Sdk.SiteParsing;
+using Sdk.Utility;
 using Serilog;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.FileDownloading;
 
 /// <summary>
-///     Orchestrates a single site rip: parses the target URL via the appropriate <see cref="HtmlParser"/>,
+///     Orchestrates a single site rip: parses the target URL via the appropriate <see cref="HtmlParserOrchestrator"/>,
 ///     resolves the resulting <see cref="RipInfo"/> into a concrete download plan (list, manual generation,
 ///     or external-tool delegation), executes that plan through the registered <see cref="IFileDownloadStrategy"/>
 ///     implementations, and persists/restores progress across interrupted runs.
@@ -152,7 +157,7 @@ public class ImageRipper : IDisposable
 
     private bool _disposed;
 
-    private static GeneralConfig Config => Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
 
     /// <summary>
     /// Raised with (current, total) progress after each file/step; (0,0) signals indeterminate progress.
@@ -282,7 +287,6 @@ public class ImageRipper : IDisposable
     private DownloadContext BuildDownloadContext() => new()
     {
         RequestHeaders = RequestHeaders,
-        ClientManager = ClientManager,
         WebDriver = WebDriver,
         Session = Session,
         SiteName = SiteName,
@@ -303,8 +307,9 @@ public class ImageRipper : IDisposable
         LoadCorrectWebDriver();
         DownloadContext = BuildDownloadContext();
 
-        var htmlParser = HtmlParser.GetParser(SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
-        Logger.Debug("Constructed HtmlParser");
+        //var htmlParser = HtmlParserOrchestrator.GetParser(SiteName, );
+        //Logger.Debug("Constructed HtmlParser");
+        var htmlParser = new HtmlParserOrchestrator(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
@@ -541,7 +546,7 @@ public class ImageRipper : IDisposable
             catch (UrlExpiredException e)
             {
                 Logger.Information("Refreshing links for {SiteName}", e.SiteName);
-                var parser = HtmlParser.GetParser(e.SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
+                var parser = HtmlParserOrchestrator.GetParser(e.SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
                 if (parser is not TimeSensitiveHtmlParser timeSensitiveParser)
                 {
                     throw new RipperException($"Parser for {e.SiteName} does not support link refreshing");

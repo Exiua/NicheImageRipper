@@ -1,8 +1,7 @@
 using System.Reflection;
 using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.SiteModules.Modules.Google;
+using Sdk.DataStructures;
 using Xunit.Abstractions;
 
 namespace SiteModules.Tests;

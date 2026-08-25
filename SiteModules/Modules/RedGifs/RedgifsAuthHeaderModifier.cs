@@ -1,8 +1,8 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.Utility;
+
+
+
+using Sdk.DataStructures;
+using Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.RedGifs;
 

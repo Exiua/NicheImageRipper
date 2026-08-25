@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Enums;
+using Sdk.Configuration;
+using Sdk.Enums;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Gui.Services.Thin;

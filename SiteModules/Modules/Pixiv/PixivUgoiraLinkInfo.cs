@@ -1,5 +1,5 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
+
+using Sdk.DataStructures;
 
 namespace NicheImageRipper.SiteModules.Modules.Pixiv;
 

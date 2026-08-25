@@ -1,16 +1,17 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+
+
+
+
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
 
 namespace NicheImageRipper.SiteModules.Modules.Mega;
 
 public sealed class MegaDownloadStrategy : IFileDownloadStrategy
 {
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     
     public IEnumerable<LinkInfo> HandlesLinkInfo => [ MegaLinkInfo.Mega ];
     public bool SupportsPostProcessing => false;

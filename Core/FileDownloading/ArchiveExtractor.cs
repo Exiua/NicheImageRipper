@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.Utility;
+using Sdk.Configuration;
 using Serilog;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;

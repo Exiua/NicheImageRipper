@@ -15,7 +15,7 @@
       <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
       <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
       <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
-      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.15.0" />
+      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.16.0" />
       <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
       <PackageReference Include="Selenium.WebDriver" Version="4.46.0" />
       <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.37.1" />
@@ -37,6 +37,7 @@
       <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
       <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
       <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
+      <ProjectReference Include="..\Sdk\Sdk.csproj" />
       <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
     </ItemGroup>
 
@@ -51,6 +52,11 @@
 <!--            <Link>Plugins\SiteModules.dll</Link>-->
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="SiteParsing\HtmlParsers\" />
+      <Folder Include="SiteParsing\VideoCapturers\" />
     </ItemGroup>
 
 </Project>

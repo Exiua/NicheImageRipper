@@ -1,10 +1,9 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Toonily;
 public class ToonilyParser : HtmlParser, IHtmlParser
@@ -12,7 +11,7 @@ public class ToonilyParser : HtmlParser, IHtmlParser
     public static string ParserName => "toonily";
     public static string[] SupportedUrls => ["https://toonily.me/", "https://toonily.com/"];
 
-    public ToonilyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ToonilyParser>(filenameScheme))
+    public ToonilyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ToonilyParser>(filenameScheme))
     {
     }
 
@@ -20,7 +19,7 @@ public class ToonilyParser : HtmlParser, IHtmlParser
     ///     Parses  the HTML for toonily.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNode("//div[@class='post-title']/h1")!.InnerText;
@@ -40,6 +39,6 @@ public class ToonilyParser : HtmlParser, IHtmlParser
             images.AddRange(imageList);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
     }
 }

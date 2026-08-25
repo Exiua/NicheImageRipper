@@ -5,6 +5,7 @@ using Avalonia.ReactiveUI;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Gui.Utility;
+using Sdk.Configuration;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;

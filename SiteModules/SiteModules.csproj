@@ -9,13 +9,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Core\Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Reference Include="Microsoft.AspNetCore.WebUtilities">
         <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.7\Microsoft.AspNetCore.WebUtilities.dll</HintPath>
       </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ImpersonateClient\ImpersonateClient.csproj" />
+      <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
+      <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
+      <ProjectReference Include="..\NHentaiApi\NHentaiApi.csproj" />
+      <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
+      <ProjectReference Include="..\Sdk\Sdk.csproj" />
+      <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.0" />
     </ItemGroup>
 
 </Project>

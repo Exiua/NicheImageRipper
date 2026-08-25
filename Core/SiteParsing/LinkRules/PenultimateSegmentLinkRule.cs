@@ -1,3 +1,5 @@
+using Sdk.SiteParsing;
+
 namespace NicheImageRipper.Core.SiteParsing.LinkRules;
 
 public abstract class PenultimateSegmentLinkRule : ISiteLinkRule

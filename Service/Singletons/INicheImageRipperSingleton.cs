@@ -1,6 +1,7 @@
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
+using Sdk.Configuration;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Service.Singletons;

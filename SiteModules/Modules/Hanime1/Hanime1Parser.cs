@@ -1,15 +1,14 @@
 using CSWebDriverClient;
 using HtmlAgilityPack;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
+
 using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
 using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
 using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Hanime1;
 public class Hanime1Parser : HtmlParser, IHtmlParser
@@ -25,7 +24,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
     ///     Parses the html for hanime1.me and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         string dirName;
         List<StringFileLinkWrapper> images = [];

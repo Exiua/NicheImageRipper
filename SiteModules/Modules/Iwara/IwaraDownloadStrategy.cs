@@ -1,9 +1,8 @@
 using IwaraApiClient.Models;
 using NicheImageRipper.Common.Exceptions;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.SiteParsing;
+using Sdk.DataStructures;
+using Sdk.FileDownloading;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Iwara;
 
@@ -14,7 +13,7 @@ public sealed class IwaraDownloadStrategy : IFileDownloadStrategy
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)
     {
-        var client = context.ClientManager.IwaraClient;
+        var client = IwaraParser.Client;
         context.Logger.Debug("Downloading {Url} as {Filename}", link.Url, link.Filename);
         var videoId = link.Url.Split('/')[^1];
         RequestResult result;

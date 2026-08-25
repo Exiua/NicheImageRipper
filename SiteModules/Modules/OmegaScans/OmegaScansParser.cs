@@ -1,15 +1,15 @@
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
+
+
 using OpenQA.Selenium;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.Common.ExtensionMethods;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.OmegaScans;
 public class OmegaScansParser : HtmlParser, IHtmlParser
@@ -25,7 +25,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
     ///     Parses the HTML for omegascans.org and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns></returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         const string chapterListXpath = "//ul[contains(concat(' ', normalize-space(@class), ' '), ' grid ')]";
         var lazyLoadArgs = new LazyLoadArgs

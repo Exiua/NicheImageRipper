@@ -1,8 +1,8 @@
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+using NicheImageRipper.SiteModules.Modules.Generic;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.NovoHot;
 // novohot.com

@@ -1,3 +1,5 @@
+using Sdk.Driver;
+
 namespace NicheImageRipper.Core.Driver;
 
 public class WebDriverPool : IDisposable

@@ -1,11 +1,11 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
+
+
 using OpenQA.Selenium;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.Common.ExtensionMethods;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SimplyCosplay;
 public class SimplyCosplayParser : HtmlParser, IHtmlParser
@@ -21,7 +21,7 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
     ///     Parses  the HTML for simply-cosplay.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         await Sleep(5000, cancellationToken: cancellationToken);
         var viewButton = Driver.TryFindElement(By.XPath("//button[@class='btn btn-default']"));

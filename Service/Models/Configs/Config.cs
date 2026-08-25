@@ -1,6 +1,8 @@
 using System.Text.Json;
 using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Enums;
+using Sdk.Configuration;
+using Sdk.Enums;
 
 namespace NicheImageRipper.Service.Models.Configs;
 

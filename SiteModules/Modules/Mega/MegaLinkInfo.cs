@@ -1,4 +1,5 @@
-using NicheImageRipper.Core.DataStructures;
+
+using Sdk.DataStructures;
 
 namespace NicheImageRipper.SiteModules.Modules.Mega;
 

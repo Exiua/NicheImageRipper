@@ -2,23 +2,22 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ImageMagick;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.Utility;
+
+
+
+
+
 using OpenQA.Selenium;
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Exceptions;
+using Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.Pixiv;
 
 public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
 {
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
 
     public IEnumerable<LinkInfo> HandlesLinkInfo => [PixivUgoiraLinkInfo.PixivUgoira];
 

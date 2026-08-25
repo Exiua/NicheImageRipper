@@ -1,9 +1,9 @@
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.Managers;
+
+
+
+using Sdk.DataStructures;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 

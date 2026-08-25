@@ -1,5 +1,3 @@
-using NicheImageRipper.Core.SiteParsing.LinkRules;
-
 namespace NicheImageRipper.SiteModules.Modules.Xasiat;
 
 public sealed class XasiatLinkRule : PenultimateSegmentLinkRule

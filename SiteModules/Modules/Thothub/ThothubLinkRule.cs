@@ -1,5 +1,3 @@
-using NicheImageRipper.Core.SiteParsing.LinkRules;
-
 namespace NicheImageRipper.SiteModules.Modules.Thothub;
 
 public sealed class ThothubLinkRule : PenultimateSegmentLinkRule

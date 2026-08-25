@@ -6,6 +6,8 @@ using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Tui;
 using NicheImageRipper.Tui.ArgParse;
+using Sdk.Configuration;
+using Sdk.SiteParsing;
 using Serilog;
 using Serilog.Events;
 

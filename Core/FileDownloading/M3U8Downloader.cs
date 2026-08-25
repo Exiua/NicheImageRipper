@@ -1,12 +1,13 @@
 using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
+using Sdk.Configuration;
+using Sdk.Exceptions;
 using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading;
 public static class M3U8Downloader
 {
-    private static GeneralConfig Config => Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     private static ILogger Logger { get; } = Log.ForContext(typeof(M3U8Downloader));
 
     public static async Task DownloadM3U8(string url, string savePath, string outputName, string? referer = null, bool isIndex = false, CancellationToken cancellationToken = default)

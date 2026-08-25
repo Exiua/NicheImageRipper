@@ -1,5 +1,5 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.SiteParsing.LinkRules;
+using Sdk.Common.ExtensionMethods;
+using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 

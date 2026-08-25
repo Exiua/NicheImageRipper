@@ -1,18 +1,16 @@
 using System.Net.Sockets;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+using Sdk.Common.ExtensionMethods;
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Exceptions;
+using Sdk.FileDownloading;
 using SteamKit2;
 
 namespace NicheImageRipper.SiteModules.Modules.SteamCommunity;
 
 public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
 {
-    private static GeneralConfig Config => Core.Configuration.Config.Instance;
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
 
     public IEnumerable<LinkInfo> HandlesLinkInfo => [SteamCommunityLinkInfo.SteamCommunity];
     public bool SupportsPostProcessing => false;
@@ -25,7 +23,7 @@ public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
         var ids = link.Url.Split('/')[^1].Split('|');
         var fileId = ids[1];
         var (username, password) = Config.Logins.GetValueOrDefault(SteamCommunityParser.ParserName).Deconstruct();
-        var client = context.ClientManager.SteamApiClient;
+        var client = SteamCommunityParser.SteamApiClient;
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {
             throw new RipperException(

@@ -1,15 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using HtmlAgilityPack;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
 using OpenQA.Selenium;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.Common;
+using Sdk.Common.ExtensionMethods;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
+using Sdk.Utility;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Pornhub;
 
@@ -32,7 +32,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
     ///     Parses the HTML for pornhub.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
         if (cookies.Length == 0)
@@ -205,7 +205,7 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
             var js = player.InnerText;
             js = js.Split("var ")[1];
             var start = js.IndexOf('{');
-            var rawJson = ExtractJsonObject(js[start..]);
+            var rawJson = JsonUtility.ExtractJsonObject(js[start..]);
             var jsonData = JsonSerializer.Deserialize<JsonNode>(rawJson);
             var mediaDefinitions = jsonData!["mediaDefinitions"]!.AsArray();
             var highestQuality = 0;

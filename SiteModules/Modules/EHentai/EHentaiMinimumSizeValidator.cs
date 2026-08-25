@@ -1,6 +1,7 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
+
+
+using Sdk.DataStructures;
+using Sdk.Exceptions;
 
 namespace NicheImageRipper.SiteModules.Modules.EHentai;
 

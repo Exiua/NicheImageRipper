@@ -1,13 +1,10 @@
-using NicheImageRipper.Common.Exceptions;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using NicheImageRipper.Core.Utility;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+
+
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.CyberDrop;
 public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser

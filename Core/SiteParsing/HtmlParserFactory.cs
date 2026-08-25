@@ -1,12 +1,11 @@
 using System.Collections.Frozen;
 using System.Linq.Expressions;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Driver;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
 using NicheImageRipper.Core.Utility;
+using Sdk.Driver;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
 using Serilog;
 
 namespace NicheImageRipper.Core.SiteParsing;
@@ -64,7 +63,7 @@ public static class HtmlParserFactory
                                     })
                                    .Where(type =>
                                         !type.IsAbstract &&
-                                        typeof(HtmlParser).IsAssignableFrom(type) &&
+                                        typeof(HtmlParserOrchestrator).IsAssignableFrom(type) &&
                                         typeof(IHtmlParser).IsAssignableFrom(type))
                                    .ToList();
 
@@ -233,7 +232,7 @@ public static class HtmlParserFactory
         var (p1, p2, p3, p4) = StandardParameters();
 
         var newExpr = Expression.New(ctor, p1, p2, p3, p4);
-        var cast = Expression.Convert(newExpr, typeof(HtmlParser));
+        var cast = Expression.Convert(newExpr, typeof(HtmlParserOrchestrator));
         var lambda = Expression.Lambda<HtmlParserCtor>(cast, p1, p2, p3, p4);
         var compiled = lambda.Compile();
         HtmlParserCtors[type] = compiled;

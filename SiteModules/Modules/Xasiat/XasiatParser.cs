@@ -1,12 +1,12 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
+
 using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
+
 using OpenQA.Selenium;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.Common.ExtensionMethods;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.SiteParsing;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Xasiat;
 public class XasiatParser : HtmlParser, IHtmlParser
@@ -14,7 +14,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
     public static string ParserName => "xasiat";
     public static string[] SupportedUrls => ["https://www.xasiat.com/"];
 
-    public XasiatParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XasiatParser>(filenameScheme))
+    public XasiatParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XasiatParser>(filenameScheme))
     {
     }
 
@@ -22,7 +22,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
     ///     Parses  the HTML for xasiat.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250, }, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
@@ -70,6 +70,6 @@ public class XasiatParser : HtmlParser, IHtmlParser
             throw new RipperException("Unknown URL type");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
     }
 }

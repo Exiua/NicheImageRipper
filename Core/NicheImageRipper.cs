@@ -9,7 +9,6 @@ using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.History;
@@ -17,6 +16,11 @@ using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.Utility;
 using OpenQA.Selenium;
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.Managers;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -27,7 +31,7 @@ namespace NicheImageRipper.Core;
 public partial class NicheImageRipper : IDisposable
 {
     public static string Title => "NicheImageRipper";
-    public static GeneralConfig Config => Configuration.Config.Instance;
+    public static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
     public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
     public static Version Version { get; } = new(5, 0, 0);

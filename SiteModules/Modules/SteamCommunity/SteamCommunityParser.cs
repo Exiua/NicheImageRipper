@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.WebUtilities;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.Configuration;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
-using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.Managers;
-using NicheImageRipper.Core.SiteParsing;
-using WebDriver = NicheImageRipper.Core.Driver.WebDriver;
+using Sdk.Common;
+using Sdk.Common.ExtensionMethods;
+using Sdk.Configuration;
+using Sdk.DataStructures;
+using Sdk.Enums;
+using Sdk.Exceptions;
+using Sdk.SiteParsing;
+using SteamApiClientType = SteamApiClient.SteamApiClient;
+using WebDriver = Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SteamCommunity;
 
@@ -15,6 +15,8 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "steamcommunity";
     public static string[] SupportedUrls => ["https://steamcommunity.com/"];
+
+    internal static SteamApiClientType SteamApiClient { get; } = new();
 
     public SteamCommunityParser(WebDriver driver, ApiClientManager apiClientManager,
                                 Dictionary<string, string> requestHeaders,
@@ -27,7 +29,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     ///     Parses  the HTML for steamcommunity.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
         if (username.IsNullOrEmpty())
@@ -36,20 +38,19 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
                 "No username found for steamcommunity.com, cannot parse. Please provide a username in the config file.");
         }
 
-        var client = ImageRipper.ClientManager.SteamApiClient;
-        await client.LoginAsync(username, password ?? "", cancellationToken);
+        await SteamApiClient.LoginAsync(username, password ?? "", cancellationToken);
         ulong steamId;
         string dirName;
         if (CurrentUrl.Contains("/profiles/"))
         {
             var idString = CurrentUrl.Split("/")[4];
             steamId = ulong.Parse(idString);
-            dirName = await client.GetPersonaNameAsync(steamId, cancellationToken);
+            dirName = await SteamApiClient.GetPersonaNameAsync(steamId, cancellationToken);
         }
         else if (CurrentUrl.Contains("/id/"))
         {
             var vanityName = CurrentUrl.Split("/")[4];
-            steamId = await SteamApiClient.SteamApiClient.ResolveVanityUrlAsync(vanityName, cancellationToken);
+            steamId = await SteamApiClientType.ResolveVanityUrlAsync(vanityName, cancellationToken);
             dirName = vanityName;
         }
         else
@@ -66,7 +67,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
         }
 
         var appId = uint.Parse(appIdString!);
-        var files = await client.GetUserWorkshopItemsAsync(steamId, appId, cancellationToken);
+        var files = await SteamApiClient.GetUserWorkshopItemsAsync(steamId, appId, cancellationToken);
         var images = files.Select(file => file.publishedfileid)
                           .Select(fileId => FormatSteamWorkshopDownloadUrl(appId.ToString(), fileId.ToString()))
                           .Select(url =>

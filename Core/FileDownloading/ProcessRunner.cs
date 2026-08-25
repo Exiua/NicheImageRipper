@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Text;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Exceptions;
 using NicheImageRipper.Core.ExtensionMethods;
+using Sdk.Enums;
+using Sdk.Exceptions;
 using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading;
