@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using OpenQA.Selenium;
-using Sdk.Utility;
 
-namespace NicheImageRipper.Core.Utility;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static class SeleniumUtility
 {

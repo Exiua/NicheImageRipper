@@ -1,6 +1,6 @@
 using NicheImageRipper.Core.DataStructures;
-using Sdk.DataStructures;
-using Sdk.FileDownloading;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.Core.FileDownloading;
 

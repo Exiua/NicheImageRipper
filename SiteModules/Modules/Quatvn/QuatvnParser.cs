@@ -2,15 +2,13 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using HtmlAgilityPack;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Quatvn;
 public class QuatvnParser : HtmlParser, IHtmlParser
@@ -18,7 +16,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
     public static string ParserName => "quatvn";
     public static string[] SupportedUrls => ["https://quatvn.love/"];
 
-    public QuatvnParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<QuatvnParser>(filenameScheme))
+    public QuatvnParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<QuatvnParser>(filenameScheme))
     {
     }
 

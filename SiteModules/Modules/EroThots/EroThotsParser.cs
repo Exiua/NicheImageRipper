@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.EroThots;
+
 public class EroThotsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "erothots";
     public static string[] SupportedUrls => ["https://erothots.co/"];
 
-    public EroThotsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EroThotsParser>(filenameScheme))
+    public EroThotsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<EroThotsParser>(filenameScheme))
     {
     }
 
@@ -38,8 +40,11 @@ public class EroThotsParser : HtmlParser, IHtmlParser
         }
         else /*if (CurrentUrl.Contains("/a/"))*/
         {
-            dirName = soup.SelectSingleNodeOrThrow("//div[@class='head-title']").SelectSingleNodeOrThrow(".//span").InnerText;
-            images = soup.SelectSingleNodeOrThrow("//div[@class='album-gallery']").SelectNodesOrThrow("./a").Select(link => link.GetAttributeValue("data-src")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+            dirName = soup.SelectSingleNodeOrThrow("//div[@class='head-title']").SelectSingleNodeOrThrow(".//span")
+                          .InnerText;
+            images = soup.SelectSingleNodeOrThrow("//div[@class='album-gallery']").SelectNodesOrThrow("./a")
+                         .Select(link => link.GetAttributeValue("data-src"))
+                         .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

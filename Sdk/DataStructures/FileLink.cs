@@ -2,14 +2,14 @@
 using System.Text.Json.Serialization;
 using System.Web;
 using JetBrains.Annotations;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 
-namespace Sdk.DataStructures;
+namespace NicheImageRipper.Sdk.DataStructures;
 
 public partial class FileLink
 {

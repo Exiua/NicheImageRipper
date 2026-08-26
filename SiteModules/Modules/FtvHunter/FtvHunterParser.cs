@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.FtvHunter;
 public class FtvHunterParser : HeaderTitleListGalleryParser, IHtmlParser
@@ -10,7 +10,7 @@ public class FtvHunterParser : HeaderTitleListGalleryParser, IHtmlParser
     public static string ParserName => "ftvhunter";
     public static string[] SupportedUrls => ["https://www.ftvhunter.com/"];
 
-    public FtvHunterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FtvHunterParser>(filenameScheme))
+    public FtvHunterParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<FtvHunterParser>(filenameScheme))
     {
     }
 }

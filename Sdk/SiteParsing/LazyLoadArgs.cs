@@ -1,6 +1,6 @@
 ﻿using OpenQA.Selenium;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public class LazyLoadArgs
 {

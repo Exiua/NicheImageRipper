@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SexyKittenPorn;
+
 public class SexyKittenPornParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "sexykittenporn";
     public static string[] SupportedUrls => ["https://www.sexykittenporn.com/"];
 
-    public SexyKittenPornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SexyKittenPornParser>(filenameScheme))
+    public SexyKittenPornParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<SexyKittenPornParser>(filenameScheme))
     {
     }
 
@@ -23,8 +25,10 @@ public class SexyKittenPornParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader']").InnerText;
-        var tagList = soup.SelectNodesOrThrow("//div[@class='list gallery col3']").SelectMany(tag => tag.SelectNodesOrThrow(".//div[@class='item']"));
-        var imageLink = tagList.Select(image => $"https://www.sexykittenporn.com{image.SelectSingleNodeOrThrow(".//a").GetHref()}");
+        var tagList = soup.SelectNodesOrThrow("//div[@class='list gallery col3']")
+                          .SelectMany(tag => tag.SelectNodesOrThrow(".//div[@class='item']"));
+        var imageLink = tagList.Select(image =>
+            $"https://www.sexykittenporn.com{image.SelectSingleNodeOrThrow(".//a").GetHref()}");
         var images = new List<StringFileLinkWrapper>();
         foreach (var link in imageLink)
         {

@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Fcww0;
+
 public class Fcww0Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "fcww0";
     public static string[] SupportedUrls => ["https://fcww0.com/"];
 
-    public Fcww0Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Fcww0Parser>(filenameScheme))
+    public Fcww0Parser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<Fcww0Parser>(filenameScheme))
     {
     }
 

@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
 
 namespace NicheImageRipper.Core.SiteParsing;
 

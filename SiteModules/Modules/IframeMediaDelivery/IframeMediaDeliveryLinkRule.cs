@@ -1,6 +1,5 @@
-
-using Sdk.DataStructures;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.IframeMediaDelivery;
 

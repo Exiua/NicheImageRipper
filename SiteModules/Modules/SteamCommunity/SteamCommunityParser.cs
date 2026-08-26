@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.WebUtilities;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using SteamApiClientType = SteamApiClient.SteamApiClient;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SteamCommunity;
 
@@ -18,10 +17,10 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
 
     internal static SteamApiClientType SteamApiClient { get; } = new();
 
-    public SteamCommunityParser(WebDriver driver, ApiClientManager apiClientManager,
+    public SteamCommunityParser(WebDriver driver,
                                 Dictionary<string, string> requestHeaders,
-                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
-        apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SteamCommunityParser>(filenameScheme))
+                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<SteamCommunityParser>(filenameScheme))
     {
     }
 

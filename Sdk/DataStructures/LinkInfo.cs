@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Sdk.DataStructures;
+﻿namespace NicheImageRipper.Sdk.DataStructures;
 
 /// <summary>
 ///     Identifies which download mechanism a FileLink requires. Core defines the generic, non-site-specific

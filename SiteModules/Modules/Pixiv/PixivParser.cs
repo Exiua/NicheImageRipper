@@ -1,13 +1,11 @@
-using NicheImageRipper.Common.ExtensionMethods;
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using PixivApi;
 using PixivApi.Utilities;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Pixiv;
 
@@ -18,8 +16,8 @@ public class PixivParser : HtmlParser, IHtmlParser
 
     private PixivApiClient PixivClient { get; set; } = new();
 
-    public PixivParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public PixivParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<PixivParser>(filenameScheme))
     {
     }

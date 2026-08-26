@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.AsmHentai;
+
 public class AsmHentaiParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "asmhentai";
     public static string[] SupportedUrls => ["https://asmhentai.com/"];
 
-    public AsmHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AsmHentaiParser>(filenameScheme))
+    public AsmHentaiParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<AsmHentaiParser>(filenameScheme))
     {
     }
 
@@ -24,7 +26,8 @@ public class AsmHentaiParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
         var pages = soup.SelectSingleNodeOrThrow("//div[@class='pages']/h3").InnerText.Split(" ")[^1].ParseInt();
-        var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1].Join("/");
+        var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='preview_thumb']//img").GetSrc().Split("/")[..^1]
+                          .Join("/");
         var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < pages; i++)
         {

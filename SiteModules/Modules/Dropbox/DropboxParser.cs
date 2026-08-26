@@ -1,11 +1,10 @@
 using HtmlAgilityPack;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Dropbox;
 
@@ -14,8 +13,8 @@ public class DropboxParser : HtmlParser, IHtmlParser
     public static string ParserName => "dropbox";
     public static string[] SupportedUrls => ["https://www.dropbox.com/"];
 
-    public DropboxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public DropboxParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, IHtmlParser.GetFilenameScheme<DropboxParser>(filenameScheme))
     {
     }

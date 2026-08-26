@@ -5,20 +5,22 @@ using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.Utility;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Managers;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Manager;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.Managers;
-using Sdk.SiteParsing;
-using Sdk.Utility;
+
 using Serilog;
 using Serilog.Events;
-using WebDriver = Sdk.Driver.WebDriver;
+using UrlUtility = NicheImageRipper.Core.Utility.UrlUtility;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing;
 
@@ -46,7 +48,6 @@ public class HtmlParserOrchestrator : IDisposable
     protected string GivenUrl { get; set; }
     protected FilenameScheme FilenameScheme { get; }
     protected Dictionary<string, string> RequestHeaders { get; }
-    protected ApiClientManager ApiClientManager { get; }
     protected ILogger Logger { get; init; }
     protected HttpClient HttpClient { get; set; }
 
@@ -78,12 +79,11 @@ public class HtmlParserOrchestrator : IDisposable
 
     protected static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
-    public HtmlParserOrchestrator(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+    public HtmlParserOrchestrator(WebDriver driver, Dictionary<string, string> requestHeaders,
                                   FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         HttpClient = new HttpClient();
         WebDriver = driver;
-        ApiClientManager = clientManager;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
         Interrupted = false;
@@ -106,7 +106,7 @@ public class HtmlParserOrchestrator : IDisposable
     /// <exception cref="RipperException"><see cref="RetryCount"/> is less than 1, or parsing failed after all retries.</exception>
     public async Task<RipInfo> ParseSite(string url, CancellationToken cancellationToken = default)
     {
-        var htmlParser = GetParser(SiteName, WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
+        var htmlParser = GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
         Logger.Debug("Constructed HtmlParser");
         Logger.Debug("Parsing {Url}", url);
         url = UrlUtility.NormalizeUrl(url);
@@ -184,17 +184,17 @@ public class HtmlParserOrchestrator : IDisposable
         #endif
     }
 
-    public static HtmlParser GetParser(string siteName, WebDriver webDriver, ApiClientManager clientManager,
+    public static HtmlParser GetParser(string siteName, WebDriver webDriver,
                                        Dictionary<string, string> requestHeaders,
                                        FilenameScheme filenameScheme = FilenameScheme.Original)
     {
-        return HtmlParserFactory.Create(siteName, webDriver, clientManager, requestHeaders, filenameScheme);
+        return HtmlParserFactory.Create(siteName, webDriver, requestHeaders, filenameScheme);
     }
 
     protected ParameterizedHtmlParser CreateParser(string url)
     {
         var (siteName, _) = UrlUtility.SiteCheck(url, RequestHeaders);
-        var parser = HtmlParserFactory.CreateParameterized(siteName, WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
+        var parser = HtmlParserFactory.CreateParameterized(siteName, WebDriver, RequestHeaders, FilenameScheme);
         return parser;
     }
     
@@ -549,7 +549,7 @@ public class HtmlParserOrchestrator : IDisposable
         }
 
         Logger.Debug("Resolving parser for site: {SiteName}", siteName);
-        var parser = HtmlParserFactory.Create(siteName, WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
+        var parser = HtmlParserFactory.Create(siteName, WebDriver, RequestHeaders, FilenameScheme);
         return parser.Parse(cancellationToken);
     }
 
@@ -575,15 +575,5 @@ public class HtmlParserOrchestrator : IDisposable
     protected virtual void DisposeInternal()
     {
         HttpClient.Dispose();
-    }
-}
-
-public abstract class HtmlParser<T> : HtmlParserOrchestrator
-    where T : HtmlParser<T>, IHtmlParser
-{
-    protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
-    {
     }
 }

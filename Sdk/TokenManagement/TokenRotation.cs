@@ -1,4 +1,4 @@
-namespace NicheImageRipper.Core.DataStructures;
+namespace NicheImageRipper.Sdk.TokenManagement;
 
 public class TokenRotation
 {

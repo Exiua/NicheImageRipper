@@ -1,18 +1,20 @@
 using HtmlAgilityPack;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BabeImpact;
+
 public class BabeImpactParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babeimpact";
     public static string[] SupportedUrls => ["https://www.babeimpact.com/"];
 
-    public BabeImpactParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabeImpactParser>(filenameScheme))
+    public BabeImpactParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BabeImpactParser>(filenameScheme))
     {
     }
 
@@ -35,11 +37,13 @@ public class BabeImpactParser : HtmlParser, IHtmlParser
         }
 
         var images = new List<StringFileLinkWrapper>();
-        var imageList = tagList.Select(tag => tag.SelectSingleNodeOrThrow(".//a")).Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
+        var imageList = tagList.Select(tag => tag.SelectSingleNodeOrThrow(".//a"))
+                               .Select(anchor => $"https://babeimpact.com{anchor.GetHref()}").ToList();
         foreach (var image in imageList)
         {
             soup = await Soupify(image, cancellationToken: cancellationToken);
-            var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']").SelectSingleNodeOrThrow(".//img").GetSrc();
+            var img = soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']").SelectSingleNodeOrThrow(".//img")
+                          .GetSrc();
             images.Add((StringFileLinkWrapper)(Protocol + img));
         }
 

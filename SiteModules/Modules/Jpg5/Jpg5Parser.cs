@@ -1,10 +1,9 @@
-
-
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Jpg5;
 public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
@@ -12,7 +11,7 @@ public class Jpg5Parser : ParameterizedHtmlParser, IHtmlParser
     public static string ParserName => "jpg5";
     public static string[] SupportedUrls => ["https://jpg5.su/"];
 
-    public Jpg5Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Jpg5Parser>(filenameScheme))
+    public Jpg5Parser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<Jpg5Parser>(filenameScheme))
     {
     }
 

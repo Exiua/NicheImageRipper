@@ -1,4 +1,4 @@
-namespace Sdk.Configuration;
+namespace NicheImageRipper.Sdk.Configuration;
 
 [Flags]
 public enum PostDownloadAction

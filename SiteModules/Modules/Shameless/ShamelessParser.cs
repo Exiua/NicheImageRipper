@@ -1,10 +1,11 @@
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using Sdk.Utility;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Shameless;
 
@@ -13,8 +14,8 @@ public class ShamelessParser : HtmlParser, IHtmlParser
     public static string ParserName => "shameless";
     public static string[] SupportedUrls => ["https://shameless.com/"];
 
-    public ShamelessParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public ShamelessParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<ShamelessParser>(filenameScheme))
     {
     }

@@ -3,9 +3,9 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using NicheImageRipper.Common.ExtensionMethods;
 using PixivApi.Exceptions;
 using PixivApi.Models;
+using PixivApi.Utilities;
 
 namespace PixivApi;
 

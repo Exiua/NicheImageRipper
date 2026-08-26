@@ -1,11 +1,10 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
 using Serilog;
 
-namespace NicheImageRipper.Core.FileDownloading;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static class YtDlpRunner
 {
@@ -23,7 +22,7 @@ public static class YtDlpRunner
                                             Func<string?, string?, string[]?>? onFailure = null,
                                             CancellationToken cancellationToken = default)
     {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
+        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.YtDlp))
         {
             throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
         }

@@ -1,11 +1,11 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.NoodleMagazine;
 public class NoodleMagazineParser : HtmlParser, IHtmlParser
@@ -13,7 +13,7 @@ public class NoodleMagazineParser : HtmlParser, IHtmlParser
     public static string ParserName => "noodlemagazine";
     public static string[] SupportedUrls => ["https://noodlemagazine.com/"];
 
-    public NoodleMagazineParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NoodleMagazineParser>(filenameScheme))
+    public NoodleMagazineParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<NoodleMagazineParser>(filenameScheme))
     {
     }
 

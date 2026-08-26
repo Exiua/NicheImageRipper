@@ -1,11 +1,13 @@
 using HtmlAgilityPack;
-
-using NicheImageRipper.Core.Exceptions;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Utility;
-using WebDriver = Sdk.Driver.WebDriver;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SimpCity;
 
@@ -18,8 +20,8 @@ public class SimpCityParser : HtmlParser, IHtmlParser
     private const string RateLimitTitle = "SimpCity - Rate Limit";
     private const string CookieName = "dontlikebots_user";
 
-    public SimpCityParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public SimpCityParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<SimpCityParser>(filenameScheme))
     {
     }
@@ -28,7 +30,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
     ///     Parses  the HTML for simpcity.su and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var (images, resolveLists, dirName) = await LoadOrParsePosts();
         await ResolveEmbeddedLinks(images, resolveLists, cancellationToken);

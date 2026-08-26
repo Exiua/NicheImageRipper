@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Fapello;
+
 public class FapelloParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "fapello";
     public static string[] SupportedUrls => ["https://fapello.com/"];
 
-    public FapelloParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FapelloParser>(filenameScheme))
+    public FapelloParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<FapelloParser>(filenameScheme))
     {
     }
 
@@ -21,9 +23,13 @@ public class FapelloParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 }, cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='font-semibold lg:text-2xl text-lg mb-2 mt-4']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("_300px", "")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 },
+            cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='font-semibold lg:text-2xl text-lg mb-2 mt-4']")
+                          .InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//img")
+                         .Select(img => img.GetSrc().Replace("_300px", ""))
+                         .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

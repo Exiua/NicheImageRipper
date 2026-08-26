@@ -1,9 +1,8 @@
-using Sdk.Common;
-using Sdk.DataStructures;
-using Sdk.Driver;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Driver;
+using NicheImageRipper.Sdk.Enums;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public abstract class ParameterizedHtmlParser : HtmlParser
 {
@@ -14,11 +13,10 @@ public abstract class ParameterizedHtmlParser : HtmlParser
     ///     the top-level parser's directory name always wins).
     /// </summary>
     protected bool IsSubParserCall { get; private set; }
-    
-    protected ParameterizedHtmlParser(WebDriver driver, ApiClientManager clientManager,
-                                      Dictionary<string, string> requestHeaders,
+
+    protected ParameterizedHtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
-        clientManager, requestHeaders, filenameScheme)
+        requestHeaders, filenameScheme)
     {
     }
 
@@ -53,7 +51,7 @@ public abstract class ParameterizedHtmlParser : HtmlParser
 
         return await ParseCore(cancellationToken);
     }
-    
+
     /// <summary>
     /// Site-specific scrape logic. CurrentUrl is already set and (if RequiresLogin) login has already run.
     /// </summary>

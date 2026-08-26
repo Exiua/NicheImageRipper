@@ -1,10 +1,8 @@
 ﻿using System.Text;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
 using File = Google.Apis.Drive.v3.Data.File;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
@@ -13,7 +11,7 @@ public static class GDriveHelper
 {
     public static async Task<DriveService> AuthenticateGDrive(CancellationToken cancellationToken = default)
     {
-        var creds = await TokenManager.GDriveAuthenticate();
+        var creds = await GoogleAuth.GDriveAuthenticate();
         return new DriveService(new BaseClientService.Initializer
         {
             HttpClientInitializer = creds,

@@ -1,12 +1,10 @@
 using System.Text.RegularExpressions;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.NHentai;
 public partial class NHentaiParser : HtmlParser, IHtmlParser
@@ -14,7 +12,7 @@ public partial class NHentaiParser : HtmlParser, IHtmlParser
     public static string ParserName => "nhentai";
     public static string[] SupportedUrls { get; } = ["https://nhentai.net"];
 
-    public NHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
+    public NHentaiParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<NHentaiParser>(filenameScheme))
     {
     }
 

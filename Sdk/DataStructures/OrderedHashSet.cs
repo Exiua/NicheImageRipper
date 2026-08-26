@@ -1,6 +1,6 @@
-﻿using NicheImageRipper.Core.ExtensionMethods;
+﻿using NicheImageRipper.Sdk.Common.ExtensionMethods;
 
-namespace NicheImageRipper.Core.DataStructures;
+namespace NicheImageRipper.Sdk.DataStructures;
 
 public class OrderedHashSet<T>
 {

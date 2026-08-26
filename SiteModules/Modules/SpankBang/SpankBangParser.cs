@@ -1,20 +1,22 @@
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SpankBang;
+
 public class SpankBangParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "spankbang";
     public static string[] SupportedUrls => ["https://spankbang.com/", "https://spankbang.party/"];
 
-    public SpankBangParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SpankBangParser>(filenameScheme))
+    public SpankBangParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<SpankBangParser>(filenameScheme))
     {
     }
 
@@ -24,7 +26,8 @@ public class SpankBangParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        const string playlistXPath = "//div[contains(concat(' ', @class, ' '), ' video-list ') and " + "contains(concat(' ', @class, ' '), ' video-rotate ')]";
+        const string playlistXPath = "//div[contains(concat(' ', @class, ' '), ' video-list ') and " +
+                                     "contains(concat(' ', @class, ' '), ' video-rotate ')]";
         if (CurrentUrl.Contains("spankbang.party"))
         {
             Logger.Debug("Switching from spankbang.party to spankbang.com");
@@ -46,7 +49,7 @@ public class SpankBangParser : HtmlParser, IHtmlParser
 
         string dirName;
         var images = new List<StringFileLinkWrapper>();
-        var(urlType, id) = GetUrlType();
+        var (urlType, id) = GetUrlType();
         switch (urlType)
         {
             case UrlType.Unknown:
@@ -54,9 +57,12 @@ public class SpankBangParser : HtmlParser, IHtmlParser
                 throw new RipperException("Unknown url type");
             case UrlType.Playlist:
             {
-                var dirNameNode = soup.SelectSingleNode("//ul[@class='top profile-top']//em") ?? soup.SelectSingleNodeOrThrow("//h1");
+                var dirNameNode = soup.SelectSingleNode("//ul[@class='top profile-top']//em") ??
+                                  soup.SelectSingleNodeOrThrow("//h1");
                 dirName = dirNameNode.InnerText + $" ({id})";
-                var videos = soup.SelectSingleNodeOrThrow(playlistXPath).SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref()).Select(src => $"https://spankbang.com{src}");
+                var videos = soup.SelectSingleNodeOrThrow(playlistXPath).SelectNodesOrThrow("./div")
+                                 .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
+                                 .Select(src => $"https://spankbang.com{src}");
                 foreach (var video in videos)
                 {
                     Logger.Information("Parsing video: {Video}", video);
@@ -79,7 +85,9 @@ public class SpankBangParser : HtmlParser, IHtmlParser
             case UrlType.Search:
             {
                 dirName = soup.SelectSingleNodeOrThrow("//h1[@class='main_content_title']").InnerText + $" ({id})";
-                var videos = soup.SelectSingleNodeOrThrow(playlistXPath).SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref()).Select(src => $"https://spankbang.com{src}");
+                var videos = soup.SelectSingleNodeOrThrow(playlistXPath).SelectNodesOrThrow("./div")
+                                 .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
+                                 .Select(src => $"https://spankbang.com{src}");
                 await File.WriteAllTextAsync("test2.html", Driver.PageSource, cancellationToken: cancellationToken);
                 foreach (var video in videos)
                 {
@@ -110,21 +118,26 @@ public class SpankBangParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            var playButton2 = Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button']"));
+            var playButton2 =
+                Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button']"));
             if (playButton2 is not null)
             {
                 Driver.Click(playButton2);
                 break;
             }
 
-            var playButton3 = Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button vjs-paused']"));
+            var playButton3 =
+                Driver.TryFindElement(
+                    By.XPath("//button[@class='vjs-play-control vjs-control vjs-button vjs-paused']"));
             if (playButton3 is not null)
             {
                 Driver.Click(playButton3);
                 break;
             }
 
-            var playButton4 = Driver.TryFindElement(By.XPath("//button[@class='vjs-play-control vjs-control vjs-button vjs-playing']"));
+            var playButton4 =
+                Driver.TryFindElement(
+                    By.XPath("//button[@class='vjs-play-control vjs-control vjs-button vjs-playing']"));
             if (playButton4 is not null)
             {
                 break;
@@ -133,10 +146,12 @@ public class SpankBangParser : HtmlParser, IHtmlParser
             await Sleep(250, cancellationToken: cancellationToken);
         }
 
-        var settingsButton = Driver.FindElement(By.XPath("//button[@class='vjs-control vjs-button vjs-settings-button']"));
+        var settingsButton =
+            Driver.FindElement(By.XPath("//button[@class='vjs-control vjs-button vjs-settings-button']"));
         //settingsButton.Click();
         Driver.Click(settingsButton);
-        var qualityButton = Driver.FindElement(By.XPath("//button[@class='!flex max-h-11 items-center justify-between !border-x-0 !border-b !border-t-0 !border-solid !border-surface-quaternary py-3 pl-4 pr-5 md:max-h-8 md:py-2']"));
+        var qualityButton = Driver.FindElement(By.XPath(
+            "//button[@class='!flex max-h-11 items-center justify-between !border-x-0 !border-b !border-t-0 !border-solid !border-surface-quaternary py-3 pl-4 pr-5 md:max-h-8 md:py-2']"));
         //qualityButton.Click();
         Driver.Click(qualityButton);
         var highestQualityButton = Driver.FindElement(By.XPath("//button[@class='quality-item submenu-item'][2]"));

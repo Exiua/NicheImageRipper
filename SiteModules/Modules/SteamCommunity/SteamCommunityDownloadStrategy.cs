@@ -1,9 +1,9 @@
 using System.Net.Sockets;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Exceptions;
-using Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.FileDownloading;
 using SteamKit2;
 
 namespace NicheImageRipper.SiteModules.Modules.SteamCommunity;

@@ -1,9 +1,7 @@
 using System.Text.RegularExpressions;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using Sdk.DataStructures;
-using Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
 using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;

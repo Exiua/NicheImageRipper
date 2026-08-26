@@ -1,12 +1,10 @@
-
-
-
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Twitter;
 
@@ -16,8 +14,8 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
     public static string[] SupportedUrls => ["https://x.com/"];
     public static string[] AdditionalParserNames { get; } = ["x"];
 
-    public TwitterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public TwitterParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<TwitterParser>(filenameScheme))
     {
     }

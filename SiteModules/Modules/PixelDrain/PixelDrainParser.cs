@@ -1,13 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PixelDrain;
 
@@ -19,8 +17,8 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
 
     protected override bool RequiresNavigation => false;
 
-    public PixelDrainParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public PixelDrainParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<PixelDrainParser>(filenameScheme))
     {
     }

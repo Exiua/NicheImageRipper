@@ -1,5 +1,6 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium.BiDi.Network;
-using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.PrivateHomeClips;
 

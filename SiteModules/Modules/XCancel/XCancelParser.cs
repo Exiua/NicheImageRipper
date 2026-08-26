@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.XCancel;
+
 public class XCancelParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xcancel";
     public static string[] SupportedUrls => ["https://xcancel.com/"];
 
-    public XCancelParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XCancelParser>(filenameScheme))
+    public XCancelParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<XCancelParser>(filenameScheme))
     {
     }
 
@@ -35,17 +37,21 @@ public class XCancelParser : HtmlParser, IHtmlParser
         // TODO: Add anti-bot page detection handling
         var soup = await SolveParse(cancellationToken: cancellationToken);
         await Task.Delay(GenerateDelay()); // Delay to avoid overwhelming the server
-        var dirName = soup.SelectSingleNodeOrThrow("//a[@class='profile-card-username']").InnerText[1..]; // Skip the '@' at the start
+        var dirName =
+            soup.SelectSingleNodeOrThrow("//a[@class='profile-card-username']")
+                .InnerText[1..]; // Skip the '@' at the start
         var images = new List<StringFileLinkWrapper>();
         var page = 1;
         while (true)
         {
             Logger.Information("Parsing page {page}", page);
             page++;
-            var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']").SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
+            var timeline = soup.SelectSingleNodeOrThrow("//div[@class='timeline']")
+                               .SelectNodesSafe("./div[@class='timeline-item ']"); // Class name has a trailing space
             foreach (var div in timeline)
             {
-                var imgs = div.SelectNodesSafe(".//a[@class='still-image']").Select(a => a.GetHref()).ToStringFileLinks();
+                var imgs = div.SelectNodesSafe(".//a[@class='still-image']").Select(a => a.GetHref())
+                              .ToStringFileLinks();
                 images.AddRange(imgs);
                 var video = div.SelectSingleNode(".//video/source")?.GetSrc();
                 if (video is not null)
@@ -64,7 +70,7 @@ public class XCancelParser : HtmlParser, IHtmlParser
             CurrentUrl = $"{baseUrl}{nextUrl}";
             soup = await SolveParse(cancellationToken: cancellationToken);
             var multiplier = page % 10 == 0 ? 10 : 1; // Increase delay every 10 pages to avoid overwhelming the server
-            await Task.Delay(GenerateDelay() * multiplier); // Delay to avoid overwhelming the server
+            await Task.Delay(GenerateDelay() * multiplier, cancellationToken); // Delay to avoid overwhelming the server
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

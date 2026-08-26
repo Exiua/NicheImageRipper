@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Glam0ur;
 // glam0ur.com
@@ -13,7 +13,7 @@ public class Glam0urParser : GenericBabesGalleryParser, IHtmlParser
     protected override string DirNameXpath => "//div[@class='picnav']//h1";
     protected override string ImageContainerXpath => "//div[@class='center']/a";
 
-    public Glam0urParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Glam0urParser>(filenameScheme))
+    public Glam0urParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<Glam0urParser>(filenameScheme))
     {
     }
 }

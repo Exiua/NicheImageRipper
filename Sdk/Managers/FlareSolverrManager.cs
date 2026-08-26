@@ -1,10 +1,10 @@
 ﻿using FlareSolverrIntegration;
 using FlareSolverrIntegration.Payloads;
 using FlareSolverrIntegration.Responses;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Exceptions;
 using Serilog;
 
-namespace Sdk.Managers;
+namespace NicheImageRipper.Sdk.Managers;
 
 public class FlareSolverrManager(string flareSolverrUri)
 {

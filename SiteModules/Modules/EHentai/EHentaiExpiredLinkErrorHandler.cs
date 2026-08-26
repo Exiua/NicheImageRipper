@@ -1,8 +1,7 @@
 using System.Net;
-
-
-using Sdk.DataStructures;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.SiteModules.Modules.EHentai;
 

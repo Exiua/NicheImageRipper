@@ -1,21 +1,23 @@
 using System.Text.RegularExpressions;
 using MangaDexLibrary;
 using MangaDexLibrary.Responses;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.MangaDex;
+
 public partial class MangaDexParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "mangadex";
     public static string[] SupportedUrls => ["https://mangadex.org/"];
 
-    public MangaDexParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MangaDexParser>(filenameScheme))
+    public MangaDexParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<MangaDexParser>(filenameScheme))
     {
     }
 
@@ -70,11 +72,11 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var mangaImages = new List<List<StringFileLinkWrapper>>();
         var volumes = manga.Volumes;
-        foreach (var(volumeLabel, volumeData)in volumes)
+        foreach (var (volumeLabel, volumeData)in volumes)
         {
             Logger.Debug("Volume {volumeLabel}", volumeLabel);
             var chapters = volumeData.Chapters;
-            foreach (var(chapterLabel, chapterData)in chapters)
+            foreach (var (chapterLabel, chapterData)in chapters)
             {
                 var chapterIds = new Guid[chapterData.Others.Length + 1];
                 chapterIds[0] = chapterData.Id;
@@ -130,11 +132,13 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                     var baseUrl = atHome.BaseUrl;
                     var hash = serverUrls.Hash;
                     var chapterImages = new List<StringFileLinkWrapper>();
-                    foreach (var(i, page)in serverUrls.Data.Enumerate())
+                    foreach (var (i, page)in serverUrls.Data.Enumerate())
                     {
                         var ext = Path.GetExtension(page);
                         var url = $"{baseUrl}/data/{hash}/{page}";
-                        var filename = volumeLabel == "none" ? $"{chapterLabel}-{i + 1}{ext}" : $"{volumeLabel}-{chapterLabel}-{i + 1}{ext}";
+                        var filename = volumeLabel == "none"
+                            ? $"{chapterLabel}-{i + 1}{ext}"
+                            : $"{volumeLabel}-{chapterLabel}-{i + 1}{ext}";
                         var fileLink = FileLink.WithFilename(url, filename, FilenameScheme);
                         chapterImages.Add(fileLink);
                     }
@@ -145,7 +149,8 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
 
                 if (!found)
                 {
-                    Logger.Warning("No English chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}", mangaId, volumeLabel, chapterLabel);
+                    Logger.Warning("No English chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}",
+                        mangaId, volumeLabel, chapterLabel);
                 }
             }
         }

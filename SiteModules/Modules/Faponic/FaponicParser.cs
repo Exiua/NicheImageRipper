@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Faponic;
+
 public class FaponicParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "faponic";
     public static string[] SupportedUrls => ["https://faponic.com/"];
 
-    public FaponicParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FaponicParser>(filenameScheme))
+    public FaponicParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<FaponicParser>(filenameScheme))
     {
     }
 
@@ -21,9 +23,12 @@ public class FaponicParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, ScrollPauseTime = 1000 }, cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='author-content']").SelectSingleNodeOrThrow(".//a").InnerText;
-        var posts = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//div[@class='photo-item col-4-width']");
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, ScrollPauseTime = 1000 },
+            cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='author-content']").SelectSingleNodeOrThrow(".//a")
+                          .InnerText;
+        var posts = soup.SelectSingleNodeOrThrow("//div[@id='content']")
+                        .SelectNodesOrThrow(".//div[@class='photo-item col-4-width']");
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
@@ -38,7 +43,7 @@ public class FaponicParser : HtmlParser, IHtmlParser
             }
         }
 
-        foreach (var(i, img)in images.Enumerate())
+        foreach (var (i, img)in images.Enumerate())
         {
             if (!img.StartsWith("video:"))
             {

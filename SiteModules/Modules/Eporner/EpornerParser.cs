@@ -1,19 +1,21 @@
 using HtmlAgilityPack;
-
-using NicheImageRipper.Core.Exceptions;
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Eporner;
+
 public class EpornerParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "eporner";
     public static string[] SupportedUrls => ["https://www.eporner.com/"];
 
-    public EpornerParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EpornerParser>(filenameScheme))
+    public EpornerParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<EpornerParser>(filenameScheme))
     {
     }
 
@@ -56,10 +58,13 @@ public class EpornerParser : HtmlParser, IHtmlParser
             }
 
             var posts = new List<string>();
-#region Extract Videos
+
+            #region Extract Videos
+
             if (profileSections.HasFlag(EpornerProfileSections.Videos))
             {
-                await ExtractFromListView(baseUrl, "uploaded-videos", "streameventsday showAll", posts, cancellationToken: cancellationToken);
+                await ExtractFromListView(baseUrl, "uploaded-videos", "streameventsday showAll", posts,
+                    cancellationToken: cancellationToken);
                 // if (profileSections.HasFlag(EpornerProfileSections.Playlists))
                 // {
                 //     await ExtractFromListView(baseUrl, "playlists", "streameventsday showAll", posts);
@@ -73,21 +78,28 @@ public class EpornerParser : HtmlParser, IHtmlParser
                 }
             }
 
-#endregion
-#region Extract Images
+            #endregion
+
+            #region Extract Images
+
             posts.Clear();
             if (profileSections.HasFlag(EpornerProfileSections.Images))
             {
-                await ExtractFromListView(baseUrl, "uploaded-pics", "streameventsday photosgrid showAll", posts, cancellationToken: cancellationToken);
+                await ExtractFromListView(baseUrl, "uploaded-pics", "streameventsday photosgrid showAll", posts,
+                    cancellationToken: cancellationToken);
                 foreach (var post in posts)
                 {
                     Logger.Information("Parsing gallery: {post}", post);
                     soup = await Soupify(post, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
-                    var postImages = soup.SelectSingleNodeOrThrow("//div[@class='photosgrid gallerygrid']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).Select(ExtractFullImageLink).ToStringFileLinks();
+                    var postImages = soup.SelectSingleNodeOrThrow("//div[@class='photosgrid gallerygrid']")
+                                         .SelectNodesOrThrow("./div")
+                                         .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())
+                                         .Select(ExtractFullImageLink).ToStringFileLinks();
                     images.AddRange(postImages);
                 }
             }
-#endregion
+
+            #endregion
         }
         else if (CurrentUrl.Contains("/video-") || CurrentUrl.Contains("/hd-porn/"))
         {
@@ -103,6 +115,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+
         // ReSharper disable once VariableHidesOuterVariable
         string ExtractVideoDownloadLink(HtmlNode soup)
         {
@@ -141,13 +154,17 @@ public class EpornerParser : HtmlParser, IHtmlParser
             return link;
         }
 
-        async Task ExtractFromListView(string baseUrl, string section, string divClass, List<string> posts, CancellationToken cancellationToken = default)
+        async Task ExtractFromListView(string baseUrl, string section, string divClass, List<string> posts,
+                                       CancellationToken cancellationToken = default)
         {
             // ReSharper disable once VariableHidesOuterVariable
-            var soup = await Soupify($"{baseUrl}/{section}/", lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
+            var soup = await Soupify($"{baseUrl}/{section}/", lazyLoadArgs: lazyLoadArgs,
+                cancellationToken: cancellationToken);
             while (true)
             {
-                var links = soup.SelectSingleNodeOrThrow($"//div[@class='{divClass}']").SelectNodesOrThrow("./div[contains(@class, 'mb')]").Select(div => domainUrl + div.SelectSingleNodeOrThrow(".//a").GetHref());
+                var links = soup.SelectSingleNodeOrThrow($"//div[@class='{divClass}']")
+                                .SelectNodesOrThrow("./div[contains(@class, 'mb')]").Select(div =>
+                                     domainUrl + div.SelectSingleNodeOrThrow(".//a").GetHref());
                 posts.AddRange(links);
                 var nextPage = soup.SelectSingleNode("//a[@class='nmnext']");
                 if (nextPage is null)

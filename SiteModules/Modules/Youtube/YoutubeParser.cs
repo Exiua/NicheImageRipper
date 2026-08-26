@@ -2,13 +2,13 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-using NicheImageRipper.Core.Exceptions;
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Youtube;
 
@@ -18,8 +18,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser
     public static string[] SupportedUrls => ["https://www.youtube.com/"];
     protected override bool RequiresNavigation => false;
 
-    public YoutubeParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
+    public YoutubeParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, IHtmlParser.GetFilenameScheme<YoutubeParser>(filenameScheme))
     {
     }
@@ -30,7 +30,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!Core.NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.YtDlp))
+        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.YtDlp))
         {
             Logger.Error("yt-dlp is not available. Cannot parse YouTube without yt-dlp.");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);

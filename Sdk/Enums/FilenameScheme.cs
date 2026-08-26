@@ -1,4 +1,4 @@
-﻿namespace Sdk.Enums;
+﻿namespace NicheImageRipper.Sdk.Enums;
 
 public enum FilenameScheme
 {

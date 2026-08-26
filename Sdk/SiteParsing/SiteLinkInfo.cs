@@ -1,6 +1,6 @@
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public readonly record struct SiteLinkInfo(
     string Url,

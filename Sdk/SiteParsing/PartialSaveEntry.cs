@@ -1,7 +1,7 @@
 ﻿using JetBrains.Annotations;
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public class PartialSaveEntry
 {

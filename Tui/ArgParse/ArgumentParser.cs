@@ -1,4 +1,5 @@
 ﻿using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
 
 namespace NicheImageRipper.Tui.ArgParse;
 

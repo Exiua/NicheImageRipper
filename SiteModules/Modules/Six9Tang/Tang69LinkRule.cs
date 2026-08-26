@@ -1,3 +1,5 @@
+using NicheImageRipper.Sdk.SiteParsing;
+
 namespace NicheImageRipper.SiteModules.Modules.Six9Tang;
 
 public sealed class Tang69LinkRule : PenultimateSegmentLinkRule

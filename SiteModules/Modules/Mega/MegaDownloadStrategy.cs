@@ -1,11 +1,10 @@
-
-
-
-
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.SiteModules.Modules.Mega;
 
@@ -19,7 +18,7 @@ public sealed class MegaDownloadStrategy : IFileDownloadStrategy
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                      CancellationToken cancellationToken = default)
     {
-        if (!Core.NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.MegaCmd))
+        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.MegaCmd))
         {
             throw new FeatureNotAvailableException(ExternalFeatureSupport.MegaCmd);
         }

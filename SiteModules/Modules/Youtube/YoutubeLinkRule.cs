@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Youtube;
 

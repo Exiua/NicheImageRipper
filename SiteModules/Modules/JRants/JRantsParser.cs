@@ -1,18 +1,20 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.JRants;
+
 public class JRantsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "jrants";
     public static string[] SupportedUrls => ["https://en.jrants.com/"];
 
-    public JRantsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JRantsParser>(filenameScheme))
+    public JRantsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<JRantsParser>(filenameScheme))
     {
     }
 
@@ -36,7 +38,8 @@ public class JRantsParser : HtmlParser, IHtmlParser
         {
             Logger.Information("Parsing page {pageCount}", pageCount);
             pageCount++;
-            var imgs = soup.SelectNodes("//div[@class='inside-article']//p/img")?.Select(img => img.GetSrc()).ToStringFileLinks();
+            var imgs = soup.SelectNodes("//div[@class='inside-article']//p/img")?.Select(img => img.GetSrc())
+                           .ToStringFileLinks();
             if (imgs is not null)
             {
                 images.AddRange(imgs);

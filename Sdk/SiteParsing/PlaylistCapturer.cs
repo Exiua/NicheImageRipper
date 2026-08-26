@@ -1,6 +1,6 @@
 using OpenQA.Selenium.BiDi.Network;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public abstract class PlaylistCapturer
 {

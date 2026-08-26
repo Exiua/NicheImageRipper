@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.HentaiFox;
+
 public class HentaiFoxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentaifox";
     public static string[] SupportedUrls => ["https://hentaifox.com/"];
 
-    public HentaiFoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiFoxParser>(filenameScheme))
+    public HentaiFoxParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<HentaiFoxParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,8 @@ public class HentaiFoxParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info']/h1").InnerText;
-        var pageCount = soup.SelectSingleNodeOrThrow("//span[@class='i_text pages']").InnerText.Split(" ")[^1].ParseInt();
+        var pageCount = soup.SelectSingleNodeOrThrow("//span[@class='i_text pages']").InnerText.Split(" ")[^1]
+                            .ParseInt();
         var baseImage = soup.SelectSingleNodeOrThrow("//div[@class='g_thumb']//img").GetSrc();
         return RipInfo.FromGenerateInfo(baseImage, dirName, pageCount);
     }

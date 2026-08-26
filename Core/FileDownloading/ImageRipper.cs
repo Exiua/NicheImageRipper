@@ -7,16 +7,18 @@ using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Utility;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.FileDownloading;
-using Sdk.SiteParsing;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+
 using Serilog;
-using WebDriver = Sdk.Driver.WebDriver;
+using UrlUtility = NicheImageRipper.Core.Utility.UrlUtility;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.FileDownloading;
 
@@ -32,8 +34,6 @@ public class ImageRipper : IDisposable
 
     private const string RipStatePath = "ripState.json";
     private const int MillisecondsInSecond = 1000;
-
-    public static ApiClientManager ClientManager { get; } = new();
 
     // ReSharper disable once UnusedMember.Local
     private static readonly string[] MediaExtensions =
@@ -309,7 +309,7 @@ public class ImageRipper : IDisposable
 
         //var htmlParser = HtmlParserOrchestrator.GetParser(SiteName, );
         //Logger.Debug("Constructed HtmlParser");
-        var htmlParser = new HtmlParserOrchestrator(WebDriver, ClientManager, RequestHeaders, FilenameScheme);
+        var htmlParser = new HtmlParserOrchestrator(WebDriver, RequestHeaders, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         if (Interrupted && FilenameScheme != FilenameScheme.Hash)
@@ -546,7 +546,7 @@ public class ImageRipper : IDisposable
             catch (UrlExpiredException e)
             {
                 Logger.Information("Refreshing links for {SiteName}", e.SiteName);
-                var parser = HtmlParserOrchestrator.GetParser(e.SiteName, WebDriver, ClientManager, RequestHeaders, FilenameScheme);
+                var parser = HtmlParserOrchestrator.GetParser(e.SiteName, WebDriver, RequestHeaders, FilenameScheme);
                 if (parser is not TimeSensitiveHtmlParser timeSensitiveParser)
                 {
                     throw new RipperException($"Parser for {e.SiteName} does not support link refreshing");
@@ -827,7 +827,7 @@ public class ImageRipper : IDisposable
     {
         var numFiles = FolderInfo.NumUrls;
         var ripUrl = link.Url;
-        var displayUrl = link.LinkInfo == LinkInfo.Base64 ? UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
+        var displayUrl = link.LinkInfo == LinkInfo.Base64 ? Sdk.Utility.UrlUtility.TruncateLongUrl(ripUrl) : ripUrl;
         Logger.Information("{Url:l}    ({CurrentProgress}/{TotalProgress})", displayUrl, currentFileNum + 1, numFiles);
 
         var oldReferer = RequestHeaders[RequestHeaderKeys.Referer];

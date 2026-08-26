@@ -1,4 +1,4 @@
-﻿namespace Sdk.Configuration;
+﻿namespace NicheImageRipper.Sdk.Configuration;
 
 public enum UnzipProtocol
 {

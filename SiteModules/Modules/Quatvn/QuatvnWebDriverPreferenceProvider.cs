@@ -1,5 +1,7 @@
 
 
+using NicheImageRipper.Sdk.FileDownloading;
+
 namespace NicheImageRipper.SiteModules.Modules.Quatvn;
 
 public sealed class QuatvnWebDriverPreferenceProvider : IWebDriverPreferenceProvider

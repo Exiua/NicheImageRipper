@@ -1,6 +1,6 @@
-using Sdk.Enums;
+using NicheImageRipper.Sdk.Enums;
 
-namespace Sdk.Configuration;
+namespace NicheImageRipper.Sdk.Configuration;
 
 public class SettingsOverride
 {

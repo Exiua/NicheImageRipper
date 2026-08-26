@@ -1,10 +1,8 @@
-
-
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PornComics18;
 public class PornComics18Parser : HtmlParser, IHtmlParser
@@ -12,7 +10,7 @@ public class PornComics18Parser : HtmlParser, IHtmlParser
     public static string ParserName => "porncomics18";
     public static string[] SupportedUrls => ["https://porncomics18.com/"];
 
-    public PornComics18Parser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PornComics18Parser>(filenameScheme))
+    public PornComics18Parser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, IHtmlParser.GetFilenameScheme<PornComics18Parser>(filenameScheme))
     {
     }
 

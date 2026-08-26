@@ -2,17 +2,17 @@ using System.Collections.Frozen;
 using System.Linq.Expressions;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.Utility;
-using Sdk.Driver;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Driver;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using Serilog;
 
 namespace NicheImageRipper.Core.SiteParsing;
 
-using HtmlParserCtor = Func<WebDriver, ApiClientManager, Dictionary<string, string>, FilenameScheme, HtmlParser>;
+using HtmlParserCtor = Func<WebDriver, Dictionary<string, string>, FilenameScheme, HtmlParser>;
 using ParameterizedHtmlParserCtor =
-    Func<WebDriver, ApiClientManager, Dictionary<string, string>, FilenameScheme, ParameterizedHtmlParser>;
+    Func<WebDriver, Dictionary<string, string>, FilenameScheme, ParameterizedHtmlParser>;
 
 public static class HtmlParserFactory
 {
@@ -229,11 +229,11 @@ public static class HtmlParserFactory
         }
 
         var ctor = GetStandardConstructor(type);
-        var (p1, p2, p3, p4) = StandardParameters();
+        var (p1, p2, p3) = StandardParameters();
 
-        var newExpr = Expression.New(ctor, p1, p2, p3, p4);
+        var newExpr = Expression.New(ctor, p1, p2, p3);
         var cast = Expression.Convert(newExpr, typeof(HtmlParserOrchestrator));
-        var lambda = Expression.Lambda<HtmlParserCtor>(cast, p1, p2, p3, p4);
+        var lambda = Expression.Lambda<HtmlParserCtor>(cast, p1, p2, p3);
         var compiled = lambda.Compile();
         HtmlParserCtors[type] = compiled;
         return compiled;
@@ -247,11 +247,11 @@ public static class HtmlParserFactory
         }
 
         var ctor = GetStandardConstructor(type);
-        var (p1, p2, p3, p4) = StandardParameters();
+        var (p1, p2, p3) = StandardParameters();
 
-        var newExpr = Expression.New(ctor, p1, p2, p3, p4);
+        var newExpr = Expression.New(ctor, p1, p2, p3);
         var cast = Expression.Convert(newExpr, typeof(ParameterizedHtmlParser));
-        var lambda = Expression.Lambda<ParameterizedHtmlParserCtor>(cast, p1, p2, p3, p4);
+        var lambda = Expression.Lambda<ParameterizedHtmlParserCtor>(cast, p1, p2, p3);
         var compiled = lambda.Compile();
         ParameterizedHtmlParserCtors[type] = compiled;
         return compiled;
@@ -261,7 +261,7 @@ public static class HtmlParserFactory
     {
         var ctor = type.GetConstructor(
             [
-                typeof(WebDriver), typeof(ApiClientManager), typeof(Dictionary<string, string>), typeof(FilenameScheme)
+                typeof(WebDriver), typeof(Dictionary<string, string>), typeof(FilenameScheme)
             ]
         );
 
@@ -273,12 +273,11 @@ public static class HtmlParserFactory
         return ctor;
     }
 
-    private static (ParameterExpression, ParameterExpression, ParameterExpression, ParameterExpression)
+    private static (ParameterExpression, ParameterExpression, ParameterExpression)
         StandardParameters()
     {
         return (
             Expression.Parameter(typeof(WebDriver), "driver"),
-            Expression.Parameter(typeof(ApiClientManager), "clientManager"),
             Expression.Parameter(typeof(Dictionary<string, string>), "requestHeaders"),
             Expression.Parameter(typeof(FilenameScheme), "filenameScheme")
         );
@@ -289,13 +288,12 @@ public static class HtmlParserFactory
     public static HtmlParser Create(
         string site,
         WebDriver driver,
-        ApiClientManager client,
         Dictionary<string, string> headers,
         FilenameScheme scheme)
     {
         return !_parsers.TryGetValue(site, out var ctor)
             ? throw new RipperException($"Unsupported site: {site}")
-            : ctor(driver, client, headers, scheme);
+            : ctor(driver, headers, scheme);
     }
 
     /// <summary>
@@ -311,12 +309,11 @@ public static class HtmlParserFactory
     public static ParameterizedHtmlParser CreateParameterized(
         string site,
         WebDriver driver,
-        ApiClientManager client,
         Dictionary<string, string> headers,
         FilenameScheme scheme)
     {
         return !_parameterizedParsers.TryGetValue(site, out var ctor)
             ? throw new ParameterizedParserNotFound(site)
-            : ctor(driver, client, headers, scheme);
+            : ctor(driver, headers, scheme);
     }
 }

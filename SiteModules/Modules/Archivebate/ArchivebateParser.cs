@@ -1,13 +1,12 @@
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Archivebate;
 public partial class ArchivebateParser : HtmlParser, IHtmlParser
@@ -17,7 +16,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
     public static string ParserName => "archivebate";
     public static string[] SupportedUrls => ["https://www.archivebate.com/", "https://archivebate.com/", "https://archivebate.cc/"];
 
-    public ArchivebateParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ArchivebateParser>(filenameScheme))
+    public ArchivebateParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<ArchivebateParser>(filenameScheme))
     {
     }
 

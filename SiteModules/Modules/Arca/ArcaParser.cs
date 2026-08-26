@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Arca;
+
 public class ArcaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "arca";
     public static string[] SupportedUrls => ["https://arca.live/"];
 
-    public ArcaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ArcaParser>(filenameScheme))
+    public ArcaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                      FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<ArcaParser>(filenameScheme))
     {
     }
 
@@ -26,13 +28,15 @@ public class ArcaParser : HtmlParser, IHtmlParser
         var mainTag = soup.SelectSingleNodeOrThrow("//div[@class='fr-view article-content']");
         var images = new List<StringFileLinkWrapper>();
         var imageList = mainTag.SelectNodesSafe(".//img").GetSrcs();
-        var imgs = imageList.Select(image => image.Split("?")[0] + "?type=orig") // Remove query string and add type=orig
-        .Select(img => !img.Contains(Protocol) ? Protocol + img : img) // Add protocol if missing
-        .Select(dummy => (StringFileLinkWrapper)dummy) // Convert to StringImageLinkWrapper
-        .ToList();
+        var imgs = imageList
+                  .Select(image => image.Split("?")[0] + "?type=orig") // Remove query string and add type=orig
+                  .Select(img => !img.Contains(Protocol) ? Protocol + img : img) // Add protocol if missing
+                  .Select(dummy => (StringFileLinkWrapper)dummy) // Convert to StringImageLinkWrapper
+                  .ToList();
         images.AddRange(imgs);
         var videoList = mainTag.SelectNodesSafe(".//video").GetSrcs();
-        var videos = videoList.Select(video => !video.Contains(Protocol) ? Protocol + video : video).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        var videos = videoList.Select(video => !video.Contains(Protocol) ? Protocol + video : video)
+                              .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         images.AddRange(videos);
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }

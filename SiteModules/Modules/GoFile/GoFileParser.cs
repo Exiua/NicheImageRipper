@@ -1,13 +1,11 @@
 using System.Text.Json;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
 
@@ -17,8 +15,8 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
     public static string[] SupportedUrls => ["https://gofile.io/"];
     protected override bool RequiresLogin => true;
 
-    public GoFileParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public GoFileParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<GoFileParser>(filenameScheme))
     {
     }

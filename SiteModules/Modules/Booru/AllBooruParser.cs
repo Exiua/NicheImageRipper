@@ -1,9 +1,8 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 
@@ -13,8 +12,8 @@ public class AllBooruParser : BooruParser, IHtmlParser
     public static string[] SupportedUrls => ["https://booru.com/"];
     protected override bool RequiresNavigation => false;
 
-    public AllBooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public AllBooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<AllBooruParser>(filenameScheme))
     {
     }
@@ -23,7 +22,7 @@ public class AllBooruParser : BooruParser, IHtmlParser
     {
         var tags = ExtractTagsFromUrl(GivenUrl);
         Logger.Debug("Parsing all boorus with tags: {Tags}", tags);
-        var boorus = Enum.GetValues<Core.Enums.Booru>();
+        var boorus = Enum.GetValues<Sdk.Enums.Booru>();
         var images = new List<StringFileLinkWrapper>();
         foreach (var booru in boorus)
         {

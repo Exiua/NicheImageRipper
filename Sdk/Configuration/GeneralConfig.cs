@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Sdk.Enums;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Utility;
 
-namespace Sdk.Configuration;
+namespace NicheImageRipper.Sdk.Configuration;
 
 public class GeneralConfig
 {

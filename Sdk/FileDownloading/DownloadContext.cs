@@ -1,8 +1,7 @@
-using Sdk.Common;
-using Sdk.Driver;
+using NicheImageRipper.Sdk.Driver;
 using Serilog;
 
-namespace Sdk.FileDownloading;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 public sealed class DownloadContext
 {

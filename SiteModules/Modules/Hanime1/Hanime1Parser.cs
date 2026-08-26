@@ -1,22 +1,24 @@
 using CSWebDriverClient;
 using HtmlAgilityPack;
-
-using NicheImageRipper.Core.Exceptions;
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
-using NotSupportedException = NicheImageRipper.Core.Exceptions.NotSupportedException;
-using WebDriver = Sdk.Driver.WebDriver;
+using FeatureNotSupportedException = NicheImageRipper.Sdk.Exceptions.NotSupportedException;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Hanime1;
+
 public class Hanime1Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hanime1";
     public static string[] SupportedUrls => ["https://hanime1.me/"];
 
-    public Hanime1Parser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Hanime1Parser>(filenameScheme))
+    public Hanime1Parser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<Hanime1Parser>(filenameScheme))
     {
     }
 
@@ -41,24 +43,27 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         {
             dirName = CurrentUrl.Split("query=")[1].Split('&')[0].UnescapeUrl();
             List<string> entries = [];
-            var numPages = soup.SelectSingleNodeOrThrow("//div[@class='skip-page-wrapper']/div").InnerText.Split(';')[2].Trim().ParseInt();
+            var numPages = soup.SelectSingleNodeOrThrow("//div[@class='skip-page-wrapper']/div").InnerText.Split(';')[2]
+                               .Trim().ParseInt();
             var baseUrl = CurrentUrl.Split("&page=")[0];
             for (var i = 0; i < numPages; i++)
             {
                 Logger.Information("Parsing page {Page}", i + 1);
-                var posts = soup.SelectSingleNodeOrThrow("//div[@class='row no-gutter']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./a").GetHref());
+                var posts = soup.SelectSingleNodeOrThrow("//div[@class='row no-gutter']").SelectNodesOrThrow("./div")
+                                .Select(div => div.SelectSingleNodeOrThrow("./a").GetHref());
                 entries.AddRange(posts);
                 if (i == numPages - 1)
                 {
                     break;
                 }
 
-                response = await client.GetPage($"{baseUrl}&page={i + 2}", waitForXPath: "//div[@class='row no-gutter']//a", cancellationToken: cancellationToken);
+                response = await client.GetPage($"{baseUrl}&page={i + 2}",
+                    waitForXPath: "//div[@class='row no-gutter']//a", cancellationToken: cancellationToken);
                 soup = await Soupify(response, cancellationToken: cancellationToken);
             }
 
             entries = entries.Distinct().ToList();
-            foreach (var(i, entry)in entries.Enumerate())
+            foreach (var (i, entry)in entries.Enumerate())
             {
                 Logger.Information("Parsing entry {Entry} ({Index}/{Total})", entry, i + 1, entries.Count);
                 var url = await GetVideoUrl(client, entry, cancellationToken: cancellationToken);
@@ -68,7 +73,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         }
         else
         {
-            throw new NotSupportedException("Hanime1 Parser", $"This page type is not supported: {CurrentUrl}");
+            throw new FeatureNotSupportedException("Hanime1 Parser", $"This page type is not supported: {CurrentUrl}");
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

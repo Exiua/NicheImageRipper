@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.ImgBox;
+
 public class ImgBoxParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "imgbox";
     public static string[] SupportedUrls => ["https://imgbox.com/"];
 
-    public ImgBoxParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImgBoxParser>(filenameScheme))
+    public ImgBoxParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<ImgBoxParser>(filenameScheme))
     {
     }
 
@@ -22,8 +24,11 @@ public class ImgBoxParser : HtmlParser, IHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']").SelectSingleNodeOrThrow(".//h1").InnerText.Split(" - ")[0];
-        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o")).ToStringFileLinkWrapperList();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText.Split(" - ")[0];
+        var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']").SelectNodesOrThrow(".//img")
+                         .Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o"))
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

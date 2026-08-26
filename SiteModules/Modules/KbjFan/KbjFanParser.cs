@@ -1,13 +1,11 @@
 using HtmlAgilityPack;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.KbjFan;
 public class KbjFanParser : HtmlParser, IHtmlParser
@@ -15,7 +13,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
     public static string ParserName => "kbjfan";
     public static string[] SupportedUrls => ["https://www.kbjfan.com/"];
 
-    public KbjFanParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KbjFanParser>(filenameScheme))
+    public KbjFanParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<KbjFanParser>(filenameScheme))
     {
     }
 

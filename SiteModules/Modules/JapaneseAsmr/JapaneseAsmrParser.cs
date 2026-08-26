@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.JapaneseAsmr;
+
 public class JapaneseAsmrParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "japaneseasmr";
     public static string[] SupportedUrls => ["https://japaneseasmr.com/"];
 
-    public JapaneseAsmrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<JapaneseAsmrParser>(filenameScheme))
+    public JapaneseAsmrParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                              FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<JapaneseAsmrParser>(filenameScheme))
     {
     }
 
@@ -23,8 +25,10 @@ public class JapaneseAsmrParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='page-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
-        var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']").SelectNodesOrThrow(".//a").Select(a => a.GetHref());
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='fotorama__nav__shaft']").SelectNodesOrThrow(".//img")
+                         .Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
+        var megaLinks = soup.SelectSingleNodeOrThrow("//div[@class='download_links']").SelectNodesOrThrow(".//a")
+                            .Select(a => a.GetHref());
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var link in megaLinks)
         {

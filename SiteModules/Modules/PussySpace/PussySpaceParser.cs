@@ -1,11 +1,9 @@
 using HtmlAgilityPack;
-
-
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PussySpace;
 public class PussySpaceParser : HtmlParser, IHtmlParser
@@ -13,7 +11,7 @@ public class PussySpaceParser : HtmlParser, IHtmlParser
     public static string ParserName => "pussyspace";
     public static string[] SupportedUrls => ["https://www.pussyspace.com/"];
 
-    public PussySpaceParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PussySpaceParser>(filenameScheme))
+    public PussySpaceParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<PussySpaceParser>(filenameScheme))
     {
     }
 

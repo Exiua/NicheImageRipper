@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DirtyYoungBitches;
 public class DirtyYoungBitchesParser : GenericBabesGalleryParser, IHtmlParser
@@ -12,7 +12,7 @@ public class DirtyYoungBitchesParser : GenericBabesGalleryParser, IHtmlParser
     protected override string DirNameXpath => "//div[@class='title-holder']//h1";
     protected override string ImageContainerXpath => "//div[@class='container cont-light']//div[@class='images']//a[@class='thumb']";
 
-    public DirtyYoungBitchesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DirtyYoungBitchesParser>(filenameScheme))
+    public DirtyYoungBitchesParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<DirtyYoungBitchesParser>(filenameScheme))
     {
     }
 }

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Sdk.FileDownloading;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 public static class DownloadLogging
 {

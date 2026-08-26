@@ -1,8 +1,8 @@
-using Sdk.Common;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 
@@ -14,8 +14,8 @@ public class CoomerParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
     
     protected override string[] OwnHosts { get; } = SupportedUrls.Select(u => new Uri(u).Host).ToArray();
 
-    public CoomerParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public CoomerParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<CoomerParser>(filenameScheme))
     {
     }

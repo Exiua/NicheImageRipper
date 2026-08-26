@@ -3,8 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using NicheImageRipper.Common.ExtensionMethods;
 using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
 
 namespace NicheImageRipper.Core.FileDownloading;
 

@@ -2,16 +2,15 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ImageMagick;
-
-
-
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.TokenManagement;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Exceptions;
-using Sdk.Utility;
+
 
 namespace NicheImageRipper.SiteModules.Modules.Pixiv;
 
@@ -34,7 +33,7 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
             throw new RipperException("Pixiv cookies not found in configuration");
         }
 
-        var sessionId = TokenManager.Instance.GetTokenWithRotation(RotationKey.Pixiv, TimeSpan.FromHours(24),
+        var sessionId = TokenManager.Instance.GetWithRotation(PixivParser.ParserName, TimeSpan.FromHours(24),
             cookies);
         var driver = context.WebDriver.Driver;
         driver.Url = "https://www.pixiv.net/";
@@ -134,7 +133,7 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
         animation[0].AnimationIterations = 0;
         await animation.WriteAsync(imagePath, cancellationToken);
         context.RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
-        TokenManager.Instance.UpdateTokenRotation(RotationKey.Pixiv);
+        TokenManager.Instance.PauseRotation(PixivParser.ParserName);
         return DownloadResult.Success();
     }
 }

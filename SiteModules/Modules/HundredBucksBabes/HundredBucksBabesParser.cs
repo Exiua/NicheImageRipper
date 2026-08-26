@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.HundredBucksBabes;
+
 public class HundredBucksBabesParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "100bucksbabes";
     public static string[] SupportedUrls => ["https://www.100bucksbabes.com/"];
 
-    public HundredBucksBabesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HundredBucksBabesParser>(filenameScheme))
+    public HundredBucksBabesParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                   FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
+        requestHeaders, IHtmlParser.GetFilenameScheme<HundredBucksBabesParser>(filenameScheme))
     {
     }
 
@@ -22,8 +24,10 @@ public class HundredBucksBabesParser : HtmlParser, IHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']").SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img").Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringFileLinkWrapperList();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']")
+                          .SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img")
+                         .Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

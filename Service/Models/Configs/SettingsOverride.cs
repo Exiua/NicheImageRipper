@@ -1,5 +1,5 @@
 using NicheImageRipper.Core.Enums;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.Enums;
 
 namespace NicheImageRipper.Service.Models.Configs;
 

@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.AHottie;
+
 public class AHottieParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "ahottie";
     public static string[] SupportedUrls => ["https://ahottie.net/"];
 
-    public AHottieParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<AHottieParser>(filenameScheme))
+    public AHottieParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<AHottieParser>(filenameScheme))
     {
     }
 
@@ -26,9 +28,11 @@ public class AHottieParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToStringFileLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='main']/div[@class='my-2']").SelectNodesOrThrow("./img")
+                           .Select(img => img.GetSrc()).ToStringFileLinks();
             images.AddRange(imgs);
-            var selector = soup.SelectSingleNode("//span[@class='relative z-0 inline-flex flex-wrap shadow-sm rounded-md']");
+            var selector =
+                soup.SelectSingleNode("//span[@class='relative z-0 inline-flex flex-wrap shadow-sm rounded-md']");
             if (selector is null)
             {
                 break;

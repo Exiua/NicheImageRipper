@@ -1,12 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using Sdk.Utility;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Flickr;
 
@@ -15,8 +16,8 @@ public class FlickrParser : HtmlParser, IHtmlParser
     public static string ParserName => "flickr";
     public static string[] SupportedUrls => ["https://www.flickr.com/"];
 
-    public FlickrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public FlickrParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<FlickrParser>(filenameScheme))
     {
     }

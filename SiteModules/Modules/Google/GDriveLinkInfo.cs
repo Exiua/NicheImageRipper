@@ -1,5 +1,5 @@
 
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 

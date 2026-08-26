@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BabesAndGirls;
+
 public class BabesAndGirlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babesandgirls";
     public static string[] SupportedUrls => ["https://www.babesandgirls.com/"];
 
-    public BabesAndGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabesAndGirlsParser>(filenameScheme))
+    public BabesAndGirlsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BabesAndGirlsParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,10 @@ public class BabesAndGirlsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='block-post album-item']").SelectNodesOrThrow(".//a[@class='item-post']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='block-post album-item']")
+                         .SelectNodesOrThrow(".//a[@class='item-post']")
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

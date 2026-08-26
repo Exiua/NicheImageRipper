@@ -1,20 +1,21 @@
-
-using NicheImageRipper.Core.Exceptions;
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Patreon;
+
 public class PatreonParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "patreon";
     public static string[] SupportedUrls { get; } = ["https://www.patreon.com"];
 
-    public PatreonParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PatreonParser>(filenameScheme))
+    public PatreonParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<PatreonParser>(filenameScheme))
     {
     }
 
@@ -29,7 +30,7 @@ public class PatreonParser : HtmlParser, IHtmlParser
         {
             throw new RipperException("No session found for " + ParserName);
         }
-        
+
         Driver.SetCookie("session_id", sessionIds[0]);
         var postUrl = ParseUrl(CurrentUrl);
         CurrentUrl = postUrl;

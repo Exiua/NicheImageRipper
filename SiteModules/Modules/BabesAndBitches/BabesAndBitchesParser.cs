@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BabesAndBitches;
+
 public class BabesAndBitchesParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babesandbitches";
     public static string[] SupportedUrls => ["https://www.babesandbitches.net/"];
 
-    public BabesAndBitchesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabesAndBitchesParser>(filenameScheme))
+    public BabesAndBitchesParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                 FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BabesAndBitchesParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,9 @@ public class BabesAndBitchesParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@id='title']").InnerText.Split("picture")[0].Trim();
-        var images = soup.SelectNodesOrThrow("//a[@class='gallery-thumb']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//a[@class='gallery-thumb']")
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

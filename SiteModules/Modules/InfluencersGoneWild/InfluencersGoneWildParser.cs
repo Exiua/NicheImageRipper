@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.InfluencersGoneWild;
+
 public class InfluencersGoneWildParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "influencersgonewild";
     public static string[] SupportedUrls => ["https://influencersgonewild.com/"];
 
-    public InfluencersGoneWildParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<InfluencersGoneWildParser>(filenameScheme))
+    public InfluencersGoneWildParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                     FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
+        requestHeaders, IHtmlParser.GetFilenameScheme<InfluencersGoneWildParser>(filenameScheme))
     {
     }
 
@@ -21,9 +23,12 @@ public class InfluencersGoneWildParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 625, ScrollPauseTime = 1000 }, cancellationToken: cancellationToken);
+        var soup = await Soupify(
+            lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 625, ScrollPauseTime = 1000 },
+            cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='g1-mega g1-mega-1st entry-title']").InnerText;
-        var posts = soup.SelectSingleNodeOrThrow("//div[@class='g1-content-narrow g1-typography-xl entry-content']").SelectNodesOrThrow(".//img|.//video");
+        var posts = soup.SelectSingleNodeOrThrow("//div[@class='g1-content-narrow g1-typography-xl entry-content']")
+                        .SelectNodesOrThrow(".//img|.//video");
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
@@ -35,7 +40,8 @@ public class InfluencersGoneWildParser : HtmlParser, IHtmlParser
                     images.Add(url);
                     break;
                 case "video":
-                    images.Add(post.SelectSingleNodeOrThrow(".//source").GetSrc()); // Unable to actually download videos
+                    images.Add(post.SelectSingleNodeOrThrow(".//source")
+                                   .GetSrc()); // Unable to actually download videos
                     break;
             }
         }

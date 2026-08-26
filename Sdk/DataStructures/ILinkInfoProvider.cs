@@ -1,4 +1,4 @@
-namespace Sdk.DataStructures;
+namespace NicheImageRipper.Sdk.DataStructures;
 
 /// <summary>
 ///     Marker for classes that declare LinkInfo values (e.g. MegaLinkInfo.Mega). Implementing this interface

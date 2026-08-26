@@ -1,14 +1,14 @@
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.KoreanBj;
+
 public class KoreanBjParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "koreanbj";
@@ -17,7 +17,10 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
     private const string WaitForElementXPath = "//div[@id='responsive-player']/iframe|//video[@id='player']";
     private const string IframeXPath = "//div[@id='responsive-player']/iframe";
     private const string VideoXPath = "//video[@id='player']";
-    public KoreanBjParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KoreanBjParser>(filenameScheme))
+
+    public KoreanBjParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<KoreanBjParser>(filenameScheme))
     {
     }
 
@@ -27,7 +30,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var(capturer, b) = await ConfigureNetworkCapture<KoreanBjVideoCapturer>(cancellationToken);
+        var (capturer, b) = await ConfigureNetworkCapture<KoreanBjVideoCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var dirName = Driver.FindElement(By.XPath("//h2[@class='entry-title']")).Text;
@@ -81,7 +84,8 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 
-    private async Task ExtractPlaylist(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
+    private async Task ExtractPlaylist(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,
+                                       CancellationToken cancellationToken = default)
     {
         var i = 0;
         while (true)
@@ -103,13 +107,15 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             var video = videos[0];
             Logger.Debug("Found video URL: {url}", video);
             var filename = video.Split("/")[3] + ".mp4";
-            var fileLink = FileLink.WithFilename(videos[0], filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp, referer: "https://ww1.koreanbj.club/");
+            var fileLink = FileLink.WithFilename(videos[0], filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                referer: "https://ww1.koreanbj.club/");
             files.Add(fileLink);
             break;
         }
     }
 
-    private async Task ExtractPlaylistFromIframe(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
+    private async Task ExtractPlaylistFromIframe(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,
+                                                 CancellationToken cancellationToken = default)
     {
         var closeButton = Driver.TryFindElement(By.XPath("//button[normalize-space(.)='Close']"));
         if (closeButton is not null)
@@ -192,13 +198,15 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             }
 
             var filename = UrlUtility.GetUrlParameterValue(url, "t") + ".mp4";
-            var fileLink = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp, referer: "https://jilliandescribecompany.com/");
+            var fileLink = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                referer: "https://jilliandescribecompany.com/");
             files.Add(fileLink);
             break;
         }
     }
 
-    private async Task ExtractVideoFromIframe(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer, CancellationToken cancellationToken = default)
+    private async Task ExtractVideoFromIframe(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,
+                                              CancellationToken cancellationToken = default)
     {
         var iframe = Driver.FindElement(By.XPath(IframeXPath));
         var iframeSrc = iframe.GetAttribute("src")!;
@@ -228,7 +236,8 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
                 Logger.Debug("Found video URL: {url}", video);
                 var id = UrlUtility.GetUrlParameterValue(video, "pp");
                 var filename = Uri.UnescapeDataString(id) + ".mp4";
-                var fileLink = FileLink.WithFilename(video, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp, referer: iframeSrc);
+                var fileLink = FileLink.WithFilename(video, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+                    referer: iframeSrc);
                 files.Add(fileLink);
                 break;
             }
@@ -248,6 +257,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
         }
 
         var classAttribute = videoElement.GetAttribute("class");
-        return classAttribute is not null && (classAttribute.Contains("jw-state-playing") || classAttribute.Contains("jw-state-buffering"));
+        return classAttribute is not null &&
+               (classAttribute.Contains("jw-state-playing") || classAttribute.Contains("jw-state-buffering"));
     }
 }

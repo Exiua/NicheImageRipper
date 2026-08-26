@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Kaizty;
+
 public class KaiztyParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "kaizty";
     public static string[] SupportedUrls => ["https://www.kaizty.com/"];
 
-    public KaiztyParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<KaiztyParser>(filenameScheme))
+    public KaiztyParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<KaiztyParser>(filenameScheme))
     {
     }
 
@@ -29,10 +31,13 @@ public class KaiztyParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Split("?")[0]).Where(link => link.StartsWith("https")).ToStringFileLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='contentme']").SelectNodesOrThrow(".//img")
+                           .Select(img => img.GetSrc().Split("?")[0]).Where(link => link.StartsWith("https"))
+                           .ToStringFileLinks();
             images.AddRange(imgs);
             var pagination = soup.SelectSingleNode("//ul[@class='pagination-site']");
-            var nextPage = pagination?.SelectNodesOrThrow(".//a").Where(a => a.InnerText.StartsWith("Next")).Select(a => a.GetHref()).FirstOrDefault();
+            var nextPage = pagination?.SelectNodesOrThrow(".//a").Where(a => a.InnerText.StartsWith("Next"))
+                                      .Select(a => a.GetHref()).FirstOrDefault();
             if (nextPage is null)
             {
                 break;

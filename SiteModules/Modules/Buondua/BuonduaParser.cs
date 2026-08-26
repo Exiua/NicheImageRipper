@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Buondua;
+
 public class BuonduaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "buondua";
     public static string[] SupportedUrls => ["https://buondua.com/"];
 
-    public BuonduaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BuonduaParser>(filenameScheme))
+    public BuonduaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BuonduaParser>(filenameScheme))
     {
     }
 
@@ -21,8 +23,10 @@ public class BuonduaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='article-header']").SelectSingleNodeOrThrow(".//h1").InnerText;
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true },
+            cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='article-header']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText;
         var dirNameSplit = dirName.Split("(");
         if (dirName.Contains("pictures") || dirName.Contains("photos"))
         {
@@ -34,7 +38,9 @@ public class BuonduaParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < pages; i++)
         {
-            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='article-fulltext']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='article-fulltext']")
+                                .SelectNodesOrThrow(".//img").Select(img => img.GetSrc())
+                                .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
             images.AddRange(imageList);
             if (i >= pages - 1)
             {
@@ -43,7 +49,8 @@ public class BuonduaParser : HtmlParser, IHtmlParser
 
             var nextPage = $"{currUrl}?page={i + 2}";
             CurrentUrl = nextPage;
-            soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
+            soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true },
+                cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

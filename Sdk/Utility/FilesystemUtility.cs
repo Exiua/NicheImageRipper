@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using Serilog;
 
-namespace Sdk.Utility;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static class FilesystemUtility
 {

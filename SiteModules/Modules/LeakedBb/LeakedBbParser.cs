@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.LeakedBb;
+
 public class LeakedBbParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "leakedbb";
     public static string[] SupportedUrls => ["https://leakedbb.com/"];
 
-    public LeakedBbParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<LeakedBbParser>(filenameScheme))
+    public LeakedBbParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<LeakedBbParser>(filenameScheme))
     {
     }
 
@@ -22,8 +24,10 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='flow-text left']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var imageLinks = soup.SelectSingleNodeOrThrow("//div[@class='post_body scaleimages']").SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToList();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='flow-text left']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText;
+        var imageLinks = soup.SelectSingleNodeOrThrow("//div[@class='post_body scaleimages']")
+                             .SelectNodesOrThrow("./img").Select(img => img.GetSrc()).ToList();
         var images = new List<StringFileLinkWrapper>();
         foreach (var link in imageLinks)
         {

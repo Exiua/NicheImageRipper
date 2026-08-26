@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NicheImageRipper.Core.Configuration;
+using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Service.Singletons;
-using Sdk.Configuration;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Service.Controllers;

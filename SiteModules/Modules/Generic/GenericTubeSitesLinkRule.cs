@@ -1,3 +1,5 @@
+using NicheImageRipper.Sdk.SiteParsing;
+
 namespace NicheImageRipper.SiteModules.Modules.Generic;
 
 public sealed class GenericTubeSitesLinkRule : PenultimateSegmentLinkRule

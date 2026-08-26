@@ -1,12 +1,13 @@
 
-using NicheImageRipper.Core.Exceptions;
 
+
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Xasiat;
 public class XasiatParser : HtmlParser, IHtmlParser
@@ -14,7 +15,7 @@ public class XasiatParser : HtmlParser, IHtmlParser
     public static string ParserName => "xasiat";
     public static string[] SupportedUrls => ["https://www.xasiat.com/"];
 
-    public XasiatParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XasiatParser>(filenameScheme))
+    public XasiatParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<XasiatParser>(filenameScheme))
     {
     }
 
@@ -70,6 +71,6 @@ public class XasiatParser : HtmlParser, IHtmlParser
             throw new RipperException("Unknown URL type");
         }
 
-        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.HentaiHand;
+
 public class HentaiHandParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "hentaihand";
     public static string[] SupportedUrls => ["https://hentaihand.com/"];
 
-    public HentaiHandParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HentaiHandParser>(filenameScheme))
+    public HentaiHandParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<HentaiHandParser>(filenameScheme))
     {
     }
 
@@ -25,10 +27,14 @@ public class HentaiHandParser : HtmlParser, IHtmlParser
         {
             ScrollBy = true
         };
-        var soup = await Soupify(xpath: "//div[@class='gallery-image col-6 col-md-3 py-3']//img", lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
+        var soup = await Soupify(xpath: "//div[@class='gallery-image col-6 col-md-3 py-3']//img",
+            lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h5[@class='comic-title font-weight-bold mb-2']").InnerText;
-        var pageCount = soup.SelectSingleNodeOrThrow("//h6[@class='box-header mb-2']").InnerText.Split('(')[1].Split(')')[0].ParseInt();
-        var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='gallery-image col-6 col-md-3 py-3']//img").GetSrc().Replace("/thumbnails/", "/images/");
+        var pageCount =
+            soup.SelectSingleNodeOrThrow("//h6[@class='box-header mb-2']").InnerText.Split('(')[1].Split(')')[0]
+                .ParseInt();
+        var baseUrl = soup.SelectSingleNodeOrThrow("//div[@class='gallery-image col-6 col-md-3 py-3']//img").GetSrc()
+                          .Replace("/thumbnails/", "/images/");
         return RipInfo.FromGenerateInfo(baseUrl, dirName, pageCount);
     }
 }

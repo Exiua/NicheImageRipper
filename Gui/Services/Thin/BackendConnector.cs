@@ -10,15 +10,15 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Gui.Models.Thin;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.Service.Models.Requests;
 using NicheImageRipper.Service.Models.WebSocket;
-using Sdk.Configuration;
-using Sdk.Utility;
+
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Gui.Services.Thin;

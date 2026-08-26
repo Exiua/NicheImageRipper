@@ -1,9 +1,7 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 public class GelbooruParser : BooruParser, IHtmlParser
@@ -11,7 +9,7 @@ public class GelbooruParser : BooruParser, IHtmlParser
     public static string ParserName => "gelbooru";
     public static string[] SupportedUrls => ["https://gelbooru.com/"];
 
-    public GelbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GelbooruParser>(filenameScheme))
+    public GelbooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<GelbooruParser>(filenameScheme))
     {
     }
 
@@ -21,6 +19,6 @@ public class GelbooruParser : BooruParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Core.Enums.Booru.Gelbooru, cancellationToken: cancellationToken);
+        return BooruParse(Sdk.Enums.Booru.Gelbooru, cancellationToken: cancellationToken);
     }
 }

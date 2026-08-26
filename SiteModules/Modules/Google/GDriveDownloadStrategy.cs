@@ -1,9 +1,7 @@
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
-
-
-
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 
@@ -16,7 +14,7 @@ public sealed class GDriveDownloadStrategy : IFileDownloadStrategy
     {
         var parent = Directory.GetParent(imagePath)!.FullName;
         Directory.CreateDirectory(parent);
-        var credentials = await TokenManager.GDriveAuthenticate();
+        var credentials = await GoogleAuth.GDriveAuthenticate();
         var service = new DriveService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credentials,

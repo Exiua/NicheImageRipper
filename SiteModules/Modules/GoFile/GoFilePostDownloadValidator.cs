@@ -1,11 +1,11 @@
 using System.Text.Json;
-
-
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Configuration;
-using Sdk.DataStructures;
+
 using Serilog;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;

@@ -1,24 +1,25 @@
-using Sdk.Common;
-using Sdk.DataStructures;
-using Sdk.Driver;
-using Sdk.Enums;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Driver;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public abstract class TimeSensitiveHtmlParser : HtmlParser
 {
-    protected static TimeSensitiveParserStateManager TimeSensitiveParserStateManager =>
-        TimeSensitiveParserStateManager.Instance;
+    // TODO: FIXME
+    protected static ITimeSensitiveParserStateManager
+        TimeSensitiveParserStateManager { get; } //=> TimeSensitiveParserStateManager.Instance;
 
     protected abstract int MaxEntriesPerBatch { get; }
     protected abstract string ParserKey { get; }
     // ImageLinksFileName removed — no longer needed now that links live in TimeSensitiveParserStateManager
 
-    protected TimeSensitiveHtmlParser(WebDriver driver, ApiClientManager clientManager,
+    protected TimeSensitiveHtmlParser(WebDriver driver,
                                       Dictionary<string, string> requestHeaders,
                                       FilenameScheme filenameScheme = FilenameScheme.Original)
-        : base(driver, clientManager, requestHeaders, filenameScheme)
+        : base(driver, requestHeaders, filenameScheme)
     {
     }
 
@@ -29,7 +30,7 @@ public abstract class TimeSensitiveHtmlParser : HtmlParser
     public async Task<List<FileLink>> UpdateLinks(List<FileLink> links, int start, string ripUrl,
                                                   CancellationToken cancellationToken = default)
     {
-        var imageLinks = TimeSensitiveParserStateManager.Instance.GetLinks(ParserKey, ripUrl);
+        var imageLinks = TimeSensitiveParserStateManager.GetLinks(ParserKey, ripUrl);
         if (imageLinks is null)
         {
             throw new RipperException("No cached links found. Please run Parse() first.");

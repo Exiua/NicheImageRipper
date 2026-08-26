@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.FoxHq;
+
 public class FoxHqParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "foxhq";
     public static string[] SupportedUrls => ["https://www.foxhq.com/"];
 
-    public FoxHqParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FoxHqParser>(filenameScheme))
+    public FoxHqParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<FoxHqParser>(filenameScheme))
     {
     }
 
@@ -29,7 +31,8 @@ public class FoxHqParser : HtmlParser, IHtmlParser
         }
 
         var url = CurrentUrl;
-        var images = soup.SelectNodesOrThrow("//div[@class='thumb simple']").Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringFileLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@class='thumb simple']")
+                         .Select(img => img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

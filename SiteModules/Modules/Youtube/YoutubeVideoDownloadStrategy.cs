@@ -1,6 +1,6 @@
-
-
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 
 namespace NicheImageRipper.SiteModules.Modules.Youtube;

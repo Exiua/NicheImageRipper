@@ -3,7 +3,8 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NicheImageRipper.Core.Utility;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Utility;
+
 
 namespace NicheImageRipper.Gui.Models.Thin;
 

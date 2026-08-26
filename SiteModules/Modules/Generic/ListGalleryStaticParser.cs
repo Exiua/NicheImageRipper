@@ -1,9 +1,9 @@
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Driver;
-using Sdk.Enums;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Driver;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+
 
 namespace NicheImageRipper.SiteModules.Modules.Generic;
 
@@ -13,10 +13,10 @@ namespace NicheImageRipper.SiteModules.Modules.Generic;
 /// </summary>
 public abstract class ListGalleryStaticParser : HtmlParser
 {
-    protected ListGalleryStaticParser(WebDriver driver, ApiClientManager clientManager,
+    protected ListGalleryStaticParser(WebDriver driver, 
                                       Dictionary<string, string> requestHeaders,
                                       FilenameScheme filenameScheme = FilenameScheme.Original)
-        : base(driver, clientManager, requestHeaders, filenameScheme)
+        : base(driver, requestHeaders, filenameScheme)
     {
     }
 

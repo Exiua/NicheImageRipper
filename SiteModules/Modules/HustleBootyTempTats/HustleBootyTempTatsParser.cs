@@ -1,11 +1,11 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.HustleBootyTempTats;
 public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
@@ -13,7 +13,7 @@ public class HustleBootyTempTatsParser : HtmlParser, IHtmlParser
     public static string ParserName => "hustlebootytemptats";
     public static string[] SupportedUrls => ["https://hustlebootytemptats.com/"];
 
-    public HustleBootyTempTatsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<HustleBootyTempTatsParser>(filenameScheme))
+    public HustleBootyTempTatsParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<HustleBootyTempTatsParser>(filenameScheme))
     {
     }
 

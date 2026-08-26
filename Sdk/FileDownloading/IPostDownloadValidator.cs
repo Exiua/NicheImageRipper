@@ -1,6 +1,6 @@
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
 
-namespace Sdk.FileDownloading;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 public interface IPostDownloadValidator
 {

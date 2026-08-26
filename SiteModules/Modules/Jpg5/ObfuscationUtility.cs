@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace NicheImageRipper.Core.Utility;
+namespace NicheImageRipper.SiteModules.Modules.Jpg5;
 
 public static class ObfuscationUtility
 {

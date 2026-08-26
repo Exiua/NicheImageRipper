@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SexyBabesArt;
 public class SexyBabesArtParser : GenericBabesGalleryParser, IHtmlParser
@@ -12,7 +12,7 @@ public class SexyBabesArtParser : GenericBabesGalleryParser, IHtmlParser
     protected override string DirNameXpath => "//div[@class='content-title']/h1";
     protected override string ImageContainerXpath => "//div[@class='thumbs']";
 
-    public SexyBabesArtParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SexyBabesArtParser>(filenameScheme))
+    public SexyBabesArtParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<SexyBabesArtParser>(filenameScheme))
     {
     }
 }

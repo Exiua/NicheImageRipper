@@ -1,5 +1,3 @@
-using NicheImageRipper.Common.ExtensionMethods;
-using PixivApi;
 using PixivApi.Utilities;
 
 namespace PixivApi.Tests;

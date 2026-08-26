@@ -1,9 +1,8 @@
-
-
-
-
-using Sdk.Configuration;
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.Deviantart;
 

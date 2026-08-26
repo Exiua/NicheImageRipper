@@ -1,4 +1,5 @@
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 

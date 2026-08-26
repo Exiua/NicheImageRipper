@@ -1,15 +1,12 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
-using NicheImageRipper.Common.ExtensionMethods;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.Utility;
-using Sdk.DataStructures;
-using Sdk.Exceptions;
-using Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Utility;
 
-namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 using static DownloadLogging;
 

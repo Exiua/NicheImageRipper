@@ -1,9 +1,7 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtmlParser
@@ -12,7 +10,7 @@ public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtm
     public static string[] SupportedUrls => ["https://danbooru.donmai.us/"];
     public static int SignificantDomainLabels => 3;
 
-    public DanbooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<DanbooruParser>(filenameScheme))
+    public DanbooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<DanbooruParser>(filenameScheme))
     {
     }
 
@@ -22,6 +20,6 @@ public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtm
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Core.Enums.Booru.Danbooru, cancellationToken: cancellationToken);
+        return BooruParse(Sdk.Enums.Booru.Danbooru, cancellationToken: cancellationToken);
     }
 }

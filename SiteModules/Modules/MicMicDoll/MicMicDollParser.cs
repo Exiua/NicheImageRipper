@@ -1,18 +1,20 @@
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.MicMicDoll;
+
 public class MicMicDollParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "micmicdoll";
     public static string[] SupportedUrls => ["https://sex.micmicdoll.com/"];
 
-    public MicMicDollParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MicMicDollParser>(filenameScheme))
+    public MicMicDollParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<MicMicDollParser>(filenameScheme))
     {
     }
 
@@ -28,12 +30,14 @@ public class MicMicDollParser : HtmlParser, IHtmlParser
         }
         catch (NoAlertPresentException)
         {
-        // ignored
+            // ignored
         }
 
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='post-title entry-title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a").Select(a => a.GetNullableHref()).Where(item => item is not null).Select(item => item!).ToStringFileLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a")
+                         .Select(a => a.GetNullableHref()).Where(item => item is not null).Select(item => item!)
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

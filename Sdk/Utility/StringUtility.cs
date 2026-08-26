@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Sdk.Utility;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static class StringUtility
 {

@@ -1,4 +1,4 @@
-namespace Sdk.FileDownloading;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 public readonly record struct DownloadResult(DownloadOutcome Outcome, string? Reason = null)
 {

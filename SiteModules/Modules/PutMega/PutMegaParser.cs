@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PutMega;
+
 public class PutMegaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "putmega";
     public static string[] SupportedUrls => ["https://putmega.com/"];
 
-    public PutMegaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<PutMegaParser>(filenameScheme))
+    public PutMegaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<PutMegaParser>(filenameScheme))
     {
     }
 
@@ -27,7 +29,9 @@ public class PutMegaParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         while (true)
         {
-            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']").SelectNodesOrThrow(".//img").Select(img => (StringFileLinkWrapper)img.GetSrc().Remove(".md"));
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='pad-content-listing']")
+                                .SelectNodesOrThrow(".//img")
+                                .Select(img => (StringFileLinkWrapper)img.GetSrc().Remove(".md"));
             images.AddRange(imageList);
             var nextPage = soup.SelectSingleNode("//li[@class='pagination-next']");
             if (nextPage is null)
@@ -41,7 +45,8 @@ public class PutMegaParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            soup = await Soupify("https://putmega.com" + nextPageUrl.Replace("&amp;", "&"), delay: 250, cancellationToken: cancellationToken);
+            soup = await Soupify("https://putmega.com" + nextPageUrl.Replace("&amp;", "&"), delay: 250,
+                cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);

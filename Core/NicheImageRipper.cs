@@ -5,7 +5,6 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.WebUtilities;
 using NicheImageRipper.Common.Exceptions;
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
@@ -14,17 +13,20 @@ using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
-using NicheImageRipper.Core.Utility;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Managers;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.Managers;
+
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using File = System.IO.File;
+using UrlUtility = NicheImageRipper.Core.Utility.UrlUtility;
 
 namespace NicheImageRipper.Core;
 

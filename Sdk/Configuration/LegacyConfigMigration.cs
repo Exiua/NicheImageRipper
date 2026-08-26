@@ -1,9 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Sdk.Configuration;
 using Serilog;
 
-namespace NicheImageRipper.Core.Configuration;
+namespace NicheImageRipper.Sdk.Configuration;
 
 /// <summary>
 ///     One-time migration for config.json files written before per-site config (Logins/Cookies/Keys/Custom)

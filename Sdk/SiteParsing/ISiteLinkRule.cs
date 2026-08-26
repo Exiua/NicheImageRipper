@@ -1,4 +1,4 @@
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public interface ISiteLinkRule
 {

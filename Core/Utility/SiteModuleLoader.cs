@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Utility;
+
 using Serilog;
 
 namespace NicheImageRipper.Core.Utility;

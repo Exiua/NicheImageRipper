@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Tsumino;
+
 public class TsuminoParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "tsumino";
     public static string[] SupportedUrls => ["https://www.tsumino.com/"];
 
-    public TsuminoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TsuminoParser>(filenameScheme))
+    public TsuminoParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<TsuminoParser>(filenameScheme))
     {
     }
 
@@ -29,7 +31,8 @@ public class TsuminoParser : HtmlParser, IHtmlParser
         for (var i = 1; i <= numPages; i++)
         {
             soup = await Soupify($"{pagerUrl}{i}", delay: 3000, cancellationToken: cancellationToken);
-            var src = soup.SelectSingleNodeOrThrow("//img[@class='img-responsive reader-img']").GetSrc().Replace("&amp;", "&");
+            var src = soup.SelectSingleNodeOrThrow("//img[@class='img-responsive reader-img']").GetSrc()
+                          .Replace("&amp;", "&");
             images.Add(src);
         }
 

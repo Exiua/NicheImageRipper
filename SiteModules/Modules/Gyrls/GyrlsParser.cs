@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Gyrls;
+
 public class GyrlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "gyrls";
     public static string[] SupportedUrls => ["http://www.gyrls.com/"];
 
-    public GyrlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GyrlsParser>(filenameScheme))
+    public GyrlsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<GyrlsParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,8 @@ public class GyrlsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single_title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//div[@id='gallery-1']//a").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//div[@id='gallery-1']//a").Select(img => img.GetHref())
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

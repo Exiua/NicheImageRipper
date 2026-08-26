@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Serilog;
 
-namespace Sdk.Utility;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static partial class UrlUtility
 {

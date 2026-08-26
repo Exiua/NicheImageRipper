@@ -1,3 +1,5 @@
+using NicheImageRipper.Sdk.SiteParsing;
+
 namespace NicheImageRipper.SiteModules.Modules.Fcww0;
 
 public sealed class Fcww0LinkRule : PenultimateSegmentLinkRule

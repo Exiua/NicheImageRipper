@@ -1,7 +1,7 @@
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading;

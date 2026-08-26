@@ -1,11 +1,11 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SimplyCosplay;
 public class SimplyCosplayParser : HtmlParser, IHtmlParser
@@ -13,7 +13,7 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
     public static string ParserName => "simply-cosplay";
     public static string[] SupportedUrls => ["https://www.simply-cosplay.com/"];
 
-    public SimplyCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SimplyCosplayParser>(filenameScheme))
+    public SimplyCosplayParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<SimplyCosplayParser>(filenameScheme))
     {
     }
 

@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Exceptions;
 
-namespace Sdk.Utility;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static class JsonUtility
 {

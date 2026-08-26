@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SexBjCam;
+
 public class SexBjCamParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "sexbjcam";
     public static string[] SupportedUrls => ["https://sexbjcam.com/"];
 
-    public SexBjCamParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<SexBjCamParser>(filenameScheme))
+    public SexBjCamParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<SexBjCamParser>(filenameScheme))
     {
     }
 
@@ -27,7 +29,7 @@ public class SexBjCamParser : HtmlParser, IHtmlParser
         var iframe = soup.SelectSingleNodeOrThrow("//iframe[@allowfullscreen]");
         var iframeUrl = iframe.GetSrc();
         Logger.Debug("Navigating to iframe URL: {IframeUrl}", iframeUrl);
-        var(capturer, b) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>(cancellationToken);
+        var (capturer, b) = await ConfigureNetworkCapture<SexBjCamVideoCapturer>(cancellationToken);
         await using var bidi = b;
         CurrentUrl = iframeUrl;
         var referer = iframeUrl.Split("/")[..3].Join("/") + '/';
@@ -40,7 +42,8 @@ public class SexBjCamParser : HtmlParser, IHtmlParser
                 continue;
             }
 
-            playlist = FileLink.WithFilename(links[0], "playlist.m3u8", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: referer);
+            playlist = FileLink.WithFilename(links[0], "playlist.m3u8", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg,
+                referer: referer);
             break;
         }
 

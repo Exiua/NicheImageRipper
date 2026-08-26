@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BabeUniversum;
+
 public class BabeUniversumParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babeuniversum";
     public static string[] SupportedUrls => ["https://www.babeuniversum.com/"];
 
-    public BabeUniversumParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabeUniversumParser>(filenameScheme))
+    public BabeUniversumParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BabeUniversumParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,10 @@ public class BabeUniversumParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='three-column']").SelectNodesOrThrow(".//div[@class='thumbnail']").Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='three-column']")
+                         .SelectNodesOrThrow(".//div[@class='thumbnail']")
+                         .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
+                         .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -1,17 +1,20 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.XHamster;
+
 public class XHamsterParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xhamster";
     public static string[] SupportedUrls => ["https://xhamster.com/"];
 
-    public XHamsterParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XHamsterParser>(filenameScheme))
+    public XHamsterParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<XHamsterParser>(filenameScheme))
     {
     }
 
@@ -22,7 +25,7 @@ public class XHamsterParser : HtmlParser, IHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var id = CurrentUrl.Split("-")[^1].Split("?")[0];
-        var(capturer, b) = await ConfigureNetworkCapture<XHamsterCapturer>(cancellationToken);
+        var (capturer, b) = await ConfigureNetworkCapture<XHamsterCapturer>(cancellationToken);
         await using var bidi = b;
         Driver.Refresh();
         var soup = await Soupify(cancellationToken: cancellationToken);

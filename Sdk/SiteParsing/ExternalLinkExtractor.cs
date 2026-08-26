@@ -1,4 +1,6 @@
-namespace Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 /// <summary>
 ///     Helpers for collecting and persisting links to external sites (e.g. Mega, Drive, Dropbox) found while
@@ -7,8 +9,9 @@ namespace Sdk.SiteParsing;
 /// </summary>
 public static class ExternalLinkExtractor
 {
+    // TODO: FIXME
     /// <summary>Every domain a registered <see cref="ParameterizedHtmlParser"/> can be delegated to.</summary>
-    public static IReadOnlySet<string> ExternalSites => HtmlParserFactory.DelegatableDomains;
+    public static IReadOnlySet<string> ExternalSites { get; } //=> HtmlParserFactory.DelegatableDomains;
 
     public static Dictionary<string, List<string>> CreateExternalLinkDict()
     {

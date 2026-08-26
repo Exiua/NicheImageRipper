@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Net;
 using NicheImageRipper.Common.Exceptions;
-using NicheImageRipper.Common.ExtensionMethods;
 using Serilog;
 using SteamKit2;
 using SteamKit2.Authentication;

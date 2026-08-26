@@ -1,18 +1,20 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Manganato;
+
 public class ManganatoParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
 {
     public static string ParserName => "manganato";
     public static string[] AdditionalParserNames { get; } = ["chapmanganato"];
     public static string[] SupportedUrls { get; } = ["https://readmanganato.com/", "https://manganato.com/"];
 
-    public ManganatoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ManganatoParser>(filenameScheme))
+    public ManganatoParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<ManganatoParser>(filenameScheme))
     {
     }
 
@@ -23,8 +25,11 @@ public class ManganatoParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='story-info-right']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var nextChapter = soup.SelectSingleNodeOrThrow("//ul[@class='row-content-chapter']").SelectNodesOrThrow("./li")[^1].SelectSingleNode(".//a");
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='story-info-right']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText;
+        var nextChapter =
+            soup.SelectSingleNodeOrThrow("//ul[@class='row-content-chapter']").SelectNodesOrThrow("./li")[^1]
+                .SelectSingleNode(".//a");
         var images = new List<StringFileLinkWrapper>();
         var counter = 1;
         while (nextChapter is not null)
@@ -32,7 +37,8 @@ public class ManganatoParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
             Logger.Information($"Parsing Chapter {counter}");
             counter += 1;
             soup = await Soupify(nextChapter.GetHref(), cancellationToken: cancellationToken);
-            var chapterImages = soup.SelectSingleNodeOrThrow("//div[@class='container-chapter-reader']").SelectNodesOrThrow(".//img");
+            var chapterImages = soup.SelectSingleNodeOrThrow("//div[@class='container-chapter-reader']")
+                                    .SelectNodesOrThrow(".//img");
             images.AddRange(chapterImages.Select(img => (StringFileLinkWrapper)img.GetSrc()));
             nextChapter = soup.SelectSingleNode("//a[@class='navi-change-chapter-btn-next a-h']");
         }

@@ -25,6 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
       <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.0" />
     </ItemGroup>
 

@@ -1,7 +1,6 @@
 using System.Data;
 using System.Data.SQLite;
-using NicheImageRipper.Core.SiteParsing.HtmlParsers;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.SiteParsing;
 
 namespace NicheImageRipper.Core.PartialSaves;
 
@@ -10,7 +9,7 @@ namespace NicheImageRipper.Core.PartialSaves;
 ///     keyed by the parser's <c>ParserKey</c> and the original rip URL (parsers are recreated between the
 ///     initial parse and a later link-refresh, so this cannot live on the instance itself).
 /// </summary>
-public sealed class TimeSensitiveParserStateManager
+public sealed class TimeSensitiveParserStateManager : ITimeSensitiveParserStateManager
 {
     private static readonly string ConnectionString = new SQLiteConnectionStringBuilder
     {
@@ -55,13 +54,7 @@ public sealed class TimeSensitiveParserStateManager
         }
     }
 
-    /// <summary>
-    ///     Records the link list for a given parser type and rip URL, replacing any previously stored links
-    ///     for the same (parserKey, ripUrl) pair.
-    /// </summary>
-    /// <param name="parserKey">The parser's <c>ParserKey</c>.</param>
-    /// <param name="ripUrl">The URL originally given to <c>Rip</c>/<c>ParseSite</c>.</param>
-    /// <param name="links">The ordered link list to cache.</param>
+    /// <inheritdoc/>
     public void StoreLinks(string parserKey, string ripUrl, IReadOnlyList<string> links)
     {
         lock (_databaseLock)
@@ -123,10 +116,7 @@ public sealed class TimeSensitiveParserStateManager
         return (long)cmd.ExecuteScalar()!;
     }
 
-    /// <summary>Looks up the cached link list for a given parser type and rip URL.</summary>
-    /// <param name="parserKey">The parser's <c>ParserKey</c>.</param>
-    /// <param name="ripUrl">The URL originally given to <c>Rip</c>/<c>ParseSite</c>.</param>
-    /// <returns>The cached links in original order, or null if no cached state exists for this (parserKey, ripUrl) pair.</returns>
+    /// <inheritdoc/>
     public List<string>? GetLinks(string parserKey, string ripUrl)
     {
         lock (_databaseLock)

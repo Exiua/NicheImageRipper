@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BustyBloom;
 public class BustyBloomParser : ClickToEnlargeGalleryParser, IHtmlParser
@@ -10,7 +10,7 @@ public class BustyBloomParser : ClickToEnlargeGalleryParser, IHtmlParser
     public static string ParserName => "bustybloom";
     public static string[] SupportedUrls => ["https://www.bustybloom.com/"];
 
-    public BustyBloomParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BustyBloomParser>(filenameScheme))
+    public BustyBloomParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<BustyBloomParser>(filenameScheme))
     {
     }
 }

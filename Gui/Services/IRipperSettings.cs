@@ -1,6 +1,6 @@
 using NicheImageRipper.Core.Enums;
-using Sdk.Configuration;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Enums;
 
 namespace NicheImageRipper.Gui.Services;
 

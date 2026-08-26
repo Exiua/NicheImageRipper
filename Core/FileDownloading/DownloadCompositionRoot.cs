@@ -1,6 +1,6 @@
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 using NicheImageRipper.Core.Utility;
-using Sdk.FileDownloading;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.Core.FileDownloading;
 

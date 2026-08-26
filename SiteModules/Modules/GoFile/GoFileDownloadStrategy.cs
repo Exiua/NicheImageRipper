@@ -1,7 +1,5 @@
-
-
-
-using Sdk.DataStructures;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.SiteModules.Modules.GoFile;
 

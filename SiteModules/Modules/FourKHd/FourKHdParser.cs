@@ -1,19 +1,21 @@
 using System.Text.RegularExpressions;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.FourKHd;
+
 public partial class FourKHdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "4khd";
     public static string[] SupportedUrls => ["https://www.4khd.com/"];
 
-    public FourKHdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FourKHdParser>(filenameScheme))
+    public FourKHdParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<FourKHdParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,8 @@ public partial class FourKHdParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await LazyLoad(new LazyLoadArgs { StopElement = By.XPath("//ul[@class='page-links']") }, cancellationToken: cancellationToken);
+        await LazyLoad(new LazyLoadArgs { StopElement = By.XPath("//ul[@class='page-links']") },
+            cancellationToken: cancellationToken);
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h3").InnerText;
         var numPages = soup.SelectSingleNode("//ul[@class='page-links']")?.SelectNodes("./li")?.Count ?? 1;
@@ -32,11 +35,14 @@ public partial class FourKHdParser : HtmlParser, IHtmlParser
         for (var page = 1; page <= numPages; page++)
         {
             Logger.Information("Parsing page {page} of {numPages}", page, numPages);
-            var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ?? soup.SelectSingleNodeOrThrow("//div[@id='basicE']");
+            var baseElement = soup.SelectSingleNode("//div[@id='basicExample']") ??
+                              soup.SelectSingleNodeOrThrow("//div[@id='basicE']");
             var imgs = baseElement.SelectNodesOrThrow("./a").Select(a => a.GetHref().Split("?")[0]).ToStringFileLinks();
             images.AddRange(imgs);
             // The first page is already loaded
-            soup = await Soupify($"{baseUrl}/{page + 1}", lazyLoadArgs: new LazyLoadArgs { StopElement = By.XPath("//ul[@class='page-links']") }, cancellationToken: cancellationToken);
+            soup = await Soupify($"{baseUrl}/{page + 1}",
+                lazyLoadArgs: new LazyLoadArgs { StopElement = By.XPath("//ul[@class='page-links']") },
+                cancellationToken: cancellationToken);
         }
 
         var baseName = images[0].Split("/")[^1];

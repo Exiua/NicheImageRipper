@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 using NicheImageRipper.Core.SiteParsing;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Exceptions;
 using Serilog;
 
 namespace NicheImageRipper.Core.Utility;

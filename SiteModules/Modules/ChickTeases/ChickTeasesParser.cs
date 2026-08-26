@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.ChickTeases;
 public class ChickTeasesParser : GenericBabesGalleryParser, IHtmlParser
@@ -12,7 +12,7 @@ public class ChickTeasesParser : GenericBabesGalleryParser, IHtmlParser
     protected override string DirNameXpath => "//h1[@id='galleryModelName']";
     protected override string ImageContainerXpath => "//div[@class='minithumbs']";
 
-    public ChickTeasesParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ChickTeasesParser>(filenameScheme))
+    public ChickTeasesParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<ChickTeasesParser>(filenameScheme))
     {
     }
 }

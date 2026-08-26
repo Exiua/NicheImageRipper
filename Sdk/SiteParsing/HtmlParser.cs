@@ -1,19 +1,18 @@
 ﻿using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Managers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.Managers;
 using Serilog;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 /// <summary>
 ///     Base class for all site-specific HTML parsers. Handles the shared parse pipeline (site detection,
@@ -37,7 +36,6 @@ public abstract class HtmlParser : IDisposable
     protected string GivenUrl { get; set; }
     protected FilenameScheme FilenameScheme { get; }
     protected Dictionary<string, string> RequestHeaders { get; }
-    protected ApiClientManager ApiClientManager { get; }
     protected ILogger Logger { get; init; }
     protected HttpClient HttpClient { get; set; }
 
@@ -60,7 +58,7 @@ public abstract class HtmlParser : IDisposable
     /// for sites whose links expire too quickly to cache (e.g. e-hentai).
     /// </summary>
     protected virtual bool SupportsPartialSave => true;
-    
+
     /// <summary>
     /// Whether this parser needs SiteLogin run before ParseCore. Checked on every entry path
     /// (both ParseSite-driven and delegated Parse(url) calls), since delegated calls bypass ParseSite entirely.
@@ -69,12 +67,11 @@ public abstract class HtmlParser : IDisposable
 
     protected static FlareSolverrManager FlareSolverrManager { get; } //=> NicheImageRipper.FlareSolverrManager;
 
-    protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
+    protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)
     {
         HttpClient = new HttpClient();
         WebDriver = driver;
-        ApiClientManager = clientManager;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
         Interrupted = false;
@@ -553,9 +550,9 @@ public abstract class HtmlParser : IDisposable
 public abstract class HtmlParser<T> : HtmlParser
     where T : HtmlParser<T>, IHtmlParser
 {
-    protected HtmlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
-        requestHeaders, filenameScheme)
+    protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        filenameScheme)
     {
     }
 }

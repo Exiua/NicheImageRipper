@@ -1,4 +1,4 @@
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.SiteParsing;
 
 namespace NicheImageRipper.Core.SiteParsing.LinkRules.Rules;
 

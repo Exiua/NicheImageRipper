@@ -1,11 +1,12 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Xsnvshen;
 public class XsnvshenParser : HtmlParser, IHtmlParser
@@ -13,7 +14,7 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
     public static string ParserName => "xsnvshen";
     public static string[] SupportedUrls => ["https://www.xsnvshen.com/"];
 
-    public XsnvshenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XsnvshenParser>(filenameScheme))
+    public XsnvshenParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<XsnvshenParser>(filenameScheme))
     {
     }
 

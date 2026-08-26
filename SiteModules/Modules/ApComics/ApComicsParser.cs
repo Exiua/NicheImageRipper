@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.ApComics;
+
 public class ApComicsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "apcomics";
     public static string[] SupportedUrls => ["https://apcomics.org/"];
 
-    public ApComicsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ApComicsParser>(filenameScheme))
+    public ApComicsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<ApComicsParser>(filenameScheme))
     {
     }
 
@@ -21,11 +23,14 @@ public class ApComicsParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        await WaitForElement("//ul[@class='main version-chap no-volumn']/li/a", timeout: 60, cancellationToken: cancellationToken);
+        await WaitForElement("//ul[@class='main version-chap no-volumn']/li/a", timeout: 60,
+            cancellationToken: cancellationToken);
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='post-title']/h1").InnerText;
         var images = new List<StringFileLinkWrapper>();
-        var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']").SelectNodesOrThrow("./li").Select(li => li.SelectSingleNodeOrThrow("./a").GetHref()).Reverse();
+        var chapters = soup.SelectSingleNodeOrThrow("//ul[@class='main version-chap no-volumn']")
+                           .SelectNodesOrThrow("./li").Select(li => li.SelectSingleNodeOrThrow("./a").GetHref())
+                           .Reverse();
         var lazyLoadArgs = new LazyLoadArgs
         {
             ScrollBy = true
@@ -34,7 +39,8 @@ public class ApComicsParser : HtmlParser, IHtmlParser
         {
             Logger.Debug("Parsing chapter {Chapter}", chapter);
             soup = await Soupify(chapter, lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim()).ToStringFileLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='reading-content']").SelectNodesOrThrow("./div")
+                           .Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc().Trim()).ToStringFileLinks();
             images.AddRange(imgs);
         }
 

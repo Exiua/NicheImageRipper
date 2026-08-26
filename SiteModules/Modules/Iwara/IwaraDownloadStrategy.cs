@@ -1,8 +1,8 @@
 using IwaraApiClient.Models;
 using NicheImageRipper.Common.Exceptions;
-using Sdk.DataStructures;
-using Sdk.FileDownloading;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.Iwara;
 

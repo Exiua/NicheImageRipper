@@ -1,6 +1,6 @@
-﻿using Sdk.Utility;
+﻿using NicheImageRipper.Sdk.Utility;
 
-namespace Sdk.Configuration;
+namespace NicheImageRipper.Sdk.Configuration;
 
 public static class Config
 {

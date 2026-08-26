@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Everia;
+
 public class EveriaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "everia";
     public static string[] SupportedUrls => ["https://everia.club/"];
 
-    public EveriaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<EveriaParser>(filenameScheme))
+    public EveriaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<EveriaParser>(filenameScheme))
     {
     }
 
@@ -21,9 +23,14 @@ public class EveriaParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true },
+            cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single-post-title entry-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images " + "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        var images = soup
+                    .SelectSingleNodeOrThrow("//figure[@class='wp-block-gallery has-nested-images " +
+                                             "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']")
+                    .SelectNodesOrThrow(".//img").Select(img => img.GetSrc())
+                    .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

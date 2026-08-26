@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Text;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using Sdk.Enums;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
 using Serilog;
 
-namespace NicheImageRipper.Core.FileDownloading;
+namespace NicheImageRipper.Sdk.Utility;
 
 public static class ProcessRunner
 {
@@ -81,7 +81,7 @@ public static class ProcessRunner
         string startMessage = "Starting ffmpeg download", string endMessage = "Ffmpeg download finished",
         bool displayOutput = false, CancellationToken cancellationToken = default)
     {
-        if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.Ffmpeg))
+        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.Ffmpeg))
         {
             throw new FeatureNotAvailableException(ExternalFeatureSupport.Ffmpeg);
         }

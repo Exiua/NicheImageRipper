@@ -1,13 +1,12 @@
 ﻿using System.Text;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Utility;
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Tui;
 using NicheImageRipper.Tui.ArgParse;
-using Sdk.Configuration;
-using Sdk.SiteParsing;
 using Serilog;
 using Serilog.Events;
 
@@ -39,8 +38,7 @@ switch (arguments.RunMode)
 
         using var pool = new WebDriverPool(1);
         var driver = pool.AcquireDriver(!arguments.Debug); // if debug, headless = false
-        var clientManager = new ApiClientManager();
-        var parser = HtmlParser.GetParser("imhentai", driver, clientManager, requestHeaders);
+        var parser = new HtmlParserOrchestrator(driver, requestHeaders);
         // Null check performed in ArgumentParser.Parse
         var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
         pool.ReleaseDriver(driver);

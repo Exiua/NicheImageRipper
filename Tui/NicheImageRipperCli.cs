@@ -1,10 +1,10 @@
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.Utility;
-using Sdk.Configuration;
-using Sdk.Enums;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Utility;
 using Serilog.Events;
 
 namespace NicheImageRipper.Tui;

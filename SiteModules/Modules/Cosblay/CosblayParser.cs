@@ -1,19 +1,21 @@
 using HtmlAgilityPack;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Cosblay;
+
 public class CosblayParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cosblay";
     public static string[] SupportedUrls => ["https://cosblay.com/", "https://en.cosblay.com/"];
 
-    public CosblayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CosblayParser>(filenameScheme))
+    public CosblayParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<CosblayParser>(filenameScheme))
     {
     }
 
@@ -59,10 +61,12 @@ public class CosblayParser : HtmlParser, IHtmlParser
                 break;
             }
 
-            soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250, cancellationToken: cancellationToken);
+            soup = await Soupify(nextButton.GetHref(), lazyLoadArgs: lazyLoadArgs, delay: 250,
+                cancellationToken: cancellationToken);
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+
         // ReSharper disable once VariableHidesOuterVariable
         HtmlNode? GetNextButton(HtmlNode soup)
         {

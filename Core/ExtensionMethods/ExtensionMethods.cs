@@ -1,7 +1,5 @@
 ﻿using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.SiteParsing;
-using Sdk.DataStructures;
-using Sdk.SiteParsing;
 
 namespace NicheImageRipper.Core.ExtensionMethods;
 
@@ -10,11 +8,6 @@ public static class ExtensionMethods
     public static string HexDigest(this byte[] bytes)
     {
         return Convert.ToHexStringLower(bytes);
-    }
-    
-    public static string Join(this IEnumerable<string> values, char separator)
-    {
-        return string.Join(separator, values);
     }
     
     public static void AddIfNotNull<T>(this List<T> list, T? item)

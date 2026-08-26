@@ -1,11 +1,12 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.CgCosplay;
 public class CgCosplayParser : HtmlParser, IHtmlParser
@@ -13,7 +14,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
     public static string ParserName => "cgcosplay";
     public static string[] SupportedUrls => ["https://cgcosplay.org/"];
 
-    public CgCosplayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CgCosplayParser>(filenameScheme))
+    public CgCosplayParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<CgCosplayParser>(filenameScheme))
     {
     }
 
@@ -85,7 +86,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 {
                     Logger.Debug("Play button not found, retrying...");
                     Driver.TakeDebugScreenshot();
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken);
                     continue;
                 }
 
@@ -100,7 +101,7 @@ public class CgCosplayParser : HtmlParser, IHtmlParser
                 if (links.Count == 0)
                 {
                     Logger.Debug("No links found, retrying...");
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken);
                     continue;
                 }
 

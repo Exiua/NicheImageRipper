@@ -2,10 +2,9 @@
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Gui.Utility;
-using Sdk.Configuration;
+using NicheImageRipper.Sdk.Configuration;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;

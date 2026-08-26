@@ -1,4 +1,4 @@
-namespace Sdk.Exceptions;
+namespace NicheImageRipper.Sdk.Exceptions;
 
 public class ElementNotFoundException : RipperException
 {

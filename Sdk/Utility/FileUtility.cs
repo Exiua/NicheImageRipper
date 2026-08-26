@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Serilog;
 
-namespace NicheImageRipper.Core.Utility;
+namespace NicheImageRipper.Sdk.Utility;
 
 /// <summary>
 ///     A byte-prefix trie for matching file signatures ("magic numbers") to extensions. Structurally guarantees

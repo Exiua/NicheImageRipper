@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.PornVideoXXX;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.HentaiCosplays;
 
@@ -14,9 +14,9 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
     public static string ParserName => "hentai-cosplays";
     public static string[] SupportedUrls => ["https://hentai-cosplays.com/"];
 
-    public HentaiCosplaysParser(WebDriver driver, ApiClientManager clientManager,
+    public HentaiCosplaysParser(WebDriver driver, 
                                 Dictionary<string, string> requestHeaders,
-                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, IHtmlParser.GetFilenameScheme<HentaiCosplaysParser>(filenameScheme))
     {
     }
@@ -30,7 +30,7 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
         if (CurrentUrl.Contains("/video/"))
         {
             CurrentUrl = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
-            var parser = new PornVideoXXXParser(WebDriver, ApiClientManager, RequestHeaders, FilenameScheme);
+            var parser = new PornVideoXXXParser(WebDriver, RequestHeaders, FilenameScheme);
             return await parser.ParseSite(CurrentUrl, cancellationToken: cancellationToken);
         }
 

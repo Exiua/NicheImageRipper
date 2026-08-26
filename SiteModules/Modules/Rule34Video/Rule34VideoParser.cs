@@ -1,16 +1,16 @@
 using CSWebDriverClient;
 using CSWebDriverClient.Models.Responses;
 using HtmlAgilityPack;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using Sdk.Utility;
-using WebDriver = Sdk.Driver.WebDriver;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 using ErrorResponse = CSWebDriverClient.Models.Responses.ErrorResponse;
 
 namespace NicheImageRipper.SiteModules.Modules.Rule34Video;
@@ -19,7 +19,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     public static string ParserName => "rule34video";
     public static string[] SupportedUrls => ["https://rule34video.com/"];
 
-    public Rule34VideoParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Rule34VideoParser>(filenameScheme))
+    public Rule34VideoParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<Rule34VideoParser>(filenameScheme))
     {
     }
 
@@ -29,7 +29,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!Core.NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
+        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.CSWebDriver))
         {
             Logger.Error("CSWebDriver URI is not configured. Cannot parse rule34video.com without CSWebDriver.");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);

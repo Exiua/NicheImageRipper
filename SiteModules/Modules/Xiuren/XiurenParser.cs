@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Xiuren;
+
 public class XiurenParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "xiuren";
     public static string[] SupportedUrls => ["https://xiuren.biz/"];
 
-    public XiurenParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XiurenParser>(filenameScheme))
+    public XiurenParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<XiurenParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,8 @@ public class XiurenParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='jeg_post_title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']").SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content-inner ']").SelectNodesOrThrow(".//a")
+                         .Select(img => img.GetHref()).ToStringFileLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

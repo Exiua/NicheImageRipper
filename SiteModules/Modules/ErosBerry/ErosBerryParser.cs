@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.ErosBerry;
 public class ErosBerryParser : GenericBabesGalleryParser, IHtmlParser
@@ -12,7 +12,7 @@ public class ErosBerryParser : GenericBabesGalleryParser, IHtmlParser
     protected override string DirNameXpath => "//h1[@class='title']";
     protected override string ImageContainerXpath => "//div[@class='block-post three-post flex']";
 
-    public ErosBerryParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ErosBerryParser>(filenameScheme))
+    public ErosBerryParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<ErosBerryParser>(filenameScheme))
     {
     }
 }

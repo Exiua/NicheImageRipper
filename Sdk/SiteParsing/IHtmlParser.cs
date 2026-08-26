@@ -1,7 +1,7 @@
-using Sdk.Configuration;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Enums;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public interface IHtmlParser
 {

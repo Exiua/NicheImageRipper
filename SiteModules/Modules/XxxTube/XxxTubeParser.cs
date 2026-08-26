@@ -1,11 +1,12 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.XxxTube;
 public class XxxTubeParser : HtmlParser, IHtmlParser
@@ -13,7 +14,7 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
     public static string ParserName => "x-x-x";
     public static string[] SupportedUrls => ["https://x-x-x.tube/"];
 
-    public XxxTubeParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<XxxTubeParser>(filenameScheme))
+    public XxxTubeParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<XxxTubeParser>(filenameScheme))
     {
     }
 
@@ -102,6 +103,6 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                 throw new RipperException("Unknown category: " + category);
         }
 
-        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

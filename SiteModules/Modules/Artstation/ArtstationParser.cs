@@ -1,20 +1,22 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Artstation;
+
 public class ArtstationParser : HtmlParser
 {
     public static string ParserName => "artstation";
     public static string[] SupportedUrls { get; } = ["https://www.artstation.com/"];
 
-    public ArtstationParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public ArtstationParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver,
+        requestHeaders, filenameScheme)
     {
     }
 
@@ -28,16 +30,22 @@ public class ArtstationParser : HtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='artist-name']").InnerText;
         var username = CurrentUrl.Split("/")[3];
-        var cacheScript = soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
-#region Id Extraction
+        var cacheScript =
+            soup.SelectSingleNodeOrThrow("//div[@class='wrapper-main']").SelectNodesOrThrow(".//script")[1].InnerText;
+
+        #region Id Extraction
+
         var start = cacheScript.IndexOf("quick.json", StringComparison.Ordinal);
         var end = cacheScript.LastIndexOf(");", StringComparison.Ordinal);
         var jsonData = cacheScript[(start + 14)..(end - 1)].Replace("\n", "").Replace('\"', '"');
         var json = JsonSerializer.Deserialize<JsonNode>(jsonData);
         var userId = json!["id"]!.Deserialize<string>()!;
         var userName = json["full_name"]!.Deserialize<string>()!;
-#endregion
-#region Get Posts
+
+        #endregion
+
+        #region Get Posts
+
         var total = 1;
         var pageCount = 1;
         var firstIter = true;
@@ -71,8 +79,10 @@ public class ArtstationParser : HtmlParser
             await Sleep(100, cancellationToken: cancellationToken);
         }
 
-#endregion
-#region Get Media Links
+        #endregion
+
+        #region Get Media Links
+
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {
@@ -80,12 +90,12 @@ public class ArtstationParser : HtmlParser
             HttpResponseMessage response;
             try
             {
-                response = await client.GetAsync(url);
+                response = await client.GetAsync(url, cancellationToken);
             }
             catch (HttpRequestException)
             {
                 await Sleep(5000, cancellationToken: cancellationToken);
-                response = await client.GetAsync(url);
+                response = await client.GetAsync(url, cancellationToken);
             }
 
             var responseData = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
@@ -94,7 +104,8 @@ public class ArtstationParser : HtmlParser
             images.AddRange(urls.ToStringFileLinks());
         }
 
-#endregion
-        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
+        #endregion
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

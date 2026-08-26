@@ -1,15 +1,13 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NicheImageRipper.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.TitsInTops;
 
@@ -21,8 +19,8 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
     private const string SiteUrl = "https://titsintops.com";
     protected override bool RequiresLogin => true;
 
-    public TitsInTopsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public TitsInTopsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, IHtmlParser.GetFilenameScheme<TitsInTopsParser>(filenameScheme))
     {
     }
@@ -204,7 +202,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
         {
             ["Authorization"] = $"Client-Id {imgurKey}"
         };
-        
+
         foreach (var url in urls)
         {
             if (!url.Contains("imgur"))

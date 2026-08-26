@@ -1,12 +1,12 @@
 ﻿using System.Collections;
 using JetBrains.Annotations;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 
-namespace Sdk.DataStructures;
+namespace NicheImageRipper.Sdk.DataStructures;
 
 /// <summary>
 ///     Represents the information necessary for ripping images from a website, including the list of image links, the directory name, and the filename scheme.

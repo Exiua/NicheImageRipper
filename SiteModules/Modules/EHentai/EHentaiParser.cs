@@ -1,12 +1,11 @@
 using HtmlAgilityPack;
-
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.EHentai;
 
@@ -23,8 +22,8 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
     protected override bool SupportsPartialSave => false;
     protected override bool RequiresLogin => true;
 
-    public EHentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public EHentaiParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, IHtmlParser.GetFilenameScheme<EHentaiParser>(filenameScheme))
     {
     }
@@ -37,7 +36,7 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
         {
             return false;
         }
-        
+
         var currentUrl = CurrentUrl;
         CurrentUrl = loginUrl;
         Driver.FindElement(By.XPath("//input[@name='UserName']")).SendKeys(username);

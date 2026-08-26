@@ -1,8 +1,6 @@
 using System.Net;
-
-
-using Sdk.DataStructures;
-using Sdk.FileDownloading;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.FileDownloading;
 
 namespace NicheImageRipper.SiteModules.Modules.Pixiv;
 

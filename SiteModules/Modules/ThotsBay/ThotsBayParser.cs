@@ -1,14 +1,16 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.ThotsBay;
+
 public class ThotsBayParser : HtmlParser
 {
-    public ThotsBayParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, filenameScheme)
+    public ThotsBayParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        filenameScheme)
     {
     }
 
@@ -26,7 +28,8 @@ public class ThotsBayParser : HtmlParser
         var soup = await Soupify(lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='actor-name']/h1").InnerText;
         var container = soup.SelectSingleNodeOrThrow("//div[@id='media-items-all']");
-        var items = container.SelectNodesOrThrow("./div").Select(div => $"https://thotsbay.tv{div.SelectSingleNodeOrThrow(".//a").GetHref()}");
+        var items = container.SelectNodesOrThrow("./div")
+                             .Select(div => $"https://thotsbay.tv{div.SelectSingleNodeOrThrow(".//a").GetHref()}");
         var images = new List<StringFileLinkWrapper>();
         foreach (var item in items)
         {

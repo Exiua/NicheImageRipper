@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.Enums;
 
-namespace Sdk.Exceptions;
+namespace NicheImageRipper.Sdk.Exceptions;
 
 public class FeatureNotAvailableException : RipperException
 {

@@ -2,20 +2,22 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Luscious;
+
 public class LusciousParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "luscious";
     public static string[] SupportedUrls => ["https://www.luscious.net/"];
 
-    public LusciousParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<LusciousParser>(filenameScheme))
+    public LusciousParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<LusciousParser>(filenameScheme))
     {
     }
 
@@ -31,7 +33,10 @@ public class LusciousParser : HtmlParser, IHtmlParser
         }
 
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='o-h1 album-heading']|//h1[@class='o-h1 video-heading o-padding-sides']").InnerText;
+        var dirName = soup
+                     .SelectSingleNodeOrThrow(
+                          "//h1[@class='o-h1 album-heading']|//h1[@class='o-h1 video-heading o-padding-sides']")
+                     .InnerText;
         const string endpoint = "https://members.luscious.net/graphqli/?";
         var albumId = CurrentUrl.Split("/")[4].Split("_")[^1];
         var session = new HttpClient();
@@ -55,7 +60,9 @@ public class LusciousParser : HtmlParser, IHtmlParser
                     }
                     fragment VideoStandard on Video{id title tags content genres description audiences url poster_url subtitle_url v240p v360p v720p v1080p}
                     """;
-            var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new { operationName = "getVideoInfo", query, variables }), Encoding.UTF8, "application/json"));
+            var response = await session.PostAsync(endpoint,
+                new StringContent(JsonSerializer.Serialize(new { operationName = "getVideoInfo", query, variables }),
+                    Encoding.UTF8, "application/json"));
             var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             var jsonData = json!["data"]!["video"]!["get"]!;
             string videoUrl;
@@ -120,14 +127,18 @@ public class LusciousParser : HtmlParser, IHtmlParser
             var nextPage = true;
             while (nextPage)
             {
-                var response = await session.PostAsync(endpoint, new StringContent(JsonSerializer.Serialize(new { operationName = "PictureQuery", query, variables }), Encoding.UTF8, "application/json"));
+                var response = await session.PostAsync(endpoint,
+                    new StringContent(
+                        JsonSerializer.Serialize(new { operationName = "PictureQuery", query, variables }),
+                        Encoding.UTF8, "application/json"));
                 var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
                 var jsonData = json!["data"]!["picture"]!["list"]!;
                 nextPage = jsonData["info"]!["has_next_page"]!.Deserialize<bool>();
                 var inputDict = (Dictionary<string, object>)variables["input"];
                 inputDict["page"] = (int)inputDict["page"] + 1;
                 var items = jsonData["items"]!.AsArray();
-                images.AddRange(items.Select(item => (StringFileLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
+                images.AddRange(items.Select(item =>
+                    (StringFileLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
             }
         }
 

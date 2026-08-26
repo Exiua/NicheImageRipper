@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BestPrettyGirl;
+
 public class BestPrettyGirlParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "bestprettygirl";
     public static string[] SupportedUrls => ["https://bestprettygirl.com/"];
 
-    public BestPrettyGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BestPrettyGirlParser>(filenameScheme))
+    public BestPrettyGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BestPrettyGirlParser>(filenameScheme))
     {
     }
 
@@ -22,8 +24,10 @@ public class BestPrettyGirlParser : HtmlParser, IHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='elementor-heading-title elementor-size-large']").InnerText;
-        var images = soup.SelectNodesOrThrow("//img[@class='aligncenter size-full']").Select(img => img.GetSrc()).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='elementor-heading-title elementor-size-large']")
+                          .InnerText;
+        var images = soup.SelectNodesOrThrow("//img[@class='aligncenter size-full']").Select(img => img.GetSrc())
+                         .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

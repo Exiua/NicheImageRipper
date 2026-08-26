@@ -1,5 +1,5 @@
-﻿using OpenQA.Selenium.BiDi.Network;
-using Sdk.SiteParsing;
+﻿using NicheImageRipper.Sdk.SiteParsing;
+using OpenQA.Selenium.BiDi.Network;
 
 namespace NicheImageRipper.SiteModules.Modules.Twitter;
 

@@ -1,10 +1,11 @@
 using CSWebDriverClient.Models.Responses;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.MissAv123;
 public class MissAv123Parser : HtmlParser, IHtmlParser
@@ -12,7 +13,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
     public static string ParserName => "missav123";
     public static string[] SupportedUrls => ["https://missav123.com/"];
 
-    public MissAv123Parser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MissAv123Parser>(filenameScheme))
+    public MissAv123Parser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, IHtmlParser.GetFilenameScheme<MissAv123Parser>(filenameScheme))
     {
     }
 
@@ -22,7 +23,7 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!Core.NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.CSWebDriver))
+        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.CSWebDriver))
         {
             Logger.Error("CSWebDriver URI is not configured. Cannot parse missav123.com without CSWebDriver.");
             throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);

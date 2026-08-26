@@ -1,11 +1,11 @@
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium.BiDi.Network;
-using Sdk.SiteParsing;
 
 namespace NicheImageRipper.SiteModules.Modules.KoreanBj;
 
 public class KoreanBjVideoCapturer : PlaylistCapturer
 {
-        
     protected override bool ResponseIsInteresting(ResponseCompletedEventArgs e)
     {
         var url = e.Response.Url;

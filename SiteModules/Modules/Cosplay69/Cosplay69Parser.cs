@@ -1,10 +1,8 @@
-
-
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Cosplay69;
 public class Cosplay69Parser : HtmlParser, IHtmlParser
@@ -12,7 +10,7 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
     public static string ParserName => "cosplay69";
     public static string[] SupportedUrls => ["https://cosplay69.net/"];
 
-    public Cosplay69Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<Cosplay69Parser>(filenameScheme))
+    public Cosplay69Parser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<Cosplay69Parser>(filenameScheme))
     {
     }
 

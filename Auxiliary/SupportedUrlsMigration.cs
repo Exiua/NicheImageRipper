@@ -20,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Utility;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Exceptions;
 
 namespace NicheImageRipper.Auxiliary;
 

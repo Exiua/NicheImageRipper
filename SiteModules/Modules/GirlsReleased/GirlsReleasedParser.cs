@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.GirlsReleased;
+
 public class GirlsReleasedParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "girlsreleased";
     public static string[] SupportedUrls => ["https://girlsreleased.com/"];
 
-    public GirlsReleasedParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GirlsReleasedParser>(filenameScheme))
+    public GirlsReleasedParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<GirlsReleasedParser>(filenameScheme))
     {
     }
 
@@ -27,7 +29,9 @@ public class GirlsReleasedParser : HtmlParser, IHtmlParser
         var modelName = metadata[1].InnerText;
         var setName = metadata[2].InnerText;
         var dirName = $"{{{siteName}}} {setName} [{modelName}]";
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx")).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow(".//img")
+                         .Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx"))
+                         .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

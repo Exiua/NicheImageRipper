@@ -1,7 +1,7 @@
-using Sdk.DataStructures;
-using Sdk.Enums;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public interface IExpandingSiteLinkRule : ISiteLinkRule
 {

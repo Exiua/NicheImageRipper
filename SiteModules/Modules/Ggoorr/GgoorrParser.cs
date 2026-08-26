@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Ggoorr;
+
 public class GgoorrParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "ggoorr";
     public static string[] SupportedUrls => ["https://ggoorr.net/"];
 
-    public GgoorrParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<GgoorrParser>(filenameScheme))
+    public GgoorrParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<GgoorrParser>(filenameScheme))
     {
     }
 
@@ -25,7 +27,8 @@ public class GgoorrParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var id = CurrentUrl.Split("/")[4];
         var dirName = $"[ggoorr]{soup.SelectSingleNodeOrThrow("//h1//a").InnerText} ({id})";
-        var posts = soup.SelectSingleNodeOrThrow("//div[@id='article_1']").SelectSingleNodeOrThrow(".//div").SelectNodesOrThrow(".//img|.//video");
+        var posts = soup.SelectSingleNodeOrThrow("//div[@id='article_1']").SelectSingleNodeOrThrow(".//div")
+                        .SelectNodesOrThrow(".//img|.//video");
         var images = new List<StringFileLinkWrapper>();
         foreach (var post in posts)
         {

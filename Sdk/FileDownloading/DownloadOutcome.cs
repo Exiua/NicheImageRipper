@@ -1,4 +1,4 @@
-namespace Sdk.FileDownloading;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 public enum DownloadOutcome
 {

@@ -1,9 +1,7 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 public class E621Parser : BooruParser, IHtmlParser
@@ -11,7 +9,7 @@ public class E621Parser : BooruParser, IHtmlParser
     public static string ParserName => "e621";
     public static string[] SupportedUrls => ["https://e621.net/"];
 
-    public E621Parser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<E621Parser>(filenameScheme))
+    public E621Parser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<E621Parser>(filenameScheme))
     {
     }
 
@@ -21,6 +19,6 @@ public class E621Parser : BooruParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Core.Enums.Booru.E621, cancellationToken: cancellationToken);
+        return BooruParse(Sdk.Enums.Booru.E621, cancellationToken: cancellationToken);
     }
 }

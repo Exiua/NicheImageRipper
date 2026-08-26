@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
-using Sdk.Utility;
+using NicheImageRipper.Sdk.Utility;
+
 
 namespace NicheImageRipper.Gui.Services.Full;
 public class LocalRipperClient : IRipperClient

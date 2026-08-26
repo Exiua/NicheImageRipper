@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.FoamGirl;
+
 public class FoamGirlParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "foamgirl";
     public static string[] SupportedUrls => ["https://foamgirl.net/"];
 
-    public FoamGirlParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<FoamGirlParser>(filenameScheme))
+    public FoamGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<FoamGirlParser>(filenameScheme))
     {
     }
 
@@ -24,12 +26,15 @@ public class FoamGirlParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='item_title']/h1").InnerText.Split('(')[0];
         var images = new List<StringFileLinkWrapper>();
-        var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") ?? soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']").SelectNodesOrThrow("./a")[^2];
+        var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") ??
+                            soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']")
+                                .SelectNodesOrThrow("./a")[^2];
         var pageCount = pageContainer.InnerText.ParseInt();
         var baseUrl = CurrentUrl;
         for (var i = 0; i < pageCount; i++)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='image_div']/p").SelectNodesOrThrow("./a").Select(a => a.GetHref()).ToStringFileLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='image_div']/p").SelectNodesOrThrow("./a")
+                           .Select(a => a.GetHref()).ToStringFileLinks();
             images.AddRange(imgs);
             if (i != pageCount - 1)
             {

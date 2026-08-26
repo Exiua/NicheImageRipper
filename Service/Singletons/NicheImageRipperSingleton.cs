@@ -1,11 +1,10 @@
 using System.Text.Json;
-using NicheImageRipper.Core.Configuration;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
+using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Service.Utilities.ExtensionMethods;
-using Sdk.Configuration;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
-using SettingsOverride = Sdk.Configuration.SettingsOverride;
+using SettingsOverride = NicheImageRipper.Sdk.Configuration.SettingsOverride;
 
 namespace NicheImageRipper.Service.Singletons;
 public class NicheImageRipperSingleton : INicheImageRipperSingleton

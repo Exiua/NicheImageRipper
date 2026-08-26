@@ -1,4 +1,4 @@
-﻿namespace NicheImageRipper.Core.Enums;
+﻿namespace NicheImageRipper.Sdk.FileDownloading;
 
 public enum DownloadStatus
 {

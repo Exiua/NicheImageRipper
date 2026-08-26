@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.BabesMachine;
+
 public class BabesMachineParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "babesmachine";
     public static string[] SupportedUrls => ["https://www.babesmachine.com/"];
 
-    public BabesMachineParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BabesMachineParser>(filenameScheme))
+    public BabesMachineParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                              FilenameScheme filenameScheme = Sdk.Enums.FilenameScheme.Original) : base(driver,
+        requestHeaders, IHtmlParser.GetFilenameScheme<BabesMachineParser>(filenameScheme))
     {
     }
 
@@ -24,7 +26,9 @@ public class BabesMachineParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var gallery = soup.SelectSingleNodeOrThrow("//div[@id='gallery']");
         var dirName = gallery.SelectSingleNodeOrThrow(".//h2").SelectSingleNodeOrThrow(".//a").InnerText;
-        var images = gallery.SelectSingleNodeOrThrow(".//table").SelectNodesOrThrow(".//tr").Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_")).Select(img => Protocol + img).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, Sdk.Enums.FilenameScheme);
+        var images = gallery.SelectSingleNodeOrThrow(".//table").SelectNodesOrThrow(".//tr")
+                            .Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
+                            .Select(img => Protocol + img).ToStringFileLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

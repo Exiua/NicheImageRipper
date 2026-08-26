@@ -1,18 +1,19 @@
-
-
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Wnacg;
+
 public class WnacgParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "wnacg";
     public static string[] SupportedUrls => ["https://www.wnacg.com/"];
 
-    public WnacgParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<WnacgParser>(filenameScheme))
+    public WnacgParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<WnacgParser>(filenameScheme))
     {
     }
 
@@ -46,7 +47,8 @@ public class WnacgParser : HtmlParser, IHtmlParser
         {
             Logger.Debug("Fetching page {Page}", page);
             page++;
-            var imageList = soup.SelectNodesOrThrow("//li[@class='li tb gallary_item']").Select(n => n.SelectSingleNodeOrThrow(".//a").GetHref());
+            var imageList = soup.SelectNodesOrThrow("//li[@class='li tb gallary_item']")
+                                .Select(n => n.SelectSingleNodeOrThrow(".//a").GetHref());
             imageLinks.AddRange(imageList);
             var nextPageButton = soup.SelectSingleNode("//span[@class='next']");
             if (nextPageButton is null)

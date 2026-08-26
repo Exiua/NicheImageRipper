@@ -2,21 +2,23 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Imgur;
+
 public class ImgurParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "imgur";
     public static string[] SupportedUrls => ["https://imgur.com/"];
 
-    public ImgurParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImgurParser>(filenameScheme))
+    public ImgurParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<ImgurParser>(filenameScheme))
     {
     }
 
@@ -39,7 +41,7 @@ public class ImgurParser : HtmlParser, IHtmlParser
         var albumHash = CurrentUrl.Split("/")[5];
         var session = new HttpClient();
         var request = RequestHeaders.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/album/{albumHash}");
-        var response = await session.SendAsync(request);
+        var response = await session.SendAsync(request, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
             Logger.Error("Client Id is incorrect");

@@ -2,14 +2,14 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using Sdk.Utility;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
+
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 
@@ -25,9 +25,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     
     protected abstract string[] OwnHosts { get; }
 
-    protected DotPartyParser(WebDriver driver, ApiClientManager clientManager,
+    protected DotPartyParser(WebDriver driver, 
                              Dictionary<string, string> requestHeaders,
-                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, filenameScheme)
     {
         var handler = new HttpClientHandler

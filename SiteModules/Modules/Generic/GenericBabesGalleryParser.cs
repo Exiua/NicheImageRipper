@@ -1,9 +1,9 @@
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Driver;
-using Sdk.Enums;
-using Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Driver;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+
 
 namespace NicheImageRipper.SiteModules.Modules.Generic;
 
@@ -20,10 +20,10 @@ public abstract class GenericBabesGalleryParser : HtmlParser
     /// <summary>XPath to the container element(s) each holding one or more <c>&lt;img&gt;</c> thumbnails.</summary>
     protected abstract string ImageContainerXpath { get; }
 
-    protected GenericBabesGalleryParser(WebDriver driver, ApiClientManager clientManager,
+    protected GenericBabesGalleryParser(WebDriver driver, 
                                         Dictionary<string, string> requestHeaders,
                                         FilenameScheme filenameScheme = FilenameScheme.Original)
-        : base(driver, clientManager, requestHeaders, filenameScheme)
+        : base(driver, requestHeaders, filenameScheme)
     {
     }
 

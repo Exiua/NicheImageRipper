@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.CuteGirlPorn;
+
 public class CuteGirlPornParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "cutegirlporn";
     public static string[] SupportedUrls => ["https://www.cutegirlporn.com/"];
 
-    public CuteGirlPornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<CuteGirlPornParser>(filenameScheme))
+    public CuteGirlPornParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                              FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<CuteGirlPornParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,10 @@ public class CuteGirlPornParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='gal-title']").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gal-thumbs']").SelectNodesOrThrow(".//li").Select(img => "https://cutegirlporn.com" + img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/")).ToStringFileLinkWrapperList();
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gal-thumbs']").SelectNodesOrThrow(".//li").Select(img =>
+                              "https://cutegirlporn.com" +
+                              img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/"))
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

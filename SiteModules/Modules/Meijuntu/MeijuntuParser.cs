@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Meijuntu;
+
 public class MeijuntuParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "meijuntu";
     public static string[] SupportedUrls => ["https://meijuntu.com/"];
 
-    public MeijuntuParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<MeijuntuParser>(filenameScheme))
+    public MeijuntuParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<MeijuntuParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,8 @@ public class MeijuntuParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title']").InnerText;
-        var pageCount = soup.SelectSingleNodeOrThrow("//div[@id='pages']").SelectNodesOrThrow("./a")[^2].InnerText.ParseInt();
+        var pageCount = soup.SelectSingleNodeOrThrow("//div[@id='pages']").SelectNodesOrThrow("./a")[^2].InnerText
+                            .ParseInt();
         var baseUrl = CurrentUrl.Remove(".html");
         var images = new List<StringFileLinkWrapper>();
         for (var i = 0; i < pageCount; i++)

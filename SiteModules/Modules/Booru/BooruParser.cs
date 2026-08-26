@@ -2,20 +2,19 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-
-using NicheImageRipper.Core.Exceptions;
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 
 public abstract partial class BooruParser : HtmlParser
 {
-    protected BooruParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    protected BooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, filenameScheme)
     {
     }
@@ -24,7 +23,7 @@ public abstract partial class BooruParser : HtmlParser
     ///     Make requests to booru-like sites and extract image links
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected async Task<RipInfo> BooruParse(Core.Enums.Booru site, string? tags = null,
+    protected async Task<RipInfo> BooruParse(Sdk.Enums.Booru site, string? tags = null,
                                              CancellationToken cancellationToken = default)
     {
         if (tags is null)

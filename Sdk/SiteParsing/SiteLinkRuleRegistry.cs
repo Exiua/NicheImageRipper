@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Sdk.SiteParsing;
+namespace NicheImageRipper.Sdk.SiteParsing;
 
 public static class SiteLinkRuleRegistry
 {

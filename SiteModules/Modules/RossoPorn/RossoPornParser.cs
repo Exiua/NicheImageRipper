@@ -1,8 +1,8 @@
 
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.SiteModules.Modules.Generic;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.RossoPorn;
 // rossoporn.com
@@ -13,7 +13,7 @@ public class RossoPornParser : GenericBabesGalleryParser, IHtmlParser
     protected override string DirNameXpath => "//div[@class='content_right']//h1";
     protected override string ImageContainerXpath => "//div[@class='wrapper_g']";
 
-    public RossoPornParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<RossoPornParser>(filenameScheme))
+    public RossoPornParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<RossoPornParser>(filenameScheme))
     {
     }
 }

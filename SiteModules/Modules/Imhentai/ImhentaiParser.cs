@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Imhentai;
+
 public class ImhentaiParser : HtmlParser<ImhentaiParser>, IHtmlParser
 {
     public static string ParserName => "imhentai";
     public static string[] SupportedUrls => ["https://imhentai.xxx/"];
 
-    public ImhentaiParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<ImhentaiParser>(filenameScheme))
+    public ImhentaiParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<ImhentaiParser>(filenameScheme))
     {
     }
 
@@ -28,7 +30,8 @@ public class ImhentaiParser : HtmlParser<ImhentaiParser>, IHtmlParser
         }
 
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ?? soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
+        var imageContainer = soup.SelectSingleNode("//img[@class='lazy filtered entered loaded']") ??
+                             soup.SelectSingleNodeOrThrow("//img[@class='lazy entered loaded']");
         var images = imageContainer.GetAttributeValue("data-src");
         var numPages = int.Parse(soup.SelectSingleNodeOrThrow("//li[@class='pages']").InnerText.Split()[1]);
         var dirName = soup.SelectSingleNodeOrThrow("//h1").InnerText;

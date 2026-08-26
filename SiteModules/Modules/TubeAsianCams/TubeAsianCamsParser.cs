@@ -1,19 +1,22 @@
 using System.Text.RegularExpressions;
-
-
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.TubeAsianCams;
+
 public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "tubeasiancams";
     public static string[] SupportedUrls => ["https://tubeasiancams.com/"];
 
-    public TubeAsianCamsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<TubeAsianCamsParser>(filenameScheme))
+    public TubeAsianCamsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                               FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<TubeAsianCamsParser>(filenameScheme))
     {
     }
 
@@ -25,7 +28,7 @@ public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h2[@class='entry-title']").InnerText;
-        var(capturer, b) = await ConfigureNetworkCapture<TubeAsianCamVideoCapturer>(cancellationToken);
+        var (capturer, b) = await ConfigureNetworkCapture<TubeAsianCamVideoCapturer>(cancellationToken);
         await using var bidi = b;
         await WaitForElement("//iframe", cancellationToken: cancellationToken);
         var iframe = Driver.FindElement(By.XPath("//iframe"));
@@ -54,7 +57,8 @@ public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
             }
 
             var filename = UrlUtility.GetUrlParameterValue(url, "t");
-            var fileLink = FileLink.WithFilename(url, $"{filename}.mp4", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: "https://jilliandescribecompany.com/");
+            var fileLink = FileLink.WithFilename(url, $"{filename}.mp4", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg,
+                referer: "https://jilliandescribecompany.com/");
             files.Add(fileLink);
             break;
         }

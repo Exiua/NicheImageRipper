@@ -1,9 +1,7 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Deviantart;
 
@@ -12,8 +10,8 @@ public class DeviantartParser : HtmlParser
     public static string ParserName => "deviantart";
     public static string[] SupportedUrls { get; } = ["https://www.deviantart.com/"];
     
-    public DeviantartParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders,
-                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager,
+    public DeviantartParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
         requestHeaders, filenameScheme)
     {
     }

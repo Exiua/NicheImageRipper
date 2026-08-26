@@ -1,12 +1,12 @@
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Exceptions;
 
-namespace Sdk.FileDownloading;
+namespace NicheImageRipper.Sdk.FileDownloading;
 
 public interface IFileDownloadStrategy
 {
-    protected static GeneralConfig Config => NicheImageRipper.Config;
+    protected static GeneralConfig Config => Configuration.Config.Instance;
     
     IEnumerable<LinkInfo> HandlesLinkInfo { get; }
     bool SupportsPostProcessing => true; // default; override to false where an external tool owns the result

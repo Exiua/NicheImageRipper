@@ -1,5 +1,4 @@
-using NicheImageRipper.Core.Configuration;
-using Sdk.Configuration;
+using NicheImageRipper.Sdk.Configuration;
 
 namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
 

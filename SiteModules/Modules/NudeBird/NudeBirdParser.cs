@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.NudeBird;
+
 public class NudeBirdParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nudebird";
     public static string[] SupportedUrls => ["https://nudebird.biz/"];
 
-    public NudeBirdParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NudeBirdParser>(filenameScheme))
+    public NudeBirdParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<NudeBirdParser>(filenameScheme))
     {
     }
 
@@ -23,7 +25,8 @@ public class NudeBirdParser : HtmlParser, IHtmlParser
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='title single-title entry-title']").InnerText;
-        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
+        var images = soup.SelectNodesOrThrow("//a[@class='fancybox-thumb']").Select(img => img.GetHref())
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

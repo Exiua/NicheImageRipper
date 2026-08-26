@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Baobua;
+
 public class BaobuaParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "baobua";
     public static string[] SupportedUrls => ["https://www.baobua.net/"];
 
-    public BaobuaParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<BaobuaParser>(filenameScheme))
+    public BaobuaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BaobuaParser>(filenameScheme))
     {
     }
 
@@ -28,7 +30,9 @@ public class BaobuaParser : HtmlParser, IHtmlParser
         var baseUrl = CurrentUrl;
         for (var i = 0; i < pageCount; i++)
         {
-            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='entry-content read-details']").SelectNodesOrThrow("./figure").Select(figure => figure.SelectSingleNodeOrThrow("./a").GetHref()).ToStringFileLinks();
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@class='entry-content read-details']")
+                           .SelectNodesOrThrow("./figure")
+                           .Select(figure => figure.SelectSingleNodeOrThrow("./a").GetHref()).ToStringFileLinks();
             images.AddRange(imgs);
             if (i != pageCount - 1)
             {

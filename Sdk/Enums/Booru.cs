@@ -1,8 +1,7 @@
-using NicheImageRipper.Core.Configuration;
-using Sdk.Configuration;
-using Sdk.Exceptions;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Exceptions;
 
-namespace NicheImageRipper.Core.Enums;
+namespace NicheImageRipper.Sdk.Enums;
 
 public enum Booru
 {
@@ -28,7 +27,7 @@ public class BooruMetadata
     public string[] JsonObjectNavigationToUrl { get; init; } = ["file_url"];
     public int Delay { get; init; } = 250;
 
-    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
+    private static GeneralConfig Config => global::NicheImageRipper.Sdk.Configuration.Config.Instance;
 
     // The full base url must end with either ? or &
     public string GetFullBaseUrl()

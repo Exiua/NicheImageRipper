@@ -1,13 +1,13 @@
 
 
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using Sdk.Common.ExtensionMethods;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using FeatureNotSupportedException = Sdk.Exceptions.NotSupportedException;
-using WebDriver = Sdk.Driver.WebDriver;
+using FeatureNotSupportedException = NicheImageRipper.Sdk.Exceptions.NotSupportedException;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PmvHaven;
 
@@ -16,9 +16,9 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
     public static string ParserName => "pmvhaven";
     public static string[] SupportedUrls => ["https://pmvhaven.com/"];
 
-    public PmvHavenParser(WebDriver driver, ApiClientManager apiClientManager,
+    public PmvHavenParser(WebDriver driver,
                           Dictionary<string, string> requestHeaders,
-                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, IHtmlParser.GetFilenameScheme<PmvHavenParser>(filenameScheme))
     {
     }

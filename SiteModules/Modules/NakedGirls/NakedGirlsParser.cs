@@ -1,17 +1,19 @@
-
-
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.SiteParsing;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.NakedGirls;
+
 public class NakedGirlsParser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "nakedgirls";
     public static string[] SupportedUrls => ["https://www.nakedgirls.xxx/"];
 
-    public NakedGirlsParser(WebDriver driver, ApiClientManager clientManager, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, clientManager, requestHeaders, IHtmlParser.GetFilenameScheme<NakedGirlsParser>(filenameScheme))
+    public NakedGirlsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                            FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<NakedGirlsParser>(filenameScheme))
     {
     }
 
@@ -22,8 +24,12 @@ public class NakedGirlsParser : HtmlParser, IHtmlParser
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='content']").SelectSingleNodeOrThrow(".//h1").InnerText;
-        var images = soup.SelectSingleNodeOrThrow("//div[@class='content']").SelectNodesOrThrow(".//div[@class='thumb']").Select(img => "https://www.nakedgirls.xxx" + img.SelectSingleNodeOrThrow(".//a").GetHref()).ToStringFileLinkWrapperList();
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='content']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='content']")
+                         .SelectNodesOrThrow(".//div[@class='thumb']").Select(img =>
+                              "https://www.nakedgirls.xxx" + img.SelectSingleNodeOrThrow(".//a").GetHref())
+                         .ToStringFileLinkWrapperList();
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
     }
 }

@@ -1,16 +1,12 @@
-
-
-
 using IwaraApiClient;
-using Sdk.Common;
-using Sdk.Common.ExtensionMethods;
-using Sdk.Configuration;
-using Sdk.DataStructures;
-using Sdk.Enums;
-using Sdk.Exceptions;
-using Sdk.SiteParsing;
-using NotSupportedException = Sdk.Exceptions.NotSupportedException;
-using WebDriver = Sdk.Driver.WebDriver;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.SiteParsing;
+using NotSupportedException = NicheImageRipper.Sdk.Exceptions.NotSupportedException;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Iwara;
 
@@ -20,9 +16,9 @@ public class IwaraParser : HtmlParser, IHtmlParser
     public static string[] SupportedUrls => ["https://www.iwara.tv/"];
 
     internal static IwaraClient Client { get; } = CreateClient();
-    
-    public IwaraParser(WebDriver driver, ApiClientManager apiClientManager, Dictionary<string, string> requestHeaders,
-                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, apiClientManager,
+
+    public IwaraParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, IHtmlParser.GetFilenameScheme<IwaraParser>(filenameScheme))
     {
     }
@@ -135,15 +131,16 @@ public class IwaraParser : HtmlParser, IHtmlParser
 
         return RipInfo.FromUrlList(files, dirName, FilenameScheme);
     }
-    
+
     private static IwaraClient CreateClient()
     {
         var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {
-            throw new RipperCredentialException($"No login credentials found for {ParserName}. Please provide a username and password in the configuration."); 
+            throw new RipperCredentialException(
+                $"No login credentials found for {ParserName}. Please provide a username and password in the configuration.");
         }
-        
+
         return new IwaraClient(username, password);
     }
 }
