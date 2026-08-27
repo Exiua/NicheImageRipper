@@ -1,10 +1,7 @@
 ﻿using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
-using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.FileDownloading;
-using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
-using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;

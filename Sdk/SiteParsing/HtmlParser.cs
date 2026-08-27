@@ -23,7 +23,13 @@ public abstract class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
 
-    protected static IReadOnlySet<string> ExternalSites { get; } //=> HtmlParserFactory.DelegatableDomains;
+    public static IParserResolver? ParserResolver { get; internal set; }
+
+    private static IParserResolver Resolver =>
+        ParserResolver ?? throw new InvalidOperationException(
+            "ParserResolver not initialized — host must load Core before parsing.");
+
+    protected internal static IReadOnlySet<string> ExternalSites => Resolver.DelegatableDomains;
 
     protected static GeneralConfig Config => Configuration.Config.Instance;
 
@@ -82,6 +88,17 @@ public abstract class HtmlParser : IDisposable
         Logger = Log.ForContext<HtmlParser>();
     }
 
+    /// <summary>Resolves the parser for an embedded link found on the current page.</summary>
+    protected ParameterizedHtmlParser CreateParser(string url) =>
+        Resolver.CreateParameterized(url, WebDriver, RequestHeaders, FilenameScheme);
+    
+    /// <summary>Delegates this parse entirely to another site's registered parser, running its full
+    /// top-level pipeline against <paramref name="url"/>. Use for whole-site aliasing (e.g. a site
+    /// whose /video/ pages are identical to a different registered site) — not for resolving a single
+    /// embedded link, which is <see cref="CreateParser"/>'s job.</summary>
+    protected Task<RipInfo> ParseWith(string url, CancellationToken cancellationToken = default) =>
+        Resolver.ParseSite(url, WebDriver, RequestHeaders, FilenameScheme, cancellationToken);
+    
     // Only called by self and ParameterizedHtmlParser
     protected Task<bool> SiteLogin(CancellationToken cancellationToken = default)
     {

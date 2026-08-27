@@ -11,7 +11,7 @@ public static class ExternalLinkExtractor
 {
     // TODO: FIXME
     /// <summary>Every domain a registered <see cref="ParameterizedHtmlParser"/> can be delegated to.</summary>
-    public static IReadOnlySet<string> ExternalSites { get; } //=> HtmlParserFactory.DelegatableDomains;
+    public static IReadOnlySet<string> ExternalSites => HtmlParser.ExternalSites;
 
     public static Dictionary<string, List<string>> CreateExternalLinkDict()
     {

@@ -279,7 +279,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         try
         {
             var host = new Uri(url).Host;
-            return HtmlParserFactory.DelegatableDomains.Any(host.EndsWith);
+            return ExternalSites.Any(host.EndsWith);
         }
         catch (UriFormatException)
         {

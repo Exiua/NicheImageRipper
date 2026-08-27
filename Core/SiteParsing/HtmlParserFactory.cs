@@ -1,6 +1,5 @@
 using System.Collections.Frozen;
 using System.Linq.Expressions;
-using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.Driver;
 using NicheImageRipper.Sdk.Enums;
@@ -43,6 +42,7 @@ public static class HtmlParserFactory
     {
         SiteModuleLoader.LoadModules();
         LinkInfoDiscovery.EnsureAllRegistered();
+        HtmlParser.ParserResolver = new CoreParserResolver();
         Rebuild();
     }
 

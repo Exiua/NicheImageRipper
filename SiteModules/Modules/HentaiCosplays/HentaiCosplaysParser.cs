@@ -29,9 +29,8 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
     {
         if (CurrentUrl.Contains("/video/"))
         {
-            CurrentUrl = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
-            var parser = new PornVideoXXXParser(WebDriver, RequestHeaders, FilenameScheme);
-            return await parser.ParseSite(CurrentUrl, cancellationToken: cancellationToken);
+            var redirectUrl  = CurrentUrl.Replace("hentai-cosplays.com", "porn-video-xxx.com");
+            return await ParseWith(redirectUrl, cancellationToken);
         }
 
         var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true },
