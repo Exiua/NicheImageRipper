@@ -15,14 +15,18 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 namespace NicheImageRipper.Sdk.SiteParsing;
 
 /// <summary>
-///     Base class for all site-specific HTML parsers. Handles the shared parse pipeline (site detection,
-///     partial-save caching, retry-on-WebDriverException), scraping helpers (Soupify/lazy-load/FlareSolverr),
-///     and a small dev/test harness for exercising a single parser directly.
+/// Base class for all site-specific HTML parsers. Handles scraping helpers (Soupify/lazy-load/FlareSolverr),
+/// cross-parser delegation via <see cref="ParserResolver"/>, and the capability flags/state that
+/// <c>HtmlParserOrchestrator</c> (Core) drives on the constructed instance.
 /// </summary>
 public abstract class HtmlParser : IDisposable
 {
     protected const string Protocol = "https:";
 
+    /// <summary>
+    /// Set once by the host (Core) at startup. Backs <see cref="ExternalSites"/>, <see cref="CreateParser"/>,
+    /// and <see cref="ParseWith"/> — the delegation surface a parser needs without referencing Core directly.
+    /// </summary>
     public static IParserResolver? ParserResolver { get; internal set; }
 
     private static IParserResolver Resolver =>
@@ -35,15 +39,26 @@ public abstract class HtmlParser : IDisposable
 
     protected WebDriver WebDriver { get; }
     public bool Interrupted { get; set; }
-    private string SiteName { get; set; }
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
     public int RetryCount { get; set; } = 4;
-    protected string GivenUrl { get; set; }
     protected FilenameScheme FilenameScheme { get; }
     protected Dictionary<string, string> RequestHeaders { get; }
     protected ILogger Logger { get; init; }
     protected HttpClient HttpClient { get; set; }
+
+    /// <summary>
+    /// The URL this parser was asked to parse. Set by <c>HtmlParserOrchestrator</c> before
+    /// <see cref="Parse"/> runs — read-only from a parser's own perspective (e.g. <c>GDriveParser</c>,
+    /// <c>PixelDrainParser</c> read it directly), written only by the orchestrator.
+    /// </summary>
+    protected internal string GivenUrl { get; internal set; } = "";
+
+    /// <summary>
+    /// The detected site name for this parse, set by <c>HtmlParserOrchestrator</c> via
+    /// <c>UrlUtility.SiteCheck</c>. Read by <see cref="SiteLogin"/> to key login-status tracking.
+    /// </summary>
+    protected internal string SiteName { get; internal set; } = "";
 
     protected FirefoxDriver Driver => WebDriver.Driver;
 
@@ -54,24 +69,37 @@ public abstract class HtmlParser : IDisposable
     }
 
     /// <summary>
-    /// Whether <see cref="ParseSite"/> should navigate the driver to the given URL before calling <see cref="Parse"/>.
+    /// Whether the orchestrator should navigate the driver to the given URL before calling <see cref="Parse"/>.
     /// False for parsers (e.g. <c>AllBooruParser</c>) that fetch data directly via HttpClient and never touch the driver.
     /// </summary>
     protected virtual bool RequiresNavigation => true;
 
     /// <summary>
-    /// Whether <see cref="ParseSite"/> should check/write a cached <see cref="RipInfo"/> for this parser's site. False
-    /// for sites whose links expire too quickly to cache (e.g. e-hentai).
+    /// Whether the orchestrator should check/write a cached <see cref="RipInfo"/> for this parser's site.
+    /// False for sites whose links expire too quickly to cache (e.g. e-hentai).
     /// </summary>
     protected virtual bool SupportsPartialSave => true;
 
     /// <summary>
-    /// Whether this parser needs SiteLogin run before ParseCore. Checked on every entry path
-    /// (both ParseSite-driven and delegated Parse(url) calls), since delegated calls bypass ParseSite entirely.
+    /// Whether this parser needs <see cref="SiteLogin"/> run before <see cref="Parse"/>. Checked by the
+    /// orchestrator on the top-level path, and by <c>ParameterizedHtmlParser</c> itself on the delegated path.
     /// </summary>
     protected virtual bool RequiresLogin => false;
 
-    protected static FlareSolverrManager FlareSolverrManager { get; } //=> NicheImageRipper.FlareSolverrManager;
+    /// <summary>
+    /// Internal, non-virtual read of <see cref="RequiresNavigation"/> for <c>HtmlParserOrchestrator</c>, which
+    /// isn't a subclass and so can't see the protected virtual property directly. Forwards through normal
+    /// virtual dispatch, so it always reflects whatever the concrete parser overrode.
+    /// </summary>
+    internal bool RequiresNavigationValue => RequiresNavigation;
+
+    /// <summary>Internal counterpart to <see cref="RequiresNavigationValue"/> for <see cref="SupportsPartialSave"/>.</summary>
+    internal bool SupportsPartialSaveValue => SupportsPartialSave;
+
+    /// <summary>Internal counterpart to <see cref="RequiresNavigationValue"/> for <see cref="RequiresLogin"/>.</summary>
+    internal bool RequiresLoginValue => RequiresLogin;
+
+    protected static FlareSolverrManager FlareSolverrManager { get; } // => global::NicheImageRipper.Sdk.Managers.FlareSolverrManager.Instance;
 
     protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)
@@ -81,26 +109,33 @@ public abstract class HtmlParser : IDisposable
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
         Interrupted = false;
-        SiteName = "";
         SleepTime = 0.2f;
         Jitter = 0.5f;
-        GivenUrl = "";
         Logger = Log.ForContext<HtmlParser>();
     }
 
-    /// <summary>Resolves the parser for an embedded link found on the current page.</summary>
+    /// <summary>
+    /// Resolves the parser for an embedded link found on the current page (e.g. a Mega/GDrive/GoFile
+    /// link inside another site's post) and returns it for delegated (non-top-level) parsing.
+    /// </summary>
     protected ParameterizedHtmlParser CreateParser(string url) =>
         Resolver.CreateParameterized(url, WebDriver, RequestHeaders, FilenameScheme);
-    
-    /// <summary>Delegates this parse entirely to another site's registered parser, running its full
-    /// top-level pipeline against <paramref name="url"/>. Use for whole-site aliasing (e.g. a site
-    /// whose /video/ pages are identical to a different registered site) — not for resolving a single
-    /// embedded link, which is <see cref="CreateParser"/>'s job.</summary>
+
+    /// <summary>
+    /// Delegates this parse entirely to another site's registered parser, running its full top-level
+    /// pipeline (site detection, partial-save caching, retry) against <paramref name="url"/>. Use for
+    /// whole-site aliasing (e.g. a site whose /video/ pages are identical to a different registered
+    /// site) — not for resolving a single embedded link, which is <see cref="CreateParser"/>'s job.
+    /// </summary>
     protected Task<RipInfo> ParseWith(string url, CancellationToken cancellationToken = default) =>
         Resolver.ParseSite(url, WebDriver, RequestHeaders, FilenameScheme, cancellationToken);
-    
-    // Only called by self and ParameterizedHtmlParser
-    protected Task<bool> SiteLogin(CancellationToken cancellationToken = default)
+
+    /// <summary>
+    /// Ensures the current site is logged in, running <see cref="SiteLoginHelper"/> if not already.
+    /// Called by the orchestrator on the top-level path and by <c>ParameterizedHtmlParser</c> on the
+    /// delegated path (which bypasses the orchestrator entirely).
+    /// </summary>
+    protected internal Task<bool> SiteLogin(CancellationToken cancellationToken = default)
     {
         Logger.Debug("Checking if already logged in to {SiteName}", SiteName);
         if (IsLoggedInToSite(SiteName))
@@ -133,7 +168,9 @@ public abstract class HtmlParser : IDisposable
 
     public abstract Task<RipInfo> Parse(CancellationToken cancellationToken = default);
 
-    /// <summary>Convert current page into an HtmlNode object</summary>
+    /// <summary>
+    /// Convert current page into an HtmlNode object.
+    /// </summary>
     /// <param name="delay">How long to wait after loading the page (in milliseconds) before parsing</param>
     /// <param name="lazyLoadArgs">Arguments for lazy loading elements on the page</param>
     /// <param name="xpath">XPath of an element to wait for before parsing</param>
@@ -163,7 +200,9 @@ public abstract class HtmlParser : IDisposable
         return doc.DocumentNode;
     }
 
-    /// <summary>Convert input into an HtmlNode object</summary>
+    /// <summary>
+    /// Convert input into an HtmlNode object.
+    /// </summary>
     /// <param name="url">URL or HTML string. If a url is provided, the driver will navigate to it first, before parsing the page.</param>
     /// <param name="delay">How long to wait after loading the page (in milliseconds) before parsing</param>
     /// <param name="lazyLoadArgs">Arguments for lazy loading elements on the page</param>
@@ -199,7 +238,9 @@ public abstract class HtmlParser : IDisposable
             cancellationToken: cancellationToken);
     }
 
-    /// <summary>Convert HttpResponseMessage content into an HtmlNode object</summary>
+    /// <summary>
+    /// Convert HttpResponseMessage content into an HtmlNode object.
+    /// </summary>
     /// <param name="response">HttpResponseMessage to parse</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Parsed HtmlNode object</returns>
@@ -233,7 +274,9 @@ public abstract class HtmlParser : IDisposable
         };
     }
 
-    /// <summary>Convert FlareSolverr Solution response into an HtmlNode object</summary>
+    /// <summary>
+    /// Convert FlareSolverr Solution response into an HtmlNode object.
+    /// </summary>
     /// <param name="solution">FlareSolverr Solution to parse</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     /// <returns>Parsed HtmlNode object</returns>
@@ -244,7 +287,9 @@ public abstract class HtmlParser : IDisposable
         return Task.FromResult(htmlDocument.DocumentNode);
     }
 
-    /// <summary>Wait for an element to exist on the page</summary>
+    /// <summary>
+    /// Wait for an element to exist on the page.
+    /// </summary>
     /// <param name="xpath">XPath of the element to wait for</param>
     /// <param name="delay">Delay between each check</param>
     /// <param name="timeout">Timeout (in seconds) for the wait (-1 for no timeout)</param>
@@ -276,7 +321,9 @@ public abstract class HtmlParser : IDisposable
         return foundElement.TagName;
     }
 
-    /// <summary>Close all tabs that do not contain the specified URL match.</summary>
+    /// <summary>
+    /// Close all tabs that do not contain the specified URL match.
+    /// </summary>
     /// <param name="urlMatch">The substring that should be present in the URL of the tabs to keep open.</param>
     protected void CleanTabs(string urlMatch)
     {
@@ -293,7 +340,9 @@ public abstract class HtmlParser : IDisposable
         Driver.SwitchTo().Window(Driver.WindowHandles[0]);
     }
 
-    /// <summary>Solves a CAPTCHA using FlareSolverr, parses the returned HTML, and adds the necessary cookies to the browser session.</summary>
+    /// <summary>
+    /// Solves a CAPTCHA using FlareSolverr, parses the returned HTML, and adds the necessary cookies to the browser session.
+    /// </summary>
     /// <param name="regenerateSessionOnFailure">If true, regenerates the session and retries once if CAPTCHA solving fails.</param>
     /// <param name="cookies">Optional cookie dictionaries to include in the session when solving the CAPTCHA.</param>
     /// <param name="cookieWhitelist">List of cookie names to retain from the existing session.</param>
@@ -427,7 +476,9 @@ public abstract class HtmlParser : IDisposable
         return (capturer, bidi);
     }
 
-    /// <summary>Scrolls through the page to lazy load images</summary>
+    /// <summary>
+    /// Scrolls through the page to lazy load images.
+    /// </summary>
     /// <param name="args">Arguments for lazy loading</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
     protected Task LazyLoad(LazyLoadArgs args, CancellationToken cancellationToken = default)
@@ -438,7 +489,9 @@ public abstract class HtmlParser : IDisposable
                 cancellationToken);
     }
 
-    /// <summary>Scroll through the page to lazy load images</summary>
+    /// <summary>
+    /// Scroll through the page to lazy load images.
+    /// </summary>
     /// <param name="scrollBy">Whether to scroll through the page or instantly scroll to the bottom</param>
     /// <param name="increment">Distance to scroll by each iteration</param>
     /// <param name="scrollPauseTime">Seconds to wait between each scroll</param>

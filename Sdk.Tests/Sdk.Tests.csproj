@@ -5,6 +5,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <RootNamespace>NicheImageRipper.Sdk.Tests</RootNamespace>
+        <Version>0.1.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
@@ -19,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\SiteModules\SiteModules.csproj" />
+      <ProjectReference Include="..\Sdk\Sdk.csproj" />
     </ItemGroup>
 
 </Project>
