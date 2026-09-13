@@ -8,6 +8,8 @@ namespace NicheImageRipper.Sdk.Managers;
 
 public class FlareSolverrManager(string flareSolverrUri)
 {
+    public static FlareSolverrManager Instance { get; } = new(Configuration.Config.Instance.FlareSolverrUri);
+    
     private readonly FlareSolverrClient _flareSolverrClient = new(flareSolverrUri);
     private readonly ILogger _logger = Log.ForContext<FlareSolverrManager>();
     
