@@ -4,7 +4,9 @@ using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using SteamApiClientType = SteamApiClient.SteamApiClient;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
@@ -30,6 +32,13 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
+        var available = AvailableFeatureManager.AvailableFeatures.HasFeature(FeatureKeys.SteamCmd,
+            () => ProcessRunner.CheckForProcess("steamcmd", "+login anonymous +quit"));
+        if (!available)
+        {
+            throw new FeatureNotAvailableException(FeatureKeys.SteamCmd);
+        }
+        
         var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
         if (username.IsNullOrEmpty())
         {
