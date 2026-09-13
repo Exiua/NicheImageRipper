@@ -1,14 +1,14 @@
 ﻿using System.Text;
-using NicheImageRipper.Core.SiteParsing;
-using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Core.Driver;
-using NicheImageRipper.Core.Managers;
+using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Sdk.Configuration;
-using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Tui;
-using NicheImageRipper.Tui.ArgParse;
 using Serilog;
 using Serilog.Events;
+
+#if DEBUG
+using System.CommandLine;
+#endif
 
 Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
@@ -24,38 +24,57 @@ NicheImageRipper.Core.NicheImageRipper.ConsoleLoggingLevelSwitch.MinimumLevel = 
 Console.OutputEncoding = Encoding.UTF8;
 
 #if DEBUG
-var arguments = ArgumentParser.Parse(args);
-switch (arguments.RunMode)
+// "test"/"gui" are debug-only parser-debugging entry points, orthogonal to the rip CLI/REPL
+if (args.Length > 0 && args[0].Equals("test", StringComparison.OrdinalIgnoreCase))
 {
-    case RunMode.Test:
+    await RunTestMode(args[1..]);
+}
+else if (args.Length > 0 && args[0].Equals("gui", StringComparison.OrdinalIgnoreCase))
+{
+    Log.Error("Run the GUI through the GUI project");
+}
+else
+{
+    await new NicheImageRipperCli().Run(args);
+}
+#else
+await new NicheImageRipperCli().Run(args);
+#endif
+
+#if DEBUG
+async Task RunTestMode(string[] testArgs)
+{
+    var urlArg = new Argument<string>("url");
+    var debugOption = new Option<bool>("--debug", "-d") { Description = "Run non-headless and pause after parsing" };
+    var printSiteOption = new Option<bool>("--print-site", "-p") { Description = "Dump page source to test.html" };
+
+    var testCommand = new Command("test", "Debug-run a single parser against one URL")
     {
+        urlArg, debugOption, printSiteOption
+    };
+
+    testCommand.SetAction(async (parseResult, ct) =>
+    {
+        var url = parseResult.GetValue(urlArg)!;
+        var debug = parseResult.GetValue(debugOption);
+        var printSite = parseResult.GetValue(printSiteOption);
+
         var requestHeaders = new Dictionary<string, string>
         {
-            {"User-Agent", Config.Instance.UserAgent},
-            {"referer", "https://imhentai.xxx/"},
-            {"cookie", ""}
+            { "User-Agent", Config.Instance.UserAgent },
+            { "referer", "https://imhentai.xxx/" },
+            { "cookie", "" }
         };
 
         using var pool = new WebDriverPool(1);
-        var driver = pool.AcquireDriver(!arguments.Debug); // if debug, headless = false
+        var driver = pool.AcquireDriver(!debug); // if debug, headless = false
         var parser = new HtmlParserOrchestrator(driver, requestHeaders);
-        // Null check performed in ArgumentParser.Parse
-        var output = await parser.TestParse(arguments.Url!, arguments.Debug, arguments.PrintSite);
+        var output = await parser.TestParse(url, debug, printSite, ct);
         pool.ReleaseDriver(driver);
-        Log.Information("{ripInfo}", output);
-        break;
-    }
-    case RunMode.Gui:
-        Log.Error("Run the GUI through the GUI project");
-        break;
-    case RunMode.Cli:
-        var ripper = new NicheImageRipperCli();
-        await ripper.Run();
-        break;
-    default:
-        throw new ArgumentOutOfRangeException();
+        Log.Information("{RipInfo}", output);
+    });
+
+    var root = new RootCommand { testCommand };
+    await root.Parse(["test", ..testArgs]).InvokeAsync();
 }
-#else
-var ripper = new NicheImageRipperCli();
-await ripper.Run();
 #endif

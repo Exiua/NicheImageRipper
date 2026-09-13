@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -18,6 +17,7 @@ using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.Managers;
 using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
@@ -38,7 +38,7 @@ public partial class NicheImageRipper : IDisposable
     public static FlareSolverrManager FlareSolverrManager => FlareSolverrManager.Instance;
     public static Version Version { get; } = new(5, 0, 0);
 
-    public static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
+    public static IAvailableFeatures AvailableFeatures { get; } = AvailableFeatureManager.AvailableFeatures;
     
     protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 
@@ -734,76 +734,6 @@ public partial class NicheImageRipper : IDisposable
     private static void DisableConsoleLogging()
     {
         ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Fatal + 1;
-    }
-
-    private static ExternalFeatureSupport GetExternalFeatureSupport()
-    {
-        var support = ExternalFeatureSupport.None;
-        support |= CheckForFfmpeg()         ? ExternalFeatureSupport.Ffmpeg         : ExternalFeatureSupport.None;
-        support |= CheckForYtDlp()          ? ExternalFeatureSupport.YtDlp          : ExternalFeatureSupport.None;
-        support |= CheckForMegaCmd()        ? ExternalFeatureSupport.MegaCmd        : ExternalFeatureSupport.None;
-        support |= CheckForFlareSolverr()   ? ExternalFeatureSupport.FlareSolverr   : ExternalFeatureSupport.None;
-        support |= CheckForCSWebDriver()    ? ExternalFeatureSupport.CSWebDriver    : ExternalFeatureSupport.None;
-        support |= CheckForSteamCmd()       ? ExternalFeatureSupport.SteamCmd       : ExternalFeatureSupport.None;
-        return support;
-    }
-
-    private static bool CheckForFfmpeg()
-    {
-        return CheckForProcess("ffmpeg", "-version");
-    }
-
-    private static bool CheckForYtDlp()
-    {
-        return CheckForProcess("yt-dlp", "--version");
-    }
-
-    private static bool CheckForMegaCmd()
-    {
-        return CheckForProcess("mega-version.bat", "-v");
-    }
-
-    private static bool CheckForFlareSolverr()
-    {
-        return Config.FlareSolverrUri != "";
-    }
-
-    private static bool CheckForCSWebDriver()
-    {
-        return Config.CSWebDriverUri != "";
-    }
-    
-    private static bool CheckForSteamCmd()
-    {
-        return CheckForProcess("steamcmd", "+login anonymous +quit");
-    }
-
-    private static bool CheckForProcess(string filename, string arguments)
-    {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = filename,
-                Arguments = arguments,
-                RedirectStandardOutput = false,
-                RedirectStandardError = false,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        try
-        {
-            process.Start();
-            process.WaitForExit();
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
-
-        return true;
     }
 
     public void Dispose()
