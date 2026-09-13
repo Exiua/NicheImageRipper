@@ -5,6 +5,7 @@ using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.Managers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
@@ -394,11 +395,12 @@ public abstract class HtmlParser : IDisposable
                                        List<Dictionary<string, string>>? cookies = null,
                                        CancellationToken cancellationToken = default)
     {
-        // TODO: FIXME
-        // if (!NicheImageRipper.AvailableFeatures.HasFlag(ExternalFeatureSupport.FlareSolverr))
-        // {
-        //     throw new FeatureNotAvailableException(ExternalFeatureSupport.FlareSolverr);
-        // }
+        var available = AvailableFeatureManager.AvailableFeatures.HasFeature(
+            FeatureKeys.FlareSolverr, () => Config.FlareSolverrUri != "");
+        if (!available)
+        {
+            throw new FeatureNotAvailableException(FeatureKeys.FlareSolverr);
+        }
 
         // Safety: Solution will not be null unless all attempts fail in which case an exception is thrown.
         Solution solution = null!;

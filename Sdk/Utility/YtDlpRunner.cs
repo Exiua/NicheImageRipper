@@ -22,9 +22,11 @@ public static class YtDlpRunner
                                             Func<string?, string?, string[]?>? onFailure = null,
                                             CancellationToken cancellationToken = default)
     {
-        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.YtDlp))
+        var available = AvailableFeatureManager.AvailableFeatures.HasFeature(FeatureKeys.YtDlp,
+            () => ProcessRunner.CheckForProcess("yt-dlp", "--version"));
+        if (!available)
         {
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
+            throw new FeatureNotAvailableException(FeatureKeys.YtDlp);
         }
 
         var url = link.Url;

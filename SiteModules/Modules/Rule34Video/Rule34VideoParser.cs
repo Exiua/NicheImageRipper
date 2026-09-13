@@ -29,10 +29,13 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.CSWebDriver))
+        var available =
+            AvailableFeatureManager.AvailableFeatures.HasFeature(FeatureKeys.CSWebDriver,
+                () => Config.CSWebDriverUri != "");
+        if (!available)
         {
             Logger.Error("CSWebDriver URI is not configured. Cannot parse rule34video.com without CSWebDriver.");
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);
+            throw new FeatureNotAvailableException(FeatureKeys.CSWebDriver);
         }
 
         var client = new Client(Config.CSWebDriverUri);

@@ -8,6 +8,7 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Youtube;
@@ -30,10 +31,12 @@ public class YoutubeParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.YtDlp))
+        var available = AvailableFeatureManager.AvailableFeatures.HasFeature(FeatureKeys.YtDlp,
+            () => ProcessRunner.CheckForProcess("yt-dlp", "--version"));
+        if (!available)
         {
             Logger.Error("yt-dlp is not available. Cannot parse YouTube without yt-dlp.");
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.YtDlp);
+            throw new FeatureNotAvailableException(FeatureKeys.YtDlp);
         }
 
         if (FilenameScheme != FilenameScheme.Original)

@@ -8,12 +8,15 @@ using NicheImageRipper.Sdk.SiteParsing;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.MissAv123;
+
 public class MissAv123Parser : HtmlParser, IHtmlParser
 {
     public static string ParserName => "missav123";
     public static string[] SupportedUrls => ["https://missav123.com/"];
 
-    public MissAv123Parser(WebDriver driver, Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders, IHtmlParser.GetFilenameScheme<MissAv123Parser>(filenameScheme))
+    public MissAv123Parser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<MissAv123Parser>(filenameScheme))
     {
     }
 
@@ -23,10 +26,13 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        if (!AvailableFeatureManager.AvailableFeatures.HasFeature(ExternalFeatureSupport.CSWebDriver))
+        var available =
+            AvailableFeatureManager.AvailableFeatures.HasFeature(FeatureKeys.CSWebDriver,
+                () => Config.CSWebDriverUri != "");
+        if (!available)
         {
             Logger.Error("CSWebDriver URI is not configured. Cannot parse missav123.com without CSWebDriver.");
-            throw new FeatureNotAvailableException(ExternalFeatureSupport.CSWebDriver);
+            throw new FeatureNotAvailableException(FeatureKeys.CSWebDriver);
         }
 
         var soup = await SolveParse(cancellationToken: cancellationToken);
@@ -51,7 +57,8 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
         var parts = playlist.Split("/");
         var id = parts[3];
         var filename = id + ".mp4";
-        var fileLink = FileLink.WithFilename(playlist, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp, referer: CurrentUrl);
+        var fileLink = FileLink.WithFilename(playlist, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
+            referer: CurrentUrl);
         return RipInfo.FromUrlList([fileLink], dirName, FilenameScheme);
     }
 }
