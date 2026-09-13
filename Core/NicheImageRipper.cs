@@ -35,7 +35,7 @@ public partial class NicheImageRipper : IDisposable
     public static string Title => "NicheImageRipper";
     public static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
-    public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
+    public static FlareSolverrManager FlareSolverrManager => FlareSolverrManager.Instance;
     public static Version Version { get; } = new(5, 0, 0);
 
     public static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();

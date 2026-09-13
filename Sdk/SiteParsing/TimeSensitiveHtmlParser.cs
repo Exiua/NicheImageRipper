@@ -8,13 +8,10 @@ namespace NicheImageRipper.Sdk.SiteParsing;
 
 public abstract class TimeSensitiveHtmlParser : HtmlParser
 {
-    // TODO: FIXME
-    protected static ITimeSensitiveParserStateManager
-        TimeSensitiveParserStateManager { get; } //=> TimeSensitiveParserStateManager.Instance;
+    protected static ITimeSensitiveParserStateManager TimeSensitiveParserStateManager => Managers.TimeSensitiveParserStateManager.Instance;
 
     protected abstract int MaxEntriesPerBatch { get; }
     protected abstract string ParserKey { get; }
-    // ImageLinksFileName removed — no longer needed now that links live in TimeSensitiveParserStateManager
 
     protected TimeSensitiveHtmlParser(WebDriver driver,
                                       Dictionary<string, string> requestHeaders,

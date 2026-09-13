@@ -99,7 +99,7 @@ public abstract class HtmlParser : IDisposable
     /// <summary>Internal counterpart to <see cref="RequiresNavigationValue"/> for <see cref="RequiresLogin"/>.</summary>
     internal bool RequiresLoginValue => RequiresLogin;
 
-    protected static FlareSolverrManager FlareSolverrManager { get; } // => global::NicheImageRipper.Sdk.Managers.FlareSolverrManager.Instance;
+    protected static FlareSolverrManager FlareSolverrManager => FlareSolverrManager.Instance;
 
     protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)

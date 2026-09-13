@@ -29,6 +29,7 @@ public class HtmlParserOrchestrator : IDisposable
     private static PartialSaveManager PartialSaveManager => PartialSaveManager.Instance;
 
     private WebDriver WebDriver { get; }
+    public bool Interrupted { get; set; }
     private string SiteName { get; set; }
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
@@ -38,8 +39,6 @@ public class HtmlParserOrchestrator : IDisposable
     private Dictionary<string, string> RequestHeaders { get; }
     private ILogger Logger { get; init; }
     private HttpClient HttpClient { get; set; }
-    
-    public bool Interrupted { get; set; }
 
     private FirefoxDriver Driver => WebDriver.Driver;
 
@@ -282,8 +281,13 @@ public class HtmlParserOrchestrator : IDisposable
             FlareSolverrManager.DeleteSession().Wait();
         }
 
-        HttpClient.Dispose();
+        DisposeInternal();
 
         GC.SuppressFinalize(this);
+    }
+
+    protected virtual void DisposeInternal()
+    {
+        HttpClient.Dispose();
     }
 }

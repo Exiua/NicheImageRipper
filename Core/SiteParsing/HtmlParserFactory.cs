@@ -63,7 +63,7 @@ public static class HtmlParserFactory
                                     })
                                    .Where(type =>
                                         !type.IsAbstract &&
-                                        typeof(HtmlParserOrchestrator).IsAssignableFrom(type) &&
+                                        typeof(HtmlParser).IsAssignableFrom(type) &&
                                         typeof(IHtmlParser).IsAssignableFrom(type))
                                    .ToList();
 
@@ -232,7 +232,7 @@ public static class HtmlParserFactory
         var (p1, p2, p3) = StandardParameters();
 
         var newExpr = Expression.New(ctor, p1, p2, p3);
-        var cast = Expression.Convert(newExpr, typeof(HtmlParserOrchestrator));
+        var cast = Expression.Convert(newExpr, typeof(HtmlParser));
         var lambda = Expression.Lambda<HtmlParserCtor>(cast, p1, p2, p3);
         var compiled = lambda.Compile();
         HtmlParserCtors[type] = compiled;
