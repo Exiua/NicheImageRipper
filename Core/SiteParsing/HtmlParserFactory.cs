@@ -38,6 +38,12 @@ public static class HtmlParserFactory
     public static IReadOnlyList<(string From, string To)> UrlReplacements { get; private set; } = [];
     public static FrozenSet<string> DelegatableDomains { get; private set; } = FrozenSet<string>.Empty;
 
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind, Func<string, string> Normalize)> UrlNormalizers
+    {
+        get;
+        private set;
+    } = [];
+
     static HtmlParserFactory()
     {
         SiteModuleLoader.LoadModules();
@@ -78,6 +84,39 @@ public static class HtmlParserFactory
             parserTypes, typeof(IRefererOverrideHtmlParser), nameof(IRefererOverrideHtmlParser.RefererOverride));
         UrlReplacements = BuildUrlReplacements(parserTypes);
         DelegatableDomains = BuildDelegatableDomains(parserTypes);
+        UrlNormalizers = BuildUrlNormalizers(parserTypes);
+    }
+
+    private static List<(string Pattern, UrlMatchKind Kind, Func<string, string> Normalize)> BuildUrlNormalizers(
+        IEnumerable<Type> parserTypes)
+    {
+        var normalizers = new List<(string, UrlMatchKind, Func<string, string>)>();
+        var owners = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var type in parserTypes.Where(t => typeof(INormalizingHtmlParser).IsAssignableFrom(t)))
+        {
+            var method = type.GetMethod(nameof(INormalizingHtmlParser.NormalizeUrl),
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+            var normalize = (Func<string, string>)Delegate.CreateDelegate(typeof(Func<string, string>), method);
+            var patterns = (IReadOnlyList<(string Pattern, UrlMatchKind Kind)>)
+                type.GetProperty(nameof(INormalizingHtmlParser.NormalizationPatterns))!.GetValue(null)!;
+
+            foreach (var (pattern, kind) in patterns)
+            {
+                var key = $"{kind}:{pattern}";
+                if (owners.TryGetValue(key, out var existingOwner) && existingOwner != type)
+                {
+                    Logger.Warning(
+                        "Normalization pattern {Kind} {Pattern} claimed by both {Existing} (existing) and {New} (new); newer will take precedence",
+                        kind, pattern, existingOwner.Name, type.Name);
+                }
+
+                owners[key] = type;
+                normalizers.Add((pattern, kind, normalize));
+            }
+        }
+
+        return normalizers;
     }
 
     private static FrozenSet<string> BuildDelegatableDomains(IEnumerable<Type> parserTypes)

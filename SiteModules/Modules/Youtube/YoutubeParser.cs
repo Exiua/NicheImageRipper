@@ -13,11 +13,13 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Youtube;
 
-public class YoutubeParser : HtmlParser, IHtmlParser
+public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "youtube";
     public static string[] SupportedUrls => ["https://www.youtube.com/"];
     protected override bool RequiresNavigation => false;
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("youtube.com", UrlMatchKind.Contains), ("youtu.be", UrlMatchKind.Contains)];
 
     public YoutubeParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
@@ -97,6 +99,11 @@ public class YoutubeParser : HtmlParser, IHtmlParser
         List<StringFileLinkWrapper> images = [fileLink];
 
         return RipInfo.FromUrlList(images, title, FilenameScheme);
+    }
+    
+    public static string NormalizeUrl(string url)
+    {
+        return UrlUtility.NormalizeUrl(url, strict: false, "v");
     }
 
     private class SubprocessArgs

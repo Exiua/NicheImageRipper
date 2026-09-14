@@ -11,10 +11,12 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Hanime1;
 
-public class Hanime1Parser : HtmlParser, IHtmlParser
+public class Hanime1Parser : HtmlParser, IHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "hanime1";
     public static string[] SupportedUrls => ["https://hanime1.me/"];
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("hanime1.me", UrlMatchKind.Contains)];
 
     public Hanime1Parser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
@@ -112,5 +114,10 @@ public class Hanime1Parser : HtmlParser, IHtmlParser
         // Safety: downloadButton should never be null here due to the loop above
         var videoUrl = downloadButton!.GetAttributeValue("data-url");
         return videoUrl;
+    }
+
+    public static string NormalizeUrl(string url)
+    {
+        return url.Split("&page=")[0];
     }
 }

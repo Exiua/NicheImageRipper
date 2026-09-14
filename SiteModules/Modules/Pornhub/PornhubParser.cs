@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
@@ -14,12 +15,14 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Pornhub;
 
-public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
+public partial class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "pornhub";
     public static string[] SupportedUrls => ["https://www.pornhub.com/"];
     protected override int MaxEntriesPerBatch => 25;
     protected override string ParserKey => ParserName;
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("pornhub.com", UrlMatchKind.Contains)];
 
     private const int MaxParsePostAttempts = 4;
 
@@ -298,4 +301,20 @@ public class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser
             : soup.SelectSingleNodeOrThrow("//video[@class='centerImageVid']/source").GetSrc();
         return url;
     }
+    
+    // SiteModules.Modules.Pornhub.PornhubParser
+    public static string NormalizeUrl(string url)
+    {
+        if (url.Contains("view_video"))
+        {
+            var id = PornhubViewKeyRegex().Match(url).Groups[1].Value;
+            return $"https://www.pornhub.com/view_video.php?viewkey={id}";
+        }
+
+        var urlParts = url.Split('/');
+        return urlParts[..5].Join('/').Split('?')[0];
+    }
+    
+    [GeneratedRegex("viewkey=([0-9a-z]+)")]
+    private static partial Regex PornhubViewKeyRegex();
 }

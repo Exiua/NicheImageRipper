@@ -4,11 +4,13 @@ using NicheImageRipper.Sdk.SiteParsing;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
-public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtmlParser
+public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "danbooru";
     public static string[] SupportedUrls => ["https://danbooru.donmai.us/"];
     public static int SignificantDomainLabels => 3;
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("danbooru.", UrlMatchKind.Contains)];
 
     public DanbooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<DanbooruParser>(filenameScheme))
     {
@@ -21,5 +23,10 @@ public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtm
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return BooruParse(Sdk.Enums.Booru.Danbooru, cancellationToken: cancellationToken);
+    }
+    
+    public static string NormalizeUrl(string url)
+    {
+        return BooruUrlNormalization.NormalizeUrl(url, Sdk.Enums.Booru.Danbooru);
     }
 }

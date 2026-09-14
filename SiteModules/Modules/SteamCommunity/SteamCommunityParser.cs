@@ -12,10 +12,12 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SteamCommunity;
 
-public class SteamCommunityParser : HtmlParser, IHtmlParser
+public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "steamcommunity";
     public static string[] SupportedUrls => ["https://steamcommunity.com/"];
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("steamcommunity.com", UrlMatchKind.Contains)];
 
     internal static SteamApiClientType SteamApiClient { get; } = new();
 
@@ -90,5 +92,24 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser
         // The URL doesn't matter, the extractor will use the appId and fileId to download the file using steamcmd.
         // This is mainly a hack to get around URL validation in ImageLink
         return $"https://steamcommunity.com/{appId}|{fileId}";
+    }
+    
+    public static string NormalizeUrl(string url)
+    {
+        var parts = url.Split('?');
+        var parameters = parts.Length > 1 ? parts[1].Split('&') : [];
+        if (parameters.Length < 1)
+        {
+            throw new RipperException("Unexpected Steam Community URL format: " + url);
+        }
+
+        var appId = parameters.FirstOrDefault(p => p.StartsWith("appid"));
+        if (appId is null)
+        {
+            throw new RipperException("Unexpected Steam Community URL format: " + url);
+        }
+
+        var normalizedUrl = $"{parts[0]}?{appId}";
+        return normalizedUrl;
     }
 }

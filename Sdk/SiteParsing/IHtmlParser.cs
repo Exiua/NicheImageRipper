@@ -27,7 +27,7 @@ public interface IHtmlParser
 /// <summary>
 /// Implemented by parsers that should also be registered under additional site names (e.g. mirror domains).
 /// </summary>
-public interface IMultiSiteHtmlParser
+public interface IMultiSiteHtmlParser : IHtmlParser
 {
     static abstract string[] AdditionalParserNames { get; }
 }

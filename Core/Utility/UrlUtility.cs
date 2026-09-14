@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Sdk.Exceptions;
 using Serilog;

@@ -6,11 +6,13 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Booru;
 
-public class AllBooruParser : BooruParser, IHtmlParser
+public class AllBooruParser : BooruParser, IHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "booru";
     public static string[] SupportedUrls => ["https://booru.com/"];
     protected override bool RequiresNavigation => false;
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("booru.com", UrlMatchKind.Contains)];
 
     public AllBooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
@@ -43,5 +45,15 @@ public class AllBooruParser : BooruParser, IHtmlParser
         tagTitle = Uri.UnescapeDataString(tagTitle);
         var dirName = $"[Booru] {tagTitle}";
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+    
+    /// <summary>
+    /// booru.com is a pseudo-site used as a control command to search every booru variant at once —
+    /// it has no posts of its own, so normalization just canonicalizes its tag query into one form.
+    /// </summary>
+    public static string NormalizeUrl(string url)
+    {
+        var tags = BooruUrlNormalization.BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
+        return $"https://booru.com/post?{tags}";
     }
 }

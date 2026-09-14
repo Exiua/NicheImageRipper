@@ -11,6 +11,7 @@ using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.PartialSaves;
+using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -232,145 +233,28 @@ public partial class NicheImageRipper : IDisposable
 
         return failedUrls;
     }
-
+    
     public static string NormalizeUrl(string url)
     {
         var host = new Uri(url).Host;
 
-        if (host.Contains("pornhub.com"))
+        foreach (var (pattern, kind, normalize) in HtmlParserFactory.UrlNormalizers)
         {
-            return NormalizePornhubUrl(url);
-        }
+            var matches = kind switch
+            {
+                UrlMatchKind.StartsWith => host.StartsWith(pattern, StringComparison.OrdinalIgnoreCase),
+                UrlMatchKind.Contains => host.Contains(pattern, StringComparison.OrdinalIgnoreCase),
+                UrlMatchKind.EndsWith => host.EndsWith(pattern, StringComparison.OrdinalIgnoreCase),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+            };
 
-        if (host.Contains("yande.re"))
-        {
-            return NormalizeBooruUrl(url, Booru.Yandere);
-        }
-
-        if (host.Contains("danbooru."))
-        {
-            return NormalizeBooruUrl(url, Booru.Danbooru);
-        }
-
-        if (host.Contains("gelbooru."))
-        {
-            return NormalizeBooruUrl(url, Booru.Gelbooru);
-        }
-
-        if (host.Contains("rule34."))
-        {
-            return NormalizeBooruUrl(url, Booru.Rule34);
-        }
-
-        if (host.Contains("e621.net"))
-        {
-            return NormalizeBooruUrl(url, Booru.E621);
-        }
-
-        if (host.Contains("booru.com"))
-        {
-            // Special case for booru.com as the site is used as a control command and not as a real site
-            var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
-            return $"https://booru.com/post?{tags}";
-        }
-
-        if (host.Contains("exhentai.org"))
-        {
-            return url.Replace("exhentai.org", "e-hentai.org");
-        }
-
-        if (host.Contains("hanime1.me"))
-        {
-            return url.Split("&page=")[0];
-        }
-
-        if (host.Contains("steamcommunity.com"))
-        {
-            return NormalizeSteamCommunityUrl(url);
-        }
-
-        if (host.Contains("youtube.com"))
-        {
-            return NormalizeYoutubeUrl(url);
+            if (matches)
+            {
+                return normalize(url);
+            }
         }
 
         return url.Split("?")[0];
-    }
-
-    private static string NormalizeSteamCommunityUrl(string url)
-    {
-        var parts = url.Split('?');
-        var parameters = parts.Length > 1 ? parts[1].Split('&') : [];
-        if (parameters.Length < 1)
-        {
-            throw new RipperException("Unexpected Steam Community URL format: " + url);
-        }
-
-        var appId = parameters.FirstOrDefault(p => p.StartsWith("appid"));
-        if (appId is null)
-        {
-            throw new RipperException("Unexpected Steam Community URL format: " + url);
-        }
-
-        var normalizedUrl = $"{parts[0]}?{appId}";
-        return normalizedUrl;
-    }
-
-    private static string NormalizeYoutubeUrl(string url)
-    {
-        return NormalizeUrl(url, strict: false, "v");
-    }
-
-    private static string NormalizeUrl(string url, bool strict = true, params string[] parametersToKeep)
-    {
-        var uri = new Uri(url);
-        var query = QueryHelpers.ParseQuery(uri.Query);
-
-        var kept = new Dictionary<string, string?>();
-        foreach (var param in parametersToKeep)
-        {
-            if (query.TryGetValue(param, out var value))
-            {
-                kept[param] = value.ToString();
-            }
-            else if (strict)
-            {
-                throw new RipperException($"Unexpected URL format: {url}; Missing parameter: {param}");
-            }
-        }
-
-        var baseUrl = uri.GetLeftPart(UriPartial.Path);
-        var newUrl = QueryHelpers.AddQueryString(baseUrl, kept);
-        return newUrl;
-    }
-
-    private static string NormalizePornhubUrl(string url)
-    {
-        if (url.Contains("view_video"))
-        {
-            var id = PornhubViewKeyRegex().Match(url).Groups[1].Value;
-            return $"https://www.pornhub.com/view_video.php?viewkey={id}";
-        }
-
-        var urlParts = url.Split('/');
-        return urlParts[..5].Join('/').Split('?')[0];
-    }
-
-    private static string NormalizeBooruUrl(string url, Booru booru)
-    {
-        var baseUrl = url.Split("?")[0];
-        var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
-        if (tags.EndsWith('+'))
-        {
-            tags = tags[..^1];
-        }
-
-        return booru switch
-        {
-            Booru.Danbooru or Booru.Yandere or Booru.E621 => $"{baseUrl}?{tags}",
-            Booru.Gelbooru or Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
-            _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
-        };
     }
 
     public async Task<bool> Rip(CancellationToken cancellationToken = default)

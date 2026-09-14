@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.WebUtilities;
+using NicheImageRipper.Sdk.Exceptions;
 using Serilog;
 
 namespace NicheImageRipper.Sdk.Utility;
@@ -125,6 +127,29 @@ public static partial class UrlUtility
     public static string GetUrlParameterValue(string url, string parameter)
     {
         return url.Split($"{parameter}=")[1].Split("&")[0];
+    }
+    
+    public static string NormalizeUrl(string url, bool strict = true, params string[] parametersToKeep)
+    {
+        var uri = new Uri(url);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        var kept = new Dictionary<string, string?>();
+        foreach (var param in parametersToKeep)
+        {
+            if (query.TryGetValue(param, out var value))
+            {
+                kept[param] = value.ToString();
+            }
+            else if (strict)
+            {
+                throw new RipperException($"Unexpected URL format: {url}; Missing parameter: {param}");
+            }
+        }
+
+        var baseUrl = uri.GetLeftPart(UriPartial.Path);
+        var newUrl = QueryHelpers.AddQueryString(baseUrl, kept);
+        return newUrl;
     }
     
     [GeneratedRegex(@"(\?usp=sharing|\?usp=share_link|\?id=)")]

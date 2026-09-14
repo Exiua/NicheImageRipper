@@ -8,6 +8,8 @@ public class E621Parser : BooruParser, IHtmlParser
 {
     public static string ParserName => "e621";
     public static string[] SupportedUrls => ["https://e621.net/"];
+    public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
+        [("e621.net", UrlMatchKind.Contains)];
 
     public E621Parser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<E621Parser>(filenameScheme))
     {
@@ -20,5 +22,10 @@ public class E621Parser : BooruParser, IHtmlParser
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
         return BooruParse(Sdk.Enums.Booru.E621, cancellationToken: cancellationToken);
+    }
+    
+    public static string NormalizeUrl(string url)
+    {
+        return BooruUrlNormalization.NormalizeUrl(url, Sdk.Enums.Booru.E621);
     }
 }
