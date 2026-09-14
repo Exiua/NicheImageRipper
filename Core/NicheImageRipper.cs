@@ -10,7 +10,6 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.History;
-using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
@@ -21,7 +20,6 @@ using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.Managers;
 using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -39,7 +37,7 @@ public partial class NicheImageRipper : IDisposable
     public static Version Version { get; } = new(5, 0, 0);
 
     public static IAvailableFeatures AvailableFeatures { get; } = AvailableFeatureManager.AvailableFeatures;
-    
+
     protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 
     public Version LatestVersion => field ??= GetLatestVersion().Result;
@@ -47,7 +45,7 @@ public partial class NicheImageRipper : IDisposable
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; }
     public ImageRipper? Ripper { get; set; }
-    public bool Paused =>  Ripper?.Paused ?? false;
+    public bool Paused => Ripper?.Paused ?? false;
 
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
@@ -58,7 +56,7 @@ public partial class NicheImageRipper : IDisposable
         get => Config.AskToReRip;
         set => Config.AskToReRip = value;
     }
-    
+
     public static bool SkipFailedDownloads
     {
         get => Config.SkipFailedDownloads;
@@ -101,6 +99,12 @@ public partial class NicheImageRipper : IDisposable
         set => Config.RetryDelay = value;
     }
 
+    public static bool SaveUnfinishedUrls
+    {
+        get => Config.SaveUnfinishedUrls;
+        set => Config.SaveUnfinishedUrls = value;
+    }
+
     private WebDriverPool WebDriverPool { get; } = new(1);
 
     protected static HistoryManager HistoryDb => HistoryManager.Instance;
@@ -114,7 +118,7 @@ public partial class NicheImageRipper : IDisposable
     static NicheImageRipper()
     {
         Console.OutputEncoding = Encoding.UTF8;
-        Console.InputEncoding  = Encoding.UTF8;
+        Console.InputEncoding = Encoding.UTF8;
     }
 
     public void LoadUrls(List<string> loadedUrls)
@@ -125,6 +129,19 @@ public partial class NicheImageRipper : IDisposable
         }
 
         OnUrlQueueUpdated?.Invoke();
+    }
+    
+    /// <summary>
+    ///     Loads URLs from a specific unfinished-URLs snapshot file (e.g. one the user picked in the
+    ///     GUI's file browser) and binds future saves to that same file, so it gets updated in place as
+    ///     URLs finish and deleted once the queue empties, rather than the normal subset-scan/new-file
+    ///     logic picking a different target.
+    /// </summary>
+    public void LoadUrlsFromFile(string path)
+    {
+        var loadedUrls = JsonUtility.Deserialize<List<string>>(path)!;
+        LoadUrls(loadedUrls);
+        _unfinishedUrlsPath = path;
     }
 
     public void QueueUrlsFromEmptyDirectories()
@@ -156,7 +173,7 @@ public partial class NicheImageRipper : IDisposable
         Ripper.Paused = false;
         return true;
     }
-    
+
     public bool Pause()
     {
         if (Ripper is null)
@@ -244,7 +261,7 @@ public partial class NicheImageRipper : IDisposable
         {
             return NormalizeBooruUrl(url, Booru.Rule34);
         }
-        
+
         if (host.Contains("e621.net"))
         {
             return NormalizeBooruUrl(url, Booru.E621);
@@ -261,12 +278,12 @@ public partial class NicheImageRipper : IDisposable
         {
             return url.Replace("exhentai.org", "e-hentai.org");
         }
-        
+
         if (host.Contains("hanime1.me"))
         {
             return url.Split("&page=")[0];
         }
-        
+
         if (host.Contains("steamcommunity.com"))
         {
             return NormalizeSteamCommunityUrl(url);
@@ -294,7 +311,7 @@ public partial class NicheImageRipper : IDisposable
         {
             throw new RipperException("Unexpected Steam Community URL format: " + url);
         }
-            
+
         var normalizedUrl = $"{parts[0]}?{appId}";
         return normalizedUrl;
     }
@@ -321,7 +338,7 @@ public partial class NicheImageRipper : IDisposable
                 throw new RipperException($"Unexpected URL format: {url}; Missing parameter: {param}");
             }
         }
-        
+
         var baseUrl = uri.GetLeftPart(UriPartial.Path);
         var newUrl = QueryHelpers.AddQueryString(baseUrl, kept);
         return newUrl;
@@ -350,7 +367,7 @@ public partial class NicheImageRipper : IDisposable
 
         return booru switch
         {
-            Booru.Danbooru or Booru.Yandere or Booru.E621  => $"{baseUrl}?{tags}",
+            Booru.Danbooru or Booru.Yandere or Booru.E621 => $"{baseUrl}?{tags}",
             Booru.Gelbooru or Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
             _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
         };
@@ -358,7 +375,6 @@ public partial class NicheImageRipper : IDisposable
 
     public async Task<bool> Rip(CancellationToken cancellationToken = default)
     {
-        
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
         Logger.Debug("Ripper created");
@@ -372,16 +388,15 @@ public partial class NicheImageRipper : IDisposable
                 // Indicates out of disk space // TODO: Improve return value to be more meaningful
                 return false;
             }
-            
+
             Logger.Debug("Ripped URL: {Url:l}", url);
             if (url != "")
             {
                 // If empty url is returned Ripper is also null
                 UpdateHistory(Ripper!.FolderInfo, url);
             }
-            
-            // TODO: Add feature guard to allow users to disable saving unfinished URLs constantly
-            SaveUnfinishedUrls(); // Save after each rip to avoid data loss
+
+            SaveUnfinishedUrlsToDisk(); // Save after each rip to avoid data loss
         }
 
         return true;
@@ -413,9 +428,11 @@ public partial class NicheImageRipper : IDisposable
                 _lastException = null;
                 break;
             }
-            catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver", "timed out") && retry < MaxRetries - 1)
+            catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver",
+                                                   "timed out") && retry < MaxRetries - 1)
             {
-                Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
+                Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url,
+                    retry + 1, MaxRetries);
                 await Task.Delay(10000, cancellationToken);
             }
             catch (NotEnoughDiskSpaceException e)
@@ -456,7 +473,7 @@ public partial class NicheImageRipper : IDisposable
 
     public async Task SaveData(CancellationToken cancellationToken = default)
     {
-        SaveUnfinishedUrls();
+        SaveUnfinishedUrlsToDisk();
 
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
@@ -467,11 +484,85 @@ public partial class NicheImageRipper : IDisposable
         Config.SaveConfig();
     }
 
-    private void SaveUnfinishedUrls()
+    private const string UnfinishedUrlsDirectory = "UnfinishedRips";
+    private const string LegacyUnfinishedUrlsFile = "UnfinishedRips.json";
+
+    private string? _unfinishedUrlsPath;
+
+    private void SaveUnfinishedUrlsToDisk()
     {
-        if (UrlQueue.Count > 0)
+        if (!SaveUnfinishedUrls)
         {
-            JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
+            return;
+        }
+
+        if (UrlQueue.Count == 0)
+        {
+            if (_unfinishedUrlsPath is not null)
+            {
+                SilentlyRemoveFile(_unfinishedUrlsPath);
+                _unfinishedUrlsPath = null;
+            }
+
+            return;
+        }
+
+        _unfinishedUrlsPath ??= ResolveUnfinishedUrlsPath();
+        JsonUtility.Serialize(_unfinishedUrlsPath, UrlQueue);
+    }
+
+    /// <summary>
+    ///     Picks which unfinished-URLs snapshot file this run should write to. If an existing saved
+    ///     list's contents are a superset of the current queue (i.e., the current queue looks like the
+    ///     remainder of that saved run), that file is reused and updated in place as URLs finish. If no
+    ///     existing saved list matches, a new file is created, so an unrelated batch of URLs doesn't
+    ///     overwrite previously-saved unfinished work from a different session.
+    /// </summary>
+    private string ResolveUnfinishedUrlsPath()
+    {
+        Directory.CreateDirectory(UnfinishedUrlsDirectory);
+        MigrateLegacyUnfinishedUrlsFile();
+
+        var currentUrls = UrlQueue.ToHashSet();
+        foreach (var candidatePath in Directory.EnumerateFiles(UnfinishedUrlsDirectory, "*.json"))
+        {
+            List<string>? savedUrls;
+            try
+            {
+                savedUrls = JsonUtility.Deserialize<List<string>>(candidatePath);
+            }
+            catch (JsonException)
+            {
+                continue; // Ignore unreadable/corrupt snapshot files
+            }
+
+            if (savedUrls is not null && currentUrls.IsSubsetOf(savedUrls))
+            {
+                Logger.Debug("Resuming unfinished URL list {Path}", candidatePath);
+                return candidatePath;
+            }
+        }
+
+        var newPath = Path.Combine(UnfinishedUrlsDirectory, $"{Guid.NewGuid():N}.json");
+        Logger.Debug("Starting new unfinished URL list {Path}", newPath);
+        return newPath;
+    }
+
+    private static void MigrateLegacyUnfinishedUrlsFile()
+    {
+        if (!File.Exists(LegacyUnfinishedUrlsFile))
+        {
+            return;
+        }
+
+        try
+        {
+            var destination = Path.Combine(UnfinishedUrlsDirectory, $"{Guid.NewGuid():N}.json");
+            File.Move(LegacyUnfinishedUrlsFile, destination);
+        }
+        catch (IOException)
+        {
+            // Best-effort; leave the legacy file in place if it's locked or otherwise unmovable.
         }
     }
 
@@ -479,7 +570,7 @@ public partial class NicheImageRipper : IDisposable
     {
         return ImageRipper.IncrementCurrentRipPosition(cancellationToken);
     }
-    
+
     public static void ClearCache()
     {
         PartialSaveManager.Instance.ClearPartialSaves();
@@ -539,7 +630,8 @@ public partial class NicheImageRipper : IDisposable
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
         try
         {
-            var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest", cancellationToken);
+            var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest",
+                cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return new Version(0, 0, 0);

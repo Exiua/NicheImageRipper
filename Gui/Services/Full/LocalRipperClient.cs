@@ -70,8 +70,7 @@ public class LocalRipperClient : IRipperClient
 
     public Task LoadUrlFile(string path, CancellationToken cancellationToken = default)
     {
-        var loadedUrls = JsonUtility.Deserialize<List<string>>(path)!;
-        _ripper.LoadUrls(loadedUrls);
+        _ripper.LoadUrlsFromFile(path);
         return Task.CompletedTask;
     }
 

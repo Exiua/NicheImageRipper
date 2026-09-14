@@ -336,8 +336,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         cmd.SetAction(parseResult =>
         {
             var filename = parseResult.GetValue(fileArg);
-            var urls = JsonUtility.Deserialize<List<string>>(filename ?? "UnfinishedRips.json")!;
-            LoadUrls(urls);
+            LoadUrlsFromFile(filename ?? "UnfinishedRips.json");
             LogMessageToFile("URLs loaded");
         });
         return cmd;
