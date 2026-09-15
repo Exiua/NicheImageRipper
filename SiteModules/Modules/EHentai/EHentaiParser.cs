@@ -9,12 +9,11 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.EHentai;
 
-public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtmlParser, IUrlNormalizingHtmlParser, INormalizingHtmlParser
+public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtmlParser, INormalizingHtmlParser
 {
     public static string ParserName => "e-hentai";
     public static string[] SupportedUrls => ["https://e-hentai.org/", "https://exhentai.org/"];
     public static string[] AdditionalParserNames { get; } = ["exhentai"];
-    public static (string From, string To)[] UrlReplacements { get; } = [("exhentai.org", "e-hentai.org")];
     public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
         [("exhentai.org", UrlMatchKind.Contains)];
 

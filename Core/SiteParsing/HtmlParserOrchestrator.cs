@@ -12,7 +12,6 @@ using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Manager;
 using Serilog;
 using Serilog.Events;
-using UrlUtility = NicheImageRipper.Core.Utility.UrlUtility;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.SiteParsing;
@@ -80,7 +79,7 @@ public class HtmlParserOrchestrator : IDisposable
         Logger.Debug("Parsing {Url}", url);
         url = UrlUtility.NormalizeUrl(url);
         GivenUrl = url;
-        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = Core.Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
 
         // Site must be known before the parser is constructed — HtmlParserFactory.Create resolves the
         // concrete type from SiteName, so building the parser has to happen after SiteCheck, not before.
@@ -269,7 +268,7 @@ public class HtmlParserOrchestrator : IDisposable
 
     private string TestSiteCheck(string url)
     {
-        return UrlUtility.ExtractDomainAndSetReferer(url, RequestHeaders);
+        return Core.Utility.UrlUtility.ExtractDomainAndSetReferer(url, RequestHeaders);
     }
 
     #endregion

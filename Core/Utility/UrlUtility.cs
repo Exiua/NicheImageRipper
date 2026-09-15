@@ -66,26 +66,7 @@ public static partial class UrlUtility
         }
 
         var domain = ExtractDomainAndSetReferer(givenUrl, requestHeaders);
-        if (givenUrl.Contains("https://e-hentai.org/") || givenUrl.Contains("https://exhentai.org/"))
-        {
-            return (domain, 2.5f);
-        }
-
         return (domain, 0.2f);
-    }
-
-    /// <summary>
-    /// Applies known per-site URL rewrites needed before site detection/parsing (e.g. hanime member subdomain,
-    /// exhentai->e-hentai cookie sharing).
-    /// </summary>
-    public static string NormalizeUrl(string url)
-    {
-        foreach (var (from, to) in HtmlParserFactory.UrlReplacements)
-        {
-            url = url.Replace(from, to);
-        }
-
-        return url;
     }
 
     /// <summary>

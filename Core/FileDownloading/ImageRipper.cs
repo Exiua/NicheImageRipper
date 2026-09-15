@@ -1,9 +1,5 @@
 ﻿using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.ExtensionMethods;
-using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
-using NicheImageRipper.Core.Managers;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Core.Utility;
@@ -17,7 +13,7 @@ using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
 
 using Serilog;
-using UrlUtility = NicheImageRipper.Core.Utility.UrlUtility;
+using UrlUtility = NicheImageRipper.Sdk.Utility.UrlUtility;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.Core.FileDownloading;
@@ -232,7 +228,7 @@ public class ImageRipper : IDisposable
 
 
         GivenUrl = UrlUtility.NormalizeUrl(url);
-        (SiteName, SleepTime) = UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = Core.Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         Logger.Debug("Site Name: {SiteName}", SiteName);
 
         await FileGetter(cancellationToken);
@@ -451,7 +447,7 @@ public class ImageRipper : IDisposable
     {
         // Gets the general url for all images in this album
         var imageLink = FolderInfo.Urls[0];
-        var trimmedUrl = UrlUtility.TrimUrl(imageLink.Url);
+        var trimmedUrl = Core.Utility.UrlUtility.TrimUrl(imageLink.Url);
         imageLink.Url = trimmedUrl;
         string[] extensions = [".webp", ".jpg", ".gif", ".png", ".webm", ".mp4", "t.jpg"];
 

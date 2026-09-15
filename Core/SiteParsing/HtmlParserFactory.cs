@@ -35,7 +35,6 @@ public static class HtmlParserFactory
     public static FrozenDictionary<string, string> RefererOverridesBySuffix { get; private set; } =
         FrozenDictionary<string, string>.Empty;
 
-    public static IReadOnlyList<(string From, string To)> UrlReplacements { get; private set; } = [];
     public static FrozenSet<string> DelegatableDomains { get; private set; } = FrozenSet<string>.Empty;
 
     public static IReadOnlyList<(string Pattern, UrlMatchKind Kind, Func<string, string> Normalize)> UrlNormalizers
@@ -82,7 +81,6 @@ public static class HtmlParserFactory
             nameof(ISubdomainSignificantHtmlParser.SignificantDomainLabels));
         RefererOverridesBySuffix = BuildSuffixLookup<string>(
             parserTypes, typeof(IRefererOverrideHtmlParser), nameof(IRefererOverrideHtmlParser.RefererOverride));
-        UrlReplacements = BuildUrlReplacements(parserTypes);
         DelegatableDomains = BuildDelegatableDomains(parserTypes);
         UrlNormalizers = BuildUrlNormalizers(parserTypes);
     }
@@ -245,16 +243,6 @@ public static class HtmlParserFactory
         }
 
         return owners.ToFrozenDictionary(kvp => kvp.Key, kvp => kvp.Value.Value);
-    }
-
-    private static List<(string From, string To)> BuildUrlReplacements(IEnumerable<Type> parserTypes)
-    {
-        return parserTypes
-              .Where(t => typeof(IUrlNormalizingHtmlParser).IsAssignableFrom(t))
-              .SelectMany(t =>
-                   (ValueTuple<string, string>[])t.GetProperty(nameof(IUrlNormalizingHtmlParser.UrlReplacements))!
-                                                  .GetValue(null)!)
-              .ToList();
     }
 
     /// <summary>Resolves a registered site name to its declaring parser Type, without constructing an instance.</summary>
