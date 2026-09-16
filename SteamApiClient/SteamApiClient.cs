@@ -9,7 +9,7 @@ using SteamKit2.Internal;
 
 namespace SteamApiClient;
 
-public class SteamApiClient
+public class SteamApiClient : IDisposable
 {
     private static readonly ILogger Logger = Log.ForContext<SteamApiClient>();
     private static readonly HttpClient Http = new();
@@ -19,8 +19,10 @@ public class SteamApiClient
     private readonly SteamApps _steamApps;
     private readonly SteamUnifiedMessages _steamUnifiedMessages;
     private readonly SteamKit2.CDN.Client _cdnClient;
-    private readonly TaskCompletionSource _loginTcs = new();
+    private TaskCompletionSource _loginTcs = new();
     private TaskCompletionSource _reconnectTcs = new();
+    private readonly CancellationTokenSource _pumpCts = new();
+    private readonly Task _pumpTask;
 
     private readonly
         ConcurrentDictionary<(uint DepotId, string Host), (TaskCompletionSource<string> Tcs, long ExpiryUnix)>
@@ -29,6 +31,7 @@ public class SteamApiClient
     private string _username = "";
     private string _password = "";
     private string? _previouslyStoredGuardData;
+    private bool _disposed;
 
     public SteamApiClient()
     {
@@ -42,13 +45,28 @@ public class SteamApiClient
         _manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
         _manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
         _manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
+        _pumpTask = Task.Run(() => PumpCallbacks(_pumpCts.Token));
+    }
+
+    private void PumpCallbacks(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Error while pumping Steam callbacks");
+            }
+        }
     }
 
     public async Task LoginAsync(string username, string password, CancellationToken cancellationToken = default)
     {
         if (_username == username)
         {
-            // _username can only be set via this method, so if set to provided username, must already be logged in
             Logger.Debug("Already logged in");
             return;
         }
@@ -56,21 +74,17 @@ public class SteamApiClient
         Logger.Debug("Logging in as {Username}", username);
         _username = username;
         _password = password;
+        _loginTcs = new TaskCompletionSource();
         _steamClient.Connect();
-        await Task.Run(() =>
-        {
-            while (!_loginTcs.Task.IsCompleted)
-            {
-                _manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
-            }
-        }, cancellationToken);
-        // Propagate any login exception
-        await _loginTcs.Task;
+        await _loginTcs.Task.WaitAsync(cancellationToken);
     }
+
+    private volatile bool _intentionalDisconnect;
 
     public Task LogoutAsync(CancellationToken cancellationToken = default)
     {
         Logger.Information("Logging out");
+        _intentionalDisconnect = true;
         _steamClient.Disconnect();
         _username = "";
         _password = "";
@@ -117,13 +131,19 @@ public class SteamApiClient
     private void OnDisconnected(SteamClient.DisconnectedCallback callback)
     {
         Logger.Information("Disconnected from Steam");
+        if (_intentionalDisconnect)
+        {
+            _intentionalDisconnect = false;
+            return;
+        }
+
         if (!_loginTcs.Task.IsCompleted)
         {
             _loginTcs.SetException(new InvalidOperationException("Disconnected before login completed."));
             return;
         }
 
-        // Reconnect attempt — OnConnected will fire and re-authenticate
+        // Reconnect attempt; OnConnected will fire and re-authenticate
         _steamClient.Connect();
     }
 
@@ -521,7 +541,8 @@ public class SteamApiClient
         return name;
     }
 
-    public static async Task<ulong> ResolveVanityUrlAsync(string vanityUrl, CancellationToken cancellationToken = default)
+    public static async Task<ulong> ResolveVanityUrlAsync(string vanityUrl,
+                                                          CancellationToken cancellationToken = default)
     {
         Logger.Information("Resolving vanity URL {VanityUrl}", vanityUrl);
         var response = await Http.GetAsync($"https://steamcommunity.com/id/{Uri.EscapeDataString(vanityUrl)}/?xml=1",
@@ -590,5 +611,26 @@ public class SteamApiClient
     private static void OnLoggedOff(SteamUser.LoggedOffCallback callback)
     {
         Logger.Information("Logged off of Steam: {Result}", callback.Result);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _pumpCts.Cancel();
+        try
+        {
+            _pumpTask.Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException)
+        {
+        }
+
+        _pumpCts.Dispose();
+        _steamClient.Disconnect();
+        GC.SuppressFinalize(this);
     }
 }
