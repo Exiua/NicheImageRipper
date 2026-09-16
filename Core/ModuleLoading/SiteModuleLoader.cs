@@ -20,8 +20,9 @@ public static class SiteModuleLoader
 
     private static readonly ILogger Logger = Log.ForContext(typeof(SiteModuleLoader));
 
-    /// <summary>Loads all site-provider modules. Safe to call more than once — module folders already loaded
-    /// are skipped on subsequent calls (assembly loading is inherently idempotent per-context).</summary>
+    /// <summary>
+    ///     Loads all site-provider modules.
+    /// </summary>
     public static IReadOnlyList<Assembly> LoadModules()
     {
         var loaded = new List<Assembly>();
@@ -131,17 +132,6 @@ public static class SiteModuleLoader
         {
             Logger.Warning(e, "Failed to load module from {FolderPath}, skipping", folderPath);
             return null;
-        }
-    }
-
-    private sealed class ModuleLoadContext(string mainAssemblyPath) : AssemblyLoadContext(isCollectible: false)
-    {
-        private readonly AssemblyDependencyResolver _resolver = new(mainAssemblyPath);
-
-        protected override Assembly? Load(AssemblyName assemblyName)
-        {
-            var path = _resolver.ResolveAssemblyToPath(assemblyName);
-            return path is not null ? LoadFromAssemblyPath(path) : null;
         }
     }
 }
