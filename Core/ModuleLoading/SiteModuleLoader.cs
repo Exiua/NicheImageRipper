@@ -1,10 +1,9 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using NicheImageRipper.Sdk.Utility;
-
 using Serilog;
 
-namespace NicheImageRipper.Core.Utility;
+namespace NicheImageRipper.Core.ModuleLoading;
 
 /// <summary>
 ///     Discovers and loads site-provider assemblies: the compiled-in SiteModules assembly, plus any

@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Linq.Expressions;
+using NicheImageRipper.Core.ModuleLoading;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.Driver;
 using NicheImageRipper.Sdk.Enums;
