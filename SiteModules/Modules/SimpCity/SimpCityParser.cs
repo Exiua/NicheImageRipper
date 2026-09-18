@@ -1,4 +1,5 @@
 using HtmlAgilityPack;
+using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -11,7 +12,7 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.SimpCity;
 
-public class SimpCityParser : HtmlParser, IHtmlParser
+public class SimpCityParser : HtmlParser, IHtmlParser, ICacheOwner
 {
     public static string ParserName => "simpcity";
     public static string[] SupportedUrls => ["https://simpcity.su/", "https://www.simpcity.su/"];
@@ -321,6 +322,11 @@ public class SimpCityParser : HtmlParser, IHtmlParser
         // }
         // Parse w/link will internally reload the page
         return parser.Parse(link, cancellationToken: cancellationToken);
+    }
+    
+    public static void ClearCache()
+    {
+        FileUtility.SilentlyRemoveFile(CacheFile);
     }
 
     private class Cache

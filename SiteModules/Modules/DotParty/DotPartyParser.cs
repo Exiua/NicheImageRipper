@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -13,7 +14,7 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 
-public abstract class DotPartyParser : ParameterizedHtmlParser
+public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
 {
     private const string CachePath = "dotpartyCache.json";
     private const int PageSize = 50;
@@ -397,5 +398,10 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         }
 
         return links;
+    }
+    
+    public static void ClearCache()
+    {
+        FileUtility.SilentlyRemoveFile(CachePath);
     }
 }

@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.WebUtilities;
 using NicheImageRipper.Common.Exceptions;
+using NicheImageRipper.Core.Cache;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.Enums;
@@ -323,6 +324,7 @@ public partial class NicheImageRipper : IDisposable
             {
                 _lastException = e;
                 Logger.Error("Failed to rip {Url} due to not enough disk space. Terminating...", url);
+                SaveUnfinishedUrlsToDisk();
                 return null;
             }
             catch (Exception e)
@@ -331,6 +333,7 @@ public partial class NicheImageRipper : IDisposable
                 {
                     _lastException = e;
                     Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                    SaveUnfinishedUrlsToDisk();
                     throw;
                 }
 
@@ -384,7 +387,7 @@ public partial class NicheImageRipper : IDisposable
         {
             if (_unfinishedUrlsPath is not null)
             {
-                SilentlyRemoveFile(_unfinishedUrlsPath);
+                FileUtility.SilentlyRemoveFile(_unfinishedUrlsPath);
                 _unfinishedUrlsPath = null;
             }
 
@@ -457,28 +460,7 @@ public partial class NicheImageRipper : IDisposable
 
     public static void ClearCache()
     {
-        PartialSaveManager.Instance.ClearPartialSaves();
-        SilentlyRemoveFiles(".ripIndex", "ripState.json");
-    }
-
-    private static void SilentlyRemoveFiles(params string[] filepaths)
-    {
-        foreach (var filepath in filepaths)
-        {
-            SilentlyRemoveFile(filepath);
-        }
-    }
-
-    private static void SilentlyRemoveFile(string filepath)
-    {
-        try
-        {
-            File.Delete(filepath);
-        }
-        catch (FileNotFoundException)
-        {
-            // ignored
-        }
+        CacheClearing.ClearAll();
     }
 
     /// <summary>

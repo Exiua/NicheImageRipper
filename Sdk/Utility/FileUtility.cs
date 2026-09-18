@@ -182,4 +182,16 @@ public static class FileUtility
             return false;
         }
     }
+    
+    public static void SilentlyRemoveFile(string filepath)
+    {
+        try
+        {
+            File.Delete(filepath);
+        }
+        catch (FileNotFoundException)
+        {
+            // ignored
+        }
+    }
 }

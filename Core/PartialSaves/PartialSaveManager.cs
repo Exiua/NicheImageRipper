@@ -1,9 +1,7 @@
 using System.Data;
 using System.Data.SQLite;
 using Dapper;
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
-using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.SiteParsing;
@@ -11,7 +9,7 @@ using Serilog;
 
 namespace NicheImageRipper.Core.PartialSaves;
 
-public class PartialSaveManager
+public class PartialSaveManager : ICacheOwner
 {
     private const int MaxSaves = 10;
 
@@ -464,4 +462,6 @@ public class PartialSaveManager
             }
         }
     }
+    
+    static void ICacheOwner.ClearCache() => Instance.ClearPartialSaves();
 }
