@@ -1,22 +1,24 @@
-
-
+using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
-
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.EightSe;
-public class EightSeParser : HtmlParser, IHtmlParser
+
+public class EightSeParser : HtmlParser, IHtmlParser, ICacheOwner
 {
     public static string ParserName => "8se";
     public static string[] SupportedUrls => ["https://tw.8se.me/"];
 
     private const string CachePath = "eightsecache.json";
-    public EightSeParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<EightSeParser>(filenameScheme))
+
+    public EightSeParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<EightSeParser>(filenameScheme))
     {
     }
 
@@ -61,7 +63,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
         }
 
         var images = new List<StringFileLinkWrapper>();
-        foreach (var(i, link)in imageLinks.Enumerate())
+        foreach (var (i, link)in imageLinks.Enumerate())
         {
             Logger.Information("Parsing image page {Link}", link);
             var soup = await Soupify(link, delay: 250, cancellationToken: cancellationToken);
@@ -69,7 +71,8 @@ public class EightSeParser : HtmlParser, IHtmlParser
             images.Add(img);
             if (i % 100 == 0 && i > 0)
             {
-                await Sleep(2500, cancellationToken: cancellationToken); // Sleep every 100 images to avoid being rate-limited
+                await Sleep(2500,
+                    cancellationToken: cancellationToken); // Sleep every 100 images to avoid being rate-limited
             }
         }
 
@@ -83,11 +86,14 @@ public class EightSeParser : HtmlParser, IHtmlParser
         var id = CurrentUrl.Split("/")[4].Remove("id-").Remove(".html");
         var videos = await GetVideos();
         var soup = await Soupify();
-        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='info-card photo-detail']//div[@class='text']").InnerText + $" - ({id})";
+        var dirName =
+            soup.SelectSingleNodeOrThrow("//div[@class='info-card photo-detail']//div[@class='text']").InnerText +
+            $" - ({id})";
         var imageLinks = new List<string>();
         while (true)
         {
-            var imageContainer = soup.SelectSingleNode("//div[@class='list photo-items']") ?? soup.SelectSingleNodeOrThrow("//div[@class='list amateur-items']");
+            var imageContainer = soup.SelectSingleNode("//div[@class='list photo-items']") ??
+                                 soup.SelectSingleNodeOrThrow("//div[@class='list amateur-items']");
             var links = imageContainer.SelectNodesOrThrow(".//a").Select(a => "https://tw.8se.me" + a.GetHref());
             imageLinks.AddRange(links);
             var nextPageButton = soup.SelectSingleNode("//a[@class='pager-btn pager-next']");
@@ -105,10 +111,11 @@ public class EightSeParser : HtmlParser, IHtmlParser
 
     private async Task<List<string>> GetVideos()
     {
-        var contentBox = Driver.TryFindElement(By.XPath("//div[@class='content-box']/div[@class='mp4-player-in-photo']"));
+        var contentBox =
+            Driver.TryFindElement(By.XPath("//div[@class='content-box']/div[@class='mp4-player-in-photo']"));
         if (contentBox is null)
         {
-            return[];
+            return [];
         }
 
         var videos = new List<string>();
@@ -129,7 +136,7 @@ public class EightSeParser : HtmlParser, IHtmlParser
             }
 
             var nextButton = contentBox.TryFindElement(By.XPath(".//div[@class='btn next']"));
-            if (nextButton is null || nextButton.GetAttribute("disabled")is not null)
+            if (nextButton is null || nextButton.GetAttribute("disabled") is not null)
             {
                 break;
             }
@@ -154,5 +161,10 @@ public class EightSeParser : HtmlParser, IHtmlParser
             links = Links;
             videos = Videos;
         }
+    }
+
+    public static void ClearCache()
+    {
+        FileUtility.SilentlyRemoveFile(CachePath);
     }
 }

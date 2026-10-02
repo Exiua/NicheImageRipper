@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
+using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -9,7 +10,7 @@ using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Archivebate;
-public partial class ArchivebateParser : HtmlParser, IHtmlParser
+public partial class ArchivebateParser : HtmlParser, IHtmlParser, ICacheOwner
 {
     private const string CachePath = "archivebateCache.json";
     private const int MaxConcurrentDownloads = 30;
@@ -251,6 +252,11 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser
     {
         input = input.Trim();
         return MultiSpaceRegex().Replace(input, " ");
+    }
+
+    public static void ClearCache()
+    {
+        FileUtility.SilentlyRemoveFile(CachePath);
     }
 
     [GeneratedRegex(@"\s{2,}")]

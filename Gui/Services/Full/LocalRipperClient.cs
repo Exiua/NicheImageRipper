@@ -6,11 +6,14 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.Utility;
-
+using Serilog;
 
 namespace NicheImageRipper.Gui.Services.Full;
+
 public class LocalRipperClient : IRipperClient
 {
+    private static readonly ILogger Log = Serilog.Log.ForContext<LocalRipperClient>();
+    
     private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
     public int UrlQueueCount => _ripper.UrlQueue.Count;
     public bool Connected => true;
@@ -18,6 +21,19 @@ public class LocalRipperClient : IRipperClient
     private bool _disposed;
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
+
+    static LocalRipperClient()
+    {
+        #if DEBUG
+        var supportedUrls = Core.NicheImageRipper.GetSupportedSites();
+        Log.Debug("Supported sites:");
+        foreach (var url in supportedUrls)
+        {
+            Log.Debug(" - {Url}", url);
+        }
+        #endif
+    }
+
     public LocalRipperClient()
     {
         _ripper = new NicheImageRipper.Core.NicheImageRipper();
@@ -84,7 +100,8 @@ public class LocalRipperClient : IRipperClient
         return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.Version);
     }
 
-    public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null, CancellationToken cancellationToken = default)
+    public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null,
+                                                   CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.GetHistoryPage(start, offset, filter));
     }

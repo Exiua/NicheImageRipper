@@ -287,6 +287,12 @@ public partial class NicheImageRipper : IDisposable
         return true;
     }
 
+    public static List<string> GetSupportedSites()
+    {
+        var supportedUrls = HtmlParserFactory.SupportedUrls.ToList();
+        return supportedUrls;
+    }
+
     private async Task<string?> RipUrl(CancellationToken cancellationToken = default)
     {
         if (UrlQueue.Count == 0)
