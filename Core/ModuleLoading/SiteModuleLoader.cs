@@ -27,10 +27,16 @@ public static class SiteModuleLoader
     {
         var loaded = new List<Assembly>();
 
+        Logger.Debug("Loading built-in module assembly {AssemblyName} from {BaseDirectory}", BuiltInModuleAssemblyName, AppContext.BaseDirectory);
         var builtIn = LoadBuiltInModule();
         if (builtIn is not null)
         {
+            Logger.Debug("Loaded built-in module assembly {AssemblyName}", BuiltInModuleAssemblyName);
             loaded.Add(builtIn);
+        }
+        else
+        {
+            Logger.Warning("Built-in module assembly {AssemblyName} could not be loaded", BuiltInModuleAssemblyName);
         }
 
         loaded.AddRange(LoadDroppedInModules());
