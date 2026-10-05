@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NicheImageRipper.Sdk.Cache;
@@ -10,6 +9,7 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
+using NicheImageRipper.SiteModules.Modules.DotParty.Models;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
