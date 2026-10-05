@@ -1,5 +1,3 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.SiteParsing;
 
