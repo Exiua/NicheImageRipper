@@ -8,10 +8,11 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Dropbox;
 
-public class DropboxParser : HtmlParser, IHtmlParser
+public class DropboxParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "dropbox";
-    public static string[] SupportedUrls => ["https://www.dropbox.com/"];
+    public static string[] SupportedUrls => ["https://www.dropbox.com/", "https://dropbox.com/"];
+    protected override bool RequiresNavigation => true;
 
     public DropboxParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
@@ -20,38 +21,26 @@ public class DropboxParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses  the HTML for dropbox.com and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for dropbox.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns></returns>
-    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        return await Parse("", cancellationToken);
-    }
-
-    /// <summary>
-    ///     Parses  the HTML for dropbox.com and extracts the relevant information necessary for downloading images from the site
-    /// </summary>
-    /// <param name = "dropboxUrl"></param>
-    /// <returns></returns>
-    internal async Task<RipInfo> Parse(string dropboxUrl, CancellationToken cancellationToken = default)
-    {
-        var internalUse = false;
-        if (!string.IsNullOrEmpty(dropboxUrl))
+        var dropboxUrl = GivenUrl;
+        if (IsSubParserCall)
         {
             if (dropboxUrl.Contains("/scl/fi/"))
             {
                 dropboxUrl = dropboxUrl.Replace("dl=0", "dl=1");
                 return RipInfo.FromUrlList([dropboxUrl], "", FilenameScheme);
             }
-
-            CurrentUrl = dropboxUrl;
-            internalUse = true;
         }
 
         var soup = await Soupify(xpath: "//span[@class='dig-Breadcrumb-link-text']",
             cancellationToken: cancellationToken);
         string dirName;
-        if (!internalUse)
+        if (!IsSubParserCall)
         {
             try
             {

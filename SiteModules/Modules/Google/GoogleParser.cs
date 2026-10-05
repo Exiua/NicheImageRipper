@@ -5,10 +5,11 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 
-public class GoogleParser : HtmlParser, IHtmlParser
+public class GoogleParser : ParameterizedHtmlParser, IHtmlParser
 {
     public static string ParserName => "google";
     public static string[] SupportedUrls => ["https://drive.google.com/"];
+    protected override bool RequiresNavigation => false;
 
     public GoogleParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
@@ -16,28 +17,10 @@ public class GoogleParser : HtmlParser, IHtmlParser
     {
     }
 
-    /// <summary>
-    ///     Query the Google Drive API to get file information to download
-    /// </summary>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        return await GoogleParse("", cancellationToken);
-    }
-
-    /// <summary>
-    ///     Query the Google Drive API to get file information to download
-    /// </summary>
-    /// <param name = "gdriveUrl">The url to parse (default: CurrentUrl)</param>
-    /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    private Task<RipInfo> GoogleParse(string gdriveUrl, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrEmpty(gdriveUrl))
-        {
-            gdriveUrl = CurrentUrl;
-        }
-
         // Actual querying happens within the RipInfo object
-        return Task.FromResult(RipInfo.FromUrlList([gdriveUrl], "", FilenameScheme));
+        return Task.FromResult(RipInfo.FromUrlList([GivenUrl], "", FilenameScheme));
     }
 }
