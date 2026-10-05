@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NicheImageRipper.Sdk.Cache;
@@ -9,7 +10,6 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
-
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
@@ -22,13 +22,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
     private static readonly string[] AttachmentExtensions =
         [".zip", ".rar", ".mp4", ".webm", ".psd", ".clip", ".m4v", ".7z", ".jpg", ".png", ".webp"];
 
-    private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", "sendvid.com", "dropbox.com"];
-    
+    private static readonly string[] ParsableSites = ["drive.google.com", "mega.nz", /*"sendvid.com",*/ "dropbox.com"];
+
     protected abstract string[] OwnHosts { get; }
 
-    protected DotPartyParser(WebDriver driver, 
+    protected DotPartyParser(WebDriver driver,
                              Dictionary<string, string> requestHeaders,
-                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
+                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
         requestHeaders, filenameScheme)
     {
         var handler = new HttpClientHandler
@@ -41,16 +41,17 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
     }
 
     /// <summary>
-    ///     Parses  the HTML for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the HTML for kemono.cr and coomer.cr and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <param name = "cancellationToken">A token to monitor for cancellation requests</param>
     /// <returns></returns>
     protected async Task<RipInfo> DotPartyParse(CancellationToken cancellationToken = default)
     {
-        var domainUrl = new Uri(CurrentUrl).GetLeftPart(UriPartial.Authority); // e.g. "https://kemono.cr", "https://coomer.st"
-        
+        var domainUrl =
+            new Uri(CurrentUrl).GetLeftPart(UriPartial.Authority); // e.g. "https://kemono.cr", "https://coomer.st"
+
         var cached = TryLoadCachedPosts();
-        var (dirName, posts) = cached ?? await GetAndCachePosts(domainUrl);
+        var (dirName, posts) = cached ?? await GetAndCachePosts(domainUrl, cancellationToken);
 
         var (files, externalLinks) = await ParseAllPosts(domainUrl, posts, cancellationToken);
 
@@ -62,7 +63,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
         File.Delete(CachePath);
         return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
     }
-    
+
     private bool IsNativeLink(string link)
     {
         try
@@ -77,7 +78,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
     }
 
     private async Task<List<StringFileLinkWrapper>> ResolveEmbeddedLinks(List<StringFileLinkWrapper> files,
-                                                                         CancellationToken cancellationToken)
+                                                                         CancellationToken cancellationToken = default)
     {
         var stringLinks = new List<StringFileLinkWrapper>();
         foreach (var link in files)
@@ -147,7 +148,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
 
     private async Task<(List<StringFileLinkWrapper> Files, Dictionary<string, List<string>> ExternalLinks)>
         ParseAllPosts(
-            string domainUrl, List<DotPartyPostResponse> posts, CancellationToken cancellationToken)
+            string domainUrl, List<DotPartyPostResponse> posts, CancellationToken cancellationToken = default)
     {
         var files = new List<StringFileLinkWrapper>();
         var externalLinks = ExternalLinkExtractor.CreateExternalLinkDict();
@@ -163,7 +164,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
     }
 
     private async Task ParsePost(DotPartyPostFull post, string domainUrl, List<StringFileLinkWrapper> files,
-                                 Dictionary<string, List<string>> externalLinks, CancellationToken cancellationToken)
+                                 Dictionary<string, List<string>> externalLinks, CancellationToken cancellationToken = default)
     {
         Logger.Debug("Post ID: {PostId}", post.Id);
         var soup = await Soupify(post.Content, urlString: false, cancellationToken: cancellationToken);
@@ -176,7 +177,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
         MergeExternalLinks(externalLinks, DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks));
 
         AddMainFile(post.File, domainUrl, files);
-        await AddAttachments(post.Attachments, domainUrl, files);
+        await AddAttachments(post.Attachments, domainUrl, files, cancellationToken);
 
         var extractedAttachments = links.Where(l => AttachmentExtensions.Any(l.Contains))
                                         .Select(l => l.Contains(domainUrl) || l.Contains("http") ? l : domainUrl + l)
@@ -230,12 +231,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
     }
 
     private async Task AddAttachments(List<DotPartyAttachment> attachments, string domainUrl,
-                                      List<StringFileLinkWrapper> files)
+                                      List<StringFileLinkWrapper> files, CancellationToken cancellationToken = default)
     {
         foreach (var attachment in attachments)
         {
             var attachmentPath = NormalizePath(attachment.Path, domainUrl);
-            var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachment.Name, attachmentPath);
+            var specialCaseLinks = await CheckForSpecialCase(domainUrl, attachment.Name, attachmentPath, cancellationToken);
 
             if (specialCaseLinks is null)
             {
@@ -283,9 +284,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
         return (siteCache.DirName, siteCache.Posts);
     }
 
-    private async Task<(string, List<DotPartyPostResponse>)> GetAndCachePosts(string domainUrl)
+    private async Task<(string, List<DotPartyPostResponse>)> GetAndCachePosts(string domainUrl, CancellationToken cancellationToken = default)
     {
-        var (dirName, posts) = await GetPosts(domainUrl);
+        var (dirName, posts) = await GetPosts(domainUrl, cancellationToken);
         var siteCache = new DotPartyCache
         {
             DirName = dirName,
@@ -299,7 +300,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
         return (dirName, posts);
     }
 
-    private async Task<(string, List<DotPartyPostResponse>)> GetPosts(string domainUrl)
+    private async Task<(string, List<DotPartyPostResponse>)> GetPosts(string domainUrl, CancellationToken cancellationToken = default)
     {
         var baseUrl = CurrentUrl;
         var urlSplit = baseUrl.Split("/");
@@ -311,11 +312,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
         Logger.Debug("Profile URL: {ProfileUrl}", profileUrl);
         var response = await RetryUntil(async () =>
         {
-            var r = await HttpClient.GetAsync(profileUrl);
+            var r = await HttpClient.GetAsync(profileUrl, cancellationToken);
             Logger.Debug("Profile page response: {StatusCode}", r.StatusCode);
             return r;
-        }, (response) => response.IsSuccessStatusCode, "Failed to get profile page", delay: 5000);
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>();
+        }, (response) => response.IsSuccessStatusCode, "Failed to get profile page", delay: 5000, cancellationToken: cancellationToken);
+        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
         var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
         dirName = $"{dirName} - ({sourceSite})";
         Logger.Information("Parsed profile page: {DirName}", dirName);
@@ -325,13 +326,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
         {
             response = await RetryUntil(async () =>
                 {
-                    var r = await HttpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}");
+                    var r = await HttpClient.GetAsync($"{baseUrl}/posts?o={page * PageSize}", cancellationToken);
                     Logger.Debug("Page response: {StatusCode}", r.StatusCode);
                     return r;
-                }, (r) => r.IsSuccessStatusCode, $"Failed to get page {page + 1}", delay: 5000);
+                }, (r) => r.IsSuccessStatusCode, $"Failed to get page {page + 1}", delay: 5000, cancellationToken: cancellationToken);
             page++;
             Logger.Debug("Retrieving page {PageNum} of size {PageSize}", page, PageSize);
-            var jsonPosts = await response.Content.ReadFromJsonAsync<List<DotPartyPostShort>>();
+            var jsonPosts = await response.Content.ReadFromJsonAsync<List<DotPartyPostShort>>(cancellationToken: cancellationToken);
             if (jsonPosts is null)
             {
                 throw new RipperException($"Failed to get posts on page {page}");
@@ -343,20 +344,33 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
                 Logger.Debug("Retrieving post {PostId}", id);
                 response = await RetryUntil(async () =>
                     {
-                        var r = await HttpClient.GetAsync($"{baseUrl}/post/{id}");
+                        var r = await HttpClient.GetAsync($"{baseUrl}/post/{id}", cancellationToken);
                         Logger.Debug("Post response: {StatusCode}", r.StatusCode);
                         return r;
-                    }, (r) => r.IsSuccessStatusCode, $"Failed to get post {id}", delay: 15000);
-                var postJson = await response.Content.ReadFromJsonAsync<DotPartyPostResponse>();
+                    }, (r) => r.IsSuccessStatusCode, $"Failed to get post {id}", delay: 15000, cancellationToken: cancellationToken);
+                var rawJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                var postJson = JsonSerializer.Deserialize<DotPartyPostResponse>(rawJson);
                 if (postJson is null)
                 {
                     throw new RipperException($"Failed to get post {id}");
                 }
 
+                // Pawchive does not use the same return types as other sites, so we need to check for null here
+                if (postJson.Post is null)
+                {
+                    var postJsonPost = JsonSerializer.Deserialize<DotPartyPostFull>(rawJson);
+                    if (postJsonPost is null)
+                    {
+                        throw new RipperException($"Failed to get post {id}");
+                    }
+                    
+                    postJson.Post = postJsonPost;
+                }
+
                 posts.Add(postJson);
                 if ((i + 1) % 50 == 0)
                 {
-                    await Sleep(1000);
+                    await Sleep(1000, cancellationToken);
                 }
             }
 
@@ -366,14 +380,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
                 break;
             }
 
-            await Sleep(250);
+            await Sleep(250, cancellationToken);
         }
 
         return (dirName, posts);
     }
 
     private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string? attachmentName,
-                                                          string attachmentPath)
+                                                          string attachmentPath, CancellationToken cancellationToken = default)
     {
         List<string>? links = null;
         // ReSharper disable once InvertIf
@@ -384,14 +398,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
             links ??= [];
             var attachmentUrl = attachmentPath.StartsWith("https://") ? attachmentPath : domainUrl + attachmentPath;
             Logger.Debug("Fetching: {AttachmentUrl}", attachmentUrl);
-            var response = await HttpClient.GetAsync(attachmentUrl);
+            var response = await HttpClient.GetAsync(attachmentUrl, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 Logger.Warning("Failed to retrieve special case attachment at {AttachmentUrl}", attachmentUrl);
                 return null;
             }
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
             var lines = content.Split('\n');
             links.AddRange(lines.Where(line => line.StartsWith("https://mega.nz/"))
                                 .Select(line => line.Trim(' ', '\r', '\n', '\t')));
@@ -399,7 +413,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, ICacheOwner
 
         return links;
     }
-    
+
     public static void ClearCache()
     {
         FileUtility.SilentlyRemoveFile(CachePath);
