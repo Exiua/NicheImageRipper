@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.CompilerServices;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.SiteParsing;
 
@@ -46,6 +47,12 @@ public static class GeneralExtensionMethods
         {
             yield return (i++, item);
         }
+    }
+
+    public static ConfiguredCancelableAsyncEnumerable<(int, T item)> EnumerateAsync<T>(this IAsyncEnumerable<T> enumerable, int start = 0, CancellationToken cancellationToken = default)
+    {
+        var i = start;
+        return enumerable.Select(item => (i++, item)).WithCancellation(cancellationToken);
     }
     
     public static List<T> RemoveDuplicates<T>(this IEnumerable<T> src)

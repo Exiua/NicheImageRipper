@@ -72,6 +72,8 @@ public static class HtmlParserFactory
                                         typeof(HtmlParser).IsAssignableFrom(type) &&
                                         typeof(IHtmlParser).IsAssignableFrom(type))
                                    .ToList();
+        
+        Logger.Debug("Discovered parser types: {ParserTypes}", parserTypes);
 
         _parsers = BuildParsers(parserTypes);
         _parameterizedParsers = BuildParameterizedParsers(parserTypes);

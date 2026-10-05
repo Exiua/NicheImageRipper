@@ -207,17 +207,24 @@ public class HtmlParserOrchestrator : IDisposable
                 typeof(SeleniumManager),
                 OpenQA.Selenium.Internal.Logging.LogEventLevel.Trace);
 
+            var supportedUrls = HtmlParserFactory.SupportedUrls;
+            Logger.Debug("Supported URLs: ");
+            foreach(var url in supportedUrls)
+            {
+                Logger.Debug("\t- {Url}", url);
+            }
+            
             CurrentUrl = UrlUtility.NormalizeUrl(givenUrl);
             SiteName = TestSiteCheck(CurrentUrl);
 
-            Logger.Debug("Testing: {SiteName}Parse", SiteName);
+            Logger.Debug("Testing: {SiteName}Parser", SiteName);
             Logger.Debug("URL: {CurrentUrl}", CurrentUrl);
             var start = DateTime.Now;
             var data = await EvaluateParser(SiteName, cancellationToken);
             var end = DateTime.Now;
             if (data.Urls.Count == 0)
             {
-                Logger.Error("No URLs found for {SiteName}Parse", SiteName);
+                Logger.Error("No URLs found for {SiteName}Parser", SiteName);
             }
             else
             {
@@ -237,7 +244,7 @@ public class HtmlParserOrchestrator : IDisposable
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error occurred while testing {SiteName}Parse", SiteName);
+            Logger.Error(e, "Error occurred while testing {SiteName}Parser", SiteName);
             await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
             Driver.TakeDebugScreenshot();
             Driver.DumpCookies();
