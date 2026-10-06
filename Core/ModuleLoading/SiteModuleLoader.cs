@@ -5,13 +5,26 @@ using Serilog;
 
 namespace NicheImageRipper.Core.ModuleLoading;
 
-/// <summary>
-///     Discovers and loads site-provider assemblies: the compiled-in SiteModules assembly, plus any
-///     third-party modules dropped into subfolders of modules/ next to the executable. Load order is
-///     alphanumeric by module folder name, unless a loadOrder.json file lists an explicit order — later
-///     entries load last and take precedence on any name collision (see HtmlParserFactory.BuildSupportedUrls
-///     -style "last wins" merge behavior).
-/// </summary>
+public enum ModuleLoadStatus
+{
+    Loaded,
+    Failed,   // found, but threw while loading
+    Skipped,  // found, but nothing loadable (e.g. no .dll)
+    Missing   // listed in loadOrder.json, but no matching folder
+}
+
+public sealed record ModuleLoadResult(
+    string Name,
+    ModuleLoadStatus Status,
+    string? Path = null,
+    Assembly? Assembly = null,
+    string? Reason = null,
+    Exception? Exception = null,
+    bool IsBuiltIn = false)
+{
+    public bool Succeeded => Status == ModuleLoadStatus.Loaded;
+}
+
 public static class SiteModuleLoader
 {
     private const string BuiltInModuleAssemblyName = "SiteModules.dll";
@@ -21,45 +34,49 @@ public static class SiteModuleLoader
     private static readonly ILogger Logger = Log.ForContext(typeof(SiteModuleLoader));
 
     /// <summary>
-    ///     Loads all site-provider modules.
+    ///     Attempts to load all site-provider modules and returns one result per module attempted,
+    ///     in load order, whether it loaded successfully.
     /// </summary>
-    public static IReadOnlyList<Assembly> LoadModules()
+    public static IReadOnlyList<ModuleLoadResult> LoadModules()
     {
-        var loaded = new List<Assembly>();
+        var results = new List<ModuleLoadResult>();
 
         Logger.Debug("Loading built-in module assembly {AssemblyName} from {BaseDirectory}", BuiltInModuleAssemblyName, AppContext.BaseDirectory);
-        var builtIn = LoadBuiltInModule();
-        if (builtIn is not null)
-        {
-            Logger.Debug("Loaded built-in module assembly {AssemblyName}", BuiltInModuleAssemblyName);
-            loaded.Add(builtIn);
-        }
-        else
-        {
-            Logger.Warning("Built-in module assembly {AssemblyName} could not be loaded", BuiltInModuleAssemblyName);
-        }
+        results.Add(LoadBuiltInModule());
+        results.AddRange(LoadDroppedInModules());
 
-        loaded.AddRange(LoadDroppedInModules());
-        return loaded;
+        Logger.Information("Module load summary: {Loaded} loaded, {Failed} failed, {Other} skipped/missing",
+            results.Count(r => r.Status == ModuleLoadStatus.Loaded),
+            results.Count(r => r.Status == ModuleLoadStatus.Failed),
+            results.Count(r => r.Status is ModuleLoadStatus.Skipped or ModuleLoadStatus.Missing));
+
+        return results;
     }
 
-    private static Assembly? LoadBuiltInModule()
+    /// <summary>
+    ///     Convenience for callers that only want the assemblies that loaded.
+    /// </summary>
+    public static IEnumerable<Assembly> GetLoadedAssemblies(this IEnumerable<ModuleLoadResult> results) =>
+        results.Where(r => r.Assembly is not null).Select(r => r.Assembly!);
+
+    private static ModuleLoadResult LoadBuiltInModule()
     {
+        var path = Path.Combine(AppContext.BaseDirectory, BuiltInModuleAssemblyName);
         try
         {
-            return AssemblyLoadContext.Default.LoadFromAssemblyPath(
-                Path.Combine(
-                    AppContext.BaseDirectory,
-                    BuiltInModuleAssemblyName));
+            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+            Logger.Debug("Loaded built-in module assembly {AssemblyName}", BuiltInModuleAssemblyName);
+            return new ModuleLoadResult(BuiltInModuleAssemblyName, ModuleLoadStatus.Loaded, path, assembly, IsBuiltIn: true);
         }
         catch (Exception e)
         {
             Logger.Error(e, "Failed to load built-in module assembly {AssemblyName}", BuiltInModuleAssemblyName);
-            return null;
+            return new ModuleLoadResult(BuiltInModuleAssemblyName, ModuleLoadStatus.Failed, path,
+                Reason: e.Message, Exception: e, IsBuiltIn: true);
         }
     }
 
-    private static IEnumerable<Assembly> LoadDroppedInModules()
+    private static IEnumerable<ModuleLoadResult> LoadDroppedInModules()
     {
         var modulesPath = Path.Combine(AppContext.BaseDirectory, ModulesFolderName);
         if (!Directory.Exists(modulesPath))
@@ -77,21 +94,15 @@ public static class SiteModuleLoader
             {
                 Logger.Warning("loadOrder.json lists module '{Module}' but no matching folder was found under {ModulesPath}",
                     folderName, modulesPath);
+                yield return new ModuleLoadResult(folderName, ModuleLoadStatus.Missing,
+                    Reason: "Listed in loadOrder.json but no matching folder was found");
                 continue;
             }
 
-            var assembly = LoadModuleFolder(folderPath);
-            if (assembly is not null)
-            {
-                yield return assembly;
-            }
+            yield return LoadModuleFolder(folderName, folderPath);
         }
     }
 
-    /// <summary>
-    ///     Determines module load order: an explicit loadOrder.json array if present (any folders it omits
-    ///     are appended afterward, alphanumerically), otherwise plain alphanumeric folder-name order.
-    /// </summary>
     private static IEnumerable<string> ResolveLoadOrder(string modulesPath, ICollection<string> discoveredFolders)
     {
         var loadOrderPath = Path.Combine(modulesPath, LoadOrderFileName);
@@ -115,16 +126,18 @@ public static class SiteModuleLoader
         }
     }
 
-    private static Assembly? LoadModuleFolder(string folderPath)
+    private static ModuleLoadResult LoadModuleFolder(string folderName, string folderPath)
     {
-        var mainDll = Directory.GetFiles(folderPath, "*.dll")
-                               .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).Equals(Path.GetFileName(folderPath), StringComparison.OrdinalIgnoreCase))
-                      ?? Directory.GetFiles(folderPath, "*.dll").FirstOrDefault();
+        var dlls = Directory.GetFiles(folderPath, "*.dll");
+        var mainDll = dlls.FirstOrDefault(f => Path.GetFileNameWithoutExtension(f)
+                                                   .Equals(folderName, StringComparison.OrdinalIgnoreCase))
+                      ?? dlls.FirstOrDefault();
 
         if (mainDll is null)
         {
             Logger.Warning("Module folder {FolderPath} contains no .dll files, skipping", folderPath);
-            return null;
+            return new ModuleLoadResult(folderName, ModuleLoadStatus.Skipped, folderPath,
+                Reason: "Folder contains no .dll files");
         }
 
         try
@@ -132,12 +145,13 @@ public static class SiteModuleLoader
             var context = new ModuleLoadContext(mainDll);
             var assembly = context.LoadFromAssemblyPath(mainDll);
             Logger.Information("Loaded module: {AssemblyName} from {FolderPath}", assembly.GetName().Name, folderPath);
-            return assembly;
+            return new ModuleLoadResult(folderName, ModuleLoadStatus.Loaded, mainDll, assembly);
         }
         catch (Exception e)
         {
             Logger.Warning(e, "Failed to load module from {FolderPath}, skipping", folderPath);
-            return null;
+            return new ModuleLoadResult(folderName, ModuleLoadStatus.Failed, mainDll,
+                Reason: e.Message, Exception: e);
         }
     }
 }
