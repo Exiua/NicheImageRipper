@@ -462,6 +462,6 @@ public class PartialSaveManager : ICacheOwner
             }
         }
     }
-    
-    static void ICacheOwner.ClearCache() => Instance.ClearPartialSaves();
+
+    public static void ClearCache() => Instance.ClearPartialSaves();
 }
