@@ -1,18 +1,25 @@
+using System.Text.Json;
+using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
-
+using NicheImageRipper.Sdk.Utility;
+using NicheImageRipper.SiteModules.Modules.DotParty.Models;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 
-public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlParser
+public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlParser, ICacheOwner
 {
+    private const string ConstCachePath = "kemonoCache.json";
+    
     public static string ParserName => "kemono";
     public static string[] SupportedUrls => ["https://kemono.party/", "https://kemono.su/", "https://kemono.cr/"];
     public static string RefererOverride => "";
 
     protected override string[] OwnHosts { get; } = SupportedUrls.Select(u => new Uri(u).Host).ToArray();
+    protected override string CachePath => ConstCachePath;
 
     public KemonoParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 
@@ -27,5 +34,17 @@ public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
     protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
         return DotPartyParse(cancellationToken);
+    }
+    
+    protected override DotPartyPostResponse DeserializePost(string rawJson) =>
+        JsonSerializer.Deserialize<DotPartyPostResponse>(rawJson)
+        ?? throw new RipperException("Failed to deserialize post");
+
+    protected override string BuildFileUrl(string path, string? server, string domainUrl) =>
+        $"{server ?? domainUrl}/data{path}";
+
+    public static void ClearCache()
+    {
+        FileUtility.SilentlyRemoveFile(ConstCachePath);
     }
 }

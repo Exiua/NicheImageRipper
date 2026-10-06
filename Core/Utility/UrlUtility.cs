@@ -62,7 +62,7 @@ public static partial class UrlUtility
     {
         if (!UrlCheck(givenUrl))
         {
-            throw new RipperException("Not a support site");
+            throw new RipperException($"Not a supported site: {givenUrl}");
         }
 
         var domain = ExtractDomainAndSetReferer(givenUrl, requestHeaders);

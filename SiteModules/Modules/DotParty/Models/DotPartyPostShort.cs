@@ -26,5 +26,5 @@ public class DotPartyPostShort
     public DotPartyFile File { get; set; } = null!;
 
     [JsonPropertyName("attachments")]
-    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+    public List<DotPartyAttachmentShort> Attachments { get; set; } = null!;
 }

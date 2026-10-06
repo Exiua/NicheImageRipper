@@ -8,14 +8,14 @@ public class DotPartyPostResponse
     public DotPartyPostFull Post { get; set; } = null!;
 
     [JsonPropertyName("attachments")]
-    public List<DotPartyAttachment> Attachments { get; set; } = null!;
+    public List<DotPartyAttachment>? Attachments { get; set; }
 
     [JsonPropertyName("previews")]
-    public List<DotPartyPreview> Previews { get; set; } = null!;
+    public List<DotPartyPreview>? Previews { get; set; }
 
     [JsonPropertyName("videos")]
-    public List<DotPartyVideo> Videos { get; set; } = null!;
+    public List<DotPartyVideo>? Videos { get; set; }
 
     [JsonPropertyName("props")]
-    public DotPartyProps Props { get; set; } = null!;
+    public DotPartyProps? Props { get; set; }
 }
