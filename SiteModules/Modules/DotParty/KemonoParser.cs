@@ -40,7 +40,7 @@ public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
         JsonSerializer.Deserialize<DotPartyPostResponse>(rawJson)
         ?? throw new RipperException("Failed to deserialize post");
 
-    protected override string BuildFileUrl(string path, string? server, string domainUrl) =>
+    protected override string BuildFileUrl(string path, string? server, string domainUrl, DotPartyPostFull post) =>
         $"{server ?? domainUrl}/data{path}";
 
     public static void ClearCache()

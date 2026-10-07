@@ -43,8 +43,10 @@ public class PawchiveParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlP
         return new DotPartyPostResponse { Post = post };
     }
 
-    protected override string BuildFileUrl(string path, string? server, string domainUrl) =>
-        $"https://file.pawchive.pw/data{path}";
+    protected override string BuildFileUrl(string path, string? server, string domainUrl, DotPartyPostFull post) =>
+        post.HasFull == false
+            ? $"https://img.pawchive.pw/thumbnail/data{path}"
+            : $"https://file.pawchive.pw/data{path}";
     
     public static void ClearCache()
     {

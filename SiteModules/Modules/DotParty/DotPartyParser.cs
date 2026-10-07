@@ -68,7 +68,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         try
         {
             var linkHost = new Uri(link).Host;
-            return OwnHosts.Contains(linkHost, StringComparer.OrdinalIgnoreCase);
+            return OwnHosts.Any(own =>
+                linkHost.Equals(own, StringComparison.OrdinalIgnoreCase) ||
+                linkHost.EndsWith("." + own, StringComparison.OrdinalIgnoreCase));
         }
         catch (UriFormatException)
         {
@@ -179,8 +181,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         MergeExternalLinks(externalLinks, ExternalLinkExtractor.ExtractExternalUrls(links));
         MergeExternalLinks(externalLinks, DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks));
 
-        AddMainFile(post.File, domainUrl, serverMap, files);
-        await AddAttachments(post.Attachments, domainUrl, serverMap, files, cancellationToken);
+        AddMainFile(post, domainUrl, serverMap, files);
+        await AddAttachments(response, domainUrl, serverMap, files, cancellationToken);
 
         var extractedAttachments = links.Where(l => AttachmentExtensions.Any(l.Contains))
                                         .Select(l => l.Contains(domainUrl) || l.Contains("http") ? l : domainUrl + l)
@@ -220,26 +222,29 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         }
     }
 
-    private void AddMainFile(DotPartyFile file, string domainUrl,
+    private void AddMainFile(DotPartyPostFull post, string domainUrl,
                              IReadOnlyDictionary<string, string> serverMap, List<StringFileLinkWrapper> files)
     {
+        var file = post.File;
         if (file.Path is null)
         {
             return;
         }
 
-        var url = ResolveUrl(file.Path, domainUrl, serverMap);
+        var url = ResolveUrl(file.Path, domainUrl, serverMap, post);
         // if path is not null, name should also not be null
         files.Add(FileLink.WithFilename(url, file.Name!, FilenameScheme));
     }
 
-    private async Task AddAttachments(List<DotPartyAttachmentShort> attachments, string domainUrl,
+    private async Task AddAttachments(DotPartyPostResponse response, string domainUrl,
                                       IReadOnlyDictionary<string, string> serverMap,
                                       List<StringFileLinkWrapper> files, CancellationToken cancellationToken = default)
     {
+        var attachments = response.Attachments ?? (IReadOnlyList<DotPartyAttachmentShort>)response.Post.Attachments;
+
         foreach (var attachment in attachments)
         {
-            var attachmentUrl = ResolveUrl(attachment.Path, domainUrl, serverMap);
+            var attachmentUrl = ResolveUrl(attachment.Path, domainUrl, serverMap, response.Post);
             var specialCaseLinks = await CheckForSpecialCase(attachment.Name, attachmentUrl, cancellationToken);
 
             if (specialCaseLinks is null)
@@ -281,21 +286,6 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                       .ToList();
     }
 
-    private static string NormalizePath(string path, string domainUrl)
-    {
-        if (path[0] == '/')
-        {
-            path = domainUrl + path;
-        }
-
-        if (domainUrl.Contains("kemono"))
-        {
-            path = path.Replace("https://kemono.cr", "https://img.kemono.cr/thumbnail/data");
-        }
-
-        return path;
-    }
-
     private static Dictionary<string, string> BuildServerMap(DotPartyPostResponse r) =>
         (r.Attachments ?? []).Select(a => (a.Path, a.Server))
                              .Concat((r.Videos ?? []).Select(v => (v.Path, v.Server))!)
@@ -305,10 +295,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                              .GroupBy(t => t.Path!)
                              .ToDictionary(g => g.Key, g => g.First().Server!);
 
-    private string ResolveUrl(string path, string domainUrl, IReadOnlyDictionary<string, string> serverMap) =>
+    private string ResolveUrl(string path, string domainUrl, IReadOnlyDictionary<string, string> serverMap,
+                              DotPartyPostFull post) =>
         path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? path
-            : BuildFileUrl(path, serverMap.GetValueOrDefault(path), domainUrl);
+            : BuildFileUrl(path, serverMap.GetValueOrDefault(path), domainUrl, post);
 
     private (string DirName, List<DotPartyPostResponse> Posts)? TryLoadCachedPosts()
     {
@@ -421,7 +412,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
     }
 
     protected abstract DotPartyPostResponse DeserializePost(string rawJson);
-    protected abstract string BuildFileUrl(string path, string? server, string domainUrl);
+    protected abstract string BuildFileUrl(string path, string? server, string domainUrl, DotPartyPostFull post);
 
     private async Task<List<string>?> CheckForSpecialCase(string domainUrl, string? attachmentName,
                                                           string attachmentPath,

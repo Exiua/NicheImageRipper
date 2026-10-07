@@ -79,7 +79,7 @@ public class HtmlParserOrchestrator : IDisposable
         Logger.Debug("Parsing {Url}", url);
         url = UrlUtility.NormalizeUrl(url);
         GivenUrl = url;
-        (SiteName, SleepTime) = Core.Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
+        (SiteName, SleepTime) = Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
 
         // Site must be known before the parser is constructed — HtmlParserFactory.Create resolves the
         // concrete type from SiteName, so building the parser has to happen after SiteCheck, not before.
@@ -123,6 +123,7 @@ public class HtmlParserOrchestrator : IDisposable
                 Logger.Debug("Executing parser for {SiteName}", SiteName);
                 var siteInfo = await htmlParser.Parse(cancellationToken);
                 Logger.Debug("Saving partial save for {Url}", url);
+                siteInfo.DirectoryName += $" ({SiteName})";
                 WritePartialSave(siteInfo, url);
                 return siteInfo;
             }

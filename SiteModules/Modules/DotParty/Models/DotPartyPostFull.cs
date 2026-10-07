@@ -54,6 +54,12 @@ public class DotPartyPostFull
     [JsonPropertyName("incomplete_rewards")]
     public JsonObject? IncompleteRewards { get; set; }
 
+    [JsonPropertyName("has_full")]
+    public bool? HasFull { get; set; }
+
+    [JsonPropertyName("origin")]
+    public string? Origin { get; set; }
+
     [JsonPropertyName("next")]
     public string? Next { get; set; }
 

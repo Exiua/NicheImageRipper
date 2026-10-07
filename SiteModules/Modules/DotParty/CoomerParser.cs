@@ -39,8 +39,8 @@ public class CoomerParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
     protected override DotPartyPostResponse DeserializePost(string rawJson) =>
         JsonSerializer.Deserialize<DotPartyPostResponse>(rawJson)
         ?? throw new RipperException("Failed to deserialize post");
-
-    protected override string BuildFileUrl(string path, string? server, string domainUrl) =>
+ 
+    protected override string BuildFileUrl(string path, string? server, string domainUrl, DotPartyPostFull post) =>
         $"{server ?? domainUrl}/data{path}";
 
     public static void ClearCache()
