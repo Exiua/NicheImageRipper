@@ -4,6 +4,8 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
+using PatreonApiClient;
+using PatreonApiClient.Models;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Patreon;
@@ -20,7 +22,7 @@ public class PatreonParser : HtmlParser, IHtmlParser
     }
 
     /// <summary>
-    ///     Parses the html for site and extracts the relevant information necessary for downloading images from the site
+    ///     Parses the html for patreon.com and extracts the relevant information necessary for downloading images from the site
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
@@ -31,35 +33,32 @@ public class PatreonParser : HtmlParser, IHtmlParser
             throw new RipperException("No session found for " + ParserName);
         }
 
-        Driver.SetCookie("session_id", sessionIds[0]);
-        var postUrl = ParseUrl(CurrentUrl);
-        CurrentUrl = postUrl;
-        var soup = await Soupify(cancellationToken: cancellationToken);
-        var dirName = soup.SelectSingleNodeOrThrow("").InnerText;
+        var dirName = CurrentUrl.Split('/')[^1].Split('?')[0];
         var images = new List<StringFileLinkWrapper>();
-        while (true)
+        var seen = new HashSet<string>();
+        using var client = new PatreonClient(sessionIds[0]);
+
+        await foreach (var (i, page) in client.GetPosts(CurrentUrl, cancellationToken)
+                                              .EnumerateAsync(cancellationToken: cancellationToken))
         {
-            await LazyLoad(cancellationToken: cancellationToken);
-            var button = Driver.TryFindElement(By.XPath("//button[.//div[normalize-space(.)='Load more']]"));
-            if (button is null)
+            if (i == 0)
             {
-                break;
+                dirName = page.Included.Where(included => included.Type == "campaign")
+                              .Select(included => included.Attributes.GetProperty("name").GetString())
+                              .FirstOrDefault() ?? dirName;
+            }
+
+            foreach (var file in page.GetFiles())
+            {
+                if (!seen.Add(file.MediaId))
+                {
+                    continue; // dedupe on media id, not URL
+                }
+
+                images.Add(FileLink.WithFilename(file.Url, file.FileName, FilenameScheme));
             }
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
-    }
-
-    private static string ParseUrl(string url)
-    {
-        if (url.Contains("patreon.com"))
-        {
-            var creator = url.Split('/')[4];
-            return $"https://www.patreon.com/cw/{creator}/posts";
-        }
-        else
-        {
-            return url;
-        }
     }
 }

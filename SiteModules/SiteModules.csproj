@@ -19,6 +19,7 @@
       <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
       <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
       <ProjectReference Include="..\NHentaiApi\NHentaiApi.csproj" />
+      <ProjectReference Include="..\PatreonApiClient\PatreonApiClient.csproj" />
       <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
       <ProjectReference Include="..\Sdk\Sdk.csproj" />
       <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
