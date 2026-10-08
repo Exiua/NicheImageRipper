@@ -21,11 +21,11 @@ public class Rule34Parser : BooruParser, IHtmlParser, INormalizingHtmlParser
     /// <returns></returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Sdk.Enums.Booru.Rule34, cancellationToken: cancellationToken);
+        return BooruParse(Booru.Rule34, cancellationToken: cancellationToken);
     }
     
     public static string NormalizeUrl(string url)
     {
-        return BooruUrlNormalization.NormalizeUrl(url, Sdk.Enums.Booru.Rule34);
+        return BooruUrlNormalization.NormalizeUrl(url, Booru.Rule34);
     }
 }

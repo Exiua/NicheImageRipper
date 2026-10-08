@@ -21,11 +21,11 @@ public class GelbooruParser : BooruParser, IHtmlParser, INormalizingHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Sdk.Enums.Booru.Gelbooru, cancellationToken: cancellationToken);
+        return BooruParse(Booru.Gelbooru, cancellationToken: cancellationToken);
     }
     
     public static string NormalizeUrl(string url)
     {
-        return BooruUrlNormalization.NormalizeUrl(url, Sdk.Enums.Booru.Gelbooru);
+        return BooruUrlNormalization.NormalizeUrl(url, Booru.Gelbooru);
     }
 }

@@ -24,7 +24,7 @@ public class AllBooruParser : BooruParser, IHtmlParser, INormalizingHtmlParser
     {
         var tags = ExtractTagsFromUrl(GivenUrl);
         Logger.Debug("Parsing all boorus with tags: {Tags}", tags);
-        var boorus = Enum.GetValues<Sdk.Enums.Booru>();
+        var boorus = Enum.GetValues<Booru>();
         var images = new List<StringFileLinkWrapper>();
         foreach (var booru in boorus)
         {

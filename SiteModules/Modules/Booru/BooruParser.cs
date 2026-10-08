@@ -23,7 +23,7 @@ public abstract partial class BooruParser : HtmlParser
     ///     Make requests to booru-like sites and extract image links
     /// </summary>
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
-    protected async Task<RipInfo> BooruParse(Sdk.Enums.Booru site, string? tags = null,
+    protected async Task<RipInfo> BooruParse(Booru site, string? tags = null,
                                              CancellationToken cancellationToken = default)
     {
         if (tags is null)

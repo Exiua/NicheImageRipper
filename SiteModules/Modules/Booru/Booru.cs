@@ -1,7 +1,7 @@
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.Exceptions;
 
-namespace NicheImageRipper.Sdk.Enums;
+namespace NicheImageRipper.SiteModules.Modules.Booru;
 
 public enum Booru
 {
@@ -36,7 +36,8 @@ public class BooruMetadata
         {
             case Booru.Danbooru:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("danbooru").Deconstruct();
+                var credentials = Config.GetSiteConfig(DanbooruParser.ParserName)?.Login;
+                var (username, password) = credentials.Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&login={username}&";
@@ -46,7 +47,8 @@ public class BooruMetadata
             }
             case Booru.Gelbooru:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("gelbooru").Deconstruct();
+                var credentials = Config.GetSiteConfig(GelbooruParser.ParserName)?.Login;
+                var (username, password) = credentials.Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&user_id={username}&";
@@ -56,7 +58,8 @@ public class BooruMetadata
             }
             case Booru.Rule34:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("rule34").Deconstruct();
+                var credentials = Config.GetSiteConfig(Rule34Parser.ParserName)?.Login;
+                var (username, password) = credentials.Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}api_key={password}&user_id={username}&";
@@ -66,14 +69,16 @@ public class BooruMetadata
             }
             case Booru.Yandere:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("yandere").Deconstruct();
+                var credentials = Config.GetSiteConfig(YandeParser.ParserName)?.Login;
+                var (username, password) = credentials.Deconstruct();
                 // TODO: Find out how to authenticate with Yandere if it's possible
                 // Signups are disabled (as of 2025-05-06), so unable to test this
                 return BaseUrl;
             }
             case Booru.E621:
             {
-                var (username, password) = Config.Logins.GetValueOrDefault("e621").Deconstruct();
+                var credentials = Config.GetSiteConfig(E621Parser.ParserName)?.Login;
+                var (username, password) = credentials.Deconstruct();
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     return $"{BaseUrl}login={username}&api_key={password}&";

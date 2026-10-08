@@ -22,11 +22,11 @@ public class DanbooruParser : BooruParser, IHtmlParser, ISubdomainSignificantHtm
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Sdk.Enums.Booru.Danbooru, cancellationToken: cancellationToken);
+        return BooruParse(Booru.Danbooru, cancellationToken: cancellationToken);
     }
     
     public static string NormalizeUrl(string url)
     {
-        return BooruUrlNormalization.NormalizeUrl(url, Sdk.Enums.Booru.Danbooru);
+        return BooruUrlNormalization.NormalizeUrl(url, Booru.Danbooru);
     }
 }

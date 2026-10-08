@@ -4,7 +4,7 @@ namespace NicheImageRipper.SiteModules.Modules.Booru;
 
 internal static partial class BooruUrlNormalization
 {
-    internal static string NormalizeUrl(string url, Sdk.Enums.Booru booru)
+    internal static string NormalizeUrl(string url, Booru booru)
     {
         var baseUrl = url.Split("?")[0];
         var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
@@ -15,8 +15,8 @@ internal static partial class BooruUrlNormalization
 
         return booru switch
         {
-            Sdk.Enums.Booru.Danbooru or Sdk.Enums.Booru.Yandere or Sdk.Enums.Booru.E621 => $"{baseUrl}?{tags}",
-            Sdk.Enums.Booru.Gelbooru or Sdk.Enums.Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
+            Booru.Danbooru or Booru.Yandere or Booru.E621 => $"{baseUrl}?{tags}",
+            Booru.Gelbooru or Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
             _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
         };
     }

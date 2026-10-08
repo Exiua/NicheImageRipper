@@ -21,11 +21,11 @@ public class E621Parser : BooruParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        return BooruParse(Sdk.Enums.Booru.E621, cancellationToken: cancellationToken);
+        return BooruParse(Booru.E621, cancellationToken: cancellationToken);
     }
     
     public static string NormalizeUrl(string url)
     {
-        return BooruUrlNormalization.NormalizeUrl(url, Sdk.Enums.Booru.E621);
+        return BooruUrlNormalization.NormalizeUrl(url, Booru.E621);
     }
 }
