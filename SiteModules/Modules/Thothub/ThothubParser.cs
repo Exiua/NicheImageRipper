@@ -32,7 +32,7 @@ public class ThothubParser : HtmlParser, IHtmlParser
             cookieJar.DeleteCookie(cookie);
         }
 
-        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        var cookies = Config.GetSiteConfig(ParserName)?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             throw new MissingCookieException(sessionCookieName, ParserName);

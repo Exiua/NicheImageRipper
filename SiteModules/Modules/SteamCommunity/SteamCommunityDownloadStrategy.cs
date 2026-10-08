@@ -22,7 +22,8 @@ public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
         Directory.CreateDirectory(destinationFolder);
         var ids = link.Url.Split('/')[^1].Split('|');
         var fileId = ids[1];
-        var (username, password) = Config.Logins.GetValueOrDefault(SteamCommunityParser.ParserName).Deconstruct();
+        var credentials = Config.GetSiteConfig(SteamCommunityParser.ParserName)?.Login;
+        var (username, password) = credentials.Deconstruct();
         var client = SteamCommunityParser.SteamApiClient;
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {

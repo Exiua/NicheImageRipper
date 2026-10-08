@@ -18,7 +18,7 @@ public sealed class GoFileCookieHeaderModifier : IRequestHeaderModifier
                                                                  string url, FileLink link, DownloadContext context, CancellationToken cancellationToken)
     {
         var oldCookies = requestHeaders[RequestHeaderKeys.Cookie];
-        var config = Config.Custom.GetValueOrDefault("gofile").Deserialize<GoFileConfig>();
+        var config = Config.GetSiteConfig(GoFileParser.ParserName)?.Custom?.Deserialize<GoFileConfig>();
         if (config is null)
         {
             throw new RipperException("GoFile configuration is missing. Please ensure that the GoFile configuration is properly set in the config file.");

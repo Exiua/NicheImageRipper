@@ -134,7 +134,8 @@ public class IwaraParser : HtmlParser, IHtmlParser
 
     private static IwaraClient CreateClient()
     {
-        var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        var credentials = Config.GetSiteConfig(ParserName)?.Login;
+        var (username, password) = credentials.Deconstruct();
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {
             throw new RipperCredentialException(

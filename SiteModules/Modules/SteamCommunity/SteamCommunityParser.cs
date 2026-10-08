@@ -41,7 +41,8 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
             throw new FeatureNotAvailableException(FeatureKeys.SteamCmd);
         }
         
-        var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        var credentials = Config.GetSiteConfig(ParserName)?.Login;
+        var (username, password) = credentials.Deconstruct();
         if (username.IsNullOrEmpty())
         {
             throw new RipperException(

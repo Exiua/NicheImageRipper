@@ -213,6 +213,7 @@ public partial class NicheImageRipper : IDisposable
             }
             else
             {
+                Logger.Debug("Checking URL: {Url}", normalizedUrl);
                 if (UrlUtility.UrlCheck(normalizedUrl))
                 {
                     if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))

@@ -16,7 +16,8 @@ public sealed class DeviantArtExternalToolDownloadStrategy : IExternalToolDownlo
                                                     CancellationToken cancellationToken)
     {
         var url = folderInfo.Urls[0].Url;
-        var (username, password) = Config.Logins.GetValueOrDefault("deviantart").Deconstruct();
+        var credentials = Config.GetSiteConfig(DeviantartParser.ParserName)?.Login;
+        var (username, password) = credentials.Deconstruct();
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {
             throw new InvalidOperationException("DeviantArt login credentials are not set in the configuration.");

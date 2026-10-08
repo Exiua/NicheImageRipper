@@ -38,7 +38,7 @@ public partial class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser, INorm
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        var cookies = Config.GetSiteConfig(ParserName)?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             throw new RipperException(

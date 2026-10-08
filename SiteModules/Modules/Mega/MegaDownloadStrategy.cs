@@ -27,7 +27,8 @@ public sealed class MegaDownloadStrategy : IFileDownloadStrategy
         }
 
         context.Logger.Debug("Logging in to MegaCmd");
-        var (email, password) = Config.Logins.GetValueOrDefault("mega").Deconstruct();
+        var credentials = Config.GetSiteConfig(MegaParser.ParserName)?.Login;
+        var (email, password) = credentials.Deconstruct();
         if (email.IsNullOrWhiteSpace() || password.IsNullOrWhiteSpace())
         {
             throw new RipperException("MegaCmd login credentials are not set in the configuration");

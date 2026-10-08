@@ -89,10 +89,12 @@ internal static class LegacyConfigMigration
         // since the old JSON shape doesn't match the new property types — re-read those sections manually
         // from the raw JsonObject instead.
 
+#pragma warning disable CS0618 // Type or member is obsolete
         config.Logins = MigrateLogins(root["Logins"]?.AsObject());
         config.Cookies = MigrateCookies(root["Cookies"]?.AsObject());
         config.Keys = MigrateKeys(root["Keys"]?.AsObject());
         config.Custom = MigrateCustom(root["Custom"]?.AsObject());
+#pragma warning restore CS0618 // Type or member is obsolete
 
         migrated = config;
         return true;

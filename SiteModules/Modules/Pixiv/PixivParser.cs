@@ -30,14 +30,15 @@ public class PixivParser : HtmlParser, IHtmlParser
     {
         const int delay = 500;
         const int illustsPerPage = 30;
-        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        var siteConfig = Config.GetSiteConfig(ParserName);
+        var cookies = siteConfig?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             Logger.Error("Pixiv session ID is not set. Please add your Pixiv PHPSESSID token to the config file.");
             return RipInfo.Empty;
         }
 
-        var refreshToken = Config.Keys.GetValueOrDefault(ParserName, "");
+        var refreshToken = siteConfig?.Key ?? "";
         if (refreshToken == "")
         {
             Logger.Error("Pixiv refresh token is not set. Please add your Pixiv refresh token to the config file.");

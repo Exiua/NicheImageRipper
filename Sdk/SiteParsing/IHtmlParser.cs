@@ -14,7 +14,8 @@ public interface IHtmlParser
     static FilenameScheme GetFilenameScheme<T>(FilenameScheme original) where T : IHtmlParser
     {
         var config = Config.Instance;
-        if (!config.ParserSpecificSettingsOverrides.TryGetValue(T.ParserName, out var settingsOverride))
+        var settingsOverride = config.GetSiteConfig(T.ParserName)?.Overrides;
+        if (settingsOverride is null)
         {
             return original;
         }

@@ -20,13 +20,17 @@ public static class Config
             return CreateTemplateConfig<T>();
         }
 
+        // TODO: Remove this migration logic in a future version (note added: v5.0.0)
         if (LegacyConfigMigration.TryMigrate<T>(ConfigPath, out var migrated))
         {
             migrated.SaveConfig(); // rewrite once in the new shape; never needs migrating again
             return migrated;
         }
 
-        return JsonUtility.Deserialize<T>(ConfigPath)!;
+        var config = JsonUtility.Deserialize<T>(ConfigPath)!;
+        // TODO: Remove this migration logic in a future version (added: v5.0.0)
+        config.MigrateLegacy();
+        return config;
     }
 
     public static void ReloadConfig<T>() where T : GeneralConfig, new()

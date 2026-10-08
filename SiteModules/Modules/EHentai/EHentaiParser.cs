@@ -32,7 +32,8 @@ public class EHentaiParser : TimeSensitiveHtmlParser, IHtmlParser, IMultiSiteHtm
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         const string loginUrl = "https://forums.e-hentai.org/index.php?act=Login&CODE=00";
-        var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        var credentials = Config.GetSiteConfig(ParserName)?.Login;
+        var (username, password) = credentials.Deconstruct();
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
             return false;

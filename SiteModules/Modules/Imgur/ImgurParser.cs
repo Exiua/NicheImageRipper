@@ -28,7 +28,7 @@ public class ImgurParser : HtmlParser, IHtmlParser
     /// <returns>A RipInfo object containing the image links and the directory name</returns>
     public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
     {
-        var clientId = Config.Keys.GetValueOrDefault(ParserName, "");
+        var clientId = Config.GetSiteConfig(ParserName)?.Key ?? "";
         if (clientId == "")
         {
             Logger.Error("Client Id not set");
@@ -39,9 +39,8 @@ public class ImgurParser : HtmlParser, IHtmlParser
 
         RequestHeaders["Authorization"] = "Client-ID " + clientId;
         var albumHash = CurrentUrl.Split("/")[5];
-        var session = new HttpClient();
         var request = RequestHeaders.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/album/{albumHash}");
-        var response = await session.SendAsync(request, cancellationToken);
+        var response = await HttpClient.SendAsync(request, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
             Logger.Error("Client Id is incorrect");

@@ -131,7 +131,8 @@ public partial class NijieParser : HtmlParser, IHtmlParser
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
-        var(username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        var credentials = Config.GetSiteConfig(ParserName)?.Login;
+        var(username, password) = credentials.Deconstruct();
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {
             Logger.Warning("No login credentials found for {ParserName}. Please set them in the config file.", ParserName);

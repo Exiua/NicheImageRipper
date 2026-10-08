@@ -206,8 +206,10 @@ public static class HtmlParserFactory
         foreach (var type in parserTypes)
         {
             var supportedUrls = (string[])type.GetProperty(nameof(IHtmlParser.SupportedUrls))!.GetValue(null)!;
-            foreach (var url in supportedUrls)
+            foreach (var rawUrl in supportedUrls)
             {
+                // Probably could do a bit more normalization here
+                var url = rawUrl.EndsWith('/') ? rawUrl : rawUrl + '/';
                 if (owners.TryGetValue(url, out var existingOwner) && existingOwner != type)
                 {
                     Logger.Warning(

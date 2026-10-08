@@ -17,6 +17,7 @@ public static partial class UrlUtility
     {
         var parsedUri = new Uri(givenUrl);
         var baseUrl = $"{parsedUri.Scheme}://{parsedUri.Host}/";
+        Logger.Debug("Checking URL: {Url}", baseUrl);
         return HtmlParserFactory.SupportedUrls.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
     }
 

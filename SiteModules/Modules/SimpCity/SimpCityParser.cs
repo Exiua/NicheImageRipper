@@ -185,7 +185,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser, ICacheOwner
         }
 
         Logger.Debug("Getting user cookie");
-        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        var cookies = Config.GetSiteConfig(ParserName)?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             throw new MissingCookieException(CookieName, ParserName);

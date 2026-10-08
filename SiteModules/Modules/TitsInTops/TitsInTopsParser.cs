@@ -109,7 +109,8 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
-        var (username, password) = Config.Logins.GetValueOrDefault(ParserName).Deconstruct();
+        var credentials = Config.GetSiteConfig(ParserName)?.Login;
+        var (username, password) = credentials.Deconstruct();
         if (username.IsNullOrEmpty() || password.IsNullOrEmpty())
         {
             Logger.Warning("No login credentials found for {ParserName}.", ParserName);
@@ -191,7 +192,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
                                                        CancellationToken cancellationToken = default)
     {
         var parsedUrls = new List<string>();
-        var imgurKey = Config.Keys.GetValueOrDefault("imgur");
+        var imgurKey = Config.GetSiteConfig("imgur")?.Key;
         if (imgurKey.IsNullOrEmpty())
         {
             Logger.Warning("No Imgur API key found in configuration. Skipping Imgur embedded links.");

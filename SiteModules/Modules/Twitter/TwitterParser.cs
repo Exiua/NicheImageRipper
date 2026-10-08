@@ -38,7 +38,7 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
         #endregion
 
         const string cookieName = "auth_token";
-        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        var cookies = Config.GetSiteConfig(ParserName)?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             throw new MissingCookieException(cookieName, ParserName);

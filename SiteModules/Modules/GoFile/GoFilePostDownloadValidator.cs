@@ -62,7 +62,7 @@ public sealed class GoFilePostDownloadValidator : IPostDownloadValidator
     {
         var driver = context.WebDriver.Driver;
         var origUrl = driver.Url;
-        var config = Config.Custom.GetValueOrDefault(GoFileParser.ParserName).Deserialize<GoFileConfig>();
+        var config = Config.GetSiteConfig(GoFileParser.ParserName)?.Custom?.Deserialize<GoFileConfig>();
         if (config is null)
         {
             Logger.Warning("GoFileConfig is not set");

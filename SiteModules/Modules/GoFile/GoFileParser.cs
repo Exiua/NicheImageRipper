@@ -154,7 +154,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
     {
         var origUrl = CurrentUrl;
-        var config = Config.Custom.GetValueOrDefault(ParserName).Deserialize<GoFileConfig>();
+        var config = Config.GetSiteConfig(ParserName)?.Custom?.Deserialize<GoFileConfig>();
         if (config is null)
         {
             return false;

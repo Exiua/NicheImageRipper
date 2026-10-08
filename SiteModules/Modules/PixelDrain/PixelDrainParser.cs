@@ -30,7 +30,7 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
     protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
         var url = GivenUrl;
-        var apiKey = Config.Keys.GetValueOrDefault(ParserName);
+        var apiKey = Config.GetSiteConfig(ParserName)?.Key ?? "";
         if (string.IsNullOrEmpty(apiKey))
         {
             throw new RipperException("No API key found for " + ParserName);

@@ -30,7 +30,7 @@ public class Porn3dxParser : HtmlParser, IHtmlParser
         const int maxRetries = 4;
         const string cookieName = "porn3dx_session";
 
-        var cookies = Config.Cookies.GetValueOrDefault(ParserName, []);
+        var cookies = Config.GetSiteConfig(ParserName)?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             throw new MissingCookieException(cookieName, ParserName);
