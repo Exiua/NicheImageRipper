@@ -22,11 +22,7 @@ public class Config
     public string? FlareSolverrUri { get; set; }
     public bool? CloseFlareSolverrSession { get; set; }
     public string? CSWebDriverUri { get; set; }
-    public Dictionary<string, Credentials>? Logins { get; set; }
-    public Dictionary<string, string>? Keys { get; set; }
-    public Dictionary<string, string[]>? Cookies { get; set; }
-    public Dictionary<string, JsonElement>? Custom { get; set; }
-    public Dictionary<string, SettingsOverride>? ParserSpecificSettingsOverrides { get; set; }
+    public Dictionary<string, SiteConfig>? Sites { get; set; }
 
     public static Config FromCoreConfig(GeneralConfig generalConfig)
     {
@@ -47,16 +43,7 @@ public class Config
             FlareSolverrUri = generalConfig.FlareSolverrUri,
             CloseFlareSolverrSession = generalConfig.CloseFlareSolverrSession,
             CSWebDriverUri = generalConfig.CSWebDriverUri,
-            Logins = generalConfig.Logins
-                                  .Select(kvp =>
-                                       new KeyValuePair<string, Credentials>(kvp.Key,
-                                           Credentials.FromCoreCredentials(kvp.Value)))
-                                  .ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-            Keys = generalConfig.Keys,
-            Cookies = generalConfig.Cookies,
-            Custom = generalConfig.Custom,
-            ParserSpecificSettingsOverrides = generalConfig.ParserSpecificSettingsOverrides.ToDictionary(kvp => kvp.Key,
-                kvp => SettingsOverride.FromCoreSettingsOverride(kvp.Value))
+            Sites = generalConfig.Sites,
         };
         return config;
     }
