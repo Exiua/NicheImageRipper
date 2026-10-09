@@ -1,0 +1,34 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.CuteGirlPorn;
+
+public class CuteGirlPornParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "cutegirlporn";
+    public static string[] SupportedUrls => ["https://www.cutegirlporn.com/"];
+
+    public CuteGirlPornParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                              FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<CuteGirlPornParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for cutegirlporn.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='gal-title']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//ul[@class='gal-thumbs']").SelectNodesOrThrow(".//li").Select(img =>
+                              "https://cutegirlporn.com" +
+                              img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/"))
+                         .ToStringFileLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

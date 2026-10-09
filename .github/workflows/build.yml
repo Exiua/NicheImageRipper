@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  GUI_PROJECT: Gui/Gui.csproj
+  MODULES_PROJECT: SiteModules/SiteModules.csproj
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build and package all platforms
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for rid in win-x64 linux-x64 osx-arm64; do
+            echo "::group::$rid"
+
+            dotnet publish "$MODULES_PROJECT" -c Release -r "$rid" \
+              --self-contained false -o "out/$rid/modules-build"
+
+            dotnet publish "$GUI_PROJECT" -c Release -r "$rid" \
+              --self-contained true -o "out/$rid/app"
+
+            # Copy every dll Gui doesn't already ship (SiteModules itself + its extra dependencies)
+            for dll in out/$rid/modules-build/*.dll; do
+              name=$(basename "$dll")
+              if [ ! -e "out/$rid/app/$name" ]; then
+                cp "$dll" "out/$rid/app/"
+                echo "added $name"
+              fi
+            done
+
+            (cd "out/$rid/app" && zip -r "../../dist/NicheImageRipper-$rid.zip" .)
+
+            echo "::endgroup::"
+          done
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: dist/*.zip

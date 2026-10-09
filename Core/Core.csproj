@@ -4,33 +4,57 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>NicheImageRipper.Core</RootNamespace>
+        <Version>5.0.0</Version>
+        <AssemblyVersion>$(Version).0</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Gkmo.Google.Apis.PhotosLibrary.v1" Version="1.36.1.1471" />
-      <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
+      <PackageReference Include="Dapper" Version="2.1.79" />
       <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
-      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
-      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.11.1" />
-      <PackageReference Include="Selenium.WebDriver" Version="4.39.0" />
-      <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.36.0" />
-      <PackageReference Include="Serilog" Version="4.3.0" />
+      <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
+      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.17.1" />
+      <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+      <PackageReference Include="Selenium.WebDriver" Version="4.46.0" />
+      <PackageReference Include="Selenium.WebDriver.GeckoDriver" Version="0.37.1" />
+      <PackageReference Include="Serilog" Version="4.4.0" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-      <PackageReference Include="SharpCompress" Version="0.42.1" />
-      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.2" />
-      <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
-      <PackageReference Include="System.Data.SQLite" Version="2.0.2" />
-      <PackageReference Include="System.Drawing.Common" Version="10.0.1" />
+      <PackageReference Include="SharpCompress" Version="0.50.0" />
+      <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.4" />
+      <PackageReference Include="System.Data.SQLite" Version="2.0.3" />
+      <PackageReference Include="System.Drawing.Common" Version="10.0.10" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Common\Common.csproj" />
       <ProjectReference Include="..\CSWebDriverClient\CSWebDriverClient.csproj" />
       <ProjectReference Include="..\FlareSolverrIntegration\FlareSolverrIntegration.csproj" />
+      <ProjectReference Include="..\ImpersonateClient\ImpersonateClient.csproj" />
+      <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
       <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
       <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
+      <ProjectReference Include="..\Sdk\Sdk.csproj" />
+      <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Microsoft.AspNetCore.WebUtilities">
+        <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.7\Microsoft.AspNetCore.WebUtilities.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\SiteModules\bin\$(Configuration)\net10.0\SiteModules.dll">
+<!--            <Link>Plugins\SiteModules.dll</Link>-->
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="SiteParsing\HtmlParsers\" />
+      <Folder Include="SiteParsing\VideoCapturers\" />
     </ItemGroup>
 
 </Project>

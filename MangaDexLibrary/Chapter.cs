@@ -12,7 +12,7 @@ public class Chapter
         _client = client;
     }
 
-    public async Task<MangaDexResponse> GetChapter(Guid chapterId)
+    public async Task<MangaDexResponse> GetChapter(Guid chapterId, CancellationToken cancellationToken = default)
     {
         var url = $"https://api.mangadex.org/chapter/{chapterId}";
         var response = await _client.GetAsync(url);

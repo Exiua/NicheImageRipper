@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <EffectiveRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</EffectiveRuntimeIdentifier>
+        <EffectiveRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">win-x64</EffectiveRuntimeIdentifier>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="runtimes\$(EffectiveRuntimeIdentifier)\native\*.dll"
+              Pack="true"
+              CopyToOutputDirectory="PreserveNewest" />
+        <EmbeddedResource Include="Resources\cacert.pem" />
+    </ItemGroup>
+    
+</Project>

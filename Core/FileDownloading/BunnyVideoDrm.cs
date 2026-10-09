@@ -3,11 +3,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using Common.ExtensionMethods;
-using Core.ExtensionMethods;
-using Core.Managers;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
 
-namespace Core.FileDownloading;
+namespace NicheImageRipper.Core.FileDownloading;
 
 /// <summary>
 ///    Class for downloading videos from BunnyVideo CDN with DRM protection. This is a C# port of the Python script:
@@ -205,15 +204,15 @@ public partial class BunnyVideoDrm
         Session.Send(requestMessage);
     }
 
-    public async Task Download()
+    public async Task Download(CancellationToken cancellationToken = default)
     {
         var resolution = PrepareDl();
         string[] url =
             [$"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm?contextId={ContextId}"];
-        await DownloadVideoAsync(url[0]);
+        await DownloadVideoAsync(url[0], cancellationToken);
     }
 
-    private async Task DownloadVideoAsync(string url)
+    private async Task DownloadVideoAsync(string url, CancellationToken cancellationToken = default)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -232,7 +231,7 @@ public partial class BunnyVideoDrm
         process.Start();
         process.BeginOutputReadLine();
         
-        await process.WaitForExitAsync();
+        await process.WaitForExitAsync(cancellationToken);
     }
 
     private string BuildArguments(string url)

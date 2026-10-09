@@ -1,0 +1,90 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Utility;
+
+namespace NicheImageRipper.SiteModules.Modules.Mega;
+
+public sealed class MegaDownloadStrategy : IFileDownloadStrategy
+{
+    private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
+    
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [ MegaLinkInfo.Mega ];
+    public bool SupportsPostProcessing => false;
+
+    public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
+                                                     CancellationToken cancellationToken = default)
+    {
+        var available = AvailableFeatureManager.AvailableFeatures.HasFeature(FeatureKeys.MegaCmd,
+           () => ProcessRunner.CheckForProcess("mega-version.bat", "-v"));
+        if (!available)
+        {
+            throw new FeatureNotAvailableException(FeatureKeys.MegaCmd);
+        }
+
+        context.Logger.Debug("Logging in to MegaCmd");
+        var credentials = Config.GetSiteConfig(MegaParser.ParserName)?.Login;
+        var (email, password) = credentials.Deconstruct();
+        if (email.IsNullOrWhiteSpace() || password.IsNullOrWhiteSpace())
+        {
+            throw new RipperException("MegaCmd login credentials are not set in the configuration");
+        }
+        
+        if (!MegaSessionManager.EnsureLoggedIn(email, password))
+        {
+            var e = new RipperException("Unable to login to MegaCmd");
+            context.Logger.Error(e, "Unable to login to MegaCmd");
+            throw e;
+        }
+
+        string downloadPath;
+        if (link.Url.Contains("/file/"))
+        {
+            context.Logger.Debug("Downloading file from Mega: {Url}", link.Url);
+            downloadPath = Path.GetDirectoryName(imagePath)!;
+        }
+        else
+        {
+            context.Logger.Debug("Downloading folder from Mega: {Url}", link.Url);
+            downloadPath = imagePath;
+            Directory.CreateDirectory(downloadPath);
+        }
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(60));
+            try
+            {
+                var success = await MegaApi.DownloadAsync(link.Url, downloadPath, cts.Token);
+                return success ? DownloadResult.Success() : DownloadResult.Failed();
+            }
+            catch (OperationCanceledException)
+            {
+                context.Logger.Warning("Mega download timed out, retrying...");
+            }
+            catch (Exception e)
+            {
+                context.Logger.Error(e, "Failed to download from Mega: {Url}", link.Url);
+                if (e.Message.Contains("No such file or directory"))
+                {
+                    context.Logger.Error("The specified file or directory does not exist on Mega: {Url}", link.Url);
+                    return DownloadResult.Failed("The specified file or directory does not exist on Mega");
+                }
+
+                if (e.Message.Contains("Invalid URL"))
+                {
+                    context.Logger.Error("The provided URL is invalid: {Url}", link.Url);
+                    return DownloadResult.Failed("The provided URL is invalid");
+                }
+
+                throw;
+            }
+        }
+    }
+}

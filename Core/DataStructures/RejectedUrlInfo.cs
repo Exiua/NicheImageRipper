@@ -1,6 +1,6 @@
-﻿using Core.Enums;
+﻿using NicheImageRipper.Core.Enums;
 
-namespace Core.DataStructures;
+namespace NicheImageRipper.Core.DataStructures;
 
 public class RejectedUrlInfo(string url, QueueFailureReason reason, int index = -1)
 {

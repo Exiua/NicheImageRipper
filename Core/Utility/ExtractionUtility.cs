@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Core.Utility;
+namespace NicheImageRipper.Core.Utility;
 
 public static partial class ExtractionUtility
 {

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NicheImageRipper.SiteModules</RootNamespace>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="Microsoft.AspNetCore.WebUtilities">
+        <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\10.0.7\Microsoft.AspNetCore.WebUtilities.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ImpersonateClient\ImpersonateClient.csproj" />
+      <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
+      <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
+      <ProjectReference Include="..\NHentaiApi\NHentaiApi.csproj" />
+      <ProjectReference Include="..\PatreonApiClient\PatreonApiClient.csproj" />
+      <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
+      <ProjectReference Include="..\Sdk\Sdk.csproj" />
+      <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3783" />
+      <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.11" />
+    </ItemGroup>
+
+</Project>

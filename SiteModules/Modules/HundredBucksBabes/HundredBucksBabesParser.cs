@@ -1,0 +1,33 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.HundredBucksBabes;
+
+public class HundredBucksBabesParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "100bucksbabes";
+    public static string[] SupportedUrls => ["https://www.100bucksbabes.com/"];
+
+    public HundredBucksBabesParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                   FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,
+        requestHeaders, IHtmlParser.GetFilenameScheme<HundredBucksBabesParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for 100bucksbabes.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='main-col-2']")
+                          .SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img")
+                         .Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringFileLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

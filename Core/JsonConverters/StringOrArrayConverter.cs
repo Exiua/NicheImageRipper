@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Core.JsonConverters;
+namespace NicheImageRipper.Core.JsonConverters;
 
 public class StringOrArrayConverter : JsonConverter<string[]>
 {

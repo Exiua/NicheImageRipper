@@ -1,0 +1,58 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.Buondua;
+
+public class BuonduaParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "buondua";
+    public static string[] SupportedUrls => ["https://buondua.com/"];
+
+    public BuonduaParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BuonduaParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for buondua.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true },
+            cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='article-header']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText;
+        var dirNameSplit = dirName.Split("(");
+        if (dirName.Contains("pictures") || dirName.Contains("photos"))
+        {
+            dirName = dirNameSplit[..^1].Join("(");
+        }
+
+        var pages = soup.SelectSingleNodeOrThrow("//div[@class='pagination-list']").SelectNodesOrThrow(".//span").Count;
+        var currUrl = CurrentUrl.Replace("?page=1", "");
+        var images = new List<StringFileLinkWrapper>();
+        for (var i = 0; i < pages; i++)
+        {
+            var imageList = soup.SelectSingleNodeOrThrow("//div[@class='article-fulltext']")
+                                .SelectNodesOrThrow(".//img").Select(img => img.GetSrc())
+                                .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+            images.AddRange(imageList);
+            if (i >= pages - 1)
+            {
+                continue;
+            }
+
+            var nextPage = $"{currUrl}?page={i + 2}";
+            CurrentUrl = nextPage;
+            soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true },
+                cancellationToken: cancellationToken);
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

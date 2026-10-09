@@ -1,0 +1,41 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.SexyKittenPorn;
+
+public class SexyKittenPornParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "sexykittenporn";
+    public static string[] SupportedUrls => ["https://www.sexykittenporn.com/"];
+
+    public SexyKittenPornParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                                FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<SexyKittenPornParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for sexykittenporn.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='blockheader']").InnerText;
+        var tagList = soup.SelectNodesOrThrow("//div[@class='list gallery col3']")
+                          .SelectMany(tag => tag.SelectNodesOrThrow(".//div[@class='item']"));
+        var imageLink = tagList.Select(image =>
+            $"https://www.sexykittenporn.com{image.SelectSingleNodeOrThrow(".//a").GetHref()}");
+        var images = new List<StringFileLinkWrapper>();
+        foreach (var link in imageLink)
+        {
+            soup = await Soupify(link, cancellationToken: cancellationToken);
+            images.Add($"https:{soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img").GetSrc()}");
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

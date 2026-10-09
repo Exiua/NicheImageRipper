@@ -1,0 +1,39 @@
+using HtmlAgilityPack;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.PussySpace;
+public class PussySpaceParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "pussyspace";
+    public static string[] SupportedUrls => ["https://www.pussyspace.com/"];
+
+    public PussySpaceParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<PussySpaceParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the HTML for site and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var id = CurrentUrl.Split("-")[1];
+        var(capturer, b) = await ConfigureNetworkCapture<PussySpaceCapturer>(cancellationToken);
+        await using var bidi = b;
+        Driver.Refresh();
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var h1 = soup.SelectSingleNodeOrThrow("//h1");
+        var dirName = h1.ChildNodes.Where(n => n.NodeType == HtmlNodeType.Text).Select(n => n.InnerText.Trim()).Where(t => !string.IsNullOrEmpty(t)).Join(" ") + $"({id})";
+        var images = new List<StringFileLinkWrapper>();
+        await WaitForPlaylist(capturer, links =>
+        {
+            var playlist = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp);
+            images.Add(playlist);
+        }, cancellationToken);
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

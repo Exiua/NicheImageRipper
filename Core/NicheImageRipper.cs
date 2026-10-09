@@ -1,44 +1,53 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Core.Configuration;
-using Core.DataStructures;
-using Core.Driver;
-using Core.Enums;
-using Core.Exceptions;
-using Core.ExtensionMethods;
-using Core.Managers;
-using Core.FileDownloading;
-using Core.History;
-using Core.Utility;
+using Microsoft.AspNetCore.WebUtilities;
+using NicheImageRipper.Common.Exceptions;
+using NicheImageRipper.Core.Cache;
+using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Driver;
+using NicheImageRipper.Core.Enums;
+using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.Core.History;
+using NicheImageRipper.Core.PartialSaves;
+using NicheImageRipper.Core.SiteParsing;
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
+using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.Managers;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using File = System.IO.File;
+using UrlUtility = NicheImageRipper.Core.Utility.UrlUtility;
 
-namespace Core;
+namespace NicheImageRipper.Core;
 
 public partial class NicheImageRipper : IDisposable
 {
-    private Version? _latestVersion;
-
     public static string Title => "NicheImageRipper";
-    public static GeneralConfig Config => Configuration.Config.Instance;
+    public static GeneralConfig Config => Sdk.Configuration.Config.Instance;
     public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
-    public static FlareSolverrManager FlareSolverrManager { get; } = new(Config.FlareSolverrUri);
+    public static FlareSolverrManager FlareSolverrManager => FlareSolverrManager.Instance;
+    public static Version Version { get; } = new(5, 0, 0);
 
-    protected internal static ExternalFeatureSupport AvailableFeatures { get; } = GetExternalFeatureSupport();
+    public static IAvailableFeatures AvailableFeatures { get; } = AvailableFeatureManager.AvailableFeatures;
 
-    public Version Version { get; } = new(4, 1, 0, 0);
+    protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 
-    public Version LatestVersion => _latestVersion ??= GetLatestVersion().Result;
+    public Version LatestVersion => field ??= GetLatestVersion().Result;
 
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; }
     public ImageRipper? Ripper { get; set; }
+    public bool Paused => Ripper?.Paused ?? false;
 
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
@@ -49,7 +58,7 @@ public partial class NicheImageRipper : IDisposable
         get => Config.AskToReRip;
         set => Config.AskToReRip = value;
     }
-    
+
     public static bool SkipFailedDownloads
     {
         get => Config.SkipFailedDownloads;
@@ -92,29 +101,49 @@ public partial class NicheImageRipper : IDisposable
         set => Config.RetryDelay = value;
     }
 
+    public static bool SaveUnfinishedUrls
+    {
+        get => Config.SaveUnfinishedUrls;
+        set => Config.SaveUnfinishedUrls = value;
+    }
+
     private WebDriverPool WebDriverPool { get; } = new(1);
 
     protected static HistoryManager HistoryDb => HistoryManager.Instance;
 
     protected bool Debugging { get; set; }
 
+    private CancellationTokenSource _cancellationTokenSource = new();
+    private Exception? _lastException;
     private bool _disposed;
 
     static NicheImageRipper()
     {
         Console.OutputEncoding = Encoding.UTF8;
-        Console.InputEncoding  = Encoding.UTF8;
+        Console.InputEncoding = Encoding.UTF8;
     }
 
-    public void LoadUrlFile(string filepath)
+    public void LoadUrls(List<string> loadedUrls)
     {
-        var loadedUrls = JsonUtility.Deserialize<List<string>>(filepath)!;
         foreach (var url in loadedUrls)
         {
             AddToUrlQueue(url, noCheck: true);
         }
 
         OnUrlQueueUpdated?.Invoke();
+    }
+    
+    /// <summary>
+    ///     Loads URLs from a specific unfinished-URLs snapshot file (e.g. one the user picked in the
+    ///     GUI's file browser) and binds future saves to that same file, so it gets updated in place as
+    ///     URLs finish and deleted once the queue empties, rather than the normal subset-scan/new-file
+    ///     logic picking a different target.
+    /// </summary>
+    public void LoadUrlsFromFile(string path)
+    {
+        var loadedUrls = JsonUtility.Deserialize<List<string>>(path)!;
+        LoadUrls(loadedUrls);
+        _unfinishedUrlsPath = path;
     }
 
     public void QueueUrlsFromEmptyDirectories()
@@ -136,7 +165,7 @@ public partial class NicheImageRipper : IDisposable
         }
     }
 
-    public bool Play()
+    public bool Resume()
     {
         if (Ripper is null)
         {
@@ -146,7 +175,7 @@ public partial class NicheImageRipper : IDisposable
         Ripper.Paused = false;
         return true;
     }
-    
+
     public bool Pause()
     {
         if (Ripper is null)
@@ -184,6 +213,7 @@ public partial class NicheImageRipper : IDisposable
             }
             else
             {
+                Logger.Debug("Checking URL: {Url}", normalizedUrl);
                 if (UrlUtility.UrlCheck(normalizedUrl))
                 {
                     if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))
@@ -205,122 +235,75 @@ public partial class NicheImageRipper : IDisposable
 
         return failedUrls;
     }
-
+    
     public static string NormalizeUrl(string url)
     {
         var host = new Uri(url).Host;
 
-        if (host.Contains("pornhub.com"))
+        foreach (var (pattern, kind, normalize) in HtmlParserFactory.UrlNormalizers)
         {
-            return NormalizePornhubUrl(url);
-        }
+            var matches = kind switch
+            {
+                UrlMatchKind.StartsWith => host.StartsWith(pattern, StringComparison.OrdinalIgnoreCase),
+                UrlMatchKind.Contains => host.Contains(pattern, StringComparison.OrdinalIgnoreCase),
+                UrlMatchKind.EndsWith => host.EndsWith(pattern, StringComparison.OrdinalIgnoreCase),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+            };
 
-        if (host.Contains("yande.re"))
-        {
-            return NormalizeBooruUrl(url, Booru.Yandere);
-        }
-
-        if (host.Contains("danbooru."))
-        {
-            return NormalizeBooruUrl(url, Booru.Danbooru);
-        }
-
-        if (host.Contains("gelbooru."))
-        {
-            return NormalizeBooruUrl(url, Booru.Gelbooru);
-        }
-
-        if (host.Contains("rule34."))
-        {
-            return NormalizeBooruUrl(url, Booru.Rule34);
-        }
-        
-        if (host.Contains("e621.net"))
-        {
-            return NormalizeBooruUrl(url, Booru.E621);
-        }
-
-        if (host.Contains("booru.com"))
-        {
-            // Special case for booru.com as the site is used as a control command and not as a real site
-            var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
-            return $"https://booru.com/post?{tags}";
-        }
-
-        if (host.Contains("exhentai.org"))
-        {
-            return url.Replace("exhentai.org", "e-hentai.org");
-        }
-        
-        if (host.Contains("hanime1.me"))
-        {
-            return url.Split("&page=")[0];
+            if (matches)
+            {
+                return normalize(url);
+            }
         }
 
         return url.Split("?")[0];
     }
 
-    private static string NormalizePornhubUrl(string url)
-    {
-        if (url.Contains("view_video"))
-        {
-            var id = PornhubViewKeyRegex().Match(url).Groups[1].Value;
-            return $"https://www.pornhub.com/view_video.php?viewkey={id}";
-        }
-
-        var urlParts = url.Split('/');
-        return urlParts[..5].Join('/').Split('?')[0];
-    }
-
-    private static string NormalizeBooruUrl(string url, Booru booru)
-    {
-        var baseUrl = url.Split("?")[0];
-        var tags = BooruRegex().Match(url).Groups[1].Value.Replace("++", "+");
-        if (tags.EndsWith('+'))
-        {
-            tags = tags[..^1];
-        }
-
-        return booru switch
-        {
-            Booru.Danbooru or Booru.Yandere or Booru.E621  => $"{baseUrl}?{tags}",
-            Booru.Gelbooru or Booru.Rule34 => $"{baseUrl}?page=post&s=list&{tags}",
-            _ => throw new ArgumentOutOfRangeException(nameof(booru), booru, null)
-        };
-    }
-
-    public async Task Rip()
+    public async Task<bool> Rip(CancellationToken cancellationToken = default)
     {
         Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
-        Log.Debug("Ripper created");
-        Log.Debug("Starting rip");
+        Logger.Debug("Ripper created");
+        Logger.Debug("Starting rip");
         while (UrlQueue.Count != 0)
         {
-            Log.Debug("Queue size: {QueueCount}", UrlQueue.Count);
-            var url = await RipUrl();
-            Log.Debug("Ripped URL: {Url:l}", url);
+            Logger.Debug("Queue size: {QueueCount}", UrlQueue.Count);
+            var url = await RipUrl(cancellationToken);
+            if (url is null)
+            {
+                // Indicates out of disk space // TODO: Improve return value to be more meaningful
+                return false;
+            }
+
+            Logger.Debug("Ripped URL: {Url:l}", url);
             if (url != "")
             {
                 // If empty url is returned Ripper is also null
                 UpdateHistory(Ripper!.FolderInfo, url);
             }
-            
-            // TODO: Add feature guard to allow users to disable saving unfinished URLs constantly
-            SaveUnfinishedUrls(); // Save after each rip to avoid data loss
+
+            SaveUnfinishedUrlsToDisk(); // Save after each rip to avoid data loss
         }
+
+        return true;
     }
 
-    private async Task<string> RipUrl()
+    public static List<string> GetSupportedSites()
+    {
+        var supportedUrls = HtmlParserFactory.SupportedUrls.ToList();
+        return supportedUrls;
+    }
+
+    private async Task<string?> RipUrl(CancellationToken cancellationToken = default)
     {
         if (UrlQueue.Count == 0)
         {
-            PrintUtility.Print("No URLs to rip.");
+            Logger.Information("No URLs to rip.");
             return "";
         }
 
         var url = UrlQueue[0];
-        Log.Information("{Url:l}", url);
+        Logger.Information("{Url:l}", url);
         Interrupted = true;
 
         for (var retry = 0; retry < MaxRetries; retry++)
@@ -328,31 +311,43 @@ public partial class NicheImageRipper : IDisposable
             try
             {
                 var start = DateTime.Now;
-                await Ripper!.Rip(url);
+                await Ripper!.Rip(url, cancellationToken);
                 var elapsed = DateTime.Now - start;
                 var elapsedFormatted =
                     $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
-                Log.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
+                Logger.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
                 //OnUrlRipComplete?.Invoke();
+                _lastException = null;
                 break;
             }
-            catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver", "timed out") && retry < MaxRetries - 1)
+            catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver",
+                                                   "timed out") && retry < MaxRetries - 1)
             {
-                Log.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url, retry + 1, MaxRetries);
-                await Task.Delay(10000);
+                Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url,
+                    retry + 1, MaxRetries);
+                await Task.Delay(10000, cancellationToken);
+            }
+            catch (NotEnoughDiskSpaceException e)
+            {
+                _lastException = e;
+                Logger.Error("Failed to rip {Url} due to not enough disk space. Terminating...", url);
+                SaveUnfinishedUrlsToDisk();
+                return null;
             }
             catch (Exception e)
             {
                 if (retry == MaxRetries - 1)
                 {
-                    Log.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                    _lastException = e;
+                    Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                    SaveUnfinishedUrlsToDisk();
                     throw;
                 }
 
-                await Task.Delay(RetryDelay);
+                await Task.Delay(RetryDelay, cancellationToken);
                 if (Debugging)
                 {
-                    Log.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
+                    Logger.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
                     LogMessageToFile("Press any key to continue...");
                     Console.ReadKey();
                 }
@@ -370,50 +365,109 @@ public partial class NicheImageRipper : IDisposable
         OnProgressChanged?.Invoke(current, total);
     }
 
-    public void SaveData()
+    public async Task SaveData(CancellationToken cancellationToken = default)
     {
-        SaveUnfinishedUrls();
+        SaveUnfinishedUrlsToDisk();
 
         // Interrupted is only set after creating ImageRipper
         if (Interrupted && Ripper!.CurrentIndex > 1)
         {
-            File.WriteAllText(".ripIndex", Ripper.GenerateSavePosition());
+            await Ripper.SaveCurrentRipPosition(cancellationToken);
         }
 
         Config.SaveConfig();
     }
 
-    private void SaveUnfinishedUrls()
+    private const string UnfinishedUrlsDirectory = "UnfinishedRips";
+    private const string LegacyUnfinishedUrlsFile = "UnfinishedRips.json";
+
+    private string? _unfinishedUrlsPath;
+
+    private void SaveUnfinishedUrlsToDisk()
     {
-        if (UrlQueue.Count > 0)
+        if (!SaveUnfinishedUrls)
         {
-            JsonUtility.Serialize("UnfinishedRips.json", UrlQueue);
+            return;
         }
+
+        if (UrlQueue.Count == 0)
+        {
+            if (_unfinishedUrlsPath is not null)
+            {
+                FileUtility.SilentlyRemoveFile(_unfinishedUrlsPath);
+                _unfinishedUrlsPath = null;
+            }
+
+            return;
+        }
+
+        _unfinishedUrlsPath ??= ResolveUnfinishedUrlsPath();
+        JsonUtility.Serialize(_unfinishedUrlsPath, UrlQueue);
+    }
+
+    /// <summary>
+    ///     Picks which unfinished-URLs snapshot file this run should write to. If an existing saved
+    ///     list's contents are a superset of the current queue (i.e., the current queue looks like the
+    ///     remainder of that saved run), that file is reused and updated in place as URLs finish. If no
+    ///     existing saved list matches, a new file is created, so an unrelated batch of URLs doesn't
+    ///     overwrite previously-saved unfinished work from a different session.
+    /// </summary>
+    private string ResolveUnfinishedUrlsPath()
+    {
+        Directory.CreateDirectory(UnfinishedUrlsDirectory);
+        MigrateLegacyUnfinishedUrlsFile();
+
+        var currentUrls = UrlQueue.ToHashSet();
+        foreach (var candidatePath in Directory.EnumerateFiles(UnfinishedUrlsDirectory, "*.json"))
+        {
+            List<string>? savedUrls;
+            try
+            {
+                savedUrls = JsonUtility.Deserialize<List<string>>(candidatePath);
+            }
+            catch (JsonException)
+            {
+                continue; // Ignore unreadable/corrupt snapshot files
+            }
+
+            if (savedUrls is not null && currentUrls.IsSubsetOf(savedUrls))
+            {
+                Logger.Debug("Resuming unfinished URL list {Path}", candidatePath);
+                return candidatePath;
+            }
+        }
+
+        var newPath = Path.Combine(UnfinishedUrlsDirectory, $"{Guid.NewGuid():N}.json");
+        Logger.Debug("Starting new unfinished URL list {Path}", newPath);
+        return newPath;
+    }
+
+    private static void MigrateLegacyUnfinishedUrlsFile()
+    {
+        if (!File.Exists(LegacyUnfinishedUrlsFile))
+        {
+            return;
+        }
+
+        try
+        {
+            var destination = Path.Combine(UnfinishedUrlsDirectory, $"{Guid.NewGuid():N}.json");
+            File.Move(LegacyUnfinishedUrlsFile, destination);
+        }
+        catch (IOException)
+        {
+            // Best-effort; leave the legacy file in place if it's locked or otherwise unmovable.
+        }
+    }
+
+    public static Task SkipEntry(CancellationToken cancellationToken = default)
+    {
+        return ImageRipper.IncrementCurrentRipPosition(cancellationToken);
     }
 
     public static void ClearCache()
     {
-        SilentlyRemoveFiles(".ripIndex", "partial.json", "ripState.json");
-    }
-
-    private static void SilentlyRemoveFiles(params string[] filepaths)
-    {
-        foreach (var filepath in filepaths)
-        {
-            SilentlyRemoveFile(filepath);
-        }
-    }
-
-    private static void SilentlyRemoveFile(string filepath)
-    {
-        try
-        {
-            File.Delete(filepath);
-        }
-        catch (FileNotFoundException)
-        {
-            // ignored
-        }
+        CacheClearing.ClearAll();
     }
 
     /// <summary>
@@ -442,20 +496,21 @@ public partial class NicheImageRipper : IDisposable
     ///     Retrieve the latest version of the NicheImageRipper from the remote git repo
     /// </summary>
     /// <returns>Latest version of the NicheImageRipper or 0.0.0 if unable to connect to the repo</returns>
-    private static async Task<Version> GetLatestVersion()
+    private static async Task<Version> GetLatestVersion(CancellationToken cancellationToken = default)
     {
         var client = new HttpClient();
         client.DefaultRequestHeaders.Add("User-Agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
         try
         {
-            var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest");
+            var response = await client.GetAsync("https://api.github.com/repos/Exiua/NicheImageRipper/releases/latest",
+                cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return new Version(0, 0, 0);
             }
 
-            var jsonString = await response.Content.ReadAsStringAsync();
+            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
             var json = JsonSerializer.Deserialize<JsonNode>(jsonString);
             if (json is null)
             {
@@ -553,7 +608,7 @@ public partial class NicheImageRipper : IDisposable
         return rejectedUrls.WithRejectedUrls(failedUrls);
     }
 
-    public void ForceQueueUrl(string url)
+    public void ForceQueueUrls(string url)
     {
         var normalizedUrl = NormalizeUrl(url);
         if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))
@@ -563,7 +618,7 @@ public partial class NicheImageRipper : IDisposable
         }
         else
         {
-            Log.Warning("URL {Url} is already in the queue.", normalizedUrl);
+            Logger.Warning("URL {Url} is already in the queue.", normalizedUrl);
         }
     }
 
@@ -576,7 +631,7 @@ public partial class NicheImageRipper : IDisposable
             return;
         }
 
-        Log.Debug("Re-queuing {Count} URLs", urls.Count);
+        Logger.Debug("Re-queuing {Count} URLs", urls.Count);
         var offset = 0;
         foreach (var url in urls)
         {
@@ -587,7 +642,7 @@ public partial class NicheImageRipper : IDisposable
         OnUrlQueueUpdated?.Invoke();
     }
 
-    public void DequeueUrls(List<string> urlsToRemove)
+    public void DequeueUrls(IEnumerable<string> urlsToRemove)
     {
         var currentCount = UrlQueue.Count;
         UrlQueue = UrlQueue.Except(urlsToRemove).ToList();
@@ -602,12 +657,12 @@ public partial class NicheImageRipper : IDisposable
         var duplicate = HistoryDb.GetHistoryEntryByDirectoryName(ripInfo.DirectoryName);
         if (duplicate is not null)
         {
-            Log.Debug("Duplicate found: {Url}; Updating...", url);
+            Logger.Debug("Duplicate found: {Url}; Updating...", url);
             HistoryDb.UpdateDateByUrl(url, DateTime.Now);
         }
         else
         {
-            Log.Debug("Adding to history: {Url}", url);
+            Logger.Debug("Adding to history: {Url}", url);
             var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
             HistoryDb.InsertHistoryRecord(entry);
         }
@@ -644,70 +699,6 @@ public partial class NicheImageRipper : IDisposable
     private static void DisableConsoleLogging()
     {
         ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Fatal + 1;
-    }
-
-    private static ExternalFeatureSupport GetExternalFeatureSupport()
-    {
-        var support = ExternalFeatureSupport.None;
-        support |= CheckForFfmpeg() ? ExternalFeatureSupport.Ffmpeg : ExternalFeatureSupport.None;
-        support |= CheckForYtDlp() ? ExternalFeatureSupport.YtDlp : ExternalFeatureSupport.None;
-        support |= CheckForMegaCmd() ? ExternalFeatureSupport.MegaCmd : ExternalFeatureSupport.None;
-        support |= CheckForFlareSolverr() ? ExternalFeatureSupport.FlareSolverr : ExternalFeatureSupport.None;
-        support |= CheckForCSWebDriver() ? ExternalFeatureSupport.CSWebDriver : ExternalFeatureSupport.None;
-        return support;
-    }
-
-    private static bool CheckForFfmpeg()
-    {
-        return CheckForProcess("ffmpeg", "-version");
-    }
-
-    private static bool CheckForYtDlp()
-    {
-        return CheckForProcess("yt-dlp", "--version");
-    }
-
-    private static bool CheckForMegaCmd()
-    {
-        return CheckForProcess("mega-version.bat", "-v");
-    }
-
-    private static bool CheckForFlareSolverr()
-    {
-        return Config.FlareSolverrUri != "";
-    }
-
-    private static bool CheckForCSWebDriver()
-    {
-        return Config.CSWebDriverUri != "";
-    }
-
-    private static bool CheckForProcess(string filename, string arguments)
-    {
-        var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = filename,
-                Arguments = arguments,
-                RedirectStandardOutput = false,
-                RedirectStandardError = false,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
-
-        try
-        {
-            process.Start();
-            process.WaitForExit();
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
-
-        return true;
     }
 
     public void Dispose()

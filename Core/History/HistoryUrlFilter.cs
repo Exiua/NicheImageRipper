@@ -1,4 +1,4 @@
-namespace Core.History;
+namespace NicheImageRipper.Core.History;
 
 public class HistoryUrlFilter : HistoryFilter
 {

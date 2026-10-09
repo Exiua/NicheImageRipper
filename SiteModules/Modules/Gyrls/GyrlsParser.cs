@@ -1,0 +1,32 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.Gyrls;
+
+public class GyrlsParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "gyrls";
+    public static string[] SupportedUrls => ["http://www.gyrls.com/"];
+
+    public GyrlsParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<GyrlsParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for gyrls.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='single_title']").InnerText;
+        var images = soup.SelectNodesOrThrow("//div[@id='gallery-1']//a").Select(img => img.GetHref())
+                         .ToStringFileLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

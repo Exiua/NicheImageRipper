@@ -1,0 +1,33 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.CatBox;
+
+public class CatBoxParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "catbox";
+    public static string[] SupportedUrls => ["https://catbox.moe/"];
+
+    public CatBoxParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                        FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<CatBoxParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for catbox.moe and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        Logger.Warning("Catbox.moe support is experimental and may not work as expected");
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']/h1").InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//div[@class='imagecontainer']").SelectNodesOrThrow("./video")
+                         .Select(vid => vid.GetSrc()).ToStringFileLinkWrapperList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

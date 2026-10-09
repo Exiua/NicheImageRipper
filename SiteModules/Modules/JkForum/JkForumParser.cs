@@ -1,0 +1,34 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.JkForum;
+
+public class JkForumParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "jkforum";
+    public static string[] SupportedUrls => ["https://www.jkforum.net/"];
+
+    public JkForumParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<JkForumParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for jkforum.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(delay: 1000, cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title-cont']").SelectSingleNodeOrThrow(".//h1")
+                          .InnerText;
+        var images = soup.SelectSingleNodeOrThrow("//td[@class='t_f']").SelectNodesOrThrow(".//img")
+                         .Select(img => img.GetSrc().Remove(".thumb.jpg")).ToStringFileLinkWrapperList();
+        // TODO: Find a way to download videos as well
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

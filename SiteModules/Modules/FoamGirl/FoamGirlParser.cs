@@ -1,0 +1,47 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.FoamGirl;
+
+public class FoamGirlParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "foamgirl";
+    public static string[] SupportedUrls => ["https://foamgirl.net/"];
+
+    public FoamGirlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                          FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<FoamGirlParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the html for foamgirl.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//div[@class='item_title']/h1").InnerText.Split('(')[0];
+        var images = new List<StringFileLinkWrapper>();
+        var pageContainer = soup.SelectSingleNode("//div[@class='nav-links page_imges']/a[@title='Last']") ??
+                            soup.SelectSingleNodeOrThrow("//div[@class='nav-links page_imges']")
+                                .SelectNodesOrThrow("./a")[^2];
+        var pageCount = pageContainer.InnerText.ParseInt();
+        var baseUrl = CurrentUrl;
+        for (var i = 0; i < pageCount; i++)
+        {
+            var imgs = soup.SelectSingleNodeOrThrow("//div[@id='image_div']/p").SelectNodesOrThrow("./a")
+                           .Select(a => a.GetHref()).ToStringFileLinks();
+            images.AddRange(imgs);
+            if (i != pageCount - 1)
+            {
+                soup = await Soupify(baseUrl.Replace(".html", $"_{i + 2}.html"), cancellationToken: cancellationToken);
+            }
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

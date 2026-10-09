@@ -1,0 +1,46 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.Cup2D;
+
+public class Cup2DParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "cup2d";
+    public static string[] SupportedUrls => ["https://cup2d.com/"];
+
+    public Cup2DParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                       FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<Cup2DParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for cup2d.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(lazyLoadArgs: new LazyLoadArgs { ScrollBy = true, Increment = 1250 },
+            cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='post-title entry-title']").InnerText;
+        var images = new List<StringFileLinkWrapper>();
+        var node = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridshow-clearfix']/div")
+                       .SelectNodesOrThrow("./*[self::a or self::iframe]");
+        foreach (var n in node)
+        {
+            if (n.Name == "a")
+            {
+                images.Add((StringFileLinkWrapper)n.GetHref());
+            }
+            else
+            {
+                images.Add((StringFileLinkWrapper)n.GetSrc().Replace("/embed/", "/file/"));
+            }
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

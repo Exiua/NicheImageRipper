@@ -1,0 +1,47 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.MangaPark;
+public class MangaParkParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "mangapark";
+    public static string[] SupportedUrls => ["https://mangapark.net/"];
+
+    public MangaParkParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<MangaParkParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses the HTML for mangapark.net and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        List<Dictionary<string, string>> cookies = [new()
+        {
+            ["name"] = "nsfw",
+            ["value"] = "2"
+        }
+
+        ];
+        var soup = await SolveParseAddCookies(cookies: cookies, cancellationToken: cancellationToken);
+        Driver.SetCookie("nsfw", "2");
+        ;
+        var dirName = soup.SelectSingleNodeOrThrow("//h3[@class='text-lg md:text-2xl font-bold']/a").InnerText;
+        var chapterList = soup.SelectSingleNodeOrThrow("//div[@data-name='chapter-list']").SelectNodesOrThrow("./div")[1].SelectSingleNodeOrThrow("./div/div").SelectNodesOrThrow("./div").Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref()).Reverse();
+        var images = new List<StringFileLinkWrapper>();
+        foreach (var chapter in chapterList)
+        {
+            var chapterUrl = $"https://mangapark.net{chapter}";
+            Logger.Debug("Parsing chapter {ChapterUrl}", chapterUrl);
+            soup = await Soupify(chapterUrl, xpath: "//div[@data-name='image-item']", cancellationToken: cancellationToken);
+            var pages = soup.SelectNodesOrThrow("//div[@data-name='image-item']").Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc()).ToStringFileLinks();
+            images.AddRange(pages);
+        }
+
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

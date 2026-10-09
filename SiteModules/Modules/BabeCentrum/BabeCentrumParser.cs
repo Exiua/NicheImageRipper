@@ -1,0 +1,34 @@
+using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.DataStructures;
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.BabeCentrum;
+
+public class BabeCentrumParser : HtmlParser, IHtmlParser
+{
+    public static string ParserName => "babecentrum";
+    public static string[] SupportedUrls => ["https://www.babecentrum.com/"];
+
+    public BabeCentrumParser(WebDriver driver, Dictionary<string, string> requestHeaders,
+                             FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
+        IHtmlParser.GetFilenameScheme<BabeCentrumParser>(filenameScheme))
+    {
+    }
+
+    /// <summary>
+    ///     Parses  the HTML for babecentrum.com and extracts the relevant information necessary for downloading images from the site
+    /// </summary>
+    /// <returns>A RipInfo object containing the image links and the directory name</returns>
+    public override async Task<RipInfo> Parse(CancellationToken cancellationToken = default)
+    {
+        var soup = await Soupify(cancellationToken: cancellationToken);
+        var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='pageHeading']").SelectNodesOrThrow(".//cufontext")
+                          .Select(w => w.InnerText).Join(" ").Trim();
+        var images = soup.SelectSingleNodeOrThrow("//table").SelectNodesOrThrow(".//img")
+                         .Select(img => Protocol + img.GetAttributeValue("src", "").Remove("tn_"))
+                         .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
+        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+}

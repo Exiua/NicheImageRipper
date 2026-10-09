@@ -1,0 +1,19 @@
+
+using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.SiteModules.Modules.Generic;
+using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
+
+namespace NicheImageRipper.SiteModules.Modules.Glam0ur;
+// glam0ur.com
+public class Glam0urParser : GenericBabesGalleryParser, IHtmlParser
+{
+    public static string ParserName => "glam0ur";
+    public static string[] SupportedUrls => ["https://www.glam0ur.com/"];
+    protected override string DirNameXpath => "//div[@class='picnav']//h1";
+    protected override string ImageContainerXpath => "//div[@class='center']/a";
+
+    public Glam0urParser(WebDriver driver,  Dictionary<string, string> requestHeaders, FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver,  requestHeaders, IHtmlParser.GetFilenameScheme<Glam0urParser>(filenameScheme))
+    {
+    }
+}
