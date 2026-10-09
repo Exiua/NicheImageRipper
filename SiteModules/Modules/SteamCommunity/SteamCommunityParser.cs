@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Primitives;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -69,7 +70,9 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
         }
 
         var query = UrlUtility.ParseUrlQueryParameters(CurrentUrl);
-        if (!query.TryGetValue("appid", out var appIdString))
+        // ReSharper disable once InlineOutVariableDeclaration
+        StringValues appIdString;
+        if (query is null || !query.TryGetValue("appid", out appIdString))
         {
             appIdString =
                 "431960"; // This is mainly for getting Wallpaper Engine items, other types are not really supported atm

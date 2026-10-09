@@ -327,6 +327,11 @@ public static class SupportedUrlsMigrationProgram
     // -----------------------------------------------------------------------
     private static async Task<Document> AddSupportedUrlsAsync(Document? document, IReadOnlyList<string> urls)
     {
+        if (document is null)
+        {
+            throw new ArgumentNullException(nameof(document));
+        }
+        
         var root = (CompilationUnitSyntax)(await document.GetSyntaxRootAsync())!;
         var classDecl = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
             .Single(c => c.Members.OfType<PropertyDeclarationSyntax>().Any(p => p.Identifier.Text == "ParserName"));
@@ -335,7 +340,7 @@ public static class SupportedUrlsMigrationProgram
             .OfType<PropertyDeclarationSyntax>()
             .FirstOrDefault(p => p.Identifier.Text == "SupportedUrls");
 
-        var newLiterals = urls.Select(u => (ExpressionSyntax)SyntaxFactory.LiteralExpression(
+        var newLiterals = urls.Select(ExpressionSyntax (u) => SyntaxFactory.LiteralExpression(
             SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(u)));
 
         ClassDeclarationSyntax updatedClass;
