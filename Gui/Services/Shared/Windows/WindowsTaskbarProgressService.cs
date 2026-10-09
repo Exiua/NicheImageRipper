@@ -1,10 +1,10 @@
-#if WINDOWS
-
 using System;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace NicheImageRipper.Gui.Services.Shared.Windows;
 
+[SupportedOSPlatform("windows")]
 public class WindowsTaskbarProgressService : ITaskbarProgressService
 {
     //private ITaskbarList3 _taskbar;
@@ -51,15 +51,16 @@ public class WindowsTaskbarProgressService : ITaskbarProgressService
     }
 }
 
+[SupportedOSPlatform("windows")]
 public static partial class TaskbarProgress
 {
     public enum TaskbarStates
     {
-        NoProgress    = 0,
+        NoProgress = 0,
         Indeterminate = 0x1,
-        Normal        = 0x2,
-        Error         = 0x4,
-        Paused        = 0x8
+        Normal = 0x2,
+        Error = 0x4,
+        Paused = 0x8
     }
 
     [ComImport]
@@ -70,12 +71,16 @@ public static partial class TaskbarProgress
         // ITaskbarList
         [PreserveSig]
         void HrInit();
+
         [PreserveSig]
         void AddTab(IntPtr hwnd);
+
         [PreserveSig]
         void DeleteTab(IntPtr hwnd);
+
         [PreserveSig]
         void ActivateTab(IntPtr hwnd);
+
         [PreserveSig]
         void SetActiveAlt(IntPtr hwnd);
 
@@ -86,11 +91,12 @@ public static partial class TaskbarProgress
         // ITaskbarList3
         [PreserveSig]
         void SetProgressValue(IntPtr hwnd, UInt64 ullCompleted, UInt64 ullTotal);
+
         [PreserveSig]
         void SetProgressState(IntPtr hwnd, TaskbarStates state);
     }
 
-    [ComImport]    
+    [ComImport]
     [Guid("56fdf344-fd6d-11d0-958a-006097c9a090")]
     [ClassInterface(ClassInterfaceType.None)]
     internal class TaskbarInstance;
@@ -114,5 +120,3 @@ public static partial class TaskbarProgress
         }
     }
 }
-
-#endif
