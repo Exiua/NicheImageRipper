@@ -26,7 +26,7 @@ public static class PatreonPostsResponseExtensions
         var media = new Dictionary<string, PatreonMediaAttributes>();
         foreach (var resource in page.Included)
         {
-            if (resource.Type == "media" && resource.GetAttributes<PatreonMediaAttributes>() is { } attrs)
+            if (resource.Type == "media" && resource.GetAttributes<PatreonMediaAttributes>() is { State: "ready" } attrs)
             {
                 media.TryAdd(resource.Id, attrs);
             }

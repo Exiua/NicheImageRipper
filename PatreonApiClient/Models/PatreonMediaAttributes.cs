@@ -12,4 +12,7 @@ public sealed class PatreonMediaAttributes
 
     [JsonPropertyName("display")]
     public MediaDisplay? Display { get; set; }
+    
+    [JsonPropertyName("state")]
+    public string? State { get; set; }
 }
