@@ -27,7 +27,7 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
         var metadataUrl = $"https://www.pixiv.net/ajax/illust/{illustId}/ugoira_meta";
         context.Logger.Debug("Fetching Pixiv Ugoira metadata from {MetadataUrl}", metadataUrl);
 
-        var cookies = Config.Cookies.GetValueOrDefault(PixivParser.ParserName, []);
+        var cookies = Config.GetSiteConfig(PixivParser.ParserName)?.Cookies ?? [];
         if (cookies.Length == 0)
         {
             throw new RipperException("Pixiv cookies not found in configuration");

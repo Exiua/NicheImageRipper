@@ -10,14 +10,47 @@ permissions:
 
 env:
   DOTNET_VERSION: "10.0.x"
+  CORE_PROJECT: Core/Core.csproj
   GUI_PROJECT: Gui/Gui.csproj
   MODULES_PROJECT: SiteModules/SiteModules.csproj
+  NUGET_ENABLE_ENHANCED_HTTP_RETRY: "true"
+  NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT: "6"
+  NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS: "2000"
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Read version from Core.csproj
+        id: version
+        run: |
+          set -euo pipefail
+          version=$(grep -oPm1 '(?<=<Version>)[^<]+' "$CORE_PROJECT" || true)
+          if [ -z "$version" ]; then
+            echo "::error::No <Version> element found in $CORE_PROJECT"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if version already released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.version.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists. Bump <Version> in Core.csproj."
+            exit 1
+          fi
+          if gh release list --limit 1000 --json tagName,name \
+               --jq '.[] | select(.tagName == "'"$tag"'" or .name == "'"$tag"'") | .tagName' \
+               | grep -q .; then
+            echo "::error::A release for $tag already exists (possibly a draft). Bump <Version> in Core.csproj."
+            exit 1
+          fi
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -26,26 +59,41 @@ jobs:
       - name: Build and package all platforms
         run: |
           set -euo pipefail
+
+          retry() {
+            local n=0
+            until "$@"; do
+              n=$((n+1))
+              if [ "$n" -ge 3 ]; then return 1; fi
+              echo "::warning::Command failed, retry $n/3: $*"
+              sleep $((n*15))
+            done
+          }
+
           mkdir -p dist
           for rid in win-x64 linux-x64 osx-arm64; do
             echo "::group::$rid"
 
-            dotnet publish "$MODULES_PROJECT" -c Release -r "$rid" \
+            retry dotnet publish "$MODULES_PROJECT" -c Release -r "$rid" \
               --self-contained false -o "out/$rid/modules-build"
 
-            dotnet publish "$GUI_PROJECT" -c Release -r "$rid" \
+            retry dotnet publish "$GUI_PROJECT" -c Release -r "$rid" \
               --self-contained true -o "out/$rid/app"
 
-            # Copy every dll Gui doesn't already ship (SiteModules itself + its extra dependencies)
-            for dll in out/$rid/modules-build/*.dll; do
-              name=$(basename "$dll")
+            # Copy every file Gui doesn't already ship (SiteModules + extra deps, incl. native libs)
+            for f in out/$rid/modules-build/*; do
+              [ -f "$f" ] || continue
+              name=$(basename "$f")
+              case "$name" in
+                *.pdb|*.deps.json|*.runtimeconfig.json|*.xml) continue ;;
+              esac
               if [ ! -e "out/$rid/app/$name" ]; then
-                cp "$dll" "out/$rid/app/"
+                cp "$f" "out/$rid/app/"
                 echo "added $name"
               fi
             done
 
-            (cd "out/$rid/app" && zip -r "../../dist/NicheImageRipper-$rid.zip" .)
+            (cd "out/$rid/app" && zip -r "../../../dist/NicheImageRipper-${{ steps.version.outputs.version }}-$rid.zip" .)
 
             echo "::endgroup::"
           done
@@ -54,8 +102,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          tag_name: build-${{ github.run_number }}
-          name: Build ${{ github.run_number }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: dist/*.zip
