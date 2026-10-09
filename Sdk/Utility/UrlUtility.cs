@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Primitives;
 using NicheImageRipper.Sdk.Exceptions;
 using Serilog;
 
@@ -123,6 +123,42 @@ public static partial class UrlUtility
     {
         return string.Concat(url.AsSpan(0, 50), "...", url.AsSpan(url.Length - 49));
     }
+    
+    public static OrderedDictionary<string, StringValues>? ParseUrlQueryParameters(string url)
+    {
+        var uri = new Uri(url);
+        var query = uri.Query;
+
+        if (query.Length <= 1)
+        {
+            return null;
+        }
+
+        var parameters = new OrderedDictionary<string, StringValues>();
+
+        foreach (var part in query[1..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var keyValue = part.Split('=', 2);
+
+            var key = Uri.UnescapeDataString(keyValue[0].Replace("+", " "));
+            var value = keyValue.Length == 2
+                ? Uri.UnescapeDataString(keyValue[1].Replace("+", " "))
+                : "";
+
+            // More likely to see single values per key, so unlikely to take the Concat path, thus the price of Concat
+            // is avoided in most cases.
+            if (parameters.TryGetValue(key, out var existing))
+            {
+                parameters[key] = StringValues.Concat(existing, value);
+            }
+            else
+            {
+                parameters[key] = new StringValues(value);
+            }
+        }
+
+        return parameters;
+    }
 
     public static string GetUrlParameterValue(string url, string parameter)
     {
@@ -131,8 +167,16 @@ public static partial class UrlUtility
     
     public static string NormalizeUrl(string url, bool strict = true, params string[] parametersToKeep)
     {
-        var uri = new Uri(url);
-        var query = QueryHelpers.ParseQuery(uri.Query);
+        var query = ParseUrlQueryParameters(url);
+        if (query is null)
+        {
+            if (strict && parametersToKeep.Length > 0)
+            {
+                throw new RipperException($"Unexpected URL format: {url}; Missing query parameters: {string.Join(", ", parametersToKeep)}");
+            }
+
+            return url;
+        }
 
         var kept = new Dictionary<string, string?>();
         foreach (var param in parametersToKeep)
@@ -147,8 +191,10 @@ public static partial class UrlUtility
             }
         }
 
-        var baseUrl = uri.GetLeftPart(UriPartial.Path);
-        var newUrl = QueryHelpers.AddQueryString(baseUrl, kept);
+        var baseUrl = new Uri(url).GetLeftPart(UriPartial.Path);
+        var newUrl = baseUrl + (kept.Count > 0
+            ? "?" + string.Join("&", kept.Select(kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value ?? "")}"))
+            : "");
         return newUrl;
     }
     
