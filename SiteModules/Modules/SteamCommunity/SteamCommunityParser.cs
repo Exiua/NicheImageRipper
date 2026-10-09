@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.WebUtilities;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -69,8 +68,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
             throw new RipperException($"Unknown url format provided: {CurrentUrl}");
         }
 
-        var uri = new Uri(CurrentUrl);
-        var query = QueryHelpers.ParseQuery(uri.Query);
+        var query = UrlUtility.ParseUrlQueryParameters(CurrentUrl);
         if (!query.TryGetValue("appid", out var appIdString))
         {
             appIdString =
