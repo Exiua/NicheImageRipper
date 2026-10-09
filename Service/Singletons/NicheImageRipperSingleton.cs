@@ -198,89 +198,35 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             existingConfig.CSWebDriverUri = config.CSWebDriverUri;
         }
 
-        if (config.Logins is not null)
+        if (config.Sites is not null)
         {
-            foreach (var (key, incoming) in config.Logins)
+            foreach (var (key, incoming) in config.Sites)
             {
                 if (incoming is null)
                 {
                     continue;
                 }
 
-                if (!existingConfig.Logins.TryGetValue(key, out var existing))
+                if (!existingConfig.Sites.TryGetValue(key, out var existing))
                 {
-                    existing = new Credentials { Username = "", Password = "" };
-                    existingConfig.Logins[key] = existing;
+                    existing = new SiteConfig();
+                    existingConfig.Sites[key] = existing;
                 }
 
-                existing.UpdateCredentials(incoming);
-            }
-        }
-
-        if (config.Keys is not null)
-        {
-            foreach (var (key, value) in config.Keys)
-            {
-                if (value is not null)
-                {
-                    existingConfig.Keys[key] = value;
-                }
-            }
-        }
-
-        if (config.Cookies is not null)
-        {
-            foreach (var (key, value) in config.Cookies)
-            {
-                if (value is not null)
-                {
-                    existingConfig.Cookies[key] = value;
-                }
-            }
-        }
-
-        if (config.Custom is not null)
-        {
-            foreach (var (key, value) in config.Custom)
-            {
-                if (value.ValueKind != JsonValueKind.Null)
-                {
-                    existingConfig.Custom[key] = value;
-                }
-            }
-        }
-
-        if (config.ParserSpecificSettingsOverrides is not null)
-        {
-            foreach (var(key, value)in config.ParserSpecificSettingsOverrides)
-            {
-                SettingsOverride settingsOverride;
-                if (existingConfig.ParserSpecificSettingsOverrides.TryGetValue(key, out var @override))
-                {
-                    settingsOverride = @override;
-                }
-                else
-                {
-                    settingsOverride = new SettingsOverride();
-                    existingConfig.ParserSpecificSettingsOverrides[key] = settingsOverride;
-                }
-
-                if (value.FilenameScheme is not null)
-                {
-                    settingsOverride.FilenameScheme = value.FilenameScheme.Value;
-                }
+                // TODO: Update the existing SiteConfig with the incoming SiteConfig values
+                //existing.UpdateSiteConfig(incoming);
             }
         }
     }
 
     public Version GetVersion()
     {
-        return NicheImageRipper.Core.NicheImageRipper.Version;
+        return Core.NicheImageRipper.Version;
     }
 
     public void ClearCache()
     {
-        NicheImageRipper.Core.NicheImageRipper.ClearCache();
+        Core.NicheImageRipper.ClearCache();
     }
 
     public Task Save(CancellationToken cancellationToken = default)
