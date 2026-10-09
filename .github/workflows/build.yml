@@ -74,11 +74,19 @@ jobs:
           for rid in win-x64 linux-x64 osx-arm64; do
             echo "::group::$rid"
 
-            retry dotnet publish "$MODULES_PROJECT" -c Release -r "$rid" \
-              --self-contained false -o "out/$rid/modules-build"
+            # Restore with retries (network), publish without (compile errors never fix themselves)
+            retry dotnet restore "$MODULES_PROJECT" -r "$rid"
+            dotnet publish "$MODULES_PROJECT" -c Release -r "$rid" \
+              --self-contained false --no-restore -o "out/$rid/modules-build"
 
-            retry dotnet publish "$GUI_PROJECT" -c Release -r "$rid" \
-              --self-contained true -o "out/$rid/app"
+            retry dotnet restore "$GUI_PROJECT" -r "$rid"
+            dotnet publish "$GUI_PROJECT" -c Release -r "$rid" \
+              --self-contained true --no-restore -o "out/$rid/app"
+
+            # Rename the Gui executable
+            ext=""
+            if [ "$rid" = "win-x64" ]; then ext=".exe"; fi
+            mv "out/$rid/app/Gui$ext" "out/$rid/app/NicheImageRipper$ext"
 
             # Copy every file Gui doesn't already ship (SiteModules + extra deps, incl. native libs)
             for f in out/$rid/modules-build/*; do

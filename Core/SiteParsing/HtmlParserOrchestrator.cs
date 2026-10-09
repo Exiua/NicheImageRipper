@@ -102,7 +102,7 @@ public class HtmlParserOrchestrator : IDisposable
         }
         else
         {
-            File.Delete(ImageRipper.RipIndexPath); // Not valid when no partial save
+            File.Delete(FileRipper.RipIndexPath); // Not valid when no partial save
         }
 
         Logger.Debug("No partial save found for site; Parsing site");
@@ -193,7 +193,7 @@ public class HtmlParserOrchestrator : IDisposable
 
     /// <summary>
     /// Dev/test-only entry point: parses a URL by resolving and running a single parser directly, bypassing
-    /// <see cref="ImageRipper"/> entirely. Uses a looser site-detection path than production (no whitelist
+    /// <see cref="FileRipper"/> entirely. Uses a looser site-detection path than production (no whitelist
     /// gate), so it can exercise parsers for sites not yet enabled in <c>UrlUtility.SiteCheck</c>.
     /// </summary>
     public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite,

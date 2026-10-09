@@ -24,7 +24,7 @@ namespace NicheImageRipper.Core.FileDownloading;
 ///     or external-tool delegation), executes that plan through the registered <see cref="IFileDownloadStrategy"/>
 ///     implementations, and persists/restores progress across interrupted runs.
 /// </summary>
-public class ImageRipper : IDisposable
+public class FileRipper : IDisposable
 {
     internal const string RipIndexPath = ".ripIndex";
 
@@ -172,7 +172,7 @@ public class ImageRipper : IDisposable
     /// <param name="unzipProtocol">Whether/how to extract archives found in the output directory after a successful rip.</param>
     /// <param name="postDownloadAction">Per-file behaviors to apply after each successful download.</param>
     /// <param name="clearPartialSaveOnFailureThreshold">Whether to clear this URL's cached partial save when the failure threshold is exceeded, since the cached links may be stale.</param>
-    public ImageRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
+    public FileRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
                        UnzipProtocol unzipProtocol = UnzipProtocol.None,
                        PostDownloadAction postDownloadAction = PostDownloadAction.None,
                        bool clearPartialSaveOnFailureThreshold = true)
@@ -192,7 +192,7 @@ public class ImageRipper : IDisposable
         CurrentIndex = 0;
         DriverPool = driverPool;
         WebDriver = driverPool.AcquireDriver(true);
-        Logger = Log.ForContext<ImageRipper>();
+        Logger = Log.ForContext<FileRipper>();
 
         // TODO: Hack to force HtmlParserFactory to initialize
         _ = HtmlParserFactory.SupportedUrls;
@@ -218,7 +218,7 @@ public class ImageRipper : IDisposable
         // Cannot rip if the instance is disposed, but everything else is fine to access
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(ImageRipper), "Cannot use a disposed ImageRipper instance");
+            throw new ObjectDisposedException(nameof(FileRipper), "Cannot use a disposed ImageRipper instance");
         }
 
         OnProgressChanged?.Invoke(0, 0); // Indeterminate progress at the start
@@ -715,7 +715,7 @@ public class ImageRipper : IDisposable
     }
 
     /// <summary>
-    /// Advances the saved rip-index position by one, without needing an active <see cref="ImageRipper"/> instance.
+    /// Advances the saved rip-index position by one, without needing an active <see cref="FileRipper"/> instance.
     /// </summary>
     internal static async Task IncrementCurrentRipPosition(CancellationToken cancellationToken = default)
     {
@@ -874,7 +874,7 @@ public class ImageRipper : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    ~ImageRipper()
+    ~FileRipper()
     {
         Dispose();
     }

@@ -44,7 +44,7 @@ public partial class NicheImageRipper : IDisposable
 
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; }
-    public ImageRipper? Ripper { get; set; }
+    public FileRipper? Ripper { get; set; }
     public bool Paused => Ripper?.Paused ?? false;
 
     public event Action? OnUrlQueueUpdated;
@@ -259,7 +259,7 @@ public partial class NicheImageRipper : IDisposable
 
     public async Task<bool> Rip(CancellationToken cancellationToken = default)
     {
-        Ripper ??= new ImageRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
+        Ripper ??= new FileRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
         Logger.Debug("Ripper created");
         Logger.Debug("Starting rip");
@@ -460,7 +460,7 @@ public partial class NicheImageRipper : IDisposable
 
     public static Task SkipEntry(CancellationToken cancellationToken = default)
     {
-        return ImageRipper.IncrementCurrentRipPosition(cancellationToken);
+        return FileRipper.IncrementCurrentRipPosition(cancellationToken);
     }
 
     public static void ClearCache()
