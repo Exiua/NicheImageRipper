@@ -150,7 +150,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
         if (config.PostDownloadAction is not null)
         {
-            existingConfig.PostDownloadAction = config.PostDownloadAction.Value;
+            existingConfig.PostDownloadAction = config.PostDownloadAction;
         }
 
         if (config.AskToReRip is not null)

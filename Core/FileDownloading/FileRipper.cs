@@ -1,4 +1,5 @@
-﻿using NicheImageRipper.Core.DataStructures;
+﻿using System.Diagnostics;
+using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Core.SiteParsing;
@@ -174,12 +175,12 @@ public class FileRipper : IDisposable
     /// <param name="clearPartialSaveOnFailureThreshold">Whether to clear this URL's cached partial save when the failure threshold is exceeded, since the cached links may be stale.</param>
     public FileRipper(WebDriverPool driverPool, FilenameScheme filenameScheme = FilenameScheme.Original,
                        UnzipProtocol unzipProtocol = UnzipProtocol.None,
-                       PostDownloadAction postDownloadAction = PostDownloadAction.None,
+                       PostDownloadAction? postDownloadAction = null,
                        bool clearPartialSaveOnFailureThreshold = true)
     {
         FilenameScheme = filenameScheme;
         UnzipProtocol = unzipProtocol;
-        PostDownloadAction = postDownloadAction;
+        PostDownloadAction = postDownloadAction ?? new PostDownloadAction();
         ClearPartialSaveOnFailureThreshold = clearPartialSaveOnFailureThreshold;
         GivenUrl = "";
         Interrupted = false;
@@ -398,6 +399,8 @@ public class FileRipper : IDisposable
         File.Delete(RipIndexPath);
         File.Delete(RipStatePath); // Existence of rip state file indicates incomplete rip
 
+        await PostProcessDirectoryLevel(fullPath, cancellationToken);
+
         if (((double)downloadStats.FailedDownloadsCount) / FolderInfo.NumUrls > FailureThreshold)
         {
             var msg = $"More than {FailureThreshold * 100}% of the images failed to download";
@@ -473,7 +476,7 @@ public class FileRipper : IDisposable
                         cancellationToken: cancellationToken);
                     if (result.Outcome == DownloadOutcome.Success)
                     {
-                        await PostProcess(imageLink, imagePath, filesHashes, downloadStats, index, cancellationToken);
+                        await PostProcessFileLevel(imageLink, imagePath, filesHashes, downloadStats, index, cancellationToken);
                     }
 
                     break;
@@ -671,7 +674,7 @@ public class FileRipper : IDisposable
             {
                 // DownloadFromList may modify filename (if it was missing extension)
                 imagePath = Path.Combine(fullPath, link.Filename);
-                await PostProcess(link, imagePath, filesHashes, downloadStats, index, cancellationToken);
+                await PostProcessFileLevel(link, imagePath, filesHashes, downloadStats, index, cancellationToken);
             }
         }
         catch (FileNotFoundException)
@@ -728,11 +731,12 @@ public class FileRipper : IDisposable
     /// Applies <see cref="PostDownloadAction"/>s to a successfully-downloaded file, skipping directory downloads and
     /// any <see cref="LinkInfo"/> whose strategy opts out via <see cref="IFileDownloadStrategy.SupportsPostProcessing"/>.
     /// </summary>
-    private async Task PostProcess(FileLink link, string imagePath, IndexedHashes filesHashes,
+    private async Task PostProcessFileLevel(FileLink link, string imagePath, IndexedHashes filesHashes,
                                    DownloadStats downloadStats, int index,
                                    CancellationToken cancellationToken = default)
     {
-        if (PostDownloadAction.HasFlag(PostDownloadAction.RemoveDuplicates))
+        var fileLevelActions = PostDownloadAction.FileLevel;
+        if (fileLevelActions.RemoveDuplicates)
         {
             // Maybe handle directory downloads (e.g., Mega) in the future?
             // Unable to determine filename before downloading files/directories from Mega.nz
@@ -751,6 +755,60 @@ public class FileRipper : IDisposable
             if (duplicate)
             {
                 downloadStats.NumDuplicates++;
+            }
+        }
+    }
+    
+    private async Task PostProcessDirectoryLevel(string directoryPath, CancellationToken cancellationToken = default)
+    {
+        var directoryLevelActions = PostDownloadAction.DirectoryLevel;
+        if (directoryLevelActions.RunPostProcessScript)
+        {
+            var siteConfig = Config.GetSiteConfig(SiteName);
+            if (siteConfig is not null)
+            {
+                var scriptPath = siteConfig.PostProcessScript;
+                if (!string.IsNullOrEmpty(scriptPath) && File.Exists(scriptPath))
+                {
+                    Logger.Information("Running post-process script: {ScriptPath}", scriptPath);
+                    var processStartInfo = new ProcessStartInfo
+                    {
+                        FileName = scriptPath,
+                        Arguments = $"\"{directoryPath}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    using var process = new Process();
+                    process.StartInfo = processStartInfo;
+                    process.Start();
+
+                    var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                    var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+                    await Task.WhenAll(outputTask, errorTask);
+
+                    var output = await outputTask;
+                    var error = await errorTask;
+
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        Logger.Information("Post-process script output: {Output}", output);
+                    }
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        Logger.Error("Post-process script error: {Error}", error);
+                    }
+
+                    await process.WaitForExitAsync(cancellationToken);
+                }
+                else
+                {
+                    Logger.Warning("Post-process script not found or path is empty: {ScriptPath}", scriptPath);
+                }
             }
         }
     }

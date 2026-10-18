@@ -31,11 +31,7 @@
       <ProjectReference Include="..\CSWebDriverClient\CSWebDriverClient.csproj" />
       <ProjectReference Include="..\FlareSolverrIntegration\FlareSolverrIntegration.csproj" />
       <ProjectReference Include="..\ImpersonateClient\ImpersonateClient.csproj" />
-      <ProjectReference Include="..\IwaraApiClient\IwaraApiClient.csproj" />
-      <ProjectReference Include="..\MangaDexLibrary\MangaDexLibrary.csproj" />
-      <ProjectReference Include="..\PixivApi\PixivApi.csproj" />
       <ProjectReference Include="..\Sdk\Sdk.csproj" />
-      <ProjectReference Include="..\SteamApiClient\SteamApiClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>

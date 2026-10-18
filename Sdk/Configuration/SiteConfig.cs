@@ -14,5 +14,7 @@ public class SiteConfig
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SettingsOverride? Overrides { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PostProcessScript { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? Custom { get; set; }   // the parser deserializes its own shape
 }

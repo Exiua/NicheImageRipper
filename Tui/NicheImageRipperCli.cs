@@ -236,7 +236,8 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                 return;
             }
 
-            if (!Enum.TryParse(actionName, true, out PostDownloadAction action))
+            // TODO: Fix this
+            /*if (!Enum.TryParse(actionName, true, out PostDownloadAction action))
             {
                 var validActions = string.Join(", ", Enum.GetNames<PostDownloadAction>());
                 LogMessageToFile($"Invalid action. Valid actions: {{{validActions}}}", LogEventLevel.Warning);
@@ -254,7 +255,8 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             else
             {
                 PostDownloadAction |= action;
-            }
+            }*/
+            throw new NotImplementedException();
 
             LogMessageToFile($"Post download action set to {PostDownloadAction}");
         });

@@ -1,8 +1,7 @@
 namespace NicheImageRipper.Sdk.Configuration;
 
-[Flags]
-public enum PostDownloadAction
+public class PostDownloadAction
 {
-    None                = 0,
-    RemoveDuplicates    = 1 << 0,
+    public PostDownloadActionDirectoryLevel DirectoryLevel { get; set; } = new();
+    public PostDownloadActionFileLevel FileLevel { get; set; } = new();
 }

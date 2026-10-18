@@ -9,10 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Persistence\" />
-    </ItemGroup>
-
-    <ItemGroup>
         <InternalsVisibleTo Include="Core" />
     </ItemGroup>
 
