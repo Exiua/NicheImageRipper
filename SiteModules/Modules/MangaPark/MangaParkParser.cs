@@ -42,6 +42,6 @@ public class MangaParkParser : HtmlParser, IHtmlParser
             images.AddRange(pages);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -34,6 +34,6 @@ public class PornzogParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var url = soup.SelectSingleNodeOrThrow("//video[@class='jw-video jw-reset']").GetSrc();
         images.Add(baseUrl + url);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme, referer: null);
     }
 }

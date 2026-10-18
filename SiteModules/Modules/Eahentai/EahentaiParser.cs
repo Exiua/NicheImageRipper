@@ -29,6 +29,6 @@ public class EahentaiParser : HtmlParser, IHtmlParser
                          .Select(img =>
                               img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("/thumbnail").Replace("t.", "."))
                          .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -36,6 +36,6 @@ public class SexyKittenPornParser : HtmlParser, IHtmlParser
             images.Add($"https:{soup.SelectSingleNodeOrThrow("//div[@class='image-wrapper']//img").GetSrc()}");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -29,6 +29,6 @@ public class BabeUniversumParser : HtmlParser, IHtmlParser
                          .SelectNodesOrThrow(".//div[@class='thumbnail']")
                          .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

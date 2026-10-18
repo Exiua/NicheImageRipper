@@ -119,7 +119,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
         }
 
         // Files are numbered per chapter, so original will have the files overwrite each other
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme, nameReuse: true);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme, nameReuse: true);
     }
 
     public class GetChapterResponse

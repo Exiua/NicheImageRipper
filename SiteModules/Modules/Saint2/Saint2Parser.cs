@@ -38,6 +38,6 @@ public class Saint2Parser : ParameterizedHtmlParser
             throw new RipperException($"Unhandled url: {CurrentUrl}");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

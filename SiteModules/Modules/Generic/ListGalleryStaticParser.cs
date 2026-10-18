@@ -31,6 +31,6 @@ public abstract class ListGalleryStaticParser : HtmlParser
         var dirName = imageList[0].SelectSingleNodeOrThrow(".//img")
                                   .GetAttributeValue("alt");
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

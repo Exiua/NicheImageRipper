@@ -28,6 +28,6 @@ public class TheOmegaProjectParser : HtmlParser, IHtmlParser
                           .Split("porn")[0].Trim();
         var images = soup.SelectSingleNodeOrThrow("//div[@class='lightgallery thumbs quadruple fivefold']")
                          .SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -37,6 +37,6 @@ public class ShamelessParser : HtmlParser, IHtmlParser
         {
             url
         };
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

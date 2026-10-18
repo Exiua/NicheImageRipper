@@ -93,6 +93,6 @@ public class KnitParser : HtmlParser, IHtmlParser
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

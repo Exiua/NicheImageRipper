@@ -45,6 +45,6 @@ public class XsnvshenParser : HtmlParser, IHtmlParser
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: referer);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme, referer: referer);
     }
 }

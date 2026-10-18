@@ -77,7 +77,7 @@ public class Hanime1Parser : HtmlParser, IHtmlParser, INormalizingHtmlParser
             throw new FeatureNotSupportedException("Hanime1 Parser", $"This page type is not supported: {CurrentUrl}");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task<string> GetVideoUrl(Client client, string url, CancellationToken cancellationToken = default)

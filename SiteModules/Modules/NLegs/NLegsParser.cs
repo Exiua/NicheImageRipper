@@ -41,6 +41,6 @@ public class NLegsParser : HtmlParser, IHtmlParser
         var cookieJar = Driver.GetCookieJar();
         var cookies = cookieJar.AllCookies.Aggregate("", (current, cookie) => current + $"{cookie.Name}={cookie.Value}; ").Trim();
         RequestHeaders[RequestHeaderKeys.Cookie] = cookies;
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

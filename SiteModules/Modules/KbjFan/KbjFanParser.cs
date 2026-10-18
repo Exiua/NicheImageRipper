@@ -44,7 +44,7 @@ public class KbjFanParser : HtmlParser, IHtmlParser
             await Sleep(250, cancellationToken: cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task<bool> GetVideos(HtmlNode soup, List<StringFileLinkWrapper> images, CancellationToken cancellationToken = default)

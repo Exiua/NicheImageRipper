@@ -71,6 +71,6 @@ public class XasiatParser : HtmlParser, IHtmlParser
             throw new RipperException("Unknown URL type");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

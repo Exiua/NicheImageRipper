@@ -137,7 +137,7 @@ public abstract partial class BooruParser : HtmlParser
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private static string? GetUrl(JsonNode json, string[] jsonNavigation)

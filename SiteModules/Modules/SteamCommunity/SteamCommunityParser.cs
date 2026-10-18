@@ -86,7 +86,7 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
                                FileLink.WithDownloadResolvedFilename(url, FilenameScheme,
                                    linkInfo: SteamCommunityLinkInfo.SteamCommunity))
                           .Select(imageLink => (StringFileLinkWrapper)imageLink).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private static string FormatSteamWorkshopDownloadUrl(string appId, string fileId)

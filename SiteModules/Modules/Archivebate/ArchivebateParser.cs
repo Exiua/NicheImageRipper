@@ -92,7 +92,7 @@ public partial class ArchivebateParser : HtmlParser, IHtmlParser, ICacheOwner
         }
 
         // Url used for the webdriver must be the same as the one used for downloading the video, otherwise it will 403
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: null, maxConcurrentDownloads: MaxConcurrentDownloads);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme, referer: null, maxConcurrentDownloads: MaxConcurrentDownloads);
     }
 
     private async Task<List<string>> GetPageUrls(HtmlNode soup, string profileName)

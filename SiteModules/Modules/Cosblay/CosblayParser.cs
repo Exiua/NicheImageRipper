@@ -65,7 +65,7 @@ public class CosblayParser : HtmlParser, IHtmlParser
                 cancellationToken: cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
 
         // ReSharper disable once VariableHidesOuterVariable
         HtmlNode? GetNextButton(HtmlNode soup)

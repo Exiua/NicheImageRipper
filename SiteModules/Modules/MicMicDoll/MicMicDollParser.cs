@@ -38,6 +38,6 @@ public class MicMicDollParser : HtmlParser, IHtmlParser
         var images = soup.SelectNodesOrThrow("//div[@class='post-body entry-content']//a")
                          .Select(a => a.GetNullableHref()).Where(item => item is not null).Select(item => item!)
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -34,6 +34,6 @@ public class PussySpaceParser : HtmlParser, IHtmlParser
             var playlist = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp);
             images.Add(playlist);
         }, cancellationToken);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

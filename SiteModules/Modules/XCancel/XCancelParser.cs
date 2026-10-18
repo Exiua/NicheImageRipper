@@ -73,6 +73,6 @@ public class XCancelParser : HtmlParser, IHtmlParser
             await Task.Delay(GenerateDelay() * multiplier, cancellationToken); // Delay to avoid overwhelming the server
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

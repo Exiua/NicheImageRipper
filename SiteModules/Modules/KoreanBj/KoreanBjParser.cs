@@ -81,7 +81,7 @@ public class KoreanBjParser : HtmlParser, IHtmlParser
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task ExtractPlaylist(List<StringFileLinkWrapper> files, KoreanBjVideoCapturer capturer,

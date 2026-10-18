@@ -29,6 +29,6 @@ public class BabeCentrumParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//table").SelectNodesOrThrow(".//img")
                          .Select(img => Protocol + img.GetAttributeValue("src", "").Remove("tn_"))
                          .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

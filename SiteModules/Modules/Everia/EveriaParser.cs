@@ -31,6 +31,6 @@ public class EveriaParser : HtmlParser, IHtmlParser
                                              "columns-1 wp-block-gallery-3 is-layout-flex wp-block-gallery-is-layout-flex']")
                     .SelectNodesOrThrow(".//img").Select(img => img.GetSrc())
                     .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

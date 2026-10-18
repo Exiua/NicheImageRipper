@@ -65,6 +65,6 @@ public class JRantsParser : HtmlParser, IHtmlParser
             soup = await Soupify(nextPage.GetHref(), lazyLoadArgs: lazyLoadArgs, cancellationToken: cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

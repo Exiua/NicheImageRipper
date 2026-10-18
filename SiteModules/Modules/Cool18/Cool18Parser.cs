@@ -28,6 +28,6 @@ public class Cool18Parser : HtmlParser, IHtmlParser
         var dirName = showContent.SelectSingleNodeOrThrow(".//b").InnerText;
         var images = showContent.SelectSingleNodeOrThrow(".//pre").SelectNodesOrThrow(".//img")
                                 .Select(img => img.GetSrc()).Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

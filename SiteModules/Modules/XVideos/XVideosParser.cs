@@ -35,6 +35,6 @@ public class XVideosParser : HtmlParser, IHtmlParser
             var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg, referer: CurrentUrl);
             files.Add(link);
         }, cancellationToken);
-        return RipInfo.FromUrlList(files, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(files, dirName, FilenameScheme);
     }
 }

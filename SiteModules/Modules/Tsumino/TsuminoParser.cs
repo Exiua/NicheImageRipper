@@ -36,6 +36,6 @@ public class TsuminoParser : HtmlParser, IHtmlParser
             images.Add(src);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

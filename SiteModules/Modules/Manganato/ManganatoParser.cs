@@ -43,6 +43,6 @@ public class ManganatoParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
             nextChapter = soup.SelectSingleNode("//a[@class='navi-change-chapter-btn-next a-h']");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -34,7 +34,7 @@ public partial class Av19aParser : HtmlParser, IHtmlParser
         var playlist = $"https://z124fdsf6dsf.onymyway.top/{urlPath}";
         var fileLink = FileLink.WithFilename(playlist, $"{filename}.mp4", FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg,
             referer: "https://david.cdnbuzz.buzz/");
-        return RipInfo.FromUrlList([fileLink], dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync([fileLink], dirName, FilenameScheme);
     }
 
     [GeneratedRegex(@"vvv=([^&]+).+t=([^&]+)")]

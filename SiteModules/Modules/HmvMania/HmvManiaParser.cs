@@ -28,6 +28,6 @@ public class HmvManiaParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         var videoUrl = soup.SelectSingleNodeOrThrow("//li[i[@class='fas fa-download']]/a").GetHref();
         images.Add(videoUrl);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

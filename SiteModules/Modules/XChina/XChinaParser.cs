@@ -92,7 +92,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private static string GetVideoUrl(HtmlNode soup)

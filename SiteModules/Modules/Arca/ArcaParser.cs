@@ -38,6 +38,6 @@ public class ArcaParser : HtmlParser, IHtmlParser
         var videos = videoList.Select(video => !video.Contains(Protocol) ? Protocol + video : video)
                               .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
         images.AddRange(videos);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

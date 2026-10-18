@@ -29,6 +29,6 @@ public class InvenParser : HtmlParser, IHtmlParser, ISubdomainSignificantHtmlPar
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='subject ']//span[@class='middle']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@id='powerbbsContent']").SelectNodesOrThrow(".//img")
                          .Select(img => img.GetSrc().Split("?")[0]).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

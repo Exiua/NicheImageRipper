@@ -26,6 +26,6 @@ public class Six9TangParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
         var video = soup.SelectSingleNodeOrThrow("//div[@class='fp-player']/video").GetSrc();
-        return RipInfo.FromUrlList([video], dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync([video], dirName, FilenameScheme);
     }
 }

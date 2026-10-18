@@ -28,6 +28,6 @@ public class CatBoxParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='title']/h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='imagecontainer']").SelectNodesOrThrow("./video")
                          .Select(vid => vid.GetSrc()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

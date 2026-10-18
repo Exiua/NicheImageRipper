@@ -26,7 +26,7 @@ public class Zero6SeParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='article-title']/a").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='article-content']").SelectNodesOrThrow(".//img").Select(GetUrl).OfType<string>().ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private static string? GetUrl(HtmlNode img)

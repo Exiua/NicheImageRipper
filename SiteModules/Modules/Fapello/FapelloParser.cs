@@ -30,6 +30,6 @@ public class FapelloParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@id='content']").SelectNodesOrThrow(".//img")
                          .Select(img => img.GetSrc().Replace("_300px", ""))
                          .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

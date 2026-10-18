@@ -194,7 +194,7 @@ public partial class NewgroundsParser : HtmlParser, IHtmlParser, IWildcardSubdom
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
 
         // ReSharper disable once VariableHidesOuterVariable
         List<string> GetPosts(HtmlNode soup, bool movies)

@@ -21,6 +21,6 @@ public class MegaParser : ParameterizedHtmlParser, IHtmlParser
     {
         var fileLink = FileLink.Create(GivenUrl, FilenameScheme, linkInfo: MegaLinkInfo.Mega);
         var dirName = GivenUrl.Split('/')[4];
-        return Task.FromResult(RipInfo.FromUrlList([fileLink], dirName, FilenameScheme));
+        return RipInfo.FromUrlListAsync([fileLink], dirName, FilenameScheme);
     }
 }

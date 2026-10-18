@@ -27,6 +27,6 @@ public class Three600000Parser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h1[@class='entry-title']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content']/p").SelectNodesOrThrow("./a")
                          .Select(a => a.GetHref()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

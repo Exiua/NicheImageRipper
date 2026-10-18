@@ -28,6 +28,6 @@ public class SexHdParser : HtmlParser, IHtmlParser
         var images = soup.SelectNodesOrThrow("//div[@class='photobig']//div[@class='relativetop']").Skip(1)
                          .Select(img => $"https://sexhd.pics{img.SelectSingleNodeOrThrow(".//a").GetHref()}")
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

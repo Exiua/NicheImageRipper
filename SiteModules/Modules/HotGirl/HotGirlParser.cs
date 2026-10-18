@@ -33,6 +33,6 @@ public class HotGirlParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//h3[@itemprop='name']").InnerText;
         var images = soup.SelectNodesOrThrow("//img[@class='center-block w-100']").Select(image => image.GetSrc())
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

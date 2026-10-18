@@ -42,6 +42,6 @@ public class LeakedBbParser : HtmlParser, IHtmlParser
             images.Add(img);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

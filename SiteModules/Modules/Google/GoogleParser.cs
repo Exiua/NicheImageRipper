@@ -21,6 +21,6 @@ public class GoogleParser : ParameterizedHtmlParser, IHtmlParser
     protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
         // Actual querying happens within the RipInfo object
-        return Task.FromResult(RipInfo.FromUrlList([GivenUrl], "", FilenameScheme));
+        return RipInfo.FromUrlListAsync([GivenUrl], "", FilenameScheme);
     }
 }

@@ -58,6 +58,6 @@ public class SfmCompileParser : HtmlParser, IHtmlParser
             images.Add(videoSrc);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

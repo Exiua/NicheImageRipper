@@ -103,7 +103,7 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
             soup = await Soupify($"{SiteUrl}{nextPageUrl}", cancellationToken: cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)

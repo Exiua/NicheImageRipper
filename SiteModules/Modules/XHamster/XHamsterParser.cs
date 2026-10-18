@@ -38,6 +38,6 @@ public class XHamsterParser : HtmlParser, IHtmlParser
             var link = FileLink.WithFilename(url, filename, FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
             images.Add(link);
         }, cancellationToken);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

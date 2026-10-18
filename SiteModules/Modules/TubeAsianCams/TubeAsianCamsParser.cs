@@ -63,7 +63,7 @@ public partial class TubeAsianCamsParser : HtmlParser, IHtmlParser
             break;
         }
 
-        return RipInfo.FromUrlList(files, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(files, dirName, FilenameScheme);
     }
 
     [GeneratedRegex("(?<=[?&]mu=)[^&]*")]

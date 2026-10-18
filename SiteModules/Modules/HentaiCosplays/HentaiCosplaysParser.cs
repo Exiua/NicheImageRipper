@@ -54,7 +54,7 @@ public partial class HentaiCosplaysParser : HtmlParser, IHtmlParser
                 lazyLoadArgs: new LazyLoadArgs { ScrollBy = true }, cancellationToken: cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     [GeneratedRegex(@"(/p=\d+)")]

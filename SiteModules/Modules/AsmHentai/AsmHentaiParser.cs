@@ -35,6 +35,6 @@ public class AsmHentaiParser : HtmlParser, IHtmlParser
             images.Add(pageUrl);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

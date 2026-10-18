@@ -101,7 +101,7 @@ public class Rule34VideoParser : HtmlParser, IHtmlParser
         var cookies = cookieJar.AllCookies.GroupBy(c => c.Name).ToDictionary(g => g.Key, g => g.First().Value);
         var cookieString = cookies.Select(kvp => $"{kvp.Key}={kvp.Value}").Join("; ");
         RequestHeaders[RequestHeaderKeys.Cookie] = cookieString;
-        return RipInfo.FromUrlList(files, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(files, dirName, FilenameScheme);
     }
 
     private Task<List<StringFileLinkWrapper>> GetVideoForSearch(Client client, HtmlNode soup)

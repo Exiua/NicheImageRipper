@@ -29,6 +29,6 @@ public class CuteGirlPornParser : HtmlParser, IHtmlParser
                               "https://cutegirlporn.com" +
                               img.SelectSingleNodeOrThrow(".//img").GetSrc().Replace("/t", "/"))
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

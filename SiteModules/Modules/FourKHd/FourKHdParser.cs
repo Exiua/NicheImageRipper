@@ -49,7 +49,7 @@ public partial class FourKHdParser : HtmlParser, IHtmlParser
         var match = FourKHdRegex().Match(baseName);
         baseName = match.Groups[1].Value;
         images = images.Where(img => img.Contains(baseName)).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     [GeneratedRegex(@"([a-zA-Z0-9-]+)")]

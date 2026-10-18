@@ -30,6 +30,6 @@ public class EightBoobsParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery clear']").SelectNodesOrThrow("./a")
                          .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

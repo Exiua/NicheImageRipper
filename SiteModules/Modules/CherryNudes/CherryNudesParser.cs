@@ -28,6 +28,6 @@ public class CherryNudesParser : HtmlParser, IHtmlParser
         var contentUrl = CurrentUrl.Replace("www", "cdn");
         var images = soup.SelectSingleNodeOrThrow("//div[@class='article__gallery-images']").SelectNodesOrThrow(".//a")
                          .Select(img => img.GetHref()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

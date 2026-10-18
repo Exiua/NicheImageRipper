@@ -125,6 +125,7 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
         return new RipInfo([url], dirName, filenameScheme, downloadMode: DownloadMode.ExternalTool);
     }
 
+    [Obsolete("Blocks while links such as Google Drive folders are expanded. Use FromUrlListAsync.")]
     public static RipInfo FromUrlList(List<StringFileLinkWrapper> urls, string dirName, FilenameScheme filenameScheme,
                                       bool nameReuse = false, string? referer = "", int? maxConcurrentDownloads = null)
     {
@@ -136,6 +137,7 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
             : new RipInfo(urls, dirName, filenameScheme, referer: referer, maxConcurrentDownloads: maxConcurrentDownloads);
     }
 
+    [Obsolete("Blocks while links such as Google Drive folders are expanded. Use FromUrlListWithFilenamesAsync.")]
     public static RipInfo FromUrlListWithFilenames(List<StringFileLinkWrapper> urls, string dirName,
                                                    FilenameScheme filenameScheme, List<string> filenames,
                                                    string? referer = "")

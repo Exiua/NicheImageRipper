@@ -40,6 +40,6 @@ public class JieAvParser : HtmlParser, IHtmlParser
             break;
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

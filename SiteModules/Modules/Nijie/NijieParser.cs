@@ -94,7 +94,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
         var doujins = soup.SelectSingleNodeOrThrow("//div[@class='mem-index clearboth']").SelectNodes("./div");
         if (doujins is null)
         {
-            return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+            return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
         }
 
         posts.AddRange(doujins.Select(doujin => doujin.SelectSingleNodeOrThrow(".//a").GetHref()));
@@ -125,7 +125,7 @@ public partial class NijieParser : HtmlParser, IHtmlParser
             images.AddRange(imgs);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     protected override async Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)

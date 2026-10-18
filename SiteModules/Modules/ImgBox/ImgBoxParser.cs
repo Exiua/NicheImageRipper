@@ -29,6 +29,6 @@ public class ImgBoxParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@id='gallery-view-content']").SelectNodesOrThrow(".//img")
                          .Select(img => img.GetSrc().Replace("thumbs2", "images2").Replace("_b", "_o"))
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

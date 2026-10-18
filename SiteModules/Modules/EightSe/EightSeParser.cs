@@ -78,7 +78,7 @@ public class EightSeParser : HtmlParser, IHtmlParser, ICacheOwner
 
         images.AddRange(videos.ToStringFileLinks());
         File.Delete(CachePath); // Clear the cache after parsing
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task<(string, List<string>, List<string>)> ParseLinks()

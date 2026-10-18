@@ -26,6 +26,6 @@ public class Fcww0Parser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var dirName = soup.SelectSingleNodeOrThrow("//div[@class='headline']/h1").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//video").GetSrc().IntoStringImageLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

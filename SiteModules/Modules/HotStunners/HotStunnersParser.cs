@@ -28,6 +28,6 @@ public class HotStunnersParser : HtmlParser, IHtmlParser
                           .InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery_janna2']").SelectNodesOrThrow(".//img")
                          .Select(img => Protocol + img.GetSrc().Remove("tn_")).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

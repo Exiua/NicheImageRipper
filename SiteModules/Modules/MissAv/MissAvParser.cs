@@ -46,6 +46,6 @@ public class MissAvParser : HtmlParser, IHtmlParser
             }, cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

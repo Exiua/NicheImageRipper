@@ -103,6 +103,6 @@ public class XxxTubeParser : HtmlParser, IHtmlParser
                 throw new RipperException("Unknown category: " + category);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

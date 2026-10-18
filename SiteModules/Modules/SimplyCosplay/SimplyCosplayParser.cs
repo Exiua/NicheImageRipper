@@ -39,6 +39,6 @@ public class SimplyCosplayParser : HtmlParser, IHtmlParser
             images = soup.SelectSingleNodeOrThrow("//section/div[@class='row vertical-gutters']").SelectNodesOrThrow(".//img").Select(url => url.GetAttributeValue("data-src").Remove("thumb_")).ToStringFileLinkWrapperList();
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

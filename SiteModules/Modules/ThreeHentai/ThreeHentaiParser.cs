@@ -33,6 +33,6 @@ public class ThreeHentaiParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@id='thumbnail-gallery']").SelectNodesOrThrow("./div")
                          .Select(div => div.SelectSingleNodeOrThrow(".//img").GetSrc())
                          .Select(src => src.Replace("t.", ".")).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

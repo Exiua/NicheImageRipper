@@ -32,6 +32,6 @@ public class PornOxoParser : HtmlParser, IHtmlParser
             var link = FileLink.Create(links[0], FilenameScheme, linkInfo: LinkInfo.M3U8Ffmpeg);
             images.Add(link);
         }, cancellationToken);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

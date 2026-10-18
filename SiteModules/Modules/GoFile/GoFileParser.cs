@@ -53,7 +53,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
 
         var dirName = soup.SelectSingleNodeOrThrow("//span[@id='filesContentFolderName']").InnerText;
         var images = await GoFileParserHelper("", true);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
 
         // ReSharper disable once VariableHidesOuterVariable
         async Task<List<StringFileLinkWrapper>> GoFileParserHelper(string url, bool topLevel = false)

@@ -28,6 +28,6 @@ public class HentaiClubParser : HtmlParser, IHtmlParser
         var dirName = soup.SelectSingleNodeOrThrow("//span[@class='post-info-text']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@id='masonry']").SelectNodesOrThrow("./div")
                          .Select(div => div.SelectSingleNodeOrThrow("./img").GetSrc()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

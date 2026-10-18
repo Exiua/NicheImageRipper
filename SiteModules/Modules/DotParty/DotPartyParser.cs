@@ -60,7 +60,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var unique = DeduplicateFileLinks(resolvedLinks);
 
         File.Delete(CachePath);
-        return RipInfo.FromUrlList(unique, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(unique, dirName, FilenameScheme);
     }
 
     private bool IsNativeLink(string link)

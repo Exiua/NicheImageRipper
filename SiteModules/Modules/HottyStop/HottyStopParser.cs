@@ -29,6 +29,6 @@ public class HottyStopParser : HtmlParser, IHtmlParser
         var dirName = titleNode.InnerText;
         var images = soup.SelectSingleNodeOrThrow("//ul[@class='gallery']").SelectNodesOrThrow(".//a")
                          .Select(a => a.GetHref()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

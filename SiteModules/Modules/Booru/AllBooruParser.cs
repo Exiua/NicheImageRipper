@@ -45,7 +45,7 @@ public class AllBooruParser : BooruParser, IHtmlParser, INormalizingHtmlParser
         var tagTitle = tags.Remove("+").Remove("tags=");
         tagTitle = Uri.UnescapeDataString(tagTitle);
         var dirName = $"[Booru] {tagTitle}";
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
     
     /// <summary>

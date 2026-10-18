@@ -59,6 +59,6 @@ public class MissAv123Parser : HtmlParser, IHtmlParser
         var filename = id + ".mp4";
         var fileLink = FileLink.WithFilename(playlist, filename, FilenameScheme, linkInfo: LinkInfo.M3U8YtDlp,
             referer: CurrentUrl);
-        return RipInfo.FromUrlList([fileLink], dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync([fileLink], dirName, FilenameScheme);
     }
 }

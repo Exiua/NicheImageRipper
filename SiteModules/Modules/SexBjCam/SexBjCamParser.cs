@@ -47,6 +47,6 @@ public class SexBjCamParser : HtmlParser, IHtmlParser
             break;
         }
 
-        return RipInfo.FromUrlList([playlist], dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync([playlist], dirName, FilenameScheme);
     }
 }

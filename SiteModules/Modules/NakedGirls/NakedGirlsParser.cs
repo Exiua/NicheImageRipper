@@ -30,6 +30,6 @@ public class NakedGirlsParser : HtmlParser, IHtmlParser
                          .SelectNodesOrThrow(".//div[@class='thumb']").Select(img =>
                               "https://www.nakedgirls.xxx" + img.SelectSingleNodeOrThrow(".//a").GetHref())
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

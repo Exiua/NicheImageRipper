@@ -53,7 +53,7 @@ public class RedGifsParser : HtmlParser, IHtmlParser
                                 .Select(dummy => (StringFileLinkWrapper)dummy));
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
     
     private static HttpClient GenerateHttpClient()

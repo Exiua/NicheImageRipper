@@ -160,7 +160,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
             images.AddRange(chapterImages);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     /// <summary>

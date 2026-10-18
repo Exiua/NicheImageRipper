@@ -128,7 +128,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
             throw new FeatureNotSupportedException("IwaraParser", $"Unsupported URL format: {CurrentUrl}");
         }
 
-        return RipInfo.FromUrlList(files, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(files, dirName, FilenameScheme);
     }
 
     private static IwaraClient CreateClient()

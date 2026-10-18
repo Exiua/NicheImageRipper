@@ -133,7 +133,7 @@ public partial class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser, INorm
             }
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     // albums should never be passed to this method

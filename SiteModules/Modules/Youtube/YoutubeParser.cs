@@ -64,11 +64,11 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
         var entries = json["entries"]?.AsArray();
 
         return entries is not null
-            ? ParseChannel(json, entries)
-            : ParseSingleVideo(json);
+            ? await ParseChannel(json, entries)
+            : await ParseSingleVideo(json);
     }
 
-    private RipInfo ParseChannel(JsonObject json, JsonArray entries)
+    private Task<RipInfo> ParseChannel(JsonObject json, JsonArray entries)
     {
         var displayName = json["channel"]?.GetValue<string>() ?? json["uploader"]?.GetValue<string>();
         var username = json["uploader_id"]?.GetValue<string>() ?? json["channel_id"]?.GetValue<string>();
@@ -86,10 +86,10 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
             return FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
         }).ToStringFileLinkWrapperList();
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
-    private RipInfo ParseSingleVideo(JsonObject json)
+    private Task<RipInfo> ParseSingleVideo(JsonObject json)
     {
         var title = json["title"]?.GetValue<string>() ?? "Unknown Video";
         var id = json["id"]!.GetValue<string>();
@@ -98,7 +98,7 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
         var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
         List<StringFileLinkWrapper> images = [fileLink];
 
-        return RipInfo.FromUrlList(images, title, FilenameScheme);
+        return RipInfo.FromUrlListAsync(images, title, FilenameScheme);
     }
     
     public static string NormalizeUrl(string url)

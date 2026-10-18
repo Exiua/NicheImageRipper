@@ -56,6 +56,6 @@ public class PrivateHomeClipsParser : HtmlParser, IHtmlParser
             images.Add("https://privatehomeclips.com" + videoUrl);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

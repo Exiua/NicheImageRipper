@@ -32,6 +32,6 @@ public class GirlsReleasedParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@class='images']").SelectNodesOrThrow(".//img")
                          .Select(img => img.GetSrc().Replace("/t/", "/i/").Replace("t.imx", "i.imx"))
                          .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

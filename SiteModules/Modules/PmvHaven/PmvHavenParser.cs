@@ -106,7 +106,7 @@ public class PmvHavenParser : HtmlParser, IHtmlParser
             throw new FeatureNotSupportedException(CurrentUrl, "Only videos and profiles are supported for parsing.");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task<FileLink> GetVideoUrl(PmvHavenCapturer capturer, string postUrl,

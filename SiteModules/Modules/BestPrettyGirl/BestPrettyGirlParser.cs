@@ -28,6 +28,6 @@ public class BestPrettyGirlParser : HtmlParser, IHtmlParser
                           .InnerText;
         var images = soup.SelectNodesOrThrow("//img[@class='aligncenter size-full']").Select(img => img.GetSrc())
                          .Select(dummy => (StringFileLinkWrapper)dummy).ToList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

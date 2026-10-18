@@ -114,7 +114,7 @@ public class EpornerParser : HtmlParser, IHtmlParser
             throw e;
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
 
         // ReSharper disable once VariableHidesOuterVariable
         string ExtractVideoDownloadLink(HtmlNode soup)

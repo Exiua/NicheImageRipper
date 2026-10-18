@@ -29,6 +29,6 @@ public class BabesMachineParser : HtmlParser, IHtmlParser
         var images = gallery.SelectSingleNodeOrThrow(".//table").SelectNodesOrThrow(".//tr")
                             .Select(img => img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                             .Select(img => Protocol + img).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

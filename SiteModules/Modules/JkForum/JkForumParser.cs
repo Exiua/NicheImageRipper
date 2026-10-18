@@ -29,6 +29,6 @@ public class JkForumParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//td[@class='t_f']").SelectNodesOrThrow(".//img")
                          .Select(img => img.GetSrc().Remove(".thumb.jpg")).ToStringFileLinkWrapperList();
         // TODO: Find a way to download videos as well
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

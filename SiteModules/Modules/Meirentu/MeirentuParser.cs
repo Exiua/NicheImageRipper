@@ -51,6 +51,6 @@ public class MeirentuParser : HtmlParser, IHtmlParser
             soup = await Soupify("https://meirentu.cc" + nextPageUrl, cancellationToken: cancellationToken);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme, referer: referer);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme, referer: referer);
     }
 }

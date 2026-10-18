@@ -67,7 +67,7 @@ public class CyberDropParser : ParameterizedHtmlParser, IHtmlParser
             throw new RipperException("Unknown CyberDrop url type");
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task<string> GetFileUrl(string url, CancellationToken cancellationToken = default)

@@ -37,7 +37,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser, ICacheOwner
         await ResolveEmbeddedLinks(images, resolveLists, cancellationToken);
 
         File.Delete(CacheFile);
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     /// <summary>Loads cached post data for the current URL if present, otherwise parses the page and caches the result.</summary>

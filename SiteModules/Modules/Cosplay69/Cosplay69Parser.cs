@@ -47,6 +47,6 @@ public class Cosplay69Parser : HtmlParser, IHtmlParser
             images = soup.SelectSingleNodeOrThrow("//div[@class='entry-content gridnext-clearfix']").SelectNodesOrThrow(".//img").Select(img => img.GetSrc()).ToStringFileLinkWrapperList();
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

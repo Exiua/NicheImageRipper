@@ -29,6 +29,6 @@ public class BabesAndGirlsParser : HtmlParser, IHtmlParser
                          .SelectNodesOrThrow(".//a[@class='item-post']")
                          .Select(img => Protocol + img.SelectSingleNodeOrThrow(".//img").GetSrc().Remove("tn_"))
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

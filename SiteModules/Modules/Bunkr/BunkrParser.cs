@@ -115,7 +115,7 @@ public class BunkrParser : ParameterizedHtmlParser, IHtmlParser
             images.Add(link.Value);
         }
 
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
     private async Task<StringFileLinkWrapper?> ResolveLinkForCurrentUrl(HtmlNode soup)

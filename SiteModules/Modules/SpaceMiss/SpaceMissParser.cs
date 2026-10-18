@@ -29,6 +29,6 @@ public class SpaceMissParser : HtmlParser, IHtmlParser
                     .SelectSingleNodeOrThrow(
                          "//figure[@class='wp-block-gallery has-nested-images columns-2 is-cropped td-modal-on-gallery wp-block-gallery-1 is-layout-flex wp-block-gallery-is-layout-flex']")
                     .SelectNodesOrThrow(".//a").Select(img => img.GetHref()).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -119,6 +119,6 @@ public class QuatvnParser : HtmlParser, IHtmlParser
         }
 
         CleanTabs("quatvn.love");
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

@@ -30,6 +30,6 @@ public class EightMusesParser : HtmlParser, IHtmlParser
         var images = soup.SelectSingleNodeOrThrow("//div[@class='gallery']").SelectNodesOrThrow(".//img")
                          .Select(img => "https://comics.8muses.com" + img.GetSrc().Replace("/th/", "/fm/"))
                          .ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }

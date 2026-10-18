@@ -28,6 +28,6 @@ public class HundredBucksBabesParser : HtmlParser, IHtmlParser
                           .SelectSingleNodeOrThrow(".//h2[@class='heading']").InnerText;
         var images = soup.SelectSingleNodeOrThrow("//div[@class='main-thumbs']").SelectNodesOrThrow(".//img")
                          .Select(img => Protocol + img.GetAttributeValue("data-url")).ToStringFileLinkWrapperList();
-        return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+        return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 }
