@@ -1,4 +1,5 @@
 ﻿using System;
+using NicheImageRipper.Sdk.Utility;
 using Microsoft.Extensions.Logging;
 using NicheImageRipper.Gui.Services;
 
@@ -12,7 +13,7 @@ public class MainWindowViewModelFull(
     ILogTextSource logTextSource) 
     : MainWindowViewModelBase(ripperClient, ripperSettings, guiSettings, logTextSource, logger)
 {
-    private static readonly Version Version = new(2, 0, 0);
+    private static readonly Version Version = AssemblyVersionUtility.Of<MainWindowViewModelBase>();
 
     public override string Title => $"Gui v{Version} - Core v{RipperClient.GetCoreVersion().Result}";
     public override bool IsThinClient => false;

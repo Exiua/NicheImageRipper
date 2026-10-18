@@ -64,7 +64,21 @@ public static class SiteModuleLoader
         var path = Path.Combine(AppContext.BaseDirectory, BuiltInModuleAssemblyName);
         try
         {
-            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+            // Hosts that reference SiteModules (Gui, Tui) already have it in their dependency list, and in a
+            // single-file publish it only exists inside the bundle, so resolve it by name first. Loading it from
+            // a path as well would give two copies of the same assembly.
+            Assembly assembly;
+            try
+            {
+                assembly = AssemblyLoadContext.Default.LoadFromAssemblyName(
+                    new AssemblyName(Path.GetFileNameWithoutExtension(BuiltInModuleAssemblyName)));
+            }
+            catch (FileNotFoundException)
+            {
+                // Hosts without a reference (e.g. Service) pick it up from the app folder
+                assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+            }
+
             Logger.Debug("Loaded built-in module assembly {AssemblyName}", BuiltInModuleAssemblyName);
             return new ModuleLoadResult(BuiltInModuleAssemblyName, ModuleLoadStatus.Loaded, path, assembly, IsBuiltIn: true);
         }

@@ -12,13 +12,17 @@ env:
   DOTNET_VERSION: "10.0.x"
   CORE_PROJECT: Core/Core.csproj
   GUI_PROJECT: Gui/Gui.csproj
-  MODULES_PROJECT: SiteModules/SiteModules.csproj
   NUGET_ENABLE_ENHANCED_HTTP_RETRY: "true"
   NUGET_ENHANCED_MAX_NETWORK_TRY_COUNT: "6"
   NUGET_ENHANCED_NETWORK_RETRY_DELAY_MILLISECONDS: "2000"
 
 jobs:
+  # Runs first: every project changed since the last main commit must have bumped its csproj <Version>
+  version-check:
+    uses: ./.github/workflows/version-check.yml
+
   release:
+    needs: version-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,11 +81,7 @@ jobs:
           for rid in win-x64 linux-x64 osx-arm64; do
             echo "::group::$rid"
 
-            retry dotnet restore "$MODULES_PROJECT" -r "$rid"
-            dotnet publish "$MODULES_PROJECT" -c Release -r "$rid" \
-              --self-contained false --no-restore $COMMON_PROPS \
-              -o "out/$rid/modules-build"
-
+            # SiteModules (the built-in module) and its dependencies are bundled through Gui's project reference
             retry dotnet restore "$GUI_PROJECT" -r "$rid"
             dotnet publish "$GUI_PROJECT" -c Release -r "$rid" \
               --self-contained true --no-restore $COMMON_PROPS $GUI_PROPS \
@@ -91,19 +91,18 @@ jobs:
             if [ "$rid" = "win-x64" ]; then ext=".exe"; fi
             mv "out/$rid/app/Gui$ext" "out/$rid/app/NicheImageRipper$ext"
 
-            for f in out/$rid/modules-build/*; do
-              [ -f "$f" ] || continue
-              name=$(basename "$f")
-              case "$name" in
-                *.pdb|*.deps.json|*.runtimeconfig.json|*.xml) continue ;;
-              esac
-              if [ ! -e "out/$rid/app/$name" ]; then
-                cp "$f" "out/$rid/app/"
-                echo "added $name"
-              fi
-            done
-
             find "out/$rid/app" -name '*.pdb' -delete
+
+            # Single-file check: only the executable and the files deliberately kept out of the bundle
+            # (selenium-manager, runtimes/<rid>/native) may be on disk
+            loose=$(find "out/$rid/app" -maxdepth 1 -type f \( -name '*.dll' -o -name '*.so' -o -name '*.dylib' -o -name '*.json' \))
+            if [ -n "$loose" ]; then
+              echo "::error::$rid publish is not single-file; unexpected files next to the executable:"
+              echo "$loose"
+              exit 1
+            fi
+            echo "Published files:"
+            (cd "out/$rid/app" && find . -type f | sort)
 
             (cd "out/$rid/app" && zip -r "../../../dist/NicheImageRipper-${{ steps.version.outputs.version }}-$rid.zip" .)
 

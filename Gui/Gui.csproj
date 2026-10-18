@@ -51,4 +51,21 @@
       <Folder Include="Models\Full\" />
       <Folder Include="Models\Thin\Data\" />
     </ItemGroup>
+
+    <!-- Single-file publish: bundle everything except files that must stay on disk next to the executable -->
+    <Target Name="AdjustSingleFilePublish" AfterTargets="ComputeResolvedFilesToPublishList"
+            Condition="'$(PublishSingleFile)' == 'true'">
+        <ItemGroup>
+            <!-- Selenium launches selenium-manager as a separate process from the app folder, and ImpersonateClient's
+                 resolver loads curl-impersonate from runtimes/<rid>/native; neither can see files extracted
+                 from the bundle to a temp folder -->
+            <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+                                   Condition="'%(Filename)' == 'selenium-manager' or $([System.String]::Copy('%(RelativePath)').Replace('\', '/').StartsWith('runtimes/'))"
+                                   ExcludeFromSingleFile="true" />
+            <!-- Service's ASP.NET config files come along with the project reference but aren't used by the GUI -->
+            <_GuiUnusedServiceFile Include="@(ResolvedFileToPublish)"
+                                   Condition="'%(Filename)%(Extension)' == 'Service.runtimeconfig.json' or $([System.String]::Copy('%(Filename)').StartsWith('appsettings'))" />
+            <ResolvedFileToPublish Remove="@(_GuiUnusedServiceFile)" />
+        </ItemGroup>
+    </Target>
 </Project>

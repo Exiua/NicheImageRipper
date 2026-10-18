@@ -5,10 +5,14 @@ using Serilog;
 namespace NicheImageRipper.Sdk.Configuration;
 
 /// <summary>
-///     One-time migration for config.json files written before per-site config (Logins/Cookies/Keys/Custom)
-///     moved from fixed properties to Dictionary&lt;string, T&gt; keyed by parser name. Detects the old shape
-///     and converts in memory; the caller is responsible for saving the result so this never needs to run
-///     again for that file.
+///     One-time migrations for config.json files written by older versions:
+///     <list type="bullet">
+///         <item>per-site config (Logins/Cookies/Keys/Custom) moving from fixed properties to
+///         Dictionary&lt;string, T&gt; keyed by parser name;</item>
+///         <item>individual settings whose JSON shape changed (see <see cref="MigrateLegacyValues"/>).</item>
+///     </list>
+///     Converts in memory; the caller is responsible for saving the result so this never needs to run again for
+///     that file.
 /// </summary>
 internal static class LegacyConfigMigration
 {
@@ -62,42 +66,147 @@ internal static class LegacyConfigMigration
         ["GoFile"] = "gofile",
     };
 
+    private static readonly JsonSerializerOptions SerializerOptions = new() { AllowTrailingCommas = true };
+
     /// <summary>
-    ///     Returns true and outputs a migrated config if the file at <paramref name="path"/> is in the old
-    ///     (pre-dictionary) shape. Returns false if the file is already in the current shape or doesn't need
-    ///     migrating, in which case the caller should deserialize it normally.
+    ///     Returns true and outputs a migrated config if the file at <paramref name="path"/> needed any migration.
+    ///     Returns false if the file is already in the current shape, in which case the caller should deserialize
+    ///     it normally.
     /// </summary>
     public static bool TryMigrate<T>(string path, out T migrated) where T : GeneralConfig, new()
     {
+        return TryMigrateJson(File.ReadAllText(path), out migrated);
+    }
+
+    /// <inheritdoc cref="TryMigrate{T}"/>
+    internal static bool TryMigrateJson<T>(string json, out T migrated) where T : GeneralConfig, new()
+    {
         migrated = null!;
 
-        var root = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+        var root = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions { AllowTrailingCommas = true })!
+                           .AsObject();
+
+        // Fix individual values first: deserializing throws on a value still in an old shape
+        var valuesMigrated = MigrateLegacyValues(root);
 
         // Old shape: Logins/Cookies/Keys/Custom are JSON objects with fixed property names.
         // New shape: they're JSON objects too, but keyed by lowercase parser names — the reliable signal
         // is checking for a property name we know only exists in the old shape.
         var looksLegacy = root["Logins"] is JsonObject logins && logins.ContainsKey("DeviantArt");
-        if (!looksLegacy)
+        if (!looksLegacy && !valuesMigrated)
         {
             return false;
         }
 
+        if (!looksLegacy)
+        {
+            migrated = JsonSerializer.Deserialize<T>(root.ToJsonString(), SerializerOptions)!;
+            return true;
+        }
+
         Logger.Information("Detected legacy config.json shape — migrating per-site config to the new format");
 
-        var config = JsonSerializer.Deserialize<T>(root.ToJsonString())!;
-        // The above deserialize will have left Logins/Cookies/Keys/Custom empty or thrown away extra data,
-        // since the old JSON shape doesn't match the new property types — re-read those sections manually
-        // from the raw JsonObject instead.
+        // The old sections don't match the new property types (e.g. a cookie was a bare string, now a string[]),
+        // so deserializing them throws. Detach them first and convert them by hand afterwards.
+        var oldLogins = Detach(root, "Logins");
+        var oldCookies = Detach(root, "Cookies");
+        var oldKeys = Detach(root, "Keys");
+        var oldCustom = Detach(root, "Custom");
+        var config = JsonSerializer.Deserialize<T>(root.ToJsonString(), SerializerOptions)!;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        config.Logins = MigrateLogins(root["Logins"]?.AsObject());
-        config.Cookies = MigrateCookies(root["Cookies"]?.AsObject());
-        config.Keys = MigrateKeys(root["Keys"]?.AsObject());
-        config.Custom = MigrateCustom(root["Custom"]?.AsObject());
+        config.Logins = MigrateLogins(oldLogins);
+        config.Cookies = MigrateCookies(oldCookies);
+        config.Keys = MigrateKeys(oldKeys);
+        config.Custom = MigrateCustom(oldCustom);
 #pragma warning restore CS0618 // Type or member is obsolete
 
         migrated = config;
         return true;
+    }
+
+    /// <summary>
+    ///     Rewrites, in place, settings whose JSON shape changed between versions so the current types can
+    ///     deserialize them.
+    /// </summary>
+    /// <returns>true if anything was rewritten</returns>
+    internal static bool MigrateLegacyValues(JsonObject root)
+    {
+        var changed = false;
+
+        // PostDownloadAction was a [Flags] enum (None = 0, RemoveDuplicates = 1) before it was split into file- and
+        // directory-level actions. RemoveDuplicates maps to the file-level action; the directory-level post-process
+        // script is newer than the enum, so it starts off. A null value is also replaced, since the code expects
+        // an object.
+        if (root.TryGetPropertyValue(nameof(GeneralConfig.PostDownloadAction), out var postDownloadAction) &&
+            postDownloadAction is null or JsonValue)
+        {
+            var flags = postDownloadAction is JsonValue value ? ReadLegacyPostDownloadFlags(value) : 0;
+            root[nameof(GeneralConfig.PostDownloadAction)] = new JsonObject
+            {
+                [nameof(PostDownloadAction.DirectoryLevel)] = new JsonObject
+                {
+                    [nameof(PostDownloadActionDirectoryLevel.RunPostProcessScript)] = false,
+                },
+                [nameof(PostDownloadAction.FileLevel)] = new JsonObject
+                {
+                    [nameof(PostDownloadActionFileLevel.RemoveDuplicates)] = (flags & LegacyRemoveDuplicatesFlag) != 0,
+                },
+            };
+            Logger.Information("Migrated legacy PostDownloadAction value {Value} to file/directory-level actions",
+                postDownloadAction?.ToJsonString() ?? "null");
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private const int LegacyRemoveDuplicatesFlag = 1 << 0;
+
+    private static JsonObject? Detach(JsonObject root, string propertyName)
+    {
+        if (!root.TryGetPropertyValue(propertyName, out var node))
+        {
+            return null;
+        }
+
+        root.Remove(propertyName);
+        return node as JsonObject;
+    }
+
+    /// <summary>Reads the old flags enum, written as a number or (with a string enum converter) as flag names.</summary>
+    private static int ReadLegacyPostDownloadFlags(JsonValue value)
+    {
+        if (value.TryGetValue<int>(out var number))
+        {
+            return number;
+        }
+
+        if (!value.TryGetValue<string>(out var text))
+        {
+            Logger.Warning("Unrecognized legacy PostDownloadAction value {Value}, using defaults", value.ToJsonString());
+            return 0;
+        }
+
+        if (int.TryParse(text, out number))
+        {
+            return number;
+        }
+
+        var flags = 0;
+        foreach (var name in text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (name.Equals("RemoveDuplicates", StringComparison.OrdinalIgnoreCase))
+            {
+                flags |= LegacyRemoveDuplicatesFlag;
+            }
+            else if (!name.Equals("None", StringComparison.OrdinalIgnoreCase))
+            {
+                Logger.Warning("Unrecognized legacy PostDownloadAction flag {Flag}, ignoring", name);
+            }
+        }
+
+        return flags;
     }
 
     private static Dictionary<string, Credentials> MigrateLogins(JsonObject? old)

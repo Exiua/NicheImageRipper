@@ -1,3 +1,4 @@
+using NicheImageRipper.Sdk.Utility;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ public class MainWindowViewModelThin(
     ILogTextSource logTextSource)
     : MainWindowViewModelBase(ripperClient, ripperSettings, guiSettings, logTextSource, logger)
 {
-    private static readonly Version Version = new(1, 0, 0);
+    private static readonly Version Version = AssemblyVersionUtility.Of<MainWindowViewModelBase>();
     
     private static GuiThinConfig Config => GuiThinConfig.Instance;
 

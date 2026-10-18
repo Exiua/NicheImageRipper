@@ -1,0 +1,55 @@
+name: Version check
+
+# Fails when a project's files changed since the last main commit but its .csproj <Version> wasn't incremented.
+# Only main is checked: PRs into main run it directly, and the Release workflow (pushes to main) calls it first.
+# Other branches are never checked, so versions can be bumped once per release rather than per push.
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  csproj-versions:
+    name: csproj versions bumped
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needs history to diff against the base commit
+
+      - name: Determine last main commit
+        id: base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          base=""
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            # Where the PR branch meets main: only the PR's own changes count
+            base=$(git merge-base "$PR_BASE_SHA" HEAD)
+          elif [ "$REF" != "refs/heads/main" ]; then
+            echo "Not on main ($REF); skipping."
+          elif [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+               && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # Push to main: main as it was before this push
+            base="$BEFORE"
+          else
+            # Manual run on main: the previous main commit (first parent, so a merge compares against main's side)
+            base=$(git rev-parse --verify --quiet HEAD^1 || true)
+          fi
+
+          if [ -n "$base" ]; then
+            echo "Comparing last main commit $base with $(git rev-parse HEAD)"
+          fi
+          echo "sha=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Check changed projects bumped <Version>
+        if: steps.base.outputs.sha != ''
+        run: python3 scripts/check_csproj_versions.py --base "${{ steps.base.outputs.sha }}"

@@ -23,6 +23,7 @@ public static class Config
         // TODO: Remove this migration logic in a future version (note added: v5.0.0)
         if (LegacyConfigMigration.TryMigrate<T>(ConfigPath, out var migrated))
         {
+            migrated.MigrateLegacy(); // move migrated per-site sections into Sites before the one-time rewrite
             migrated.SaveConfig(); // rewrite once in the new shape; never needs migrating again
             return migrated;
         }
