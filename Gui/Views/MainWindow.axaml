@@ -55,8 +55,8 @@
                 </Grid>
             </TabItem>
             <TabItem Header="History">
-                <StackPanel Orientation="Vertical">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
                             <Button Click="PreviousHistoryPage" IsEnabled="{Binding CanGoToPreviousHistoryPage}">Previous</Button>
                             <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage" />
@@ -68,7 +68,7 @@
                             <Button Click="ClearHistoryFilter">Clear</Button>
                         </StackPanel>
                     </Grid>
-                    <DataGrid Margin="0, 10" ItemsSource="{Binding History}"
+                    <DataGrid Grid.Row="1" Margin="0, 10" ItemsSource="{Binding History}"
                               IsReadOnly="True"
                               KeyUp="HistoryDataGrid_OnKeyUp"
                               CanUserReorderColumns="False"
@@ -100,7 +100,7 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                </StackPanel>
+                </Grid>
             </TabItem>
             <TabItem Header="Settings">
                 <ScrollViewer>
