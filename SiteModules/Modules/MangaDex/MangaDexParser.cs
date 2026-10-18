@@ -29,7 +29,8 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
     {
         const int delay = 250;
         const int maxRetries = 4;
-        // TODO: Support other languages
+        var language = MangaDexConfig.From(Config.GetSiteConfig(ParserName)?.Custom).Language;
+        Logger.Debug("Chapter language: {Language}", language);
         var match = MangaDexRegex().Match(CurrentUrl);
         if (!match.Success)
         {
@@ -49,15 +50,13 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         }
 
         var metadataAttributes = mangaMetadata.Data.Attributes;
-        string dirName;
-        if (metadataAttributes.Title.TryGetValue("en", out var value))
+        var dirName = ChooseTitle(metadataAttributes.Title, metadataAttributes.AltTitles, language);
+        var availableLanguages = metadataAttributes.AvailableTranslatedLanguages ?? [];
+        if (availableLanguages.Length > 0 &&
+            !availableLanguages.Contains(language, StringComparer.OrdinalIgnoreCase))
         {
-            dirName = value;
-        }
-        else
-        {
-            var foundEnTitle = metadataAttributes.AltTitles.Any(altTitle => altTitle.TryGetValue("en", out value));
-            dirName = foundEnTitle ? value! : metadataAttributes.Title.First().Value;
+            Logger.Warning("Manga {MangaId} has no {Language} translation; available: {Available}", mangaId, language,
+                string.Join(", ", availableLanguages));
         }
 
         response = await client.Manga.GetVolumeAndChapter(mangaId, cancellationToken);
@@ -100,7 +99,7 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
                     }
 
                     var chapterAttributes = chapter.Data.Attributes;
-                    if (chapterAttributes.TranslatedLanguage != "en")
+                    if (!string.Equals(chapterAttributes.TranslatedLanguage, language, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -149,8 +148,8 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
 
                 if (!found)
                 {
-                    Logger.Warning("No English chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}",
-                        mangaId, volumeLabel, chapterLabel);
+                    Logger.Warning("No {Language} chapter found for Manga {mangaId} Vol. {volumeLabel} Ch. {chapterLabel}",
+                        language, mangaId, volumeLabel, chapterLabel);
                 }
             }
         }
@@ -162,6 +161,48 @@ public partial class MangaDexParser : HtmlParser, IHtmlParser
         }
 
         return RipInfo.FromUrlList(images, dirName, FilenameScheme);
+    }
+
+    /// <summary>
+    ///     Picks the folder name: the title in <paramref name="language"/>, then in English, then whatever title the
+    ///     manga has. Main titles win over alternative titles in the same language.
+    /// </summary>
+    public static string ChooseTitle(IReadOnlyDictionary<string, string> title,
+                                     IEnumerable<Dictionary<string, string>>? altTitles, string language)
+    {
+        var alternatives = altTitles?.ToList() ?? [];
+        foreach (var candidate in new[] { language, "en" }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (TryGetTitle(title, candidate, out var found))
+            {
+                return found;
+            }
+
+            foreach (var altTitle in alternatives)
+            {
+                if (TryGetTitle(altTitle, candidate, out found))
+                {
+                    return found;
+                }
+            }
+        }
+
+        return title.Values.FirstOrDefault() ?? throw new RipperException("Manga has no title");
+
+        static bool TryGetTitle(IReadOnlyDictionary<string, string> titles, string code, out string found)
+        {
+            foreach (var (key, value) in titles)
+            {
+                if (key.Equals(code, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(value))
+                {
+                    found = value;
+                    return true;
+                }
+            }
+
+            found = "";
+            return false;
+        }
     }
 
     [GeneratedRegex(@"/title/([^/]+)")]
