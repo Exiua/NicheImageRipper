@@ -12,7 +12,7 @@ public abstract partial class HistoryFilter
         var match = HistoryFilterRegex().Match(input);
         if (match.Success)
         {
-            var category = match.Groups[1].Value;
+            var category = match.Groups[1].Value.ToLowerInvariant(); // the regex matches the prefix in any case
             var value = match.Groups[2].Value;
             switch (category)
             {

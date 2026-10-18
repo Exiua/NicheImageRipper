@@ -1,10 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <RootNamespace>NicheImageRipper.Service.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,6 +17,10 @@
 
     <ItemGroup>
         <Using Include="Xunit"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Service\Service.csproj" />
     </ItemGroup>
 
 </Project>

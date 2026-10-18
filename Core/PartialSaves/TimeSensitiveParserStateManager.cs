@@ -14,7 +14,7 @@ public sealed class TimeSensitiveParserStateManager : ITimeSensitiveParserStateM
 {
     private static readonly string ConnectionString = new SQLiteConnectionStringBuilder
     {
-        DataSource = AppData.GetPath("NicheImageRipper.db"),
+        DataSource = AppData.GetPathForWrite("NicheImageRipper.db"),
         ForeignKeys = true,
     }.ToString();
 

@@ -182,7 +182,11 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
         var fileLinks = new List<FileLink>();
         var linkCounter = 0; // Current index of fileLinks (used for naming fileLinks when generating numeric names)
         var filenameCounter = 0; // Current index of filenames
-        urls = RemoveDuplicates(urls);
+        // Filenames line up with the URLs by position, so drop the same positions from both
+        var kept = FirstOccurrenceIndices(urls);
+        filenames = filenames is { } names ? kept.Select(i => names[i]).ToList() : null;
+        var allUrls = urls;
+        urls = kept.Select(i => allUrls[i]).ToList();
         foreach (var url in urls)
         {
             // IsFileLink is the same as url.FileLink is not null
@@ -237,16 +241,18 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
         return fileLinks;
     }
 
-    private List<StringFileLinkWrapper> RemoveDuplicates(List<StringFileLinkWrapper> urls)
+    /// <summary>Positions of the links to keep: the first occurrence of each URL.</summary>
+    private List<int> FirstOccurrenceIndices(List<StringFileLinkWrapper> urls)
     {
         var urlSet = new HashSet<string>();
-        var newUrls = new List<StringFileLinkWrapper>();
-        foreach (var url in urls)
+        var kept = new List<int>();
+        for (var i = 0; i < urls.Count; i++)
         {
+            var url = urls[i];
             if ((url.Url is not null && urlSet.Add(url.Url)) ||
                 (url.FileLink is not null && urlSet.Add(url.FileLink.Url)))
             {
-                newUrls.Add(url);
+                kept.Add(i);
             }
             else
             {
@@ -254,7 +260,7 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
             }
         }
 
-        return newUrls;
+        return kept;
     }
 
     public IEnumerator<FileLink> GetEnumerator()

@@ -47,29 +47,33 @@ public static class AppData
 
     /// <summary>Writes the file, creating its folder if needed.</summary>
     public static void WriteAllText(string relativePath, string contents) =>
-        File.WriteAllText(PrepareForWrite(relativePath), contents);
+        File.WriteAllText(GetPathForWrite(relativePath), contents);
 
     /// <inheritdoc cref="WriteAllText"/>
     public static Task WriteAllTextAsync(string relativePath, string contents,
                                          CancellationToken cancellationToken = default) =>
-        File.WriteAllTextAsync(PrepareForWrite(relativePath), contents, cancellationToken);
+        File.WriteAllTextAsync(GetPathForWrite(relativePath), contents, cancellationToken);
 
     /// <summary>Appends to the file, creating it and its folder if needed.</summary>
     public static void AppendAllText(string relativePath, string contents) =>
-        File.AppendAllText(PrepareForWrite(relativePath), contents);
+        File.AppendAllText(GetPathForWrite(relativePath), contents);
 
     /// <inheritdoc cref="AppendAllText"/>
     public static Task AppendAllTextAsync(string relativePath, string contents,
                                           CancellationToken cancellationToken = default) =>
-        File.AppendAllTextAsync(PrepareForWrite(relativePath), contents, cancellationToken);
+        File.AppendAllTextAsync(GetPathForWrite(relativePath), contents, cancellationToken);
 
     public static FileStream OpenRead(string relativePath) => File.OpenRead(GetPath(relativePath));
 
     /// <summary>Opens the file for writing (replacing it), creating its folder if needed.</summary>
     public static FileStream OpenWrite(string relativePath) =>
-        new(PrepareForWrite(relativePath), FileMode.Create, FileAccess.Write, FileShare.None);
+        new(GetPathForWrite(relativePath), FileMode.Create, FileAccess.Write, FileShare.None);
 
-    private static string PrepareForWrite(string relativePath)
+    /// <summary>
+    ///     Like <see cref="GetPath"/>, creating the file's folder if it doesn't exist. For code that opens the file
+    ///     itself, such as a database connection string.
+    /// </summary>
+    public static string GetPathForWrite(string relativePath)
     {
         var path = GetPath(relativePath);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);

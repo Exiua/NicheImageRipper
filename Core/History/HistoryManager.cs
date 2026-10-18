@@ -15,7 +15,7 @@ namespace NicheImageRipper.Core.History;
 /// </summary>
 public class HistoryManager : IDisposable
 {
-    private static readonly string ConnectionString = $"Data Source={AppData.GetPath("NicheImageRipper.db")}";
+    private static readonly string ConnectionString = $"Data Source={AppData.GetPathForWrite("NicheImageRipper.db")}";
 
     private static readonly ILogger Logger = Log.ForContext<HistoryManager>();
 
@@ -283,10 +283,9 @@ public class HistoryManager : IDisposable
 
         return filter switch
         {
-            HistoryNameFilter nameFilter => string.IsNullOrWhiteSpace(nameFilter.Name) ||
-                                            nameFilter.Name.Length <= 5, // requires more than "name:"
-            HistoryUrlFilter urlFilter => string.IsNullOrWhiteSpace(urlFilter.Url) ||
-                                          urlFilter.Url.Length <= 4, // requires more than "url:"
+            // HistoryFilter.Parse has already stripped any "name:"/"url:" prefix, so any non-blank value is a search
+            HistoryNameFilter nameFilter => string.IsNullOrWhiteSpace(nameFilter.Name),
+            HistoryUrlFilter urlFilter => string.IsNullOrWhiteSpace(urlFilter.Url),
             HistoryDateFilter dateFilter => dateFilter.Date == default,
             _ => true
         };
