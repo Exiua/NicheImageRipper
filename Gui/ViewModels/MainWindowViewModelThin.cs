@@ -43,6 +43,12 @@ public class MainWindowViewModelThin(
         Active = false;
     }
 
+    // Initialization needs the backend, so it happens in ConnectToRemote instead
+    public override Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
     protected override async Task ConnectToRemote(CancellationToken cancellationToken = default)
     {
         if (Active)

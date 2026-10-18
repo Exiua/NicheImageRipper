@@ -165,10 +165,18 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     // });
     }
 
-    private void OnOpened(object? sender, EventArgs e)
+    private async void OnOpened(object? sender, EventArgs e)
     {
         _windowHandle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
         _taskbarProgressService.Initialize();
+        try
+        {
+            await ViewModel!.StartAsync();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to initialize");
+        }
     }
 
     private void OnClosing(object? sender, WindowClosingEventArgs windowClosingEventArgs)
@@ -241,8 +249,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         try
         {
-            ViewModel!.DecrementHistoryPage();
-            await LoadHistory();
+            await ViewModel!.PreviousHistoryPage();
         }
         catch (Exception exception)
         {
@@ -250,13 +257,11 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    // FIXME: NextHistoryPageExists() is not working as expected
     private async void NextHistoryPage(object? sender, RoutedEventArgs e)
     {
         try
         {
-            ViewModel!.IncrementHistoryPage();
-            await LoadHistory();
+            await ViewModel!.NextHistoryPage();
         }
         catch (Exception exception)
         {
@@ -268,8 +273,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         try
         {
-            ViewModel!.RefreshHistoryPage();
-            await LoadHistory();
+            await ViewModel!.GoToEnteredHistoryPage();
         }
         catch (Exception exception)
         {
@@ -281,16 +285,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         try
         {
-            var input = ViewModel!.HistoryFilterText.Trim();
-            if (string.IsNullOrEmpty(input))
-            {
-                ViewModel.ClearHistoryFilter();
-                await LoadHistory();
-                return;
-            }
-
-            var filter = HistoryFilter.Parse(input);
-            await LoadHistory(filter);
+            await ViewModel!.ApplyHistoryFilter();
         }
         catch (Exception exception)
         {
@@ -302,20 +297,12 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         try
         {
-            ViewModel!.ClearHistoryFilter();
-            await LoadHistory();
+            await ViewModel!.ClearHistoryFilter();
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Failed to clear history filter");
         }
-    }
-
-    private async Task LoadHistory(HistoryFilter? filter = null, CancellationToken cancellationToken = default)
-    {
-        await ViewModel!.LoadHistory(filter, cancellationToken: cancellationToken);
-        PreviousHistoryPageButton.IsEnabled = ViewModel.CurrentHistoryPageDisplay != "1";
-        NextHistoryPageButton.IsEnabled = ViewModel.NextHistoryPageExists();
     }
 
     private void ValidateNumericValue(object? sender, RoutedEventArgs e)

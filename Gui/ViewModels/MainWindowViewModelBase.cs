@@ -33,8 +33,6 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public abstract string Title { get; }
     public abstract bool IsThinClient { get; }
 
-    private int HistoryCount => RipperClient.GetHistoryCount().Result;
-
     private bool RipInProgress { get; set; }
 
     public string UrlInput
@@ -65,11 +63,24 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     } = 1;
 
+    /// <summary>Text of the page number box; applied by <see cref="GoToEnteredHistoryPage"/>.</summary>
     public string CurrentHistoryPageDisplay
     {
         get;
-        private set => this.RaiseAndSetIfChanged(ref field, value);
+        set => this.RaiseAndSetIfChanged(ref field, value);
     } = "1";
+
+    public bool CanGoToPreviousHistoryPage
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public bool CanGoToNextHistoryPage
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
 
     public string HistoryFilterText
     {
@@ -325,8 +336,16 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         await GuiSettings.InitializeAsync(cancellationToken);
         // Thin settings are only known once fetched from the backend, so re-sync what the settings tab shows
         Dispatcher.UIThread.Post(RefreshSettings);
-        var history = await GetHistoryPage(CurrentHistoryPage, PageSize, cancellationToken: cancellationToken);
-        History.Update(history);
+        await RefreshHistory(cancellationToken);
+    }
+
+    /// <summary>
+    ///     Called once the main window has opened. Full mode initializes immediately; the thin client overrides this
+    ///     because it can only initialize after connecting to the backend.
+    /// </summary>
+    public virtual Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        return InitializeAsync(cancellationToken);
     }
 
     /// <summary>
@@ -449,10 +468,6 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     {
         return RipperClient.ClearCache(cancellationToken);
     }
-
-    private Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null,
-                                                    CancellationToken cancellationToken = default) =>
-        RipperClient.GetHistoryPage(start, offset, filter, cancellationToken);
 
     private void OnLogTextChanged(string text)
     {
@@ -749,51 +764,87 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         RipperClient.Dispose();
     }
 
-    public void DecrementHistoryPage()
+    private HistoryFilter? _historyFilter;
+    private int _historyLoadId;
+
+    private int GetHistoryPageCount(int historyCount) => Math.Max(1, (historyCount + PageSize - 1) / PageSize);
+
+    public Task PreviousHistoryPage(CancellationToken cancellationToken = default)
     {
-        if (CurrentHistoryPage > 1)
-        {
-            CurrentHistoryPage--;
-        }
+        return CanGoToPreviousHistoryPage ? GoToHistoryPage(CurrentHistoryPage - 1, cancellationToken) : Task.CompletedTask;
     }
 
-    public void IncrementHistoryPage()
+    public Task NextHistoryPage(CancellationToken cancellationToken = default)
     {
-        if (NextHistoryPageExists())
-        {
-            CurrentHistoryPage++;
-        }
+        return CanGoToNextHistoryPage ? GoToHistoryPage(CurrentHistoryPage + 1, cancellationToken) : Task.CompletedTask;
     }
 
-    public bool NextHistoryPageExists()
+    /// <summary>Goes to the page typed into the page number box, or restores the box if it isn't a number.</summary>
+    public Task GoToEnteredHistoryPage(CancellationToken cancellationToken = default)
     {
-        Logger.LogDebug("CurrentHistoryPage: {CurrentHistoryPage}, PageSize: {PageSize}, HistoryCount: {HistoryCount}",
-            CurrentHistoryPageDisplay, PageSize, HistoryCount);
-        return HistoryCount - (CurrentHistoryPage * PageSize) > PageSize;
+        if (!int.TryParse(CurrentHistoryPageDisplay.Trim(), out var page))
+        {
+            CurrentHistoryPageDisplay = CurrentHistoryPage.ToString();
+            return Task.CompletedTask;
+        }
+
+        return GoToHistoryPage(page, cancellationToken);
     }
 
-    public void RefreshHistoryPage()
+    /// <summary>Applies <see cref="HistoryFilterText"/> (empty clears the filter) and returns to the first page.</summary>
+    public Task ApplyHistoryFilter(CancellationToken cancellationToken = default)
     {
-        if (CurrentHistoryPage < 1)
-        {
-            CurrentHistoryPage = 1;
-        }
-        else if (CurrentHistoryPage > HistoryCount / PageSize)
-        {
-            CurrentHistoryPage = HistoryCount / PageSize;
-        }
+        var input = HistoryFilterText.Trim();
+        _historyFilter = string.IsNullOrEmpty(input) ? null : HistoryFilter.Parse(input);
+        return GoToHistoryPage(1, cancellationToken);
     }
 
-    public void ClearHistoryFilter()
+    public Task ClearHistoryFilter(CancellationToken cancellationToken = default)
     {
         HistoryFilterText = "";
+        _historyFilter = null;
+        return GoToHistoryPage(1, cancellationToken);
     }
 
-    public async Task LoadHistory(HistoryFilter? filter = null, CancellationToken cancellationToken = default)
+    public Task RefreshHistory(CancellationToken cancellationToken = default)
     {
-        var history = await GetHistoryPage(CurrentHistoryPage - 1, PageSize, filter, cancellationToken);
-        Logger.LogDebug("History[{Count}]: {@History}", history.Count, history.Count == 0 ? "None" : history[0]);
-        History.Update(history);
+        return GoToHistoryPage(CurrentHistoryPage, cancellationToken);
+    }
+
+    /// <param name="page">One-based page number; clamped to the pages that exist.</param>
+    private async Task GoToHistoryPage(int page, CancellationToken cancellationToken = default)
+    {
+        var loadId = Interlocked.Increment(ref _historyLoadId);
+        var filter = _historyFilter;
+
+        // Off the UI thread: the first history call opens the database, which can take a moment
+        var (historyCount, loadedPage, history) = await Task.Run(async () =>
+        {
+            var count = await RipperClient.GetHistoryCount(cancellationToken);
+            // The count ignores the filter, so only clamp the upper bound when unfiltered
+            var targetPage = filter is null ? Math.Clamp(page, 1, GetHistoryPageCount(count)) : Math.Max(page, 1);
+            var entries = await RipperClient.GetHistoryPage(targetPage - 1, PageSize, filter, cancellationToken);
+            return (count, targetPage, entries);
+        }, cancellationToken);
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            // A newer navigation started while this one was loading; let that one win
+            if (loadId != Volatile.Read(ref _historyLoadId))
+            {
+                return;
+            }
+
+            CurrentHistoryPage = loadedPage;
+            CurrentHistoryPageDisplay = loadedPage.ToString();
+            CanGoToPreviousHistoryPage = loadedPage > 1;
+            // With a filter the total is unknown, so assume another page exists while pages come back full
+            CanGoToNextHistoryPage = filter is null
+                ? loadedPage < GetHistoryPageCount(historyCount)
+                : history.Count == PageSize;
+            History.Update(history);
+        });
+        Logger.LogDebug("History page {Page} ({Count} entries, {Total} total)", loadedPage, history.Count, historyCount);
     }
 
     public void SetMaxRetries(int maxRetries)

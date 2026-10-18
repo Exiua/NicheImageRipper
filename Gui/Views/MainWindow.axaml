@@ -58,9 +58,9 @@
                 <StackPanel Orientation="Vertical">
                     <Grid ColumnDefinitions="Auto,*,Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Button x:Name="PreviousHistoryPageButton" Click="PreviousHistoryPage" IsEnabled="False">Previous</Button>
+                            <Button Click="PreviousHistoryPage" IsEnabled="{Binding CanGoToPreviousHistoryPage}">Previous</Button>
                             <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage" />
-                            <Button x:Name="NextHistoryPageButton" Click="NextHistoryPage">Next</Button>
+                            <Button Click="NextHistoryPage" IsEnabled="{Binding CanGoToNextHistoryPage}">Next</Button>
                         </StackPanel>
                         <TextBlock Grid.Column="1" /> <!-- Spacer -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal">
