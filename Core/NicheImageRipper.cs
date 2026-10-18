@@ -41,6 +41,21 @@ public partial class NicheImageRipper : IDisposable
     protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 
     public List<string> UrlQueue { get; set; } = [];
+
+    // Guards UrlQueue against the rip loop and UI/service threads modifying it at the same time
+    private readonly Lock _urlQueueLock = new();
+
+    /// <summary>URL currently being ripped, or null when idle.</summary>
+    public string? CurrentUrl { get; private set; }
+
+    /// <summary>Thread-safe copy of the queue, for displaying while a rip is running.</summary>
+    public List<string> GetUrlQueueSnapshot()
+    {
+        lock (_urlQueueLock)
+        {
+            return [..UrlQueue];
+        }
+    }
     public bool Interrupted { get; set; }
     public FileRipper? Ripper { get; set; }
     public bool Paused => Ripper?.Paused ?? false;
@@ -297,68 +312,92 @@ public partial class NicheImageRipper : IDisposable
 
     private async Task<string?> RipUrl(CancellationToken cancellationToken = default)
     {
-        if (UrlQueue.Count == 0)
+        string url;
+        lock (_urlQueueLock)
         {
-            Logger.Information("No URLs to rip.");
-            return "";
+            if (UrlQueue.Count == 0)
+            {
+                Logger.Information("No URLs to rip.");
+                return "";
+            }
+
+            url = UrlQueue[0];
         }
 
-        var url = UrlQueue[0];
         Logger.Information("{Url:l}", url);
         Interrupted = true;
+        CurrentUrl = url;
+        OnUrlQueueUpdated?.Invoke();
 
-        for (var retry = 0; retry < MaxRetries; retry++)
+        try
         {
-            try
+            for (var retry = 0; retry < MaxRetries; retry++)
             {
-                var start = DateTime.Now;
-                await Ripper!.Rip(url, cancellationToken);
-                var elapsed = DateTime.Now - start;
-                var elapsedFormatted =
-                    $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
-                Logger.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
-                //OnUrlRipComplete?.Invoke();
-                _lastException = null;
-                break;
-            }
-            catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver",
-                                                   "timed out") && retry < MaxRetries - 1)
-            {
-                Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url,
-                    retry + 1, MaxRetries);
-                await Task.Delay(10000, cancellationToken);
-            }
-            catch (NotEnoughDiskSpaceException e)
-            {
-                _lastException = e;
-                Logger.Error("Failed to rip {Url} due to not enough disk space. Terminating...", url);
-                SaveUnfinishedUrlsToDisk();
-                return null;
-            }
-            catch (Exception e)
-            {
-                if (retry == MaxRetries - 1)
+                try
+                {
+                    var start = DateTime.Now;
+                    await Ripper!.Rip(url, cancellationToken);
+                    var elapsed = DateTime.Now - start;
+                    var elapsedFormatted =
+                        $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
+                    Logger.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
+                    //OnUrlRipComplete?.Invoke();
+                    _lastException = null;
+                    break;
+                }
+                catch (WebDriverException e) when (e.Message.Contains("The HTTP request to the remote WebDriver",
+                                                       "timed out") && retry < MaxRetries - 1)
+                {
+                    Logger.Error("Failed to rip {Url} due to WebDriver timeout. Retrying... ({Retry}/{MaxRetries})", url,
+                        retry + 1, MaxRetries);
+                    await Task.Delay(10000, cancellationToken);
+                }
+                catch (NotEnoughDiskSpaceException e)
                 {
                     _lastException = e;
-                    Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                    Logger.Error("Failed to rip {Url} due to not enough disk space. Terminating...", url);
                     SaveUnfinishedUrlsToDisk();
-                    throw;
+                    return null;
                 }
-
-                await Task.Delay(RetryDelay, cancellationToken);
-                if (Debugging)
+                catch (Exception e)
                 {
-                    Logger.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
-                    LogMessageToFile("Press any key to continue...");
-                    Console.ReadKey();
+                    if (retry == MaxRetries - 1)
+                    {
+                        _lastException = e;
+                        Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                        SaveUnfinishedUrlsToDisk();
+                        throw;
+                    }
+
+                    await Task.Delay(RetryDelay, cancellationToken);
+                    if (Debugging)
+                    {
+                        Logger.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
+                        LogMessageToFile("Press any key to continue...");
+                        Console.ReadKey();
+                    }
                 }
             }
-        }
 
-        Interrupted = false;
-        UrlQueue.RemoveAt(0);
-        OnUrlQueueUpdated?.Invoke();
-        return url;
+            Interrupted = false;
+            lock (_urlQueueLock)
+            {
+                // Remove by value, not index 0: the user may have dequeued this or other URLs while it was ripping
+                UrlQueue.Remove(url);
+            }
+
+            CurrentUrl = null;
+            OnUrlQueueUpdated?.Invoke();
+            return url;
+        }
+        finally
+        {
+            if (CurrentUrl is not null)
+            {
+                CurrentUrl = null;
+                OnUrlQueueUpdated?.Invoke();
+            }
+        }
     }
 
     private void OnProgressChangedHandler(int current, int total)
@@ -403,7 +442,7 @@ public partial class NicheImageRipper : IDisposable
         }
 
         _unfinishedUrlsPath ??= ResolveUnfinishedUrlsPath();
-        JsonUtility.Serialize(_unfinishedUrlsPath, UrlQueue);
+        JsonUtility.Serialize(_unfinishedUrlsPath, GetUrlQueueSnapshot());
     }
 
     /// <summary>
@@ -418,7 +457,7 @@ public partial class NicheImageRipper : IDisposable
         Directory.CreateDirectory(UnfinishedUrlsDirectory);
         MigrateLegacyUnfinishedUrlsFile();
 
-        var currentUrls = UrlQueue.ToHashSet();
+        var currentUrls = GetUrlQueueSnapshot().ToHashSet();
         foreach (var candidatePath in Directory.EnumerateFiles(UnfinishedUrlsDirectory, "*.json"))
         {
             List<string>? savedUrls;
@@ -612,7 +651,11 @@ public partial class NicheImageRipper : IDisposable
             }
         }
 
-        UrlQueue.Add(normalizedUrl);
+        lock (_urlQueueLock)
+        {
+            UrlQueue.Add(normalizedUrl);
+        }
+
         return null;
     }
 
@@ -632,9 +675,18 @@ public partial class NicheImageRipper : IDisposable
     public void ForceQueueUrls(string url)
     {
         var normalizedUrl = NormalizeUrl(url);
-        if (UrlQueue.All(queuedUrl => queuedUrl != normalizedUrl))
+        bool added;
+        lock (_urlQueueLock)
         {
-            UrlQueue.Add(normalizedUrl);
+            added = !UrlQueue.Contains(normalizedUrl);
+            if (added)
+            {
+                UrlQueue.Add(normalizedUrl);
+            }
+        }
+
+        if (added)
+        {
             OnUrlQueueUpdated?.Invoke();
         }
         else
@@ -653,11 +705,15 @@ public partial class NicheImageRipper : IDisposable
         }
 
         Logger.Debug("Re-queuing {Count} URLs", urls.Count);
-        var offset = 0;
-        foreach (var url in urls)
+        lock (_urlQueueLock)
         {
-            UrlQueue.Insert(startIndex + offset, url.Url);
-            offset++;
+            var offset = 0;
+            foreach (var url in urls)
+            {
+                // The queue may have shrunk while the user was confirming re-rips, so clamp the insert position
+                UrlQueue.Insert(Math.Min(startIndex + offset, UrlQueue.Count), url.Url);
+                offset++;
+            }
         }
 
         OnUrlQueueUpdated?.Invoke();
@@ -665,9 +721,15 @@ public partial class NicheImageRipper : IDisposable
 
     public void DequeueUrls(IEnumerable<string> urlsToRemove)
     {
-        var currentCount = UrlQueue.Count;
-        UrlQueue = UrlQueue.Except(urlsToRemove).ToList();
-        if (currentCount != UrlQueue.Count)
+        var toRemove = urlsToRemove.ToHashSet();
+        int removed;
+        lock (_urlQueueLock)
+        {
+            // Modify in place rather than replacing the list, which the rip loop may be reading
+            removed = UrlQueue.RemoveAll(toRemove.Contains);
+        }
+
+        if (removed > 0)
         {
             OnUrlQueueUpdated?.Invoke();
         }

@@ -21,9 +21,16 @@ public class GuiThinConfig
     public double UrlWidth { get; set; } = 530;
     public double DateWidth { get; set; } = 150;
     public double CountWidth { get; set; } = 100;
+
+    public LogDisplaySettings LogDisplay { get; set; } = new();
     
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtraData { get; set; }
+
+    public void Save()
+    {
+        JsonUtility.Serialize(ConfigPath, this);
+    }
 
     private static GuiThinConfig GetOrLoadConfig()
     {

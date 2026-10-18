@@ -127,6 +127,12 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
         return SendAsync<int>(HttpMethod.Get, "api/queue/count", cancellationToken);
     }
 
+    public async Task<string?> GetCurrentUrlAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await SendAsync<CurrentUrlResponse>(HttpMethod.Get, "api/queue/current", cancellationToken);
+        return response.Url;
+    }
+
     public async Task DequeueUrlsAsync(string[] urls, CancellationToken cancellationToken = default)
     {
         if (urls.Length == 0)

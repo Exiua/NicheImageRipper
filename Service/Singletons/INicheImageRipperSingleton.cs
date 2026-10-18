@@ -12,6 +12,7 @@ public interface INicheImageRipperSingleton
     public event Action<int, int>? ProgressChanged;
     
     public string[] GetQueueSnapshot();
+    public string? GetCurrentUrl();
     public RejectedUrlsInfo Queue(string urls);
     public void ForceQueue(string urls);
     public void Dequeue(string[] urls);

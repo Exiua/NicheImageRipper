@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using NicheImageRipper.Gui.Models;
 
@@ -7,23 +9,51 @@ namespace NicheImageRipper.Gui.Services.Shared;
 
 public sealed class RollingLogTextSource : ILogTextSource
 {
-    private readonly Queue<string> _entries = new();
+    private readonly Queue<LogEntryModel> _entries = new();
     private readonly Lock _lock = new();
 
-    public int MaxEntries { get; }
+    private long _version;
+    private long _renderedVersion = -1;
+    private string _renderedText = "";
 
-    public string CurrentText { get; private set; } = "";
+    /// <summary>Entries kept in memory, including Debug ones so they can be shown after toggling them on.</summary>
+    public int MaxStoredEntries { get; }
 
-    public event Action<string>? LogTextChanged;
+    /// <summary>Most recent visible entries rendered into the log tab.</summary>
+    public int MaxDisplayedEntries { get; }
 
-    public RollingLogTextSource(int maxEntries = 500)
+    public long Version => Interlocked.Read(ref _version);
+
+    public bool ShowTimestampAndLevel
     {
-        if (maxEntries <= 0)
+        get;
+        set => SetOption(ref field, value);
+    }
+
+    public bool ShowDebug
+    {
+        get;
+        set => SetOption(ref field, value);
+    }
+
+    public RollingLogTextSource() : this(2000, 500)
+    {
+    }
+
+    public RollingLogTextSource(int maxStoredEntries, int maxDisplayedEntries)
+    {
+        if (maxStoredEntries <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(maxEntries));
+            throw new ArgumentOutOfRangeException(nameof(maxStoredEntries));
         }
 
-        MaxEntries = maxEntries;
+        if (maxDisplayedEntries <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxDisplayedEntries));
+        }
+
+        MaxStoredEntries = maxStoredEntries;
+        MaxDisplayedEntries = maxDisplayedEntries;
     }
 
     public void Append(LogEntryModel entry)
@@ -34,26 +64,21 @@ public sealed class RollingLogTextSource : ILogTextSource
             return;
         }
 
-        if (entry.Level is null or "Debug")
+        if (entry.Level is null)
         {
             return;
         }
-        
-        var rendered = Render(entry);
 
         lock (_lock)
         {
-            _entries.Enqueue(rendered);
-
-            while (_entries.Count > MaxEntries)
+            _entries.Enqueue(entry);
+            while (_entries.Count > MaxStoredEntries)
             {
                 _entries.Dequeue();
             }
-
-            CurrentText = string.Join(Environment.NewLine, _entries);
         }
 
-        LogTextChanged?.Invoke(CurrentText);
+        Interlocked.Increment(ref _version);
     }
 
     public void Clear()
@@ -61,28 +86,66 @@ public sealed class RollingLogTextSource : ILogTextSource
         lock (_lock)
         {
             _entries.Clear();
-            CurrentText = "";
         }
 
-        LogTextChanged?.Invoke(CurrentText);
+        Interlocked.Increment(ref _version);
     }
 
-    private static string Render(LogEntryModel entry)
+    public string GetText()
     {
-        var time = entry.Timestamp?.ToLocalTime().ToString("HH:mm:ss");
-        var level = ToShortLevel(entry.Level ?? "Information");
+        lock (_lock)
+        {
+            var version = Version;
+            if (version == _renderedVersion)
+            {
+                return _renderedText;
+            }
 
-        //var line = $"[{time} {level}] {entry.RenderedMessage}";
-        var line = $"{entry.Message}";
+            var visible = _entries.Where(e => ShowDebug || e.Level != "Debug").ToList();
+            var builder = new StringBuilder();
+            foreach (var entry in visible.Skip(Math.Max(0, visible.Count - MaxDisplayedEntries)))
+            {
+                if (builder.Length > 0)
+                {
+                    builder.AppendLine();
+                }
+
+                Render(builder, entry);
+            }
+
+            _renderedText = builder.ToString();
+            _renderedVersion = version;
+            return _renderedText;
+        }
+    }
+
+    private void SetOption(ref bool field, bool value)
+    {
+        if (field == value)
+        {
+            return;
+        }
+
+        field = value;
+        Interlocked.Increment(ref _version);
+    }
+
+    private void Render(StringBuilder builder, LogEntryModel entry)
+    {
+        if (ShowTimestampAndLevel)
+        {
+            var time = entry.Timestamp?.ToLocalTime().ToString("HH:mm:ss") ?? "--:--:--";
+            builder.Append('[').Append(time).Append(' ').Append(ToShortLevel(entry.Level ?? "Information")).Append("] ");
+        }
+
+        builder.Append(entry.Message);
 
         if (!string.IsNullOrWhiteSpace(entry.Exception))
         {
-            line += Environment.NewLine + entry.Exception;
+            builder.AppendLine().Append(entry.Exception);
         }
-
-        return line;
     }
-    
+
     private static string ToShortLevel(string level)
     {
         return level switch

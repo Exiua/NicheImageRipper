@@ -23,6 +23,7 @@ public interface IBackendConnector : IAsyncInitialization
 
     public Task<string[]> GetQueueSnapshotAsync(CancellationToken cancellationToken = default);
     public Task<int> GetQueueCountAsync(CancellationToken cancellationToken = default);
+    public Task<string?> GetCurrentUrlAsync(CancellationToken cancellationToken = default);
 
     public Task<RejectedUrlsInfo> QueueUrlsAsync(
         string urls,

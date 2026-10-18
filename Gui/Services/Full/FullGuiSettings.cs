@@ -29,4 +29,24 @@ public class FullGuiSettings : IGuiSettings
         get => Config.HistoryColumnWidths.CountWidth;
         set => Config.HistoryColumnWidths.CountWidth = value;
     }
+
+    // Saved with the rest of GuiConfig when the ripper saves its config
+
+    public bool ShowLogTimestampAndLevel
+    {
+        get => Config.LogDisplay.ShowTimestampAndLevel;
+        set => Config.LogDisplay.ShowTimestampAndLevel = value;
+    }
+
+    public bool ShowDebugLogs
+    {
+        get => Config.LogDisplay.ShowDebug;
+        set => Config.LogDisplay.ShowDebug = value;
+    }
+
+    public bool WrapLogLines
+    {
+        get => Config.LogDisplay.WrapLines;
+        set => Config.LogDisplay.WrapLines = value;
+    }
 }

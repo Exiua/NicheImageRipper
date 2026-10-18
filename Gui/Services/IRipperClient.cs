@@ -13,13 +13,15 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
-    public int UrlQueueCount { get; }
     public bool Connected { get; }
 
     public Task<bool> Rip(CancellationToken cancellationToken = default);
     public Task<bool> Resume(CancellationToken cancellationToken = default);
     public Task<bool> Pause(CancellationToken cancellationToken = default);
     public Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default);
+    public Task<int> GetUrlQueueCount(CancellationToken cancellationToken = default);
+    /// <returns>URL currently being ripped, or null when idle</returns>
+    public Task<string?> GetCurrentUrl(CancellationToken cancellationToken = default);
     public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default);
     public Task DequeueUrls(IEnumerable<string> url, CancellationToken cancellationToken = default);
     public Task ForceQueueUrl(string url, CancellationToken cancellationToken = default);

@@ -20,7 +20,6 @@ public class RemoteRipperClient : IRipperClient
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
-    public int UrlQueueCount => _backendConnector.GetQueueCountAsync().Result;
     public bool Connected { get; set; }
 
     public RemoteRipperClient(IBackendConnector backendConnector, ILogTextSource logTextSource)
@@ -50,6 +49,16 @@ public class RemoteRipperClient : IRipperClient
     {
         var queue = await _backendConnector.GetQueueSnapshotAsync(cancellationToken);
         return queue;
+    }
+
+    public Task<int> GetUrlQueueCount(CancellationToken cancellationToken = default)
+    {
+        return _backendConnector.GetQueueCountAsync(cancellationToken);
+    }
+
+    public Task<string?> GetCurrentUrl(CancellationToken cancellationToken = default)
+    {
+        return _backendConnector.GetCurrentUrlAsync(cancellationToken);
     }
 
     public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default)

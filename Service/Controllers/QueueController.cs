@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Service.Models.Requests;
+using NicheImageRipper.Service.Models.Responses;
 using NicheImageRipper.Service.Singletons;
 
 namespace NicheImageRipper.Service.Controllers;
@@ -49,6 +50,12 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
         return Ok(queueSnapshot.Length);
     }
     
+    [HttpGet("current")]
+    public ActionResult<CurrentUrlResponse> GetCurrentUrl()
+    {
+        return Ok(new CurrentUrlResponse(nicheImageRipperSingleton.GetCurrentUrl()));
+    }
+
     [HttpPost("load")]
     public IActionResult LoadUrls([FromBody] List<string> urls)
     {

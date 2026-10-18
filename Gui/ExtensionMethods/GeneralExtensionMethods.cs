@@ -23,4 +23,57 @@ public static class GeneralExtensionMethods
             }
         });
     }
+
+    /// <summary>
+    ///     Brings the collection in line with <paramref name="source"/> using the fewest removes, moves and inserts,
+    ///     so bound controls keep their selection and scroll position (unlike <see cref="Update{T}"/>, which
+    ///     clears and re-adds everything).
+    /// </summary>
+    public static void SyncTo<T>(this ObservableCollection<T> collection, IReadOnlyList<T> source)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var comparer = EqualityComparer<T>.Default;
+            var wanted = new HashSet<T>(source, comparer);
+            for (var i = collection.Count - 1; i >= 0; i--)
+            {
+                if (!wanted.Contains(collection[i]))
+                {
+                    collection.RemoveAt(i);
+                }
+            }
+
+            for (var i = 0; i < source.Count; i++)
+            {
+                if (i < collection.Count && comparer.Equals(collection[i], source[i]))
+                {
+                    continue;
+                }
+
+                var existing = -1;
+                for (var j = i + 1; j < collection.Count; j++)
+                {
+                    if (comparer.Equals(collection[j], source[i]))
+                    {
+                        existing = j;
+                        break;
+                    }
+                }
+
+                if (existing >= 0)
+                {
+                    collection.Move(existing, i);
+                }
+                else
+                {
+                    collection.Insert(i, source[i]);
+                }
+            }
+
+            while (collection.Count > source.Count)
+            {
+                collection.RemoveAt(collection.Count - 1);
+            }
+        });
+    }
 }

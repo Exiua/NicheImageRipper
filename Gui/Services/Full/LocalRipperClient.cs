@@ -16,7 +16,6 @@ public class LocalRipperClient : IRipperClient
     private static readonly ILogger Log = Serilog.Log.ForContext<LocalRipperClient>();
     
     private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
-    public int UrlQueueCount => _ripper.UrlQueue.Count;
     public bool Connected => true;
 
     private bool _disposed;
@@ -59,7 +58,17 @@ public class LocalRipperClient : IRipperClient
 
     public Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IEnumerable<string>>(_ripper.UrlQueue);
+        return Task.FromResult<IEnumerable<string>>(_ripper.GetUrlQueueSnapshot());
+    }
+
+    public Task<int> GetUrlQueueCount(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_ripper.UrlQueue.Count);
+    }
+
+    public Task<string?> GetCurrentUrl(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_ripper.CurrentUrl);
     }
 
     public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default)

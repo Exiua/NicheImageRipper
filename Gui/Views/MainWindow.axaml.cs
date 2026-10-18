@@ -53,9 +53,9 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();
         Focusable = true;
-        UrlQueue.ItemsSource = ViewModel!.UrlQueue;
         viewModel.OnNotification += Show;
-        viewModel.LogTextChanged += OnLogTextChanged;
+        _logRefreshTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background,
+            (_, _) => RefreshLogText());
         viewModel.ProgressChanged += (current, total) =>
         {
             if (_windowHandle == IntPtr.Zero)
@@ -169,6 +169,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         _windowHandle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
         _taskbarProgressService.Initialize();
+        _logRefreshTimer.Start();
         try
         {
             await ViewModel!.StartAsync();
@@ -181,6 +182,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 
     private void OnClosing(object? sender, WindowClosingEventArgs windowClosingEventArgs)
     {
+        _logRefreshTimer.Stop();
         var task = Dispatcher.UIThread.InvokeAsync(() =>
         {
             try
@@ -196,12 +198,41 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     }
 
     private bool _paused;
-    private void OnLogTextChanged()
+
+    private readonly DispatcherTimer _logRefreshTimer;
+    private ScrollViewer? _logScrollViewer;
+    private long _renderedLogVersion = -1;
+
+    /// <summary>
+    ///     Polled by a timer instead of re-rendering per log line, which kept the UI thread busy during heavy logging.
+    ///     Updates are held while the user is scrolled up or has text selected, so the log doesn't jump under them.
+    /// </summary>
+    private void RefreshLogText()
     {
-        Dispatcher.UIThread.Post(() =>
+        var source = ViewModel!.LogTextSource;
+        var version = source.Version;
+        if (version == _renderedLogVersion)
         {
-            LogTextBox.CaretIndex = int.MaxValue;
-        }, DispatcherPriority.Background);
+            LogPausedText.IsVisible = false;
+            return;
+        }
+
+        _logScrollViewer ??= LogTextBox.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+        var atBottom = _logScrollViewer is null ||
+                       _logScrollViewer.Offset.Y >= _logScrollViewer.Extent.Height - _logScrollViewer.Viewport.Height - 2;
+        var hasSelection = LogTextBox.SelectionStart != LogTextBox.SelectionEnd;
+        var hasText = !string.IsNullOrEmpty(LogTextBox.Text);
+        if (hasText && (!atBottom || hasSelection))
+        {
+            LogPausedText.IsVisible = true;
+            return;
+        }
+
+        LogPausedText.IsVisible = false;
+        _renderedLogVersion = version;
+        var text = source.GetText();
+        LogTextBox.Text = text;
+        LogTextBox.CaretIndex = text.Length;
     }
 
     private async void SelectFolder(object? sender, RoutedEventArgs routedEventArgs)

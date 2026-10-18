@@ -28,8 +28,13 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
     {
         using (_ripperLock.EnterScope())
         {
-            return _ripper.UrlQueue.Select(u => u).ToArray();
+            return _ripper.GetUrlQueueSnapshot().ToArray();
         }
+    }
+
+    public string? GetCurrentUrl()
+    {
+        return _ripper.CurrentUrl;
     }
 
     public RejectedUrlsInfo Queue(string urls)

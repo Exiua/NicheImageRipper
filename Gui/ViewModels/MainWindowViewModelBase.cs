@@ -41,17 +41,61 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = "";
 
-    public string LogText
+    public int QueueCount
     {
         get;
-        protected set => this.RaiseAndSetIfChanged(ref field, value);
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(UrlCountText));
+        }
     }
 
-    public string UrlCountText
+    public string UrlCountText => $"URLs in queue: {QueueCount}";
+
+    public string? CurrentUrl
     {
         get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = "URLs in queue: 0";
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(HasCurrentUrl));
+        }
+    }
+
+    public bool HasCurrentUrl => CurrentUrl is not null;
+
+    public bool HasSelectedUrls
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public bool ShowLogTimestampAndLevel
+    {
+        get;
+        set
+        {
+            SetSetting(ref field, value, v => GuiSettings.ShowLogTimestampAndLevel = v);
+            LogTextSource.ShowTimestampAndLevel = value;
+        }
+    }
+
+    public bool ShowDebugLogs
+    {
+        get;
+        set
+        {
+            SetSetting(ref field, value, v => GuiSettings.ShowDebugLogs = v);
+            LogTextSource.ShowDebug = value;
+        }
+    }
+
+    public bool WrapLogLines
+    {
+        get;
+        set => SetSetting(ref field, value, v => GuiSettings.WrapLogLines = v);
+    }
 
     public int CurrentHistoryPage
     {
@@ -256,11 +300,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ObservableCollection<string> UrlQueue { get; }
     public ObservableCollection<HistoryEntry> History { get; }
 
-    public List<string> SelectedUrls
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = [];
+    /// <summary>Kept in sync by the queue ListBox (bound to its SelectedItems).</summary>
+    public ObservableCollection<string> SelectedUrls { get; } = [];
 
     public string ConnectButtonDisplay
     {
@@ -271,6 +312,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<CancellationToken, Unit> RipCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> ClearCacheCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> DequeueUrlsCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> ClearQueueCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearLogCommand { get; }
     public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> ConnectCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> SkipCurrentEntryCommand { get; }
@@ -279,7 +322,6 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
     public Interaction<SiteConfigEditorViewModel, bool> ShowSiteConfigDialog { get; } = new();
 
-    public event Action? LogTextChanged;
     public event Action<int, int>? ProgressChanged;
     public event Action? ProgressErrored;
     public event Action<string, string, NotificationType, long>? OnNotification;
@@ -303,12 +345,18 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         CountWidth = GuiSettings.CountWidth;
 
         LogTextSource = logTextSource;
-        LogText = LogTextSource.CurrentText;
-        LogTextSource.LogTextChanged += OnLogTextChanged;
+        ShowLogTimestampAndLevel = GuiSettings.ShowLogTimestampAndLevel;
+        ShowDebugLogs = GuiSettings.ShowDebugLogs;
+        WrapLogLines = GuiSettings.WrapLogLines;
 
         RipCommand = ReactiveCommand.CreateFromTask<CancellationToken>(QueueAndRip);
         ClearCacheCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ClearCache);
-        DequeueUrlsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(DequeueUrls);
+        SelectedUrls.CollectionChanged += (_, _) => HasSelectedUrls = SelectedUrls.Count > 0;
+        DequeueUrlsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(DequeueUrls,
+            this.WhenAnyValue(x => x.HasSelectedUrls));
+        ClearQueueCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ClearQueue,
+            this.WhenAnyValue(x => x.QueueCount, count => count > 0));
+        ClearLogCommand = ReactiveCommand.Create(() => LogTextSource.Clear());
         ReRipUrlCommand = ReactiveCommand.CreateFromTask<string>(Rerip);
         ConnectCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ToggleStateToRemote);
         SkipCurrentEntryCommand = ReactiveCommand.CreateFromTask<CancellationToken>(RipperClient.SkipCurrentEntry);
@@ -469,30 +517,47 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         return RipperClient.ClearCache(cancellationToken);
     }
 
-    private void OnLogTextChanged(string text)
-    {
-        Dispatcher.UIThread.Post(() => { LogText = text; });
-        LogTextChanged?.Invoke();
-    }
-
     private Task DequeueUrls(CancellationToken cancellationToken = default)
     {
-        return RipperClient.DequeueUrls(SelectedUrls, cancellationToken);
+        // Copy: the ListBox edits SelectedUrls as the removed items disappear from the queue
+        return RipperClient.DequeueUrls(SelectedUrls.ToList(), cancellationToken);
     }
 
-    private Task QueueAndRip(CancellationToken cancellationToken = default)
+    private async Task ClearQueue(CancellationToken cancellationToken = default)
+    {
+        var urls = UrlQueue.ToList();
+        if (urls.Count == 0)
+        {
+            return;
+        }
+
+        var message = $"Remove all {urls.Count} URL(s) from the queue?";
+        if (CurrentUrl is not null)
+        {
+            message += "\nThe URL currently being ripped will finish, but won't be retried.";
+        }
+
+        var confirmation = await ShowConfirmationDialog.Handle(new ConfirmationViewModel { Message = message });
+        if (confirmation?.Confirmed != true)
+        {
+            return;
+        }
+
+        await RipperClient.DequeueUrls(urls, cancellationToken);
+    }
+
+    private async Task QueueAndRip(CancellationToken cancellationToken = default)
     {
         var input = UrlInput;
-        if (string.IsNullOrWhiteSpace(input) && RipperClient.UrlQueueCount == 0)
+        if (string.IsNullOrWhiteSpace(input) && await RipperClient.GetUrlQueueCount(cancellationToken) == 0)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         Logger.LogDebug("Queuing URL: {url}", input);
 
         UrlInput = "";
-        Task.Run(() => QueueUrls(input, cancellationToken), cancellationToken);
-        return Task.CompletedTask;
+        _ = Task.Run(() => QueueUrls(input, cancellationToken), cancellationToken);
     }
 
     private async Task QueueUrls(string input, CancellationToken cancellationToken = default)
@@ -559,7 +624,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             }
         }
 
-        Logger.LogDebug("URLS in queue: {count}", RipperClient.UrlQueueCount);
+        Logger.LogDebug("URLS in queue: {count}", await RipperClient.GetUrlQueueCount(cancellationToken));
 
         if (RipInProgress)
         {
@@ -692,7 +757,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         Logger.LogDebug("Re-ripping URL: {url}", url);
         await RipperClient.ForceQueueUrl(url, cancellationToken);
 
-        Logger.LogDebug("URLS in queue: {count}", RipperClient.UrlQueueCount);
+        Logger.LogDebug("URLS in queue: {count}", await RipperClient.GetUrlQueueCount(cancellationToken));
 
         if (RipInProgress)
         {
@@ -730,10 +795,12 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         {
             try
             {
-                var queueIter = await RipperClient.GetUrlQueue();
-                var queue = queueIter.ToList();
-                UrlQueue.Update(queue);
-                UrlCountText = $"URLs in queue: {queue.Count}";
+                var queue = (await RipperClient.GetUrlQueue()).ToList();
+                var currentUrl = await RipperClient.GetCurrentUrl();
+                // Sync in place so the user's selection and scroll position survive queue changes mid-rip
+                UrlQueue.SyncTo(queue);
+                QueueCount = queue.Count;
+                CurrentUrl = currentUrl;
             }
             catch (Exception e)
             {
@@ -757,6 +824,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public void SaveData()
     {
         RipperClient.SaveData();
+        GuiSettings.Save();
     }
 
     public void Cleanup()
