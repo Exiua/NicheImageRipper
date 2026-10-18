@@ -14,6 +14,7 @@ using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Gui.ExtensionMethods;
 using NicheImageRipper.Gui.Services;
+using NicheImageRipper.Gui.Services.Shared;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.SiteModules.Modules.Booru;
@@ -47,19 +48,28 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         private set
         {
             this.RaiseAndSetIfChanged(ref field, value);
-            this.RaisePropertyChanged(nameof(UrlCountText));
+            this.RaisePropertyChanged(nameof(HasQueuedUrls));
         }
     }
 
-    public string UrlCountText => $"URLs in queue: {QueueCount}";
+    public bool HasQueuedUrls => QueueCount > 0;
 
     public string? CurrentUrl
     {
         get;
         private set
         {
+            var startedNewUrl = value is not null && value != field;
             this.RaiseAndSetIfChanged(ref field, value);
             this.RaisePropertyChanged(nameof(HasCurrentUrl));
+            if (startedNewUrl)
+            {
+                // Progress events belong to the previous URL until the new rip reports its own
+                ProgressCurrent = 0;
+                ProgressTotal = 0;
+            }
+
+            UpdateProgressDisplay();
         }
     }
 
@@ -70,6 +80,63 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         get;
         private set => this.RaiseAndSetIfChanged(ref field, value);
     }
+
+    public IReadOnlyList<string> ThemeOptions => ThemeManager.Themes;
+
+    public string SelectedTheme
+    {
+        get;
+        set
+        {
+            value ??= ThemeManager.System; // ListBox briefly clears its selection while re-templating
+            SetSetting(ref field, value, v => GuiSettings.Theme = v);
+            ThemeManager.ApplyTheme(value);
+        }
+    } = ThemeManager.System;
+
+    public IReadOnlyList<AccentOption> AccentOptions => AccentOption.All;
+
+    public AccentOption SelectedAccent
+    {
+        get;
+        set
+        {
+            value ??= AccentOption.All[0];
+            SetSetting(ref field, value, v => GuiSettings.AccentColor = v.Hex ?? "");
+            ThemeManager.ApplyAccent(value.Hex);
+        }
+    } = AccentOption.All[0];
+
+    public double ProgressPercent
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public bool IsProgressIndeterminate
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public string ProgressText
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
+
+    /// <summary>The strip keeps its space when idle so the layout doesn't jump when a rip starts.</summary>
+    public double ProgressStripOpacity
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public string CoreVersionText
+    {
+        get;
+        protected set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
 
     public bool ShowLogTimestampAndLevel
     {
@@ -295,7 +362,20 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
-    public bool Active { get; set; }
+    /// <summary>Thin client: connected to the backend. Always false in full mode.</summary>
+    public bool Active
+    {
+        get;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(CanRip));
+            this.RaisePropertyChanged(nameof(ConnectionText));
+        }
+    }
+
+    public bool CanRip => !IsThinClient || Active;
+    public string ConnectionText => Active ? "Connected" : "Disconnected";
 
     public ObservableCollection<string> UrlQueue { get; }
     public ObservableCollection<HistoryEntry> History { get; }
@@ -345,6 +425,10 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         CountWidth = GuiSettings.CountWidth;
 
         LogTextSource = logTextSource;
+        SelectedTheme = ThemeManager.Themes.FirstOrDefault(t => string.Equals(t, GuiSettings.Theme,
+            StringComparison.OrdinalIgnoreCase)) ?? ThemeManager.System;
+        SelectedAccent = AccentOption.All.FirstOrDefault(a => string.Equals(a.Hex ?? "", GuiSettings.AccentColor,
+            StringComparison.OrdinalIgnoreCase)) ?? AccentOption.All[0];
         ShowLogTimestampAndLevel = GuiSettings.ShowLogTimestampAndLevel;
         ShowDebugLogs = GuiSettings.ShowDebugLogs;
         WrapLogLines = GuiSettings.WrapLogLines;
@@ -384,6 +468,9 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         await GuiSettings.InitializeAsync(cancellationToken);
         // Thin settings are only known once fetched from the backend, so re-sync what the settings tab shows
         Dispatcher.UIThread.Post(RefreshSettings);
+        var coreVersion = await RipperClient.GetCoreVersion(cancellationToken);
+        Dispatcher.UIThread.Post(() => CoreVersionText = $"Core v{coreVersion}");
+        OnUrlQueueUpdated();
         await RefreshHistory(cancellationToken);
     }
 
@@ -811,9 +898,23 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private void OnProgressChanged(int current, int total)
     {
-        // ProgressCurrent = (ulong)current;
-        // ProgressTotal = (ulong)total;
+        Dispatcher.UIThread.Post(() =>
+        {
+            ProgressCurrent = (ulong)Math.Max(current, 0);
+            ProgressTotal = (ulong)Math.Max(total, 0);
+            UpdateProgressDisplay();
+        });
         ProgressChanged?.Invoke(current, total);
+    }
+
+    private void UpdateProgressDisplay()
+    {
+        var ripping = CurrentUrl is not null;
+        ProgressStripOpacity = ripping ? 1 : 0;
+        // Before the first file is counted (e.g. while the page is being parsed) there's nothing to measure
+        IsProgressIndeterminate = ripping && ProgressTotal == 0;
+        ProgressPercent = ProgressTotal == 0 ? 0 : Math.Min(100, ProgressCurrent * 100.0 / ProgressTotal);
+        ProgressText = !ripping ? "" : ProgressTotal == 0 ? "Preparing…" : $"{ProgressCurrent} of {ProgressTotal} files";
     }
 
     public void LoadUnfinishedUrls(string path)
@@ -952,10 +1053,15 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private void ClearProgressState()
     {
-        ProgressCurrent = 0;
-        ProgressTotal = 0;
-        ProgressHasError = false;
-        ProgressIsPaused = false;
+        // Called from the background rip task
+        Dispatcher.UIThread.Post(() =>
+        {
+            ProgressCurrent = 0;
+            ProgressTotal = 0;
+            ProgressHasError = false;
+            ProgressIsPaused = false;
+            UpdateProgressDisplay();
+        });
     }
 
     private void SetProgressError()

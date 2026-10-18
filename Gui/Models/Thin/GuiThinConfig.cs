@@ -23,6 +23,9 @@ public class GuiThinConfig
     public double CountWidth { get; set; } = 100;
 
     public LogDisplaySettings LogDisplay { get; set; } = new();
+
+    public string Theme { get; set; } = "System";
+    public string AccentColor { get; set; } = "";
     
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtraData { get; set; }

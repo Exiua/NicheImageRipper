@@ -3,16 +3,92 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:NicheImageRipper.Gui.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:shared="clr-namespace:NicheImageRipper.Gui.Services.Shared"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="NicheImageRipper.Gui.Views.MainWindow"
         x:DataType="vm:MainWindowViewModelBase"
         Icon="/Assets/avalonia-logo.ico"
-        Title="{Binding Title}">
-    
+        Title="{Binding Title}"
+        MinWidth="760" MinHeight="480">
+
     <Window.Resources>
         <StreamGeometry x:Key="PauseButtonIcon">M520-200v-560h240v560H520Zm-320 0v-560h240v560H200Zm400-80h80v-400h-80v400Zm-320 0h80v-400h-80v400Zm0-400v400-400Zm320 0v400-400Z</StreamGeometry>
         <StreamGeometry x:Key="PlayButtonIcon">M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z</StreamGeometry>
     </Window.Resources>
+
+    <Window.Styles>
+        <!-- Settings rows -->
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Margin" Value="0,6,24,6" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector=":is(Control).value">
+            <Setter Property="Margin" Value="0,6" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.status">
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- Fluent's default 24px tab headers are oversized for a utility window -->
+        <Style Selector="TabControl.main > TabItem">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="12,0" />
+        </Style>
+        <Style Selector="TabControl.nav > TabItem">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinWidth" Value="150" />
+        </Style>
+        <!-- Count badge in tab headers -->
+        <Style Selector="Border.badge">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- Segmented theme picker -->
+        <Style Selector="ListBox.segmented">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="ListBox.segmented ListBoxItem">
+            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="MinWidth" Value="80" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <!-- Accent swatches -->
+        <Style Selector="ListBox.swatches">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="ListBox.swatches ListBoxItem">
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+        <Style Selector="ListBox.swatches ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlHighlightAccentBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+    </Window.Styles>
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -20,27 +96,146 @@
         <vm:MainWindowViewModelBase />
     </Design.DataContext>
 
-    <Grid x:Name="GridBackground" ColumnDefinitions="*" RowDefinitions="Auto, *" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-          Height="{Binding Height, RelativeSource={RelativeSource Self}}" Focusable="True">
-        <StackPanel x:Name="TopPanel" Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="25">
-            <TextBlock Text="Enter Url:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding UrlInput}" Width="500" Height="32" AcceptsReturn="True" TextChanged="OnUrlInput" IsReadOnly="{Binding Active}"/>
-            <Button HotKey="Enter" Command="{Binding RipCommand}" IsEnabled="{Binding !Active}">Rip</Button>
-            <Button Click="PlayPauseButton_OnClick"><PathIcon x:Name="PlayPauseButtonIcon" Data="{StaticResource PauseButtonIcon}"></PathIcon></Button>
-            <Button Content="{Binding ConnectButtonDisplay}"
-                    Command="{Binding ConnectCommand}"
-                    IsVisible="{Binding IsThinClient}" />
-        </StackPanel>
-        <TabControl Grid.Row="1" Grid.Column="0" Margin="25">
+    <Grid x:Name="GridBackground" RowDefinitions="Auto,Auto,*,Auto" Focusable="True">
+
+        <!-- Command bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="16,12,16,10">
+            <PathIcon Grid.Column="0" Margin="0,0,10,0" Width="16" Height="16" Opacity="0.6"
+                      Data="M440-280H280q-83 0-141.5-58.5T80-480q0-83 58.5-141.5T280-680h160v80H280q-50 0-85 35t-35 85q0 50 35 85t85 35h160v80ZM320-440v-80h320v80H320Zm200 160v-80h160q50 0 85-35t35-85q0-50-35-85t-85-35H520v-80h160q83 0 141.5 58.5T880-480q0 83-58.5 141.5T680-280H520Z" />
+            <TextBox Grid.Column="1" Text="{Binding UrlInput}" Height="34" AcceptsReturn="True" TextChanged="OnUrlInput"
+                     VerticalContentAlignment="Center"
+                     PlaceholderText="Paste one or more URLs, or: booru tag1 tag2" />
+            <Button Grid.Column="2" Margin="8,0,0,0" Height="34" Padding="20,0" Classes="accent" HotKey="Enter"
+                    Command="{Binding RipCommand}" IsEnabled="{Binding CanRip}" VerticalContentAlignment="Center"
+                    ToolTip.Tip="Queue the URLs and start ripping (Enter)">Rip</Button>
+            <Button Grid.Column="3" Margin="8,0,0,0" Height="34" Click="PlayPauseButton_OnClick" ToolTip.Tip="Pause or resume">
+                <PathIcon x:Name="PlayPauseButtonIcon" Width="14" Height="14" Data="{StaticResource PauseButtonIcon}" />
+            </Button>
+            <Button Grid.Column="4" Margin="8,0,0,0" Height="34" Content="{Binding ConnectButtonDisplay}"
+                    Command="{Binding ConnectCommand}" IsVisible="{Binding IsThinClient}" />
+        </Grid>
+
+        <!-- Progress strip for the current rip -->
+        <ProgressBar Grid.Row="1" Height="3" MinHeight="3" CornerRadius="0" Minimum="0" Maximum="100"
+                     Value="{Binding ProgressPercent}" IsIndeterminate="{Binding IsProgressIndeterminate}"
+                     Opacity="{Binding ProgressStripOpacity}" />
+
+        <TabControl Grid.Row="2" Classes="main" Margin="12,0,16,0" Padding="4,8,0,0">
+
+            <!-- Queue -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Queue" VerticalAlignment="Center" />
+                        <Border Classes="badge" IsVisible="{Binding HasQueuedUrls}">
+                            <TextBlock Text="{Binding QueueCount}" FontSize="12" />
+                        </Border>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Border Grid.Row="0" IsVisible="{Binding HasCurrentUrl}" Margin="0,0,0,12" Padding="14,10"
+                            CornerRadius="6" BorderThickness="1"
+                            BorderBrush="{DynamicResource SystemControlHighlightAccentBrush}"
+                            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Now ripping" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Classes="status" Text="{Binding ProgressText}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,4,0,8"
+                                       Text="{Binding CurrentUrl}" ToolTip.Tip="{Binding CurrentUrl}"
+                                       FontFamily="Cascadia Mono,Consolas,Menlo,monospace" FontSize="13"
+                                       TextTrimming="CharacterEllipsis" Opacity="0.8" />
+                            <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Minimum="0" Maximum="100"
+                                         Value="{Binding ProgressPercent}" IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+                        <Button Command="{Binding DequeueUrlsCommand}" ToolTip.Tip="Remove the selected URLs (Delete)">Remove selected</Button>
+                        <Button Command="{Binding ClearQueueCommand}">Clear queue</Button>
+                    </StackPanel>
+                    <ListBox Grid.Row="2" x:Name="UrlQueue" SelectionMode="Multiple" CornerRadius="6"
+                             BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                             ItemsSource="{Binding UrlQueue}" SelectedItems="{Binding SelectedUrls, Mode=OneWay}">
+                        <ListBox.KeyBindings>
+                            <KeyBinding Gesture="Delete" Command="{Binding DequeueUrlsCommand}" />
+                        </ListBox.KeyBindings>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" FontSize="13"
+                                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Grid.Row="2" IsVisible="{Binding !HasQueuedUrls}" HorizontalAlignment="Center"
+                                VerticalAlignment="Center" Spacing="4" IsHitTestVisible="False">
+                        <TextBlock Text="The queue is empty" FontSize="16" HorizontalAlignment="Center" />
+                        <TextBlock Classes="status" HorizontalAlignment="Center"
+                                   Text="Paste URLs above and select Rip, or load unfinished URLs from Settings." />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- History -->
+            <TabItem Header="History">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+                            <Button Click="PreviousHistoryPage" IsEnabled="{Binding CanGoToPreviousHistoryPage}">Previous</Button>
+                            <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage"
+                                     MinWidth="56" HorizontalContentAlignment="Center" ToolTip.Tip="Page number" />
+                            <Button Click="NextHistoryPage" IsEnabled="{Binding CanGoToNextHistoryPage}">Next</Button>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                            <TextBox Text="{Binding HistoryFilterText}" Width="380" LostFocus="UpdateCurrentHistoryPageWithFilter"
+                                     PlaceholderText="Filter: name:..., url:..., or date:yyyy-mm-dd" />
+                            <Button Click="ClearHistoryFilter">Clear</Button>
+                        </StackPanel>
+                    </Grid>
+                    <DataGrid Grid.Row="1" Margin="0,0,0,8" ItemsSource="{Binding History}"
+                              IsReadOnly="True"
+                              KeyUp="HistoryDataGrid_OnKeyUp"
+                              CanUserReorderColumns="False"
+                              CanUserResizeColumns="True"
+                              CanUserSortColumns="False"
+                              GridLinesVisibility="Horizontal"
+                              CornerRadius="6"
+                              BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}"
+                                                Width="{Binding NameWidth}" Tag="HistoryName"
+                                                PropertyChanged="OnHistoryColumnWidthChanged" />
+                            <DataGridTextColumn Header="Url" Binding="{Binding Url}"
+                                                Width="{Binding UrlWidth}" Tag="HistoryUrl"
+                                                PropertyChanged="OnHistoryColumnWidthChanged" />
+                            <DataGridTextColumn Header="Date" Binding="{Binding Date}"
+                                                Width="{Binding DateWidth}" Tag="HistoryDate"
+                                                PropertyChanged="OnHistoryColumnWidthChanged" />
+                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}"
+                                                Width="{Binding CountWidth}" Tag="HistoryCount"
+                                                PropertyChanged="OnHistoryColumnWidthChanged" />
+                            <DataGridTemplateColumn Header="Action">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Re-rip" Padding="10,2"
+                                                Command="{Binding ((vm:MainWindowViewModelBase)DataContext).ReRipUrlCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding Url}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Logs -->
             <TabItem Header="Logs">
                 <Grid RowDefinitions="Auto,*">
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="5,10,5,0">
-                        <TextBlock x:Name="LogPausedText" Text="Scrolled up: new lines appear when you scroll to the bottom"
-                                   Foreground="Gray" VerticalAlignment="Center" IsVisible="False" />
-                        <Button Command="{Binding ClearLogCommand}">Clear</Button>
-                    </StackPanel>
-                    <TextBox Grid.Row="1" x:Name="LogTextBox" Margin="5" IsReadOnly="True" AcceptsReturn="True"
-                             FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" x:Name="LogPausedText" Classes="status" IsVisible="False"
+                                   Text="Scrolled up: new lines appear when you scroll to the bottom" />
+                        <Button Grid.Column="1" Command="{Binding ClearLogCommand}">Clear</Button>
+                    </Grid>
+                    <TextBox Grid.Row="1" x:Name="LogTextBox" Margin="0,0,0,8" IsReadOnly="True" AcceptsReturn="True"
+                             FontFamily="Cascadia Mono,Consolas,Menlo,monospace" FontSize="13"
                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
                              Classes.wrap="{Binding WrapLogLines}">
                         <TextBox.Styles>
@@ -51,167 +246,172 @@
                     </TextBox>
                 </Grid>
             </TabItem>
-            <TabItem Header="Queue">
-                <Grid RowDefinitions="Auto, *" ColumnDefinitions="*">
-                    <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,10">
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
-                            <Button Command="{Binding DequeueUrlsCommand}" ToolTip.Tip="Remove the selected URLs (Delete)">
-                                Remove Selected
-                            </Button>
-                            <Button Command="{Binding ClearQueueCommand}">Clear Queue</Button>
-                        </StackPanel>
-                        <TextBlock Grid.Column="1" Margin="15,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                   IsVisible="{Binding HasCurrentUrl}"
-                                   Text="{Binding CurrentUrl, StringFormat='Ripping: {0}'}"
-                                   ToolTip.Tip="{Binding CurrentUrl}" />
-                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding UrlCountText}" />
-                    </Grid>
-                    <ListBox Grid.Row="1" Grid.Column="0" x:Name="UrlQueue" SelectionMode="Multiple"
-                             ItemsSource="{Binding UrlQueue}" SelectedItems="{Binding SelectedUrls, Mode=OneWay}">
-                        <ListBox.KeyBindings>
-                            <KeyBinding Gesture="Delete" Command="{Binding DequeueUrlsCommand}" />
-                        </ListBox.KeyBindings>
-                    </ListBox>
-                </Grid>
-            </TabItem>
-            <TabItem Header="History">
-                <Grid RowDefinitions="Auto,*">
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <Button Click="PreviousHistoryPage" IsEnabled="{Binding CanGoToPreviousHistoryPage}">Previous</Button>
-                            <TextBox Text="{Binding CurrentHistoryPageDisplay}" LostFocus="UpdateCurrentHistoryPage" />
-                            <Button Click="NextHistoryPage" IsEnabled="{Binding CanGoToNextHistoryPage}">Next</Button>
-                        </StackPanel>
-                        <TextBlock Grid.Column="1" /> <!-- Spacer -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <TextBox Text="{Binding HistoryFilterText}" Width="500" LostFocus="UpdateCurrentHistoryPageWithFilter" />
-                            <Button Click="ClearHistoryFilter">Clear</Button>
-                        </StackPanel>
-                    </Grid>
-                    <DataGrid Grid.Row="1" Margin="0, 10" ItemsSource="{Binding History}"
-                              IsReadOnly="True"
-                              KeyUp="HistoryDataGrid_OnKeyUp"
-                              CanUserReorderColumns="False"
-                              CanUserResizeColumns="True"
-                              CanUserSortColumns="False"
-                              GridLinesVisibility="All"
-                              BorderThickness="1" BorderBrush="Gray">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name" Binding="{Binding DirectoryName}" 
-                                                Width="{Binding NameWidth}" Tag="HistoryName"
-                                                PropertyChanged="OnHistoryColumnWidthChanged" />
-                            <DataGridTextColumn Header="Url" Binding="{Binding Url}" 
-                                                Width="{Binding UrlWidth}" Tag="HistoryUrl"
-                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
-                            <DataGridTextColumn Header="Date" Binding="{Binding Date}" 
-                                                Width="{Binding DateWidth}" Tag="HistoryDate"
-                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
-                            <DataGridTextColumn Header="#" Binding="{Binding NumUrls}"
-                                                Width="{Binding CountWidth}" Tag="HistoryCount"
-                                                PropertyChanged="OnHistoryColumnWidthChanged"/>
-                            <DataGridTemplateColumn Header="Action">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="Re-rip" 
-                                                Command="{Binding ((vm:MainWindowViewModelBase)DataContext).ReRipUrlCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                                CommandParameter="{Binding Url}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </TabItem>
+
+            <!-- Settings, split into categories -->
             <TabItem Header="Settings">
-                <ScrollViewer>
-                    <Grid ColumnDefinitions="Auto,400,Auto"
-                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                        <Grid.Styles>
-                            <Style Selector="TextBlock.header">
-                                <Setter Property="FontSize" Value="16" />
-                                <Setter Property="FontWeight" Value="SemiBold" />
-                                <Setter Property="Margin" Value="10,20,10,5" />
-                            </Style>
-                            <Style Selector="TextBlock.label">
-                                <Setter Property="Margin" Value="10,5" />
-                                <Setter Property="VerticalAlignment" Value="Center" />
-                            </Style>
-                            <Style Selector=":is(Control).value">
-                                <Setter Property="Margin" Value="10,5" />
-                                <Setter Property="VerticalAlignment" Value="Center" />
-                            </Style>
-                        </Grid.Styles>
+                <TabControl TabStripPlacement="Left" Classes="nav" Padding="24,4,0,0" Margin="0,0,0,8">
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="General" />
-                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Save Location:" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="value" Text="{Binding SavePath}" TextTrimming="CharacterEllipsis"
-                                   ToolTip.Tip="{Binding SavePath}" />
-                        <Button Grid.Row="1" Grid.Column="2" Classes="value" Click="SelectFolder">Browse</Button>
-                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Filename Scheme:" />
-                        <ComboBox Grid.Row="2" Grid.Column="1" Classes="value" ItemsSource="{Binding FilenameSchemes}"
-                                  SelectedItem="{Binding FilenameScheme}" />
-                        <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Unzip Protocol:" />
-                        <ComboBox Grid.Row="3" Grid.Column="1" Classes="value" ItemsSource="{Binding UnzipProtocols}"
-                                  SelectedItem="{Binding UnzipProtocol}" />
-                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="User Agent:" />
-                        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Classes="value"
-                                 Text="{Binding UserAgent, UpdateSourceTrigger=LostFocus}" />
+                    <TabItem Header="Appearance">
+                        <ScrollViewer>
+                            <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                                <TextBlock Classes="section" Text="Appearance" />
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Theme" />
+                                    <ListBox Grid.Row="0" Grid.Column="1" Classes="segmented value"
+                                             ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                    </ListBox>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Accent color" />
+                                    <ListBox Grid.Row="1" Grid.Column="1" Classes="swatches value"
+                                             ItemsSource="{Binding AccentOptions}" SelectedItem="{Binding SelectedAccent}">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate x:DataType="shared:AccentOption">
+                                                <Panel Width="22" Height="22" ToolTip.Tip="{Binding Name}">
+                                                    <Ellipse Fill="{Binding Brush}" IsVisible="{Binding HasColor}" />
+                                                    <Ellipse IsVisible="{Binding !HasColor}" StrokeThickness="1.5"
+                                                             Stroke="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                                    <TextBlock IsVisible="{Binding !HasColor}" Text="A" FontSize="11"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Panel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="hint"
+                                               Text="System follows your OS light/dark mode and accent color." />
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Downloading" />
-                        <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Max Retries:" />
-                        <TextBox Grid.Row="6" Grid.Column="1" Classes="value" x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}"
-                                 LostFocus="ValidateNumericValue" ToolTip.Tip="Total attempts per URL (minimum 1)" />
-                        <TextBlock Grid.Row="7" Grid.Column="0" Classes="label" Text="Retry Delay (ms):" />
-                        <TextBox Grid.Row="7" Grid.Column="1" Classes="value" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}"
-                                 LostFocus="ValidateNumericValue" />
-                        <TextBlock Grid.Row="8" Grid.Column="0" Classes="label" Text="Skip Failed Downloads:" />
-                        <CheckBox Grid.Row="8" Grid.Column="1" Classes="value" IsChecked="{Binding SkipFailedDownloads}" />
-                        <TextBlock Grid.Row="9" Grid.Column="0" Classes="label" Text="Remove Duplicate Files:" />
-                        <CheckBox Grid.Row="9" Grid.Column="1" Classes="value" IsChecked="{Binding RemoveDuplicates}" />
-                        <TextBlock Grid.Row="10" Grid.Column="0" Classes="label" Text="Run Post-Process Script:" />
-                        <CheckBox Grid.Row="10" Grid.Column="1" Classes="value" IsChecked="{Binding RunPostProcessScript}"
-                                  ToolTip.Tip="Runs each site's post-process script (set in Site Configs) after a rip completes" />
+                    <TabItem Header="Downloading">
+                        <ScrollViewer>
+                            <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                                <TextBlock Classes="section" Text="Downloading" />
+                                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Save location" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Classes="value" Text="{Binding SavePath}"
+                                               TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SavePath}" />
+                                    <Button Grid.Row="0" Grid.Column="2" Classes="value" Margin="8,6,0,6" Click="SelectFolder">Browse</Button>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Filename scheme" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1" Classes="value" MinWidth="200"
+                                              ItemsSource="{Binding FilenameSchemes}" SelectedItem="{Binding FilenameScheme}" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Unzip archives" />
+                                    <ComboBox Grid.Row="2" Grid.Column="1" Classes="value" MinWidth="200"
+                                              ItemsSource="{Binding UnzipProtocols}" SelectedItem="{Binding UnzipProtocol}" />
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Max retries" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value" Width="120" HorizontalAlignment="Left"
+                                             x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}"
+                                             LostFocus="ValidateNumericValue" ToolTip.Tip="Total attempts per URL (minimum 1)" />
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="Retry delay (ms)" />
+                                    <TextBox Grid.Row="4" Grid.Column="1" Classes="value" Width="120" HorizontalAlignment="Left"
+                                             x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Classes="label" Text="Skip failed downloads" />
+                                    <ToggleSwitch Grid.Row="5" Grid.Column="1" Classes="value" IsChecked="{Binding SkipFailedDownloads}" />
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Remove duplicate files" />
+                                    <ToggleSwitch Grid.Row="6" Grid.Column="1" Classes="value" IsChecked="{Binding RemoveDuplicates}" />
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Classes="label" Text="Run post-process script" />
+                                    <ToggleSwitch Grid.Row="7" Grid.Column="1" Classes="value" IsChecked="{Binding RunPostProcessScript}"
+                                                  ToolTip.Tip="Runs each site's post-process script (set under Sites) after a rip completes" />
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
 
-                        <TextBlock Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Queue" />
-                        <TextBlock Grid.Row="12" Grid.Column="0" Classes="label" Text="Save Unfinished Urls:" />
-                        <CheckBox Grid.Row="12" Grid.Column="1" Classes="value" IsChecked="{Binding SaveUnfinishedUrls}" />
-                        <TextBlock Grid.Row="13" Grid.Column="0" Classes="label" Text="Load Unfinished Urls:" />
-                        <Button Grid.Row="13" Grid.Column="1" Classes="value" Click="SelectUnfinishedUrlFile">Browse</Button>
+                    <TabItem Header="Queue">
+                        <ScrollViewer>
+                            <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                                <TextBlock Classes="section" Text="Queue" />
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Save unfinished URLs" />
+                                    <ToggleSwitch Grid.Row="0" Grid.Column="1" Classes="value" IsChecked="{Binding SaveUnfinishedUrls}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Load unfinished URLs" />
+                                    <Button Grid.Row="1" Grid.Column="1" Classes="value" Click="SelectUnfinishedUrlFile">Browse</Button>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
 
-                        <TextBlock Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="External Services" />
-                        <TextBlock Grid.Row="15" Grid.Column="0" Classes="label" Text="FlareSolverr URI:" />
-                        <TextBox Grid.Row="15" Grid.Column="1" Classes="value"
-                                 Text="{Binding FlareSolverrUri, UpdateSourceTrigger=LostFocus}" PlaceholderText="http://localhost:8191" />
-                        <TextBlock Grid.Row="16" Grid.Column="0" Classes="label" Text="Close FlareSolverr Session:" />
-                        <CheckBox Grid.Row="16" Grid.Column="1" Classes="value" IsChecked="{Binding CloseFlareSolverrSession}" />
-                        <TextBlock Grid.Row="17" Grid.Column="0" Classes="label" Text="CSWebDriver URI:" />
-                        <TextBox Grid.Row="17" Grid.Column="1" Classes="value"
-                                 Text="{Binding CSWebDriverUri, UpdateSourceTrigger=LostFocus}" />
+                    <TabItem Header="Network">
+                        <ScrollViewer>
+                            <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                                <TextBlock Classes="section" Text="Network" />
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="User agent" />
+                                    <TextBox Grid.Row="0" Grid.Column="1" Classes="value" MinWidth="380"
+                                             Text="{Binding UserAgent, UpdateSourceTrigger=LostFocus}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="FlareSolverr URI" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value"
+                                             Text="{Binding FlareSolverrUri, UpdateSourceTrigger=LostFocus}" PlaceholderText="http://localhost:8191" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Close FlareSolverr session" />
+                                    <ToggleSwitch Grid.Row="2" Grid.Column="1" Classes="value" IsChecked="{Binding CloseFlareSolverrSession}" />
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="CSWebDriver URI" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value"
+                                             Text="{Binding CSWebDriverUri, UpdateSourceTrigger=LostFocus}" />
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
 
-                        <TextBlock Grid.Row="18" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Sites" />
-                        <TextBlock Grid.Row="19" Grid.Column="0" Classes="label" Text="Site Configs:" />
-                        <TextBlock Grid.Row="19" Grid.Column="1" Classes="value"
-                                   Text="{Binding SiteConfigCount, StringFormat='{}{0} site(s) configured'}" />
-                        <Button Grid.Row="19" Grid.Column="2" Classes="value" Command="{Binding EditSiteConfigsCommand}">Edit…</Button>
+                    <TabItem Header="Sites">
+                        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                            <TextBlock Classes="section" Text="Sites" />
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <TextBlock Grid.Column="0" Classes="label" Text="Site configs" />
+                                <TextBlock Grid.Column="1" Classes="value"
+                                           Text="{Binding SiteConfigCount, StringFormat='{}{0} site(s) configured'}" />
+                                <Button Grid.Column="2" Classes="value" Margin="12,6,0,6" Command="{Binding EditSiteConfigsCommand}">Edit…</Button>
+                            </Grid>
+                            <TextBlock Classes="hint" Margin="0,8,0,0"
+                                       Text="Logins, API keys, cookies, filename overrides, and post-process scripts for individual sites." />
+                        </StackPanel>
+                    </TabItem>
 
-                        <TextBlock Grid.Row="20" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Log Tab" />
-                        <TextBlock Grid.Row="21" Grid.Column="0" Classes="label" Text="Show Timestamp and Level:" />
-                        <CheckBox Grid.Row="21" Grid.Column="1" Classes="value" IsChecked="{Binding ShowLogTimestampAndLevel}"
-                                  ToolTip.Tip="Only affects the log tab; the log file always includes them" />
-                        <TextBlock Grid.Row="22" Grid.Column="0" Classes="label" Text="Show Debug Messages:" />
-                        <CheckBox Grid.Row="22" Grid.Column="1" Classes="value" IsChecked="{Binding ShowDebugLogs}" />
-                        <TextBlock Grid.Row="23" Grid.Column="0" Classes="label" Text="Wrap Long Lines:" />
-                        <CheckBox Grid.Row="23" Grid.Column="1" Classes="value" IsChecked="{Binding WrapLogLines}" />
+                    <TabItem Header="Log tab">
+                        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                            <TextBlock Classes="section" Text="Log tab" />
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Show timestamp and level" />
+                                <ToggleSwitch Grid.Row="0" Grid.Column="1" Classes="value" IsChecked="{Binding ShowLogTimestampAndLevel}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Show debug messages" />
+                                <ToggleSwitch Grid.Row="1" Grid.Column="1" Classes="value" IsChecked="{Binding ShowDebugLogs}" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Wrap long lines" />
+                                <ToggleSwitch Grid.Row="2" Grid.Column="1" Classes="value" IsChecked="{Binding WrapLogLines}" />
+                            </Grid>
+                            <TextBlock Classes="hint" Margin="0,8,0,0" Text="Only affects the log tab. The log file always has full detail." />
+                        </StackPanel>
+                    </TabItem>
 
-                        <TextBlock Grid.Row="24" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Maintenance" />
-                        <TextBlock Grid.Row="25" Grid.Column="0" Classes="label" Text="Clear Cache:" />
-                        <Button Grid.Row="25" Grid.Column="1" Classes="value" Command="{Binding ClearCacheCommand}">Clear</Button>
-                        <TextBlock Grid.Row="26" Grid.Column="0" Classes="label" Text="Check For Updates:" />
-                        <Button Grid.Row="26" Grid.Column="1" Classes="value" Command="{Binding CheckForUpdatesCommand}">Check</Button>
-                    </Grid>
-                </ScrollViewer>
+                    <TabItem Header="Maintenance">
+                        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                            <TextBlock Classes="section" Text="Maintenance" />
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Clear cache" />
+                                <Button Grid.Row="0" Grid.Column="1" Classes="value" Command="{Binding ClearCacheCommand}">Clear</Button>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Check for updates" />
+                                <Button Grid.Row="1" Grid.Column="1" Classes="value" Command="{Binding CheckForUpdatesCommand}">Check</Button>
+                            </Grid>
+                        </StackPanel>
+                    </TabItem>
+                </TabControl>
             </TabItem>
         </TabControl>
-    </Grid>
 
+        <!-- Status bar -->
+        <Border Grid.Row="3" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" Padding="16,4">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+                <TextBlock Grid.Column="0" Classes="status" Text="{Binding QueueCount, StringFormat='{}{0} queued'}" />
+                <TextBlock Grid.Column="1" Classes="status" Margin="20,0,0,0" IsVisible="{Binding HasCurrentUrl}"
+                           Text="{Binding ProgressText, StringFormat='Ripping: {0}'}" />
+                <TextBlock Grid.Column="2" Classes="status" Margin="20,0,0,0" IsVisible="{Binding IsThinClient}"
+                           Text="{Binding ConnectionText}" />
+                <TextBlock Grid.Column="4" Classes="status" Text="{Binding CoreVersionText}" />
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

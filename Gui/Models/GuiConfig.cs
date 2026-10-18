@@ -6,6 +6,9 @@ public class GuiConfig : GeneralConfig
 {
     public HistoryColumnWidths HistoryColumnWidths { get; set; } = new();
     public LogDisplaySettings LogDisplay { get; set; } = new();
+
+    /// <summary>"#RRGGBB", or empty to follow the OS accent color. The theme itself is GeneralConfig.Theme.</summary>
+    public string AccentColor { get; set; } = "";
 }
 
 /// <summary>How the log tab renders entries; the log file is unaffected and always has full detail.</summary>

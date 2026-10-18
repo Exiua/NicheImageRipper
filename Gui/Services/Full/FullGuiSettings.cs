@@ -49,4 +49,16 @@ public class FullGuiSettings : IGuiSettings
         get => Config.LogDisplay.WrapLines;
         set => Config.LogDisplay.WrapLines = value;
     }
+
+    public string Theme
+    {
+        get => Config.Theme;
+        set => Config.Theme = value;
+    }
+
+    public string AccentColor
+    {
+        get => Config.AccentColor;
+        set => Config.AccentColor = value;
+    }
 }

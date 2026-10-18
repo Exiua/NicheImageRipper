@@ -48,6 +48,19 @@ public class ThinGuiSettings : IGuiSettings
         set => Config.LogDisplay.WrapLines = value;
     }
 
+    // Kept locally rather than on the backend: appearance is per client
+    public string Theme
+    {
+        get => Config.Theme;
+        set => Config.Theme = value;
+    }
+
+    public string AccentColor
+    {
+        get => Config.AccentColor;
+        set => Config.AccentColor = value;
+    }
+
     public void Save()
     {
         Config.Save();
