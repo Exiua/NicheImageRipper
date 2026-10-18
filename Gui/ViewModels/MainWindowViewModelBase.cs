@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -393,6 +394,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<CancellationToken, Unit> ClearCacheCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> DequeueUrlsCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> ClearQueueCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> SaveQueueAndClearCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> LoadUnfinishedUrlsCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearLogCommand { get; }
     public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> ConnectCommand { get; }
@@ -401,6 +404,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<CancellationToken, Unit> CheckForUpdatesCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
     public Interaction<SiteConfigEditorViewModel, bool> ShowSiteConfigDialog { get; } = new();
+    /// <summary>Returns the full path of the URL list to load, or null if cancelled.</summary>
+    public Interaction<UnfinishedUrlsViewModel, string?> ShowUnfinishedUrlsDialog { get; } = new();
 
     public event Action<int, int>? ProgressChanged;
     public event Action? ProgressErrored;
@@ -440,7 +445,10 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             this.WhenAnyValue(x => x.HasSelectedUrls));
         ClearQueueCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ClearQueue,
             this.WhenAnyValue(x => x.QueueCount, count => count > 0));
+        SaveQueueAndClearCommand = ReactiveCommand.CreateFromTask<CancellationToken>(SaveQueueAndClear,
+            this.WhenAnyValue(x => x.QueueCount, count => count > 0));
         ClearLogCommand = ReactiveCommand.Create(() => LogTextSource.Clear());
+        LoadUnfinishedUrlsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(LoadUnfinishedUrls);
         ReRipUrlCommand = ReactiveCommand.CreateFromTask<string>(Rerip);
         ConnectCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ToggleStateToRemote);
         SkipCurrentEntryCommand = ReactiveCommand.CreateFromTask<CancellationToken>(RipperClient.SkipCurrentEntry);
@@ -631,6 +639,43 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
 
         await RipperClient.DequeueUrls(urls, cancellationToken);
+    }
+
+    private async Task SaveQueueAndClear(CancellationToken cancellationToken = default)
+    {
+        var count = UrlQueue.Count;
+        if (count == 0)
+        {
+            return;
+        }
+
+        var message = $"Save {count} URL(s) to a file and clear the queue?\n" +
+                      "Use Load unfinished… to pick them up again later.";
+        if (CurrentUrl is not null)
+        {
+            message += "\nThe URL currently being ripped will finish, and is included in the file in case it doesn't.";
+        }
+
+        var confirmation = await ShowConfirmationDialog.Handle(new ConfirmationViewModel { Message = message });
+        if (confirmation?.Confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var path = await RipperClient.SaveQueueToFileAndClear(cancellationToken);
+            if (path is not null)
+            {
+                Notify($"Saved {count} URL(s) to {Path.GetFileName(path)}", "Save and clear queue",
+                    NotificationType.Success);
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to save and clear the queue");
+            Notify("Couldn't save the queue; it hasn't been cleared", "Save and clear queue", NotificationType.Error);
+        }
     }
 
     private async Task QueueAndRip(CancellationToken cancellationToken = default)
@@ -917,9 +962,27 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         ProgressText = !ripping ? "" : ProgressTotal == 0 ? "Preparing…" : $"{ProgressCurrent} of {ProgressTotal} files";
     }
 
-    public void LoadUnfinishedUrls(string path)
+    private async Task LoadUnfinishedUrls(CancellationToken cancellationToken = default)
     {
-        RipperClient.LoadUrlFile(path);
+        // Snapshots live in the Core's working directory, which is this process's for the full GUI
+        var directory = Path.GetFullPath(NicheImageRipper.Core.NicheImageRipper.UnfinishedUrlsDirectory);
+        var files = await Task.Run(() => UnfinishedUrlsViewModel.ScanDirectory(directory), cancellationToken);
+        var path = await ShowUnfinishedUrlsDialog.Handle(new UnfinishedUrlsViewModel(directory, files, IsThinClient));
+        if (path is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await RipperClient.LoadUrlFile(path, cancellationToken);
+            Notify($"Loaded URLs from {Path.GetFileName(path)}", "Load unfinished URLs", NotificationType.Success);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to load URL list {Path}", path);
+            Notify($"Couldn't load {Path.GetFileName(path)}", "Load unfinished URLs", NotificationType.Error);
+        }
     }
 
     public void SaveData()

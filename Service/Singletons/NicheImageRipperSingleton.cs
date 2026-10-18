@@ -37,6 +37,14 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         return _ripper.CurrentUrl;
     }
 
+    public string? SaveQueueToFileAndClear()
+    {
+        using (_ripperLock.EnterScope())
+        {
+            return _ripper.SaveQueueToFileAndClear();
+        }
+    }
+
     public RejectedUrlsInfo Queue(string urls)
     {
         using (_ripperLock.EnterScope())

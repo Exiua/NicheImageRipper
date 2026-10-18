@@ -145,16 +145,30 @@ public partial class NicheImageRipper : IDisposable
     }
     
     /// <summary>
-    ///     Loads URLs from a specific unfinished-URLs snapshot file (e.g. one the user picked in the
-    ///     GUI's file browser) and binds future saves to that same file, so it gets updated in place as
-    ///     URLs finish and deleted once the queue empties, rather than the normal subset-scan/new-file
-    ///     logic picking a different target.
+    ///     Loads URLs from a saved URL list (see <see cref="Utility.UrlListFile"/>). If the file is one of the unfinished-rip
+    ///     snapshots in <see cref="UnfinishedUrlsDirectory"/>, future saves are bound to it, so it gets updated in
+    ///     place as URLs finish and deleted once the queue empties. Any other file is only read: binding it would
+    ///     mean overwriting and eventually deleting a file the user picked from elsewhere.
     /// </summary>
+    /// <exception cref="InvalidDataException">The file isn't a valid URL list.</exception>
     public void LoadUrlsFromFile(string path)
     {
-        var loadedUrls = JsonUtility.Deserialize<List<string>>(path)!;
+        if (!Utility.UrlListFile.TryRead(path, out var loadedUrls, out var error))
+        {
+            throw new InvalidDataException($"{path}: {error}");
+        }
+
         LoadUrls(loadedUrls);
-        _unfinishedUrlsPath = path;
+        if (IsUnfinishedUrlsSnapshot(path))
+        {
+            _unfinishedUrlsPath = path;
+        }
+    }
+
+    private static bool IsUnfinishedUrlsSnapshot(string path)
+    {
+        var directory = Path.GetFullPath(UnfinishedUrlsDirectory) + Path.DirectorySeparatorChar;
+        return Path.GetFullPath(path).StartsWith(directory, StringComparison.OrdinalIgnoreCase);
     }
 
     public void QueueUrlsFromEmptyDirectories()
@@ -418,10 +432,63 @@ public partial class NicheImageRipper : IDisposable
         Config.SaveConfig();
     }
 
-    private const string UnfinishedUrlsDirectory = "UnfinishedRips";
+    /// <summary>Folder (relative to the working directory) holding one JSON URL list per unfinished rip.</summary>
+    public const string UnfinishedUrlsDirectory = "UnfinishedRips";
     private const string LegacyUnfinishedUrlsFile = "UnfinishedRips.json";
 
     private string? _unfinishedUrlsPath;
+
+    /// <summary>Suffix for URL lists set aside with <see cref="SaveQueueToFileAndClear"/>.</summary>
+    public const string SavedQueueFileSuffix = ".saved.json";
+
+    /// <summary>
+    ///     Sets the current queue aside: writes it to a new file in <see cref="UnfinishedUrlsDirectory"/>, empties
+    ///     the queue, and unbinds the session's unfinished-URLs file so the next queue starts a new one. A URL that's
+    ///     mid-rip finishes, and is also in the saved file in case it doesn't.
+    /// </summary>
+    /// <returns>Path of the saved file, or null if the queue was empty</returns>
+    public string? SaveQueueToFileAndClear()
+    {
+        List<string> urls;
+        lock (_urlQueueLock)
+        {
+            urls = [..UrlQueue];
+            UrlQueue.Clear();
+        }
+
+        if (urls.Count == 0)
+        {
+            return null;
+        }
+
+        Directory.CreateDirectory(UnfinishedUrlsDirectory);
+        var path = Path.Combine(UnfinishedUrlsDirectory, $"{Guid.NewGuid():N}{SavedQueueFileSuffix}");
+        try
+        {
+            JsonUtility.Serialize(path, urls);
+        }
+        catch
+        {
+            // Don't lose the queue if the file couldn't be written
+            lock (_urlQueueLock)
+            {
+                UrlQueue.InsertRange(0, urls);
+            }
+
+            throw;
+        }
+
+        // The session's own snapshot holds (at most) these same URLs, so the saved file supersedes it
+        if (_unfinishedUrlsPath is not null)
+        {
+            FileUtility.SilentlyRemoveFile(_unfinishedUrlsPath);
+            _unfinishedUrlsPath = null;
+        }
+
+        Logger.Information("Saved {Count} queued URL(s) to {Path} and cleared the queue", urls.Count, path);
+        OnUrlQueueUpdated?.Invoke();
+        return path;
+    }
 
     private void SaveUnfinishedUrlsToDisk()
     {
@@ -460,6 +527,13 @@ public partial class NicheImageRipper : IDisposable
         var currentUrls = GetUrlQueueSnapshot().ToHashSet();
         foreach (var candidatePath in Directory.EnumerateFiles(UnfinishedUrlsDirectory, "*.json"))
         {
+            // Lists set aside on purpose are only resumed by loading them explicitly; adopting one here would
+            // rewrite it down to whatever unrelated queue happens to be a subset of it
+            if (candidatePath.EndsWith(SavedQueueFileSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             List<string>? savedUrls;
             try
             {

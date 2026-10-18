@@ -27,12 +27,6 @@ using ReactiveUI;
 namespace NicheImageRipper.Gui.Views;
 public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 {
-    private static FilePickerFileType Json { get; } = new("JSON")
-    {
-        Patterns = ["*.json"],
-        MimeTypes = ["application/json"],
-    };
-
     private readonly ITaskbarProgressService _taskbarProgressService;
     private Key _lastKeyPressed;
     private bool _copyReady;
@@ -52,6 +46,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         DataContext = viewModel;
         // Needs to be called after DataContext is set otherwise it messes up initial values for components and callbacks
         InitializeComponent();
+        TitleBarTheme.Attach(this);
         Focusable = true;
         viewModel.OnNotification += Show;
         _logRefreshTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background,
@@ -87,6 +82,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         {
             ViewModel!.ShowConfirmationDialog.RegisterHandler((vm) => DoShowDialogAsync(vm)).DisposeWith(disposables);
             ViewModel!.ShowSiteConfigDialog.RegisterHandler(DoShowSiteConfigDialogAsync).DisposeWith(disposables);
+            ViewModel!.ShowUnfinishedUrlsDialog.RegisterHandler(DoShowUnfinishedUrlsDialogAsync).DisposeWith(disposables);
         });
     // this.WhenActivated(disposables =>
     // {
@@ -255,27 +251,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    private async void SelectUnfinishedUrlFile(object? sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var file = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Select Unfinished URL File", FileTypeFilter = [Json], SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(".") // TODO: Change to executable path
- });
-            if (file.Count == 0)
-            {
-                return;
-            }
-
-            var path = Uri.UnescapeDataString(file[0].Path.AbsolutePath);
-            _logger.LogDebug("Selected file: {file}", path);
-            ViewModel!.LoadUnfinishedUrls(path);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogError(exception, "Failed to open file picker");
-        }
-    }
-
     private async void PreviousHistoryPage(object? sender, RoutedEventArgs e)
     {
         try
@@ -374,6 +349,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         };
         var result = await dialog.ShowDialog<bool?>(this);
         interaction.SetOutput(result ?? false);
+    }
+
+    private async Task DoShowUnfinishedUrlsDialogAsync(IInteractionContext<UnfinishedUrlsViewModel, string?> interaction)
+    {
+        var dialog = new UnfinishedUrlsWindow
+        {
+            DataContext = interaction.Input
+        };
+        var result = await dialog.ShowDialog<string?>(this);
+        interaction.SetOutput(result);
     }
 
     private void OnUrlInput(object? sender, TextChangedEventArgs textChangedEventArgs)

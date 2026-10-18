@@ -3,6 +3,7 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using NicheImageRipper.Gui.Services.Shared;
 using NicheImageRipper.Gui.ViewModels;
 
 namespace NicheImageRipper.Gui.Views;
@@ -14,6 +15,7 @@ public partial class SiteConfigWindow : Window
     public SiteConfigWindow()
     {
         InitializeComponent();
+        TitleBarTheme.Attach(this);
     }
 
     private void Save(object? sender, RoutedEventArgs e)

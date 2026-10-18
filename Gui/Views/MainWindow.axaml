@@ -151,6 +151,10 @@
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
                         <Button Command="{Binding DequeueUrlsCommand}" ToolTip.Tip="Remove the selected URLs (Delete)">Remove selected</Button>
                         <Button Command="{Binding ClearQueueCommand}">Clear queue</Button>
+                        <Button Command="{Binding SaveQueueAndClearCommand}"
+                                ToolTip.Tip="Save the queue to a file you can load later, then clear it">Save and clear</Button>
+                        <Button Command="{Binding LoadUnfinishedUrlsCommand}"
+                                ToolTip.Tip="Pick up a saved unfinished rip, or load URLs from a JSON file">Load unfinished…</Button>
                     </StackPanel>
                     <ListBox Grid.Row="2" x:Name="UrlQueue" SelectionMode="Multiple" CornerRadius="6"
                              BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
@@ -169,7 +173,7 @@
                                 VerticalAlignment="Center" Spacing="4" IsHitTestVisible="False">
                         <TextBlock Text="The queue is empty" FontSize="16" HorizontalAlignment="Center" />
                         <TextBlock Classes="status" HorizontalAlignment="Center"
-                                   Text="Paste URLs above and select Rip, or load unfinished URLs from Settings." />
+                                   Text="Paste URLs above and select Rip, or use Load unfinished… to resume a saved rip." />
                     </StackPanel>
                 </Grid>
             </TabItem>
@@ -330,7 +334,7 @@
                                     <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Save unfinished URLs" />
                                     <ToggleSwitch Grid.Row="0" Grid.Column="1" Classes="value" IsChecked="{Binding SaveUnfinishedUrls}" />
                                     <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Load unfinished URLs" />
-                                    <Button Grid.Row="1" Grid.Column="1" Classes="value" Click="SelectUnfinishedUrlFile">Browse</Button>
+                                    <Button Grid.Row="1" Grid.Column="1" Classes="value" Command="{Binding LoadUnfinishedUrlsCommand}">Open…</Button>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>

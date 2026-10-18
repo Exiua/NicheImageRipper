@@ -100,6 +100,11 @@ public class LocalRipperClient : IRipperClient
         return Task.CompletedTask;
     }
 
+    public Task<string?> SaveQueueToFileAndClear(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_ripper.SaveQueueToFileAndClear());
+    }
+
     public Task SaveData(CancellationToken cancellationToken = default)
     {
         return _ripper.SaveData(cancellationToken: cancellationToken);

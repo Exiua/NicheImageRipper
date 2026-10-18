@@ -27,6 +27,9 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public Task ForceQueueUrl(string url, CancellationToken cancellationToken = default);
     public Task RequeueUrls(RejectedUrlsInfo rejectedUrls, CancellationToken cancellationToken = default);
     public Task LoadUrlFile(string path, CancellationToken cancellationToken = default);
+    /// <summary>Saves the queue to a new unfinished-rip file, clears the queue, and starts a fresh unfinished file.</summary>
+    /// <returns>Path of the saved file (on the backend for the thin client), or null if the queue was empty</returns>
+    public Task<string?> SaveQueueToFileAndClear(CancellationToken cancellationToken = default);
     public Task SaveData(CancellationToken cancellationToken = default);
     public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default);
     public Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default);

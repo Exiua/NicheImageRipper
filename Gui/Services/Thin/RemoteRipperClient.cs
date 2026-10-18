@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -84,8 +85,17 @@ public class RemoteRipperClient : IRipperClient
 
     public Task LoadUrlFile(string path, CancellationToken cancellationToken = default)
     {
-        var loadedUrls = JsonUtility.Deserialize<List<string>>(path)!;
+        if (!UrlListFile.TryRead(path, out var loadedUrls, out var error))
+        {
+            throw new InvalidDataException($"{path}: {error}");
+        }
+
         return _backendConnector.LoadUrlsAsync(loadedUrls, cancellationToken);
+    }
+
+    public Task<string?> SaveQueueToFileAndClear(CancellationToken cancellationToken = default)
+    {
+        return _backendConnector.SaveQueueToFileAndClearAsync(cancellationToken);
     }
 
     public Task SaveData(CancellationToken cancellationToken = default)

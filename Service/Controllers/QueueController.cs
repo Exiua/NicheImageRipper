@@ -56,6 +56,15 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
         return Ok(new CurrentUrlResponse(nicheImageRipperSingleton.GetCurrentUrl()));
     }
 
+    /// <summary>Saves the queue to a new unfinished-rip file on the backend and clears it.</summary>
+    [HttpPost("save-and-clear")]
+    public ActionResult<SavedQueueResponse> SaveQueueToFileAndClear()
+    {
+        var path = nicheImageRipperSingleton.SaveQueueToFileAndClear();
+        logger.LogInformation("Saved queue to {Path} and cleared it", path);
+        return Ok(new SavedQueueResponse(path));
+    }
+
     [HttpPost("load")]
     public IActionResult LoadUrls([FromBody] List<string> urls)
     {

@@ -34,6 +34,7 @@ public interface IBackendConnector : IAsyncInitialization
         CancellationToken cancellationToken = default);
     
     public Task LoadUrlsAsync(IEnumerable<string> urls, CancellationToken cancellationToken = default);
+    public Task<string?> SaveQueueToFileAndClearAsync(CancellationToken cancellationToken = default);
 
     public Task<bool> RipAsync(CancellationToken cancellationToken = default);
     public Task<bool> PauseAsync(CancellationToken cancellationToken = default);
