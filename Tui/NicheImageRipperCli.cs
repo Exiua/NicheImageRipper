@@ -82,7 +82,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         {
             try
             {
-                LogMessageToFile($"{Title}> ", newLine: false);
+                TuiOutput.Write($"{Title}> ", newLine: false);
                 var userInput = Console.ReadLine();
                 if (string.IsNullOrEmpty(userInput))
                 {
@@ -97,7 +97,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
 
                 if (tokens[0] is "q" or "quit")
                 {
-                    LogMessageToFile("Exiting...");
+                    TuiOutput.Write("Exiting...");
                     await SaveData(_cancellationToken);
                     return;
                 }
@@ -163,13 +163,17 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
 
     private Command BuildBooruCommand()
     {
-        var tagsArg = new Argument<string>("tags");
-        var cmd = new Command("booru", "Queue a booru.com search by tags") { tagsArg };
+        var tagsArg = new Argument<string[]>("tags")
+        {
+            Arity = ArgumentArity.OneOrMore,
+            Description = "Tags for one search; a booru search URL starts another search",
+        };
+        var cmd = new Command("booru", "Queue searches across every supported booru") { tagsArg };
         cmd.SetAction(parseResult =>
         {
-            var tags = parseResult.GetValue(tagsArg);
-            var url = "https://booru.com/post?tags=" + tags;
-            var rejected = QueueUrls(url);
+            var tags = parseResult.GetValue(tagsArg) ?? [];
+            // Expanded into booru search URLs by Core, the same as typing it in the GUI
+            var rejected = QueueUrls("booru " + string.Join(" ", tags));
             HandleRejectedUrls(rejected);
         });
         return cmd;
@@ -184,14 +188,14 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         cacheCmd.SetAction(_ =>
         {
             ClearCache();
-            LogMessageToFile("Cache cleared");
+            TuiOutput.Write("Cache cleared");
         });
 
         var queueCmd = new Command("queue", "Clear the URL queue");
         queueCmd.SetAction(_ =>
         {
             UrlQueue.Clear();
-            LogMessageToFile("Queue cleared");
+            TuiOutput.Write("Queue cleared");
         });
 
         cmd.Subcommands.Add(cacheCmd);
@@ -210,18 +214,18 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var path = parseResult.GetValue(pathArg);
             if (path is null)
             {
-                LogMessageToFile($"Save path: {SavePath}");
+                TuiOutput.Write($"Save path: {SavePath}");
                 return;
             }
 
             if (FileUtility.IsValidAndEnsureDirectory(path))
             {
                 SavePath = path;
-                LogMessageToFile($"Save path set to {SavePath}");
+                TuiOutput.Write($"Save path set to {SavePath}");
             }
             else
             {
-                LogMessageToFile("Invalid path", LogEventLevel.Warning);
+                TuiOutput.Write("Invalid path", LogEventLevel.Warning);
             }
         });
 
@@ -232,7 +236,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var actionName = parseResult.GetValue(actionArg);
             if (actionName is null)
             {
-                LogMessageToFile($"Post download actions: {DescribePostDownloadActions()}");
+                TuiOutput.Write($"Post download actions: {DescribePostDownloadActions()}");
                 return;
             }
 
@@ -252,12 +256,12 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                     directoryLevel.RunPostProcessScript = !directoryLevel.RunPostProcessScript;
                     break;
                 default:
-                    LogMessageToFile("Invalid action. Valid actions: {None, RemoveDuplicates, RunPostProcessScript}",
+                    TuiOutput.Write("Invalid action. Valid actions: {None, RemoveDuplicates, RunPostProcessScript}",
                         LogEventLevel.Warning);
                     return;
             }
 
-            LogMessageToFile($"Post download actions set to {DescribePostDownloadActions()}");
+            TuiOutput.Write($"Post download actions set to {DescribePostDownloadActions()}");
         });
 
         cmd.Subcommands.Add(savePathCmd);
@@ -291,12 +295,12 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var ms = parseResult.GetValue(msArg);
             if (ms is null)
             {
-                LogMessageToFile($"Retry delay: {RetryDelay} ms");
+                TuiOutput.Write($"Retry delay: {RetryDelay} ms");
                 return;
             }
 
             RetryDelay = ms.Value;
-            LogMessageToFile($"Retry delay set to {ms} ms");
+            TuiOutput.Write($"Retry delay set to {ms} ms");
         });
         return cmd;
     }
@@ -304,7 +308,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
     private Command BuildHelpCommand()
     {
         var cmd = new Command("help", "Show available commands");
-        cmd.SetAction(_ => LogMessageToFile("""
+        cmd.SetAction(_ => TuiOutput.Write("""
             Commands:
             - q(uit): Exit the REPL, saving all data and disposing of resources.
             - r(ip) [urls...]: Queue URL(s) (if given) and start the ripping process.
@@ -344,7 +348,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         {
             var filename = parseResult.GetValue(fileArg);
             LoadUrlsFromFile(filename ?? "UnfinishedRips.json");
-            LogMessageToFile("URLs loaded");
+            TuiOutput.Write("URLs loaded");
         });
         return cmd;
     }
@@ -360,7 +364,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                 message += $"{i}: {queuedUrl}\n";
             }
 
-            LogMessageToFile(message);
+            TuiOutput.Write(message);
         });
         return cmd;
     }
@@ -376,18 +380,18 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var folderName = ExtractionUtility.ExtractFolderNameFromString(remainder);
             if (folderName is null)
             {
-                LogMessageToFile("Invalid folder name", LogEventLevel.Warning);
+                TuiOutput.Write("Invalid folder name", LogEventLevel.Warning);
                 return;
             }
 
             var historyEntry = HistoryDb.GetHistoryEntryByDirectoryName(folderName);
             if (historyEntry is null)
             {
-                LogMessageToFile("No history entry found", LogEventLevel.Warning);
+                TuiOutput.Write("No history entry found", LogEventLevel.Warning);
                 return;
             }
 
-            LogMessageToFile($"[{historyEntry.Date:s}] Url: {historyEntry.Url}");
+            TuiOutput.Write($"[{historyEntry.Date:s}] Url: {historyEntry.Url}");
         });
         return cmd;
     }
@@ -400,7 +404,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         {
             var filename = parseResult.GetValue(fileArg)!;
             HistoryDb.MergeHistory(filename);
-            LogMessageToFile("History merged");
+            TuiOutput.Write("History merged");
         });
         return cmd;
     }
@@ -409,14 +413,14 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
     {
         var cmd = new Command("peek", "Show the first queued URL without removing it");
         cmd.Aliases.Add("head");
-        cmd.SetAction(_ => LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[0]));
+        cmd.SetAction(_ => TuiOutput.Write(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[0]));
         return cmd;
     }
 
     private Command BuildQueueCommand()
     {
         var cmd = new Command("queue", "Display all queued URLs");
-        cmd.SetAction(_ => LogMessageToFile(string.Join("\n", UrlQueue)));
+        cmd.SetAction(_ => TuiOutput.Write(string.Join("\n", UrlQueue)));
         return cmd;
     }
 
@@ -434,7 +438,11 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                 HandleRejectedUrls(rejected);
             }
 
-            await Rip(ct);
+            if (await Rip(ct) == RipStopReason.OutOfDiskSpace)
+            {
+                TuiOutput.Write("Ripping stopped: not enough disk space. The queue was kept; free up space and " +
+                                 "run rip again.", LogEventLevel.Error);
+            }
         });
         return cmd;
     }
@@ -455,12 +463,12 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var count = parseResult.GetValue(countArg);
             if (count is null)
             {
-                LogMessageToFile($"Max retries: {MaxRetries - 1}");
+                TuiOutput.Write($"Max retries: {MaxRetries - 1}");
                 return;
             }
 
             MaxRetries = count.Value + 1;
-            LogMessageToFile($"Max retries set to {MaxRetries}");
+            TuiOutput.Write($"Max retries set to {MaxRetries}");
         });
         return cmd;
     }
@@ -471,7 +479,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         cmd.SetAction(async (_, ct) =>
         {
             await SaveData(ct);
-            LogMessageToFile("Data saved");
+            TuiOutput.Write("Data saved");
         });
         return cmd;
     }
@@ -484,7 +492,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         {
             if (UrlQueue.Count == 0)
             {
-                LogMessageToFile("Queue is empty");
+                TuiOutput.Write("Queue is empty");
                 return;
             }
 
@@ -492,7 +500,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var normalizedIndex = Math.Abs(i);
             if (normalizedIndex >= UrlQueue.Count)
             {
-                LogMessageToFile("Index out of range");
+                TuiOutput.Write("Index out of range");
                 return;
             }
 
@@ -508,7 +516,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                 UrlQueue.RemoveAt(i);
             }
 
-            LogMessageToFile($"Skipping {url}");
+            TuiOutput.Write($"Skipping {url}");
         });
         return cmd;
     }
@@ -516,7 +524,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
     private Command BuildTailCommand()
     {
         var cmd = new Command("tail", "Show the last queued URL without removing it");
-        cmd.SetAction(_ => LogMessageToFile(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[^1]));
+        cmd.SetAction(_ => TuiOutput.Write(UrlQueue.Count == 0 ? "Queue is empty" : UrlQueue[^1]));
         return cmd;
     }
 
@@ -533,7 +541,7 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
     {
         var cmd = new Command("version", "Show the application version");
         cmd.Aliases.Add("v");
-        cmd.SetAction(_ => LogMessageToFile($"{Title} v{Version}"));
+        cmd.SetAction(_ => TuiOutput.Write($"{Title} v{Version}"));
         return cmd;
     }
 
@@ -552,6 +560,18 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
         }
     }
 
+    protected override void PauseForDebugging()
+    {
+        TuiOutput.Write("Press any key to continue...");
+        Console.ReadKey();
+    }
+
+    private static bool AskToReRipUrl(string url)
+    {
+        TuiOutput.Write($"Re-rip url (y/n)? {url}", newLine: false);
+        return Console.ReadLine() == "y";
+    }
+
     private void HandleRejectedUrls(RejectedUrlsInfo failedUrls)
     {
         var urlsToRequeue = new List<RejectedUrlInfo>(failedUrls.Count);
@@ -562,17 +582,25 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
                 case QueueFailureReason.None:
                     break;
                 case QueueFailureReason.AlreadyQueued:
-                    LogMessageToFile($"URL already queued: {failedUrl.Url}");
+                    TuiOutput.Write($"URL already queued: {failedUrl.Url}");
                     break;
                 case QueueFailureReason.NotSupported:
-                    LogMessageToFile($"URL not supported: {failedUrl.Url}");
+                    TuiOutput.Write($"URL not supported: {failedUrl.Url}");
                     break;
                 case QueueFailureReason.PreviouslyProcessed:
-                    LogMessageToFile($"Re-rip url (y/n)? {failedUrl.Url}", newLine: false);
-                    var response = Console.ReadLine();
-                    if (response == "y")
+                    var reRip = ReRipBehavior switch
+                    {
+                        ReRipBehavior.Always => true,
+                        ReRipBehavior.Never => false,
+                        _ => AskToReRipUrl(failedUrl.Url),
+                    };
+                    if (reRip)
                     {
                         urlsToRequeue.Add(failedUrl);
+                    }
+                    else if (ReRipBehavior == ReRipBehavior.Never)
+                    {
+                        TuiOutput.Write($"Already ripped, skipping: {failedUrl.Url}");
                     }
 
                     break;

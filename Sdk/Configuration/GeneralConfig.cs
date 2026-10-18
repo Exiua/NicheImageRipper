@@ -15,7 +15,7 @@ public class GeneralConfig
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
     public UnzipProtocol UnzipProtocol { get; set; } = UnzipProtocol.None;
     public PostDownloadAction PostDownloadAction { get; set; } = new();
-    public bool AskToReRip { get; set; } = true;
+    public ReRipBehavior ReRipBehavior { get; set; } = ReRipBehavior.Ask;
     public bool LiveHistory { get; set; } = false;
     public bool SkipFailedDownloads { get; set; } = true;
     public int NumThreads { get; set; } = 1;

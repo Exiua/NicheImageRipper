@@ -196,7 +196,7 @@ public class HtmlParserOrchestrator : IDisposable
     /// <see cref="FileRipper"/> entirely. Uses a looser site-detection path than production (no whitelist
     /// gate), so it can exercise parsers for sites not yet enabled in <c>UrlUtility.SiteCheck</c>.
     /// </summary>
-    public async Task<RipInfo> TestParse(string givenUrl, bool debug, bool printSite,
+    public async Task<RipInfo> TestParse(string givenUrl, bool printSite,
                                          CancellationToken cancellationToken = default)
     {
         try
@@ -235,12 +235,6 @@ public class HtmlParserOrchestrator : IDisposable
             Logger.Debug("Time Elapsed: {TimeElapsed}", end - start);
             var outData = data.Urls.Select(d => d.Url).ToList();
             JsonUtility.Serialize("test.json", outData);
-            if (debug)
-            {
-                NicheImageRipper.LogMessageToFile("Press any key to exit...", LogEventLevel.Debug);
-                Console.ReadKey();
-            }
-
             return data;
         }
         catch (Exception e)

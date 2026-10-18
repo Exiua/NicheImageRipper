@@ -73,6 +73,12 @@ public class FullRipperSettings : IRipperSettings
         set => Config.SaveUnfinishedUrls = value;
     }
 
+    public ReRipBehavior ReRipBehavior
+    {
+        get => Config.ReRipBehavior;
+        set => Config.ReRipBehavior = value;
+    }
+
     public string FlareSolverrUri
     {
         get => Config.FlareSolverrUri;

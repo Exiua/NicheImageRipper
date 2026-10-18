@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Interaction;
 using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
@@ -81,8 +82,8 @@ public sealed partial class ResolveImageDownloadStrategy : IFileDownloadStrategy
         await NicheImageRipper.FlareSolverrManager.GetSiteSolution(url, cancellationToken: cancellationToken);
         if (humanSolve)
         {
-            Log.Information("Solve the captcha and press enter to continue");
-            Console.ReadLine();
+            await UserPrompt.Current.WaitForUserAsync("Solve the captcha in the browser window, then continue.",
+                cancellationToken);
         }
     }
 

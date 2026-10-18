@@ -26,8 +26,8 @@
         <Grid ColumnDefinitions="*" RowDefinitions="Auto, Auto" Margin="50" VerticalAlignment="Center">
             <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Message}" TextWrapping="Wrap" Margin="0, 0, 0, 50" />
             <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="50" HorizontalAlignment="Center">
-                <Button Click="Accept">Yes</Button>
-                <Button Click="Reject">No</Button>
+                <Button Click="Accept" Content="{Binding AcceptText}" />
+                <Button Click="Reject" Content="{Binding RejectText}" IsVisible="{Binding ShowReject}" />
             </StackPanel>
         </Grid>
     </Panel>

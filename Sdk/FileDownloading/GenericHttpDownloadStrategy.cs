@@ -278,6 +278,12 @@ public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
                 throw new DownloadTimeoutException(totalSize, e.Message, e);
             }
 
+            if (DiskSpaceUtility.IsDiskFull(e))
+            {
+                // Not a per-file failure: nothing more can be saved, so let the rip stop instead of failing every file
+                throw;
+            }
+
             context.Logger.Error("An IO error occured: {SavePath} - Reason: {Reason}", savePath, e.Message);
             return DownloadStatus.Failed;
         }

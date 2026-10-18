@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Service.Models.Responses;
 
@@ -12,6 +13,12 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
 {
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
+
+    /// <summary>
+    ///     Raised when ripping stops before the queue is finished (e.g. the disk is full). The thin client doesn't
+    ///     raise it: the backend reports the stop in the log stream instead.
+    /// </summary>
+    public event Action<RipStopReason>? OnRipStopped;
 
     public bool Connected { get; }
 

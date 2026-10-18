@@ -19,6 +19,7 @@ public interface IRipperSettings : IAsyncInitialization
     public int RetryDelay { get; set; }
     public bool SkipFailedDownloads { get; set; }
     public bool SaveUnfinishedUrls { get; set; }
+    public ReRipBehavior ReRipBehavior { get; set; }
     public string FlareSolverrUri { get; set; }
     public bool CloseFlareSolverrSession { get; set; }
     public string CSWebDriverUri { get; set; }

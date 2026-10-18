@@ -433,5 +433,6 @@ Test/
 *.png
 *.mp4
 *.html
+*.md
 NicheImageRipper.sln.DotSettings.user
 riderModule.iml

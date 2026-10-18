@@ -1,21 +1,35 @@
-using System.Collections.Concurrent;
 using NicheImageRipper.Sdk.Driver;
 using Serilog;
 
 namespace NicheImageRipper.Core.Driver;
 
+/// <summary>
+///     A capped set of WebDrivers of one kind (headless or not). The semaphore counts free capacity: idle drivers
+///     plus drivers not yet created. Every driver handed out is tracked as leased until it's released.
+/// </summary>
 public class WebDriverSet : IDisposable
 {
-    private readonly ConcurrentBag<WebDriver> _availableDrivers = [];
+    private readonly List<WebDriver> _idleDrivers = [];
+    private readonly HashSet<WebDriver> _leasedDrivers = new(ReferenceEqualityComparer.Instance);
     private readonly Lock _lock = new();
     private readonly SemaphoreSlim _semaphore;
     private readonly int _maxCapacity;
     private readonly bool _headless;
     private readonly ILogger _logger;
-    
+
     private bool _disposed;
 
-    public int CurrentCount { get; set; }
+    /// <summary>Drivers that currently exist (idle or leased).</summary>
+    public int CurrentCount
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _idleDrivers.Count + _leasedDrivers.Count;
+            }
+        }
+    }
 
     public WebDriverSet(int maxCapacity, bool headless)
     {
@@ -24,54 +38,62 @@ public class WebDriverSet : IDisposable
         _semaphore = new SemaphoreSlim(maxCapacity, maxCapacity);
         _logger = Log.ForContext<WebDriverSet>();
     }
-    
-    // TODO: Fix issue in AcquireDriver/ReleaseDriver can somehow result in releasing a driver that will overflow the semaphore.
-    public WebDriver AcquireDriver(bool checkHealth = true)
+
+    /// <summary>Leases an idle driver (health-checked first) or creates one, blocking while at capacity.</summary>
+    public WebDriver AcquireDriver()
     {
         // Block the thread if no resources are available
         _logger.Debug("Waiting for an available WebDriver {{ headless = {Headless} }}", _headless);
         _semaphore.Wait();
         _logger.Debug("Acquired a WebDriver {{ headless = {Headless} }}", _headless);
 
+        WebDriver? idleDriver = null;
         lock (_lock)
         {
-            if (_availableDrivers.TryTake(out var driver))
+            if (_idleDrivers.Count > 0)
             {
-                _logger.Debug("Reusing an existing WebDriver {{ headless = {Headless} }}", _headless);
-                if (true)
-                {
-                    driver = CheckWebDriverHealth(driver);
-                }
-                return driver; // Reuse an available driver
+                idleDriver = _idleDrivers[^1];
+                _idleDrivers.RemoveAt(_idleDrivers.Count - 1);
+                _leasedDrivers.Add(idleDriver);
             }
-
-            if (CurrentCount < _maxCapacity)
+            else if (_leasedDrivers.Count >= _maxCapacity)
             {
-                if (!checkHealth)
-                {
-                    // TODO: This is a warning because it is not expected to create a new driver when not checking health.
-                    // TODO:    When check health is false, it is expected to reuse an existing driver to destroy in DestroyDriver().
-                    _logger.Warning("CheckHealth is false when retrieving an existing driver to destroy. Probably do not want to create a new driver.");
-                }
-                
-                CurrentCount++;
-                _logger.Debug("Creating a new WebDriver {{ headless = {Headless} }}", _headless);
-                try
-                {
-                    return CreateFirefoxDriver(); // Create a new driver if under capacity
-                }
-                catch
-                {
-                    CurrentCount--;
-                    _semaphore.Release();
-                    throw;
-                }
+                _semaphore.Release();
+                throw new InvalidOperationException("This should not happen due to the semaphore.");
             }
-
-            throw new InvalidOperationException("This should not happen due to the semaphore.");
         }
+
+        if (idleDriver is not null)
+        {
+            _logger.Debug("Reusing an existing WebDriver {{ headless = {Headless} }}", _headless);
+            // Outside the lock: the health check loads a page
+            return CheckWebDriverHealth(idleDriver);
+        }
+
+        _logger.Debug("Creating a new WebDriver {{ headless = {Headless} }}", _headless);
+        WebDriver driver;
+        try
+        {
+            driver = CreateFirefoxDriver();
+        }
+        catch
+        {
+            _semaphore.Release();
+            throw;
+        }
+
+        lock (_lock)
+        {
+            _leasedDrivers.Add(driver);
+        }
+
+        return driver;
     }
-    
+
+    /// <summary>
+    ///     Returns a leased driver to the idle set. Releasing a driver that isn't currently leased (e.g. a second
+    ///     release of the same driver) is logged and ignored, since releasing it again would overflow the semaphore.
+    /// </summary>
     public void ReleaseDriver(WebDriver driver)
     {
         _logger.Debug("Releasing a WebDriver {{ headless = {Headless} }}", _headless);
@@ -79,7 +101,14 @@ public class WebDriverSet : IDisposable
 
         lock (_lock)
         {
-            _availableDrivers.Add(driver);
+            if (!_leasedDrivers.Remove(driver))
+            {
+                _logger.Warning("Ignoring release of a WebDriver that isn't leased (already released?) " +
+                                "{{ headless = {Headless} }}", _headless);
+                return;
+            }
+
+            _idleDrivers.Add(driver);
         }
 
         // Release the semaphore to unblock waiting threads
@@ -87,33 +116,35 @@ public class WebDriverSet : IDisposable
         _logger.Debug("Released a WebDriver {{ headless = {Headless} }}", _headless);
     }
 
+    /// <summary>Destroys one idle driver to free room for the other kind. Does nothing if none are idle.</summary>
     public void DestroyDriver()
     {
-        if (_availableDrivers.IsEmpty)
-        {
-            return;
-        }
-        
-        var driver = AcquireDriver(false); 
-        DestroyDriver(driver);
-    }
-
-    private void DestroyDriver(WebDriver driver)
-    {
-        _logger.Debug("Destroying a WebDriver {{ headless = {Headless} }}", _headless);
-        ArgumentNullException.ThrowIfNull(driver);
-
+        WebDriver driver;
         lock (_lock)
         {
-            driver.Dispose();
-            CurrentCount--;
+            if (_idleDrivers.Count == 0)
+            {
+                return;
+            }
+
+            driver = _idleDrivers[^1];
+            _idleDrivers.RemoveAt(_idleDrivers.Count - 1);
         }
-        
-        // Release the semaphore to unblock waiting threads
-        _semaphore.Release();
+
+        // No semaphore change: an idle driver and a not-yet-created one both count as free capacity
+        _logger.Debug("Destroying a WebDriver {{ headless = {Headless} }}", _headless);
+        try
+        {
+            driver.Dispose();
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e, "Failed to dispose of a WebDriver {{ headless = {Headless} }}", _headless);
+        }
+
         _logger.Debug("Destroyed a WebDriver {{ headless = {Headless} }}", _headless);
     }
-    
+
     private WebDriver CheckWebDriverHealth(WebDriver driver)
     {
         try
@@ -140,10 +171,17 @@ public class WebDriverSet : IDisposable
         {
             return;
         }
-        
+
         _disposed = true;
         _semaphore.Dispose();
-        foreach (var driver in _availableDrivers)
+        List<WebDriver> idleDrivers;
+        lock (_lock)
+        {
+            idleDrivers = [.._idleDrivers];
+            _idleDrivers.Clear();
+        }
+
+        foreach (var driver in idleDrivers)
         {
             try
             {
@@ -154,11 +192,10 @@ public class WebDriverSet : IDisposable
                 _logger.Error(e, "Failed to dispose of a WebDriver {{ headless = {Headless} }}", _headless);
             }
         }
-        
-        _availableDrivers.Clear();
+
         GC.SuppressFinalize(this);
     }
-    
+
     ~WebDriverSet()
     {
         Dispose();

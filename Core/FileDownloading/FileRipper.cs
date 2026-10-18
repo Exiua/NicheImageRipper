@@ -115,7 +115,6 @@ public class FileRipper : IDisposable
     public PostDownloadAction PostDownloadAction { get; set; }
 
     private string GivenUrl { get; set; }
-    private bool Interrupted { get; set; }
     private Dictionary<string, bool> PersistentLogins { get; }
     private string SavePath { get; }
     private HttpClient Session { get; }
@@ -183,7 +182,6 @@ public class FileRipper : IDisposable
         PostDownloadAction = postDownloadAction ?? new PostDownloadAction();
         ClearPartialSaveOnFailureThreshold = clearPartialSaveOnFailureThreshold;
         GivenUrl = "";
-        Interrupted = false;
         PersistentLogins = new Dictionary<string, bool>();
         // Create copy of save path, so that config can be changed without affecting current ripper instance
         SavePath = Config.SavePath;
@@ -195,9 +193,6 @@ public class FileRipper : IDisposable
         WebDriver = driverPool.AcquireDriver(true);
         Logger = Log.ForContext<FileRipper>();
 
-        // TODO: Hack to force HtmlParserFactory to initialize
-        _ = HtmlParserFactory.SupportedUrls;
-        
         StrategyRegistry = DownloadCompositionRoot.BuildStrategyRegistry();
         HeaderModifiers = DownloadCompositionRoot.BuildHeaderModifiers();
         ErrorHandlers = DownloadCompositionRoot.BuildErrorHandlers();
@@ -224,10 +219,6 @@ public class FileRipper : IDisposable
 
         OnProgressChanged?.Invoke(0, 0); // Indeterminate progress at the start
 
-        // TODO: Site-specific cookie injection (pre-parse) was never fully ported from the Python version.
-        //  Revisit once parser support for this is rebuilt — CookiesNeeded/AddCookies removed as dead stubs.
-
-
         GivenUrl = UrlUtility.NormalizeUrl(url);
         (SiteName, SleepTime) = Core.Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         Logger.Debug("Site Name: {SiteName}", SiteName);
@@ -248,10 +239,21 @@ public class FileRipper : IDisposable
             return; // already on the correct driver
         }
 
-        Logger.Debug("Releasing {DriverType} driver", WebDriver.IsHeadless ? "headless" : "non-headless");
-        DriverPool.ReleaseDriver(WebDriver);
+        var previous = WebDriver;
+        Logger.Debug("Releasing {DriverType} driver", previous.IsHeadless ? "headless" : "non-headless");
+        DriverPool.ReleaseDriver(previous);
         Logger.Debug("Acquiring {DriverType} driver", needsNonHeadless ? "non-headless" : "headless");
-        WebDriver = DriverPool.AcquireDriver(!needsNonHeadless);
+        try
+        {
+            WebDriver = DriverPool.AcquireDriver(!needsNonHeadless);
+        }
+        catch
+        {
+            // Take back a driver of the previous kind so WebDriver always refers to one this ripper holds;
+            // otherwise Dispose() would release the already-released driver a second time
+            WebDriver = DriverPool.AcquireDriver(previous.IsHeadless);
+            throw;
+        }
     }
 
     /// <summary>
@@ -309,11 +311,6 @@ public class FileRipper : IDisposable
         var htmlParser = new HtmlParserOrchestrator(WebDriver, RequestHeaders, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
-        if (Interrupted && FilenameScheme != FilenameScheme.Hash)
-        {
-            // TODO: self.folder_info.urls = self.get_incomplete_files(full_path)
-        }
-
         Logger.Debug("Dir Length: {DirLength}", fullPath.Length);
         Directory.CreateDirectory(fullPath);
 
@@ -478,15 +475,21 @@ public class FileRipper : IDisposable
                     {
                         await PostProcessFileLevel(imageLink, imagePath, filesHashes, downloadStats, index, cancellationToken);
                     }
+                    else if (result.Outcome == DownloadOutcome.Failed)
+                    {
+                        // The file exists under this extension but couldn't be downloaded; another extension won't help
+                        downloadStats.FailedDownloads.Add($"{imageLink.Url}{fullFilename}");
+                    }
 
                     break;
                 }
-                catch (Exception e) when (e is not OperationCanceledException) // TODO: Narrow down further
+                // A 404 while guessing means "not this extension"; anything else is a real error and propagates
+                catch (WrongExtensionException)
                 {
                     if (i == extensions.Length - 1)
                     {
-                        downloadStats.FailedDownloads.Add($"{imageLink.Url}{index}.{ext}]");
-                        Logger.Warning("Image not found");
+                        downloadStats.FailedDownloads.Add($"{imageLink.Url}{index}");
+                        Logger.Warning("Image not found under any known extension: {Url}{Index}", imageLink.Url, index);
                     }
                 }
             }
@@ -510,8 +513,10 @@ public class FileRipper : IDisposable
         var result = await strategy.DownloadAsync(FolderInfo, fullPath, DownloadContext, cancellationToken);
         if (result.Outcome == DownloadOutcome.Failed)
         {
-            // TODO: Handle failed downloads for external tools (e.g., log failed URLs)
-            downloadStats.FailedDownloads.Add(FolderInfo.Urls[0].Url);
+            var url = FolderInfo.Urls[0].Url;
+            Logger.Error("External tool download failed for {Url}: {Reason}", url,
+                result.Reason ?? "no details reported");
+            downloadStats.FailedDownloads.Add(url);
         }
     }
 

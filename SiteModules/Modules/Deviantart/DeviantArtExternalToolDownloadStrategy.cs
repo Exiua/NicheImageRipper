@@ -28,15 +28,20 @@ public sealed class DeviantArtExternalToolDownloadStrategy : IExternalToolDownlo
             "-D", $"\"{fullPath}\"", "-u", username, "-p",
             password, "--write-log", "log.txt", url
         };
-        var (exitCode, _, _) = await ProcessRunner.RunSubprocess("gallery-dl", cmd,
+        var (exitCode, _, error) = await ProcessRunner.RunSubprocess("gallery-dl", cmd, captureError: true,
             startMessage: "Starting Deviantart download", endMessage: "Deviantart download finished",
             cancellationToken: cancellationToken);
 
-        if (exitCode != 0)
+        if (exitCode == 0)
         {
-            context.Logger.Error("Failed to download from DeviantArt");
+            return DownloadResult.Success();
         }
 
-        return exitCode == 0 ? DownloadResult.Success() : DownloadResult.Failed();
+        // gallery-dl reports what went wrong on stderr; its last message is usually the useful one
+        var lastError = error?.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                              .LastOrDefault(line => line != "null");
+        return DownloadResult.Failed(lastError is null
+            ? $"gallery-dl exited with code {exitCode}"
+            : $"gallery-dl exited with code {exitCode}: {lastError}");
     }
 }

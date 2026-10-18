@@ -1,9 +1,13 @@
+using NicheImageRipper.Core.ModuleLoading;
+
 namespace NicheImageRipper.Core.Utility;
 
 internal static class ReflectionDiscovery
 {
     public static IReadOnlyList<T> DiscoverImplementations<T>(Func<Type, bool>? exclude = null) where T : class
     {
+        // Module types can only be found once the modules are loaded
+        CoreBootstrap.EnsureInitialized();
         var interfaceType = typeof(T);
         return AppDomain.CurrentDomain
                         .GetAssemblies()

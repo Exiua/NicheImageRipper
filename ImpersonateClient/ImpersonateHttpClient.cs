@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -7,8 +7,6 @@ namespace ImpersonateClient;
 public sealed class ImpersonateHttpClient
 {
     internal Browser? Browser { get; }
-    internal string? Ja3 { get; }
-    internal string? Akamai { get; }
     internal bool PermuteExtensions { get; }
     internal bool DefaultRequestHeaders { get; }
     internal bool FollowRedirects { get; }
@@ -19,8 +17,6 @@ public sealed class ImpersonateHttpClient
     private ImpersonateHttpClient(ImpersonateHttpClientOptions options)
     {
         Browser = options.Browser;
-        Ja3 = options.Ja3;
-        Akamai = options.Akamai;
         PermuteExtensions = options.PermuteExtensions;
         DefaultRequestHeaders = options.DefaultRequestHeaders;
         FollowRedirects = options.FollowRedirects;
@@ -66,8 +62,6 @@ public sealed class ImpersonateHttpClient
         return new ImpersonateHttpClientOptions
         {
             Browser = Browser,
-            Ja3 = Ja3,
-            Akamai = Akamai,
             PermuteExtensions = PermuteExtensions,
             DefaultRequestHeaders = DefaultRequestHeaders,
             FollowRedirects = FollowRedirects,
@@ -86,8 +80,6 @@ public sealed class ImpersonateHttpClient
 internal sealed class ImpersonateHttpClientOptions
 {
     public Browser? Browser { get; init; }
-    public string? Ja3 { get; init; }
-    public string? Akamai { get; init; }
     public bool PermuteExtensions { get; init; } = true;
     public bool DefaultRequestHeaders { get; init; } = true;
     public bool FollowRedirects { get; init; } = true;
@@ -99,8 +91,6 @@ internal sealed class ImpersonateHttpClientOptions
 public sealed class ImpersonateHttpClientBuilder
 {
     private Browser? _browser;
-    private string? _ja3;
-    private string? _akamai;
     private bool _permuteExtensions = true;
     private bool _defaultHeaders = true;
     private bool _followRedirects = true;
@@ -118,16 +108,26 @@ public sealed class ImpersonateHttpClientBuilder
         return this;
     }
 
+    /// <summary>Not supported yet: always throws.</summary>
+    /// <remarks>
+    ///     Custom JA3 fingerprints need parsing into curl-impersonate's TLS options (cipher list, signature
+    ///     algorithms, extension order, GREASE, TLS version). Until that exists, use a <see cref="Browser"/> preset.
+    /// </remarks>
+    /// <exception cref="NotSupportedException">Always.</exception>
     public ImpersonateHttpClientBuilder WithJa3(string ja3)
     {
-        _ja3 = ja3;
-        return this;
+        throw new NotSupportedException("Custom JA3 fingerprints aren't implemented yet; use a Browser preset instead.");
     }
 
+    /// <summary>Not supported yet: always throws.</summary>
+    /// <remarks>
+    ///     Custom Akamai HTTP/2 fingerprints need parsing into curl-impersonate's HTTP/2 options (settings, window
+    ///     update, stream priority, pseudo-header order). Until that exists, use a <see cref="Browser"/> preset.
+    /// </remarks>
+    /// <exception cref="NotSupportedException">Always.</exception>
     public ImpersonateHttpClientBuilder WithAkamai(string akamai)
     {
-        _akamai = akamai;
-        return this;
+        throw new NotSupportedException("Custom Akamai HTTP/2 fingerprints aren't implemented yet; use a Browser preset instead.");
     }
 
     public ImpersonateHttpClientBuilder WithPermuteExtensions(bool enabled = true)
@@ -171,8 +171,6 @@ public sealed class ImpersonateHttpClientBuilder
         return ImpersonateHttpClient.FromOptions(new ImpersonateHttpClientOptions
         {
             Browser = _browser,
-            Ja3 = _ja3,
-            Akamai = _akamai,
             PermuteExtensions = _permuteExtensions,
             DefaultRequestHeaders = _defaultHeaders,
             FollowRedirects = _followRedirects,

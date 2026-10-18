@@ -13,8 +13,6 @@ public sealed class RequestBuilder
     private string _method = "GET";
     private byte[]? _body;
     private Browser? _browserOverride;
-    private string? _ja3Override;
-    private string? _akamaiOverride;
     private bool? _permuteExtensionsOverride;
     private bool? _defaultHeadersOverride;
     private bool? _followRedirectsOverride;
@@ -98,16 +96,26 @@ public sealed class RequestBuilder
         return this;
     }
 
+    /// <summary>Not supported yet: always throws.</summary>
+    /// <remarks>
+    ///     Custom JA3 fingerprints need parsing into curl-impersonate's TLS options (cipher list, signature
+    ///     algorithms, extension order, GREASE, TLS version). Until that exists, use a <see cref="WithBrowser"/> preset.
+    /// </remarks>
+    /// <exception cref="NotSupportedException">Always.</exception>
     public RequestBuilder WithJa3(string ja3)
     {
-        _ja3Override = ja3;
-        return this;
+        throw new NotSupportedException("Custom JA3 fingerprints aren't implemented yet; use a Browser preset instead.");
     }
 
+    /// <summary>Not supported yet: always throws.</summary>
+    /// <remarks>
+    ///     Custom Akamai HTTP/2 fingerprints need parsing into curl-impersonate's HTTP/2 options (settings, window
+    ///     update, stream priority, pseudo-header order). Until that exists, use a <see cref="WithBrowser"/> preset.
+    /// </remarks>
+    /// <exception cref="NotSupportedException">Always.</exception>
     public RequestBuilder WithAkamai(string akamai)
     {
-        _akamaiOverride = akamai;
-        return this;
+        throw new NotSupportedException("Custom Akamai HTTP/2 fingerprints aren't implemented yet; use a Browser preset instead.");
     }
 
     public RequestBuilder WithPermuteExtensions(bool enabled = true)
@@ -210,8 +218,6 @@ public sealed class RequestBuilder
             Body = _body,
 
             Browser = _browserOverride ?? _client.Browser,
-            Ja3 = _ja3Override ?? _client.Ja3,
-            Akamai = _akamaiOverride ?? _client.Akamai,
             PermuteExtensions = _permuteExtensionsOverride ?? _client.PermuteExtensions,
             DefaultHeaders = _defaultHeadersOverride ?? _client.DefaultRequestHeaders,
             FollowRedirects = _followRedirectsOverride ?? _client.FollowRedirects,
@@ -311,10 +317,7 @@ public sealed class RequestBuilder
 
     private static void ConfigureImpersonation(nint easy, ResolvedRequest request)
     {
-        // Priority:
-        // 1. Explicit JA3/Akamai custom fingerprint overrides.
-        // 2. Browser profile preset.
-
+        // Browser profile preset. Custom JA3/Akamai fingerprints aren't supported yet (see WithJa3/WithAkamai).
         if (request.Browser is { } browser)
         {
             Curl.ThrowIfError(
@@ -324,51 +327,5 @@ public sealed class RequestBuilder
                     request.DefaultHeaders ? 1 : 0),
                 $"curl_easy_impersonate({browser})");
         }
-
-        if (!string.IsNullOrWhiteSpace(request.Ja3))
-        {
-            ApplyJa3Placeholder(easy, request.Ja3, request.PermuteExtensions);
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Akamai))
-        {
-            ApplyAkamaiPlaceholder(easy, request.Akamai);
-        }
-    }
-
-    private static void ApplyJa3Placeholder(nint easy, string ja3, bool permuteExtensions)
-    {
-        _ = easy;
-        _ = ja3;
-        _ = permuteExtensions;
-
-        // TODO:
-        // Parse JA3 and set the corresponding curl-impersonate options.
-        //
-        // Expected future mappings may include:
-        // - CurlOption.SslCipherList
-        // - CurlOption.SslSigHashAlgs
-        // - CurlOption.TlsExtensionOrder
-        // - CurlOption.SslPermuteExtensions
-        // - CurlOption.TlsGrease
-        // - CurlOption.SslVersion
-    }
-
-    private static void ApplyAkamaiPlaceholder(nint easy, string akamai)
-    {
-        _ = easy;
-        _ = akamai;
-
-        // TODO:
-        // Parse Akamai HTTP/2 fingerprint and set the corresponding curl-impersonate options.
-        //
-        // Expected future mappings may include:
-        // - CurlOption.Http2Settings
-        // - CurlOption.Http2WindowUpdate
-        // - CurlOption.Http2Streams
-        // - CurlOption.Http2PseudoHeadersOrder
-        // - CurlOption.Http2NoPriority
-        // - CurlOption.StreamWeight
-        // - CurlOption.StreamExclusive
     }
 }

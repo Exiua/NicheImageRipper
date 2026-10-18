@@ -158,6 +158,22 @@ internal static class LegacyConfigMigration
             changed = true;
         }
 
+        // AskToReRip (bool) became ReRipBehavior. true asked each time; false skipped the question, which now means
+        // re-ripping without asking.
+        if (root.TryGetPropertyValue("AskToReRip", out var askToReRip))
+        {
+            root.Remove("AskToReRip");
+            if (!root.ContainsKey(nameof(GeneralConfig.ReRipBehavior)))
+            {
+                var ask = askToReRip is not JsonValue askValue || !askValue.TryGetValue<bool>(out var parsed) || parsed;
+                root[nameof(GeneralConfig.ReRipBehavior)] = (int)(ask ? ReRipBehavior.Ask : ReRipBehavior.Always);
+                Logger.Information("Migrated AskToReRip={Value} to ReRipBehavior={Behavior}",
+                    askToReRip?.ToJsonString() ?? "null", ask ? ReRipBehavior.Ask : ReRipBehavior.Always);
+            }
+
+            changed = true;
+        }
+
         return changed;
     }
 

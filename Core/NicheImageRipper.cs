@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -18,6 +18,7 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.Managers;
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
 using Serilog;
@@ -32,7 +33,6 @@ public partial class NicheImageRipper : IDisposable
 {
     public static string Title => "NicheImageRipper";
     public static GeneralConfig Config => Sdk.Configuration.Config.Instance;
-    public static LoggingLevelSwitch ConsoleLoggingLevelSwitch { get; } = new();
     public static FlareSolverrManager FlareSolverrManager => FlareSolverrManager.Instance;
     public static Version Version { get; } = AssemblyVersionUtility.Of(typeof(NicheImageRipper).Assembly);
 
@@ -63,11 +63,11 @@ public partial class NicheImageRipper : IDisposable
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
 
-    // TODO: Convert to enum with better variations on how to handle re-ripping
-    public static bool AskToReRip
+    /// <summary>What to do with a queued URL that's already in the rip history.</summary>
+    public static ReRipBehavior ReRipBehavior
     {
-        get => Config.AskToReRip;
-        set => Config.AskToReRip = value;
+        get => Config.ReRipBehavior;
+        set => Config.ReRipBehavior = value;
     }
 
     public static bool SkipFailedDownloads
@@ -284,7 +284,8 @@ public partial class NicheImageRipper : IDisposable
         return url.Split("?")[0];
     }
 
-    public async Task<bool> Rip(CancellationToken cancellationToken = default)
+    /// <summary>Rips queued URLs until the queue is empty, or stops early when nothing more can be saved.</summary>
+    public async Task<RipStopReason> Rip(CancellationToken cancellationToken = default)
     {
         Ripper ??= new FileRipper(WebDriverPool, FilenameScheme, UnzipProtocol, PostDownloadAction);
         Ripper.OnProgressChanged += OnProgressChangedHandler;
@@ -293,24 +294,51 @@ public partial class NicheImageRipper : IDisposable
         while (UrlQueue.Count != 0)
         {
             Logger.Debug("Queue size: {QueueCount}", UrlQueue.Count);
-            var url = await RipUrl(cancellationToken);
-            if (url is null)
+            var result = await RipUrl(cancellationToken);
+            switch (result.Outcome)
             {
-                // Indicates out of disk space // TODO: Improve return value to be more meaningful
-                return false;
-            }
-
-            Logger.Debug("Ripped URL: {Url:l}", url);
-            if (url != "")
-            {
-                // If empty url is returned Ripper is also null
-                UpdateHistory(Ripper!.FolderInfo, url);
+                case RipUrlOutcome.OutOfDiskSpace:
+                    // Every later download would fail the same way, so stop rather than fail through the whole queue
+                    return RipStopReason.OutOfDiskSpace;
+                case RipUrlOutcome.Ripped:
+                    Logger.Debug("Ripped URL: {Url:l}", result.Url);
+                    UpdateHistory(Ripper.FolderInfo, result.Url);
+                    break;
+                case RipUrlOutcome.QueueEmpty:
+                    break;
             }
 
             SaveUnfinishedUrlsToDisk(); // Save after each rip to avoid data loss
         }
 
-        return true;
+        return RipStopReason.QueueFinished;
+    }
+
+    private enum RipUrlOutcome
+    {
+        Ripped,
+        QueueEmpty, // emptied by the user between the loop check and taking the next URL
+        OutOfDiskSpace,
+    }
+
+    private readonly record struct RipUrlResult(RipUrlOutcome Outcome, string Url = "");
+
+    /// <summary>Logs the stop and saves the queue if it still can; the URL being ripped stays queued.</summary>
+    private RipUrlResult StopForDiskSpace(string url, Exception exception)
+    {
+        _lastException = exception;
+        Logger.Error(exception, "Not enough disk space while ripping {Url}. Stopping; the queue is kept so you can " +
+                                "continue once space is freed.", url);
+        try
+        {
+            SaveUnfinishedUrlsToDisk();
+        }
+        catch (IOException saveError)
+        {
+            Logger.Warning("Couldn't save the unfinished URL list either: {Reason}", saveError.Message);
+        }
+
+        return new RipUrlResult(RipUrlOutcome.OutOfDiskSpace, url);
     }
 
     public static List<string> GetSupportedSites()
@@ -324,7 +352,7 @@ public partial class NicheImageRipper : IDisposable
         return HtmlParserFactory.ParserNames.Order(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private async Task<string?> RipUrl(CancellationToken cancellationToken = default)
+    private async Task<RipUrlResult> RipUrl(CancellationToken cancellationToken = default)
     {
         string url;
         lock (_urlQueueLock)
@@ -332,7 +360,7 @@ public partial class NicheImageRipper : IDisposable
             if (UrlQueue.Count == 0)
             {
                 Logger.Information("No URLs to rip.");
-                return "";
+                return new RipUrlResult(RipUrlOutcome.QueueEmpty);
             }
 
             url = UrlQueue[0];
@@ -368,10 +396,12 @@ public partial class NicheImageRipper : IDisposable
                 }
                 catch (NotEnoughDiskSpaceException e)
                 {
-                    _lastException = e;
-                    Logger.Error("Failed to rip {Url} due to not enough disk space. Terminating...", url);
-                    SaveUnfinishedUrlsToDisk();
-                    return null;
+                    return StopForDiskSpace(url, e);
+                }
+                // A full disk can also surface as a plain IOException from any code path that writes files
+                catch (Exception e) when (DiskSpaceUtility.IsDiskFull(e))
+                {
+                    return StopForDiskSpace(url, e);
                 }
                 catch (Exception e)
                 {
@@ -387,8 +417,7 @@ public partial class NicheImageRipper : IDisposable
                     if (Debugging)
                     {
                         Logger.Error(e, "Failed to rip {Url} on attempt {Retry}.", url, retry);
-                        LogMessageToFile("Press any key to continue...");
-                        Console.ReadKey();
+                        PauseForDebugging();
                     }
                 }
             }
@@ -402,7 +431,7 @@ public partial class NicheImageRipper : IDisposable
 
             CurrentUrl = null;
             OnUrlQueueUpdated?.Invoke();
-            return url;
+            return new RipUrlResult(RipUrlOutcome.Ripped, url);
         }
         finally
         {
@@ -412,6 +441,12 @@ public partial class NicheImageRipper : IDisposable
                 OnUrlQueueUpdated?.Invoke();
             }
         }
+    }
+
+    /// <summary>Called after a failed attempt when <see cref="Debugging"/> is on, before retrying.</summary>
+    /// <remarks>Does nothing here; an interactive host can override it to wait for the user (e.g. a key press).</remarks>
+    protected virtual void PauseForDebugging()
+    {
     }
 
     private void OnProgressChangedHandler(int current, int total)
@@ -733,8 +768,27 @@ public partial class NicheImageRipper : IDisposable
         return null;
     }
 
+    private static readonly Lazy<IReadOnlyList<IQueueInputExpander>> InputExpanders =
+        new(() => Utility.ReflectionDiscovery.DiscoverImplementations<IQueueInputExpander>());
+
+    /// <summary>Applies the first site module expander that recognises the input (e.g. <c>booru tag1 tag2</c>).</summary>
+    private static string ExpandInput(string userInput)
+    {
+        var trimmed = userInput.Trim();
+        foreach (var expander in InputExpanders.Value)
+        {
+            if (expander.TryExpand(trimmed) is { } urls)
+            {
+                return string.Join(" ", urls);
+            }
+        }
+
+        return userInput;
+    }
+
     public RejectedUrlsInfo QueueUrls(string userInput)
     {
+        userInput = ExpandInput(userInput);
         var currentCount = UrlQueue.Count;
         var rejectedUrls = new RejectedUrlsInfo(currentCount);
         var failedUrls = QueueUrlsHelper(userInput);
@@ -823,39 +877,6 @@ public partial class NicheImageRipper : IDisposable
             var entry = new HistoryEntry(ripInfo.DirectoryName, url, ripInfo.NumUrls);
             HistoryDb.InsertHistoryRecord(entry);
         }
-    }
-
-    // TODO: This should probably be replaced with a proper TUI sink
-    public static void LogMessageToFile(string message, LogEventLevel level = LogEventLevel.Information,
-                                        bool newLine = true)
-    {
-        DisableConsoleLogging();
-
-        if (newLine)
-        {
-            Console.WriteLine(message);
-        }
-        else
-        {
-            Console.Write(message);
-        }
-
-        Log.Write(level, message);
-        EnableConsoleLogging();
-    }
-
-    private static void EnableConsoleLogging()
-    {
-        #if DEBUG
-        ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Debug;
-        #else
-        ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Information;
-        #endif
-    }
-
-    private static void DisableConsoleLogging()
-    {
-        ConsoleLoggingLevelSwitch.MinimumLevel = LogEventLevel.Fatal + 1;
     }
 
     public void Dispose()

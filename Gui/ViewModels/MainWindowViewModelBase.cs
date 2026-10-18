@@ -18,7 +18,6 @@ using NicheImageRipper.Gui.Services;
 using NicheImageRipper.Gui.Services.Shared;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.Enums;
-using NicheImageRipper.SiteModules.Modules.Booru;
 using ReactiveUI;
 
 namespace NicheImageRipper.Gui.ViewModels;
@@ -327,6 +326,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => SetSetting(ref field, value, v => RipperSettings.SaveUnfinishedUrls = v);
     }
 
+    public ReRipBehavior[] ReRipBehaviors { get; } = Enum.GetValues<ReRipBehavior>();
+
+    public ReRipBehavior ReRipBehavior
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.ReRipBehavior = v);
+    }
+
     public bool RemoveDuplicates
     {
         get;
@@ -459,6 +466,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
         RipperClient.OnUrlQueueUpdated += OnUrlQueueUpdated;
         RipperClient.OnProgressChanged += OnProgressChanged;
+        RipperClient.OnRipStopped += OnRipStopped;
     }
 
     private bool _initialized;
@@ -507,6 +515,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             RunPostProcessScript = RipperSettings.RunPostProcessScript;
             SkipFailedDownloads = RipperSettings.SkipFailedDownloads;
             SaveUnfinishedUrls = RipperSettings.SaveUnfinishedUrls;
+            ReRipBehavior = RipperSettings.ReRipBehavior;
             MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
             RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
             FlareSolverrUri = RipperSettings.FlareSolverrUri;
@@ -696,25 +705,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     {
         if (!string.IsNullOrWhiteSpace(input))
         {
-            var parts = SplitInput(input);
-            RejectedUrlsInfo rejectedUrls;
-            if (parts[0] == "booru")
-            {
-                try
-                {
-                    var urls = ExpandBooruInput(parts);
-                    rejectedUrls = await RipperClient.QueueUrls(string.Join("", urls), cancellationToken);
-                }
-                catch (InvalidOperationException)
-                {
-                    Logger.LogWarning("Missing argument: <tags>");
-                    return;
-                }
-            }
-            else
-            {
-                rejectedUrls = await RipperClient.QueueUrls(input, cancellationToken);
-            }
+            // Shorthands such as "booru tag1 tag2" are expanded by Core (so the thin client's backend does it too)
+            var rejectedUrls = await RipperClient.QueueUrls(input, cancellationToken);
 
             if (rejectedUrls.Count != 0)
             {
@@ -734,8 +726,17 @@ public abstract class MainWindowViewModelBase : ViewModelBase
                             Notify($"URL not supported: {failedUrl.Url}", "Queue URL", NotificationType.Error);
                             break;
                         case QueueFailureReason.PreviouslyProcessed:
-                            Logger.LogInformation("Re-rip url? {Url}", failedUrl.Url);
-                            var response = await ConfirmReripUrl(failedUrl.Url, cancellationToken);
+                            var response = ReRipBehavior switch
+                            {
+                                ReRipBehavior.Always => true,
+                                ReRipBehavior.Never => false,
+                                _ => await ConfirmReripUrl(failedUrl.Url, cancellationToken),
+                            };
+                            if (ReRipBehavior == ReRipBehavior.Never)
+                            {
+                                Notify($"Already ripped, skipping: {failedUrl.Url}", "Queue URL");
+                            }
+
                             if (response)
                             {
                                 Logger.LogDebug("Re-ripping URL: {Url}", failedUrl.Url);
@@ -779,103 +780,6 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             return temp;
         });
         return result?.Confirmed ?? false;
-    }
-
-    /// <summary>
-    ///     Split input by spaces, but multiple spaces are treated as one
-    /// </summary>
-    /// <param name="input">String to split</param>
-    /// <returns>List of split strings</returns>
-    private static List<string> SplitInput(string input)
-    {
-        var parts = new List<string>();
-        var currentPart = "";
-        foreach (var c in input)
-        {
-            if (char.IsWhiteSpace(c))
-            {
-                if (currentPart == "")
-                {
-                    continue;
-                }
-
-                parts.Add(currentPart);
-                currentPart = "";
-            }
-            else
-            {
-                currentPart += c;
-            }
-        }
-
-        if (currentPart != "")
-        {
-            parts.Add(currentPart);
-        }
-
-        return parts;
-    }
-
-    private static List<string> ExpandBooruInput(List<string> parts)
-    {
-        if (parts.Count < 2)
-        {
-            throw new InvalidOperationException("Missing argument: <tags>");
-        }
-
-        // This is prob unintuitive
-        // Basically, any booru-like URL (i.e. starts with https:// and contains tags=) is converted to the global booru URL
-        //      such that the ripper will pull from all supported boorus
-        // Any other parts are treated as tags for a single booru search, but if a url is encountered, the tags
-        //      are queued first, then the url is queued, and subsequent tags are treated as a different search
-        // This process repeats until all input is consumed
-        // Example input:
-        // booru cute tall https://example.booru.com/post?tags=cat+animal funny
-        // Results in three searches being queued:
-        // 1. cute, tall
-        // 2. cat, animal
-        // 3. funny
-        var urls = new List<string>();
-        var tags = new List<string>();
-        foreach (var part in parts.Skip(1))
-        {
-            if (part.StartsWith("https://"))
-            {
-                if (tags.Count > 0)
-                {
-                    var tagsString = string.Join("+", tags);
-                    var url = "https://booru.com/post?tags=" + tagsString;
-                    urls.Add(url);
-                    tags.Clear();
-                }
-
-                {
-                    // May throw an exception, if the input is not a booru-like URL
-                    // TODO: Figure out how to remove dependency on SiteModules without duplicating code
-                    var tagsString = BooruParser.ExtractTagsFromUrl(part);
-                    if (tagsString.EndsWith('+'))
-                    {
-                        tagsString = tagsString[..^1]; // Remove trailing +
-                    }
-
-                    var url = "https://booru.com/post?" + tagsString;
-                    urls.Add(url);
-                }
-            }
-            else
-            {
-                tags.Add(part);
-            }
-        }
-
-        if (tags.Count > 0)
-        {
-            var tagsString = string.Join("+", tags);
-            var url = "https://booru.com/post?tags=" + tagsString;
-            urls.Add(url);
-        }
-
-        return urls;
     }
 
     private async Task Rerip(string url, CancellationToken cancellationToken = default)
@@ -950,6 +854,18 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             UpdateProgressDisplay();
         });
         ProgressChanged?.Invoke(current, total);
+    }
+
+    private void OnRipStopped(RipStopReason reason)
+    {
+        if (reason != RipStopReason.OutOfDiskSpace)
+        {
+            return;
+        }
+
+        SetProgressError();
+        Notify("Ripping stopped: not enough disk space. The queue was kept; free up space, then select Rip to continue.",
+            "Ripping stopped", NotificationType.Error, 15000);
     }
 
     private void UpdateProgressDisplay()

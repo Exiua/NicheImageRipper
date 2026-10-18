@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Gui.Utility;
@@ -20,6 +21,9 @@ public class RemoteRipperClient : IRipperClient
 
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
+#pragma warning disable CS0067 // Never raised: the backend reports early stops in the log stream
+    public event Action<RipStopReason>? OnRipStopped;
+#pragma warning restore CS0067
 
     public bool Connected { get; set; }
 

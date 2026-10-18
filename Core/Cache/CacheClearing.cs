@@ -1,3 +1,4 @@
+using NicheImageRipper.Core.ModuleLoading;
 using NicheImageRipper.Sdk.Cache;
 using Serilog;
 
@@ -15,6 +16,8 @@ public class CacheClearing
 
     public static void ClearAll()
     {
+        // Module types can only be found once the modules are loaded
+        CoreBootstrap.EnsureInitialized();
         var owners = AppDomain.CurrentDomain
                               .GetAssemblies()
                               .SelectMany(assembly =>

@@ -1,4 +1,5 @@
 using NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+using NicheImageRipper.Core.ModuleLoading;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.FileDownloading;
 
@@ -8,6 +9,8 @@ internal static class DownloadCompositionRoot
 {
     public static FileDownloadStrategyRegistry BuildStrategyRegistry()
     {
+        // Strategies live in the site modules, which have to be loaded before they can be discovered
+        CoreBootstrap.EnsureInitialized();
         var strategyTypes = AppDomain.CurrentDomain
                                      .GetAssemblies()
                                      .SelectMany(a =>

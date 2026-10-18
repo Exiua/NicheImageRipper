@@ -9,8 +9,8 @@ namespace NicheImageRipper.Sdk.SiteParsing;
 /// </summary>
 public static class ExternalLinkExtractor
 {
-    // TODO: FIXME
     /// <summary>Every domain a registered <see cref="ParameterizedHtmlParser"/> can be delegated to.</summary>
+    /// <remarks>Backed by the parser resolver, which Core's startup sets before any parser can run.</remarks>
     public static IReadOnlySet<string> ExternalSites => HtmlParser.ExternalSites;
 
     public static Dictionary<string, List<string>> CreateExternalLinkDict()

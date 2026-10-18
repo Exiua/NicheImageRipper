@@ -1,10 +1,11 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using Serilog;
 
 namespace NicheImageRipper.Core.FileDownloading;
 
@@ -14,6 +15,7 @@ namespace NicheImageRipper.Core.FileDownloading;
 /// </summary>
 public partial class BunnyVideoDrm
 {
+    private static readonly ILogger Logger = Log.ForContext<BunnyVideoDrm>();
     private static readonly HttpClient Session = new();
     private static readonly Random Random = new();
 
@@ -226,7 +228,13 @@ public partial class BunnyVideoDrm
         using var process = new Process();
         process.StartInfo = startInfo;
         // Asynchronously read the standard output of the spawned process. 
-        process.OutputDataReceived += (_, args) => Console.WriteLine(args.Data);
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (args.Data is not null)
+            {
+                Logger.Debug("{Output:l}", args.Data);
+            }
+        };
         
         process.Start();
         process.BeginOutputReadLine();

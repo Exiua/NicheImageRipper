@@ -49,9 +49,7 @@ public static class HtmlParserFactory
 
     static HtmlParserFactory()
     {
-        SiteModuleLoader.LoadModules();
-        LinkInfoDiscovery.EnsureAllRegistered();
-        HtmlParser.ParserResolver = new CoreParserResolver();
+        CoreBootstrap.EnsureInitialized();
         Rebuild();
     }
 

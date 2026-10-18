@@ -13,6 +13,7 @@ using NicheImageRipper.Gui.Services.Shared.Windows;
 using NicheImageRipper.Gui.Services.Thin;
 using NicheImageRipper.Gui.ViewModels;
 using NicheImageRipper.Gui.Views;
+using NicheImageRipper.Sdk.Interaction;
 using Serilog;
 
 namespace NicheImageRipper.Gui;
@@ -76,6 +77,9 @@ public partial class App : Application
 
         // Creates a ServiceProvider containing services from the provided IServiceCollection
         var services = collection.BuildServiceProvider();
+
+        // Lets parsers and download strategies ask for manual steps (e.g. a captcha) through a dialog
+        UserPrompt.Current = new GuiUserPrompt();
 
         // Force event wiring to happen.
         _ = services.GetRequiredService<IGuiLogBridgeCoordinator>();

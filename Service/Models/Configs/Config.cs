@@ -13,7 +13,7 @@ public class Config
     public FilenameScheme? FilenameScheme { get; set; }
     public UnzipProtocol? UnzipProtocol { get; set; }
     public PostDownloadAction? PostDownloadAction { get; set; }
-    public bool? AskToReRip { get; set; }
+    public ReRipBehavior? ReRipBehavior { get; set; }
     public bool? LiveHistory { get; set; }
     public bool? SkipFailedDownloads { get; set; }
     public int? NumThreads { get; set; }
@@ -37,7 +37,7 @@ public class Config
             FilenameScheme = generalConfig.FilenameScheme,
             UnzipProtocol = generalConfig.UnzipProtocol,
             PostDownloadAction = generalConfig.PostDownloadAction,
-            AskToReRip = generalConfig.AskToReRip,
+            ReRipBehavior = generalConfig.ReRipBehavior,
             LiveHistory = generalConfig.LiveHistory,
             SkipFailedDownloads = generalConfig.SkipFailedDownloads,
             NumThreads = generalConfig.NumThreads,

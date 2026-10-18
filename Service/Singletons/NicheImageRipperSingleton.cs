@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Service.Models.Responses;
@@ -80,7 +81,12 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         {
             try
             {
-                await _ripper.Rip();
+                var stopReason = await _ripper.Rip();
+                if (stopReason == RipStopReason.OutOfDiskSpace)
+                {
+                    _logger.LogError("Ripping stopped: not enough disk space on the backend. The queue was kept; " +
+                                     "free up space and start ripping again.");
+                }
             }
             catch (Exception e)
             {
@@ -167,9 +173,9 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             existingConfig.PostDownloadAction = config.PostDownloadAction;
         }
 
-        if (config.AskToReRip is not null)
+        if (config.ReRipBehavior is not null)
         {
-            existingConfig.AskToReRip = config.AskToReRip.Value;
+            existingConfig.ReRipBehavior = config.ReRipBehavior.Value;
         }
 
         if (config.LiveHistory is not null)

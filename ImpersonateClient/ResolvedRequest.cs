@@ -8,8 +8,6 @@ internal sealed class ResolvedRequest
     public byte[]? Body { get; init; }
 
     public Browser? Browser { get; init; }
-    public string? Ja3 { get; init; }
-    public string? Akamai { get; init; }
     public bool PermuteExtensions { get; init; }
     public bool DefaultHeaders { get; init; }
     public bool FollowRedirects { get; init; }

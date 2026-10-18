@@ -103,6 +103,28 @@ public class LegacyConfigMigrationTest
         Assert.False(config.PostDownloadAction.FileLevel.RemoveDuplicates);
     }
 
+    [Theory]
+    [InlineData("true", ReRipBehavior.Ask)]
+    [InlineData("false", ReRipBehavior.Always)]
+    public void AskToReRipBecomesReRipBehavior(string askToReRip, ReRipBehavior expected)
+    {
+        var root = JsonNode.Parse($$"""{ "AskToReRip": {{askToReRip}} }""")!.AsObject();
+
+        Assert.True(LegacyConfigMigration.MigrateLegacyValues(root));
+        Assert.False(root.ContainsKey("AskToReRip"));
+        Assert.True(LegacyConfigMigration.TryMigrateJson<GeneralConfig>($$"""{ "AskToReRip": {{askToReRip}} }""",
+            out var config));
+        Assert.Equal(expected, config.ReRipBehavior);
+    }
+
+    [Fact]
+    public void ExistingReRipBehaviorWinsOverLeftoverAskToReRip()
+    {
+        Assert.True(LegacyConfigMigration.TryMigrateJson<GeneralConfig>(
+            """{ "AskToReRip": false, "ReRipBehavior": 2 }""", out var config));
+        Assert.Equal(ReRipBehavior.Never, config.ReRipBehavior);
+    }
+
     [Fact]
     public void MigrateLegacyValuesRewritesJsonInPlace()
     {

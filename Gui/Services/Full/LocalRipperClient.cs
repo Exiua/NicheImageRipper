@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
+using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.Utility;
@@ -21,6 +22,7 @@ public class LocalRipperClient : IRipperClient
     private bool _disposed;
     public event Action? OnUrlQueueUpdated;
     public event Action<int, int>? OnProgressChanged;
+    public event Action<RipStopReason>? OnRipStopped;
 
     static LocalRipperClient()
     {
@@ -41,9 +43,15 @@ public class LocalRipperClient : IRipperClient
         _ripper.OnProgressChanged += (downloaded, total) => OnProgressChanged?.Invoke(downloaded, total);
     }
 
-    public Task<bool> Rip(CancellationToken cancellationToken = default)
+    public async Task<bool> Rip(CancellationToken cancellationToken = default)
     {
-        return _ripper.Rip(cancellationToken);
+        var stopReason = await _ripper.Rip(cancellationToken);
+        if (stopReason != RipStopReason.QueueFinished)
+        {
+            OnRipStopped?.Invoke(stopReason);
+        }
+
+        return stopReason == RipStopReason.QueueFinished;
     }
 
     public Task<bool> Resume(CancellationToken cancellationToken = default)

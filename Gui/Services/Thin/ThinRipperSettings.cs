@@ -91,6 +91,12 @@ public class ThinRipperSettings : IRipperSettings
             v => new Config { SaveUnfinishedUrls = v });
     }
 
+    public ReRipBehavior ReRipBehavior
+    {
+        get => _config.ReRipBehavior;
+        set => Set(_config.ReRipBehavior, value, v => _config.ReRipBehavior = v, v => new Config { ReRipBehavior = v });
+    }
+
     public string FlareSolverrUri
     {
         get => _config.FlareSolverrUri;
