@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using JetBrains.Annotations;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Enums;
@@ -44,27 +44,58 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
     {
     }
 
+    /// <remarks>
+    ///     Synchronous: when a URL matches an <see cref="IExpandingSiteLinkRule"/> (e.g. a Google Drive folder), the
+    ///     expansion blocks the calling thread. Parsers that may produce such links should use the async factories.
+    /// </remarks>
     private RipInfo(List<StringFileLinkWrapper> urls, string directoryName = "",
                     FilenameScheme filenameScheme = FilenameScheme.Original,
                     DownloadMode downloadMode = DownloadMode.List, int numUrls = 0, List<string>? filenames = null, bool discardBlobs = false,
                     string? referer = "", int? maxConcurrentDownloads = null)
+        : this(directoryName, filenameScheme, downloadMode, maxConcurrentDownloads)
     {
-        // SaveRawUrls(urls);
+        // GetAwaiter().GetResult() rather than .Result, so failures surface as their own exception type (e.g.
+        // UrlExpiredException) instead of an AggregateException that callers can't match on
+        SetUrls(ConvertUrls(urls, discardBlobs, filenames, referer).GetAwaiter().GetResult(), numUrls);
+    }
+
+    /// <summary>Sets everything except the links, which the caller fills in with <see cref="SetUrls"/>.</summary>
+    private RipInfo(string directoryName, FilenameScheme filenameScheme, DownloadMode downloadMode,
+                    int? maxConcurrentDownloads)
+    {
         FilenameScheme = filenameScheme;
         DirectoryName = directoryName;
+        DownloadMode = downloadMode;
         MaxConcurrentDownloads = maxConcurrentDownloads;
+    }
+
+    private void SetUrls(List<FileLink> urls, int numUrls)
+    {
+        Urls = urls;
+        NumUrls = MustGenerateManually ? numUrls : Urls.Count;
+    }
+
+    private async Task<List<FileLink>> ConvertUrls(List<StringFileLinkWrapper> urls, bool discardBlobs,
+                                                   List<string>? filenames, string? referer)
+    {
         try
         {
-            Urls = ConvertUrlsToFileLink(urls, discardBlobs, filenames, referer).Result;
+            return await ConvertUrlsToFileLink(urls, discardBlobs, filenames, referer);
         }
         catch (Exception)
         {
             _logger.Debug("Failed to convert urls to file links: {@urls}", urls);
             throw;
         }
+    }
 
-        DownloadMode = downloadMode;
-        NumUrls = MustGenerateManually ? numUrls : Urls.Count;
+    private static async Task<RipInfo> CreateAsync(List<StringFileLinkWrapper> urls, string directoryName,
+                                                   FilenameScheme filenameScheme, List<string>? filenames = null,
+                                                   string? referer = "", int? maxConcurrentDownloads = null)
+    {
+        var ripInfo = new RipInfo(directoryName, filenameScheme, DownloadMode.List, maxConcurrentDownloads);
+        ripInfo.SetUrls(await ripInfo.ConvertUrls(urls, false, filenames, referer), 0);
+        return ripInfo;
     }
 
     private RipInfo(List<FileLink> urls, string directoryName, FilenameScheme filenameScheme)
@@ -110,6 +141,26 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
                                                    string? referer = "")
     {
         return new RipInfo(urls, dirName, filenameScheme, filenames: filenames, referer: referer);
+    }
+
+    /// <summary>Async <see cref="FromUrlList"/>: expands links such as Google Drive folders without blocking.</summary>
+    public static Task<RipInfo> FromUrlListAsync(List<StringFileLinkWrapper> urls, string dirName,
+                                                 FilenameScheme filenameScheme, bool nameReuse = false,
+                                                 string? referer = "", int? maxConcurrentDownloads = null)
+    {
+        // Some sites reuse names within subgroups (e.g., images in a chapter will always start with the same name)
+        return nameReuse
+            ? CreateAsync(urls, dirName,
+                filenameScheme == FilenameScheme.Original ? FilenameScheme.Chronological : filenameScheme)
+            : CreateAsync(urls, dirName, filenameScheme, referer: referer, maxConcurrentDownloads: maxConcurrentDownloads);
+    }
+
+    /// <summary>Async <see cref="FromUrlListWithFilenames"/>: expands links such as Google Drive folders without blocking.</summary>
+    public static Task<RipInfo> FromUrlListWithFilenamesAsync(List<StringFileLinkWrapper> urls, string dirName,
+                                                              FilenameScheme filenameScheme, List<string> filenames,
+                                                              string? referer = "")
+    {
+        return CreateAsync(urls, dirName, filenameScheme, filenames, referer);
     }
 
     public RipInfo WithDirectoryName(string directoryName)

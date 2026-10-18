@@ -19,6 +19,7 @@ internal static class CoreBootstrap
         // Must not touch HtmlParserFactory: its static constructor calls EnsureInitialized
         SiteModuleLoader.LoadModules();
         LinkInfoDiscovery.EnsureAllRegistered();
+        SiteLinkRuleRegistry.Refresh(); // pick up the rules in the modules just loaded
         HtmlParser.ParserResolver = new CoreParserResolver();
         return true;
     }

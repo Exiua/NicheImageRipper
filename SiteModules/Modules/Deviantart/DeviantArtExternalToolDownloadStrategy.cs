@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -23,14 +24,27 @@ public sealed class DeviantArtExternalToolDownloadStrategy : IExternalToolDownlo
             throw new InvalidOperationException("DeviantArt login credentials are not set in the configuration.");
         }
         
-        var cmd = new[]
+        // Passed in a short-lived config file rather than -u/-p, which other local processes could read from
+        // gallery-dl's command line
+        var credentialsConfig = Path.Combine(Path.GetTempPath(), $"nir-gallery-dl-{Guid.NewGuid():N}.json");
+        await File.WriteAllTextAsync(credentialsConfig, JsonSerializer.Serialize(new
         {
-            "-D", $"\"{fullPath}\"", "-u", username, "-p",
-            password, "--write-log", "log.txt", url
-        };
-        var (exitCode, _, error) = await ProcessRunner.RunSubprocess("gallery-dl", cmd, captureError: true,
-            startMessage: "Starting Deviantart download", endMessage: "Deviantart download finished",
-            cancellationToken: cancellationToken);
+            extractor = new { deviantart = new { username, password } },
+        }), cancellationToken);
+
+        int exitCode;
+        string? error;
+        try
+        {
+            string[] cmd = ["--config", credentialsConfig, "-D", fullPath, "--write-log", AppData.EnsureDirectory("Logs") + Path.DirectorySeparatorChar + "gallery-dl.log", url];
+            (exitCode, _, error) = await ProcessRunner.RunSubprocess("gallery-dl", cmd, captureError: true,
+                startMessage: "Starting Deviantart download", endMessage: "Deviantart download finished",
+                cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            File.Delete(credentialsConfig);
+        }
 
         if (exitCode == 0)
         {

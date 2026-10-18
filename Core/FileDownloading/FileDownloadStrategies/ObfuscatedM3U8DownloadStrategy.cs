@@ -32,11 +32,11 @@ public sealed class ObfuscatedM3U8DownloadStrategy : IFileDownloadStrategy
         }
         catch (HttpRequestException e)
         {
-            // Site-specific check left inline (exception-driven, not HTTP-status-driven — doesn't fit
-            // IDownloadErrorHandler's shape) — consistent with pinning further site-quirk extraction for now.
-            if (context.SiteName == "pornhub" && e.StatusCode is HttpStatusCode.Gone or HttpStatusCode.NotFound)
+            // Sites can react to their own failures (e.g. expired stream links) through exception handlers
+            var handler = context.ExceptionHandlers.FirstOrDefault(h => h.AppliesTo(e, link, context));
+            if (handler is not null)
             {
-                throw new UrlExpiredException(context.SiteName);
+                return handler.Handle(e, link, context);
             }
 
             context.Logger.Error(e, "Failed to download obfuscated M3U8");

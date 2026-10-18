@@ -11,6 +11,6 @@ public sealed class NlegsLadylapLinkRule : ISiteLinkRule
     public SiteLinkInfo Resolve(string url)
     {
         var filename = url.Split("url=")[1].Split("&")[0] + ".jfif";
-        return new SiteLinkInfo(url, LinkInfo.ResolveImage, Filename: filename);
+        return new SiteLinkInfo(url, NLegsLinkInfo.ResolveImage, Filename: filename);
     }
 }

@@ -7,7 +7,7 @@ namespace ImpersonateClient;
 public sealed class ImpersonateHttpClient
 {
     internal Browser? Browser { get; }
-    internal bool PermuteExtensions { get; }
+    internal bool? PermuteExtensions { get; }
     internal bool DefaultRequestHeaders { get; }
     internal bool FollowRedirects { get; }
     internal bool Verify { get; }
@@ -80,7 +80,7 @@ public sealed class ImpersonateHttpClient
 internal sealed class ImpersonateHttpClientOptions
 {
     public Browser? Browser { get; init; }
-    public bool PermuteExtensions { get; init; } = true;
+    public bool? PermuteExtensions { get; init; }
     public bool DefaultRequestHeaders { get; init; } = true;
     public bool FollowRedirects { get; init; } = true;
     public bool Verify { get; init; } = true;
@@ -91,7 +91,7 @@ internal sealed class ImpersonateHttpClientOptions
 public sealed class ImpersonateHttpClientBuilder
 {
     private Browser? _browser;
-    private bool _permuteExtensions = true;
+    private bool? _permuteExtensions;
     private bool _defaultHeaders = true;
     private bool _followRedirects = true;
     private bool _verify = true;
@@ -130,6 +130,10 @@ public sealed class ImpersonateHttpClientBuilder
         throw new NotSupportedException("Custom Akamai HTTP/2 fingerprints aren't implemented yet; use a Browser preset instead.");
     }
 
+    /// <summary>
+    ///     Turns TLS extension-order permutation on or off. Not calling this leaves it to the <see cref="Browser"/>
+    ///     preset, which already matches that browser.
+    /// </summary>
     public ImpersonateHttpClientBuilder WithPermuteExtensions(bool enabled = true)
     {
         _permuteExtensions = enabled;

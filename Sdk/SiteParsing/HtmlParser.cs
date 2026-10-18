@@ -1,4 +1,4 @@
-﻿using FlareSolverrIntegration.Responses;
+using FlareSolverrIntegration.Responses;
 using HtmlAgilityPack;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
@@ -7,6 +7,7 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.Managers;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi;
 using OpenQA.Selenium.Firefox;
@@ -136,24 +137,20 @@ public abstract class HtmlParser : IDisposable
     /// Called by the orchestrator on the top-level path and by <c>ParameterizedHtmlParser</c> on the
     /// delegated path (which bypasses the orchestrator entirely).
     /// </summary>
-    protected internal Task<bool> SiteLogin(CancellationToken cancellationToken = default)
+    protected internal async Task<bool> SiteLogin(CancellationToken cancellationToken = default)
     {
         Logger.Debug("Checking if already logged in to {SiteName}", SiteName);
         if (IsLoggedInToSite(SiteName))
         {
             Logger.Debug("Already logged in to {SiteName}", SiteName);
-            return Task.FromResult(true);
+            return true;
         }
 
         Logger.Debug("Logging in to {SiteName}", SiteName);
-        var loginTask = SiteLoginHelper(cancellationToken);
-
-        return loginTask.ContinueWith(task =>
-        {
-            WebDriver.SiteLoginStatus[SiteName] = task.Result;
-            Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, task.Result);
-            return task.Result;
-        }, cancellationToken);
+        var loggedIn = await SiteLoginHelper(cancellationToken);
+        WebDriver.SiteLoginStatus[SiteName] = loggedIn;
+        Logger.Debug("Logged in to {SiteName}: {Result}", SiteName, loggedIn);
+        return loggedIn;
     }
 
     protected virtual Task<bool> SiteLoginHelper(CancellationToken cancellationToken = default)
@@ -425,7 +422,7 @@ public abstract class HtmlParser : IDisposable
         }
 
         #if DEBUG
-        await File.WriteAllTextAsync("test-solver.html", solution.Response, cancellationToken);
+        await AppData.WriteAllTextAsync("test-solver.html", solution.Response, cancellationToken);
         Logger.Debug("User-Agent: {UserAgent}", solution.UserAgent);
         #endif
 

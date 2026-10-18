@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using NicheImageRipper.Sdk.DataStructures;
@@ -9,14 +9,33 @@ namespace NicheImageRipper.SiteModules.Modules.Google;
 
 public static class GDriveHelper
 {
+    private static readonly SemaphoreSlim ServiceLock = new(1, 1);
+    private static DriveService? _service;
+
+    /// <summary>
+    ///     The Drive client, authenticated on first use and reused afterwards: authorizing reads the credentials and
+    ///     token cache from disk (and may prompt), which is far too slow to repeat for every file.
+    /// </summary>
     public static async Task<DriveService> AuthenticateGDrive(CancellationToken cancellationToken = default)
     {
-        var creds = await GoogleAuth.GDriveAuthenticate();
-        return new DriveService(new BaseClientService.Initializer
+        if (_service is not null)
         {
-            HttpClientInitializer = creds,
-            ApplicationName = "GDriveHelper"
-        });
+            return _service;
+        }
+
+        await ServiceLock.WaitAsync(cancellationToken);
+        try
+        {
+            return _service ??= new DriveService(new BaseClientService.Initializer
+            {
+                HttpClientInitializer = await GoogleAuth.GDriveAuthenticate(),
+                ApplicationName = "NicheImageRipper"
+            });
+        }
+        finally
+        {
+            ServiceLock.Release();
+        }
     }
     
     public static async Task<(List<FileLink>, int)> QueryGDriveLinks(string gDriveUrl, int index, FilenameScheme filenameScheme)

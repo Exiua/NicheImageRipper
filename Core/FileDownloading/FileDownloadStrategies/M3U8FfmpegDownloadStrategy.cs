@@ -47,15 +47,15 @@ public sealed class M3U8FfmpegDownloadStrategy : IFileDownloadStrategy
         string[] cmd = !string.IsNullOrEmpty(referer)
             ?
             [
-                "-headers", $"\"Referer: {referer}\"",
-                "-headers", $"\"User-Agent: {Config.UserAgent}\"",
+                "-headers", $"Referer: {referer}",
+                "-headers", $"User-Agent: {Config.UserAgent}",
                 "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-                "-i", $"\"{url}\"", "-c", "copy", $"\"{filePath}\""
+                "-i", url, "-c", "copy", filePath
             ]
             :
             [
                 "-protocol_whitelist", "file,http,https,tcp,tls,crypto",
-                "-i", $"\"{url}\"", "-c", "copy", $"\"{filePath}\""
+                "-i", url, "-c", "copy", filePath
             ];
 
         var result = await ProcessRunner.RunFfmpeg(cmd, cancellationToken: cancellationToken);

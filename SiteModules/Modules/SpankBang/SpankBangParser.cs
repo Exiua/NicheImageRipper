@@ -88,7 +88,6 @@ public class SpankBangParser : HtmlParser, IHtmlParser
                 var videos = soup.SelectSingleNodeOrThrow(playlistXPath).SelectNodesOrThrow("./div")
                                  .Select(div => div.SelectSingleNodeOrThrow(".//a").GetHref())
                                  .Select(src => $"https://spankbang.com{src}");
-                await File.WriteAllTextAsync("test2.html", Driver.PageSource, cancellationToken: cancellationToken);
                 foreach (var video in videos)
                 {
                     CurrentUrl = video;

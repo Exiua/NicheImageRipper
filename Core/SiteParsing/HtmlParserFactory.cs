@@ -41,6 +41,9 @@ public static class HtmlParserFactory
 
     public static FrozenSet<string> DelegatableDomains { get; private set; } = FrozenSet<string>.Empty;
 
+    /// <summary>Hosts whose subdomains also belong to their parser (see <see cref="IWildcardSubdomainHtmlParser"/>).</summary>
+    public static FrozenSet<string> WildcardSubdomainHosts { get; private set; } = FrozenSet<string>.Empty;
+
     public static IReadOnlyList<(string Pattern, UrlMatchKind Kind, Func<string, string> Normalize)> UrlNormalizers
     {
         get;
@@ -86,6 +89,11 @@ public static class HtmlParserFactory
         RefererOverridesBySuffix = BuildSuffixLookup<string>(
             parserTypes, typeof(IRefererOverrideHtmlParser), nameof(IRefererOverrideHtmlParser.RefererOverride));
         DelegatableDomains = BuildDelegatableDomains(parserTypes);
+        WildcardSubdomainHosts = parserTypes
+                                .Where(t => typeof(IWildcardSubdomainHtmlParser).IsAssignableFrom(t))
+                                .SelectMany(t => (string[])t.GetProperty(nameof(IHtmlParser.SupportedUrls))!.GetValue(null)!)
+                                .Select(url => new Uri(url).Host)
+                                .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
         UrlNormalizers = BuildUrlNormalizers(parserTypes);
     }
 

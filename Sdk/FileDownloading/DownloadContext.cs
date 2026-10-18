@@ -13,5 +13,8 @@ public sealed class DownloadContext
     public required ILogger Logger { get; init; }
     public required IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; init; }
     public required IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; init; }
+
+    /// <summary>Site-specific handling for exceptions that never produce an HTTP response to inspect.</summary>
+    public IReadOnlyList<IDownloadExceptionHandler> ExceptionHandlers { get; init; } = [];
     public required IReadOnlyList<IPostDownloadValidator> PostDownloadValidators { get; init; }
 }

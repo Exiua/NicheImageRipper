@@ -36,6 +36,9 @@ internal static class DownloadCompositionRoot
     public static IReadOnlyList<IDownloadErrorHandler> BuildErrorHandlers() =>
         ReflectionDiscovery.DiscoverImplementations<IDownloadErrorHandler>();
 
+    public static IReadOnlyList<IDownloadExceptionHandler> BuildExceptionHandlers() =>
+        ReflectionDiscovery.DiscoverImplementations<IDownloadExceptionHandler>();
+
     public static IReadOnlyList<IPostDownloadValidator> BuildPostDownloadValidators() =>
         ReflectionDiscovery.DiscoverImplementations<IPostDownloadValidator>();
 

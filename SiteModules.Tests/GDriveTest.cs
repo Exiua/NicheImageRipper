@@ -1,6 +1,7 @@
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.FileDownloading;
+using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.SiteModules.Modules.Google;
 using Serilog;
 
@@ -51,7 +52,7 @@ public class GDriveTest
         Assert.NotEmpty(links);
 
         var path = Path.Combine(CreateOutputDirectory("GDriveTestDownloadFile"), links[0].Filename);
-        var result = await new GDriveDownloadStrategy().DownloadAsync(links[0], path, CreateContext());
+        var result = await new GDriveDownloadStrategy().DownloadAsync(links[0], path, CreateContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(DownloadOutcome.Success, result.Outcome);
         Assert.True(new FileInfo(path).Length > 0, $"Downloaded file is empty: {path}");
@@ -69,12 +70,12 @@ public class GDriveTest
         foreach (var link in links)
         {
             var path = Path.Combine(directory, link.Filename);
-            var result = await strategy.DownloadAsync(link, path, CreateContext());
+            var result = await strategy.DownloadAsync(link, path, CreateContext(), TestContext.Current.CancellationToken);
             Assert.Equal(DownloadOutcome.Success, result.Outcome);
         }
     }
 
-    /// <summary>Skips the test unless it's configured, and moves into the Workspace folder holding the credentials.</summary>
+    /// <summary>Skips the test unless it's configured, and points the app data folder at Workspace (the credentials).</summary>
     private static string RequireSetup()
     {
         var folderUrl = Environment.GetEnvironmentVariable(FolderUrlVariable);
@@ -83,15 +84,13 @@ public class GDriveTest
         var workspace = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../Workspace"));
         Assert.SkipUnless(File.Exists(Path.Combine(workspace, "client_secrets.json")),
             $"Google Drive tests need client_secrets.json in {workspace}");
-        Directory.SetCurrentDirectory(workspace);
+        AppData.Directory = workspace;
         return folderUrl!;
     }
 
     private static string CreateOutputDirectory(string name)
     {
-        var directory = Path.Combine("TestFiles", name);
-        Directory.CreateDirectory(directory);
-        return directory;
+        return AppData.EnsureDirectory("TestFiles", name);
     }
 
     /// <summary>

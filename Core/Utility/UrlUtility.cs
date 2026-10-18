@@ -18,7 +18,9 @@ public static partial class UrlUtility
         var parsedUri = new Uri(givenUrl);
         var baseUrl = $"{parsedUri.Scheme}://{parsedUri.Host}/";
         Logger.Debug("Checking URL: {Url}", baseUrl);
-        return HtmlParserFactory.SupportedUrls.Contains(baseUrl) || baseUrl.Contains("newgrounds.com");
+        return HtmlParserFactory.SupportedUrls.Contains(baseUrl) ||
+               HtmlParserFactory.WildcardSubdomainHosts.Any(host =>
+                   parsedUri.Host.EndsWith("." + host, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -27,19 +29,19 @@ public static partial class UrlUtility
     /// </summary>
     internal static string ExtractDomainAndSetReferer(string givenUrl, Dictionary<string, string> requestHeaders)
     {
-        var domain = new Uri(givenUrl).Host;
-        requestHeaders["referer"] = $"https://{domain}/";
-        var domainParts = domain.Split('.');
+        var host = new Uri(givenUrl).Host;
+        requestHeaders["referer"] = $"https://{host}/";
+        var domainParts = host.Split('.');
 
         var labelsToKeep = HtmlParserFactory.SubdomainSignificantSuffixes
-                                            .Where(kvp => domain.EndsWith(kvp.Key))
+                                            .Where(kvp => host.EndsWith(kvp.Key))
                                             .Select(kvp => kvp.Value)
                                             .DefaultIfEmpty(2)
                                             .Max();
-        domain = domainParts[^Math.Min(labelsToKeep, domainParts.Length)];
+        var domain = domainParts[^Math.Min(labelsToKeep, domainParts.Length)];
 
         var refererOverride = HtmlParserFactory.RefererOverridesBySuffix
-                                               .Where(kvp => domain.EndsWith(kvp.Key)) // reuse `domain` (the host) already computed above
+                                               .Where(kvp => host.EndsWith(kvp.Key))
                                                .OrderByDescending(kvp => kvp.Key.Length)
                                                .Select(string? (kvp) => kvp.Value)
                                                .FirstOrDefault();

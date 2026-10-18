@@ -5,7 +5,6 @@ using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
-using NotSupportedException = NicheImageRipper.Sdk.Exceptions.NotSupportedException;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Iwara;
@@ -126,7 +125,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
         }
         else
         {
-            throw new NotSupportedException("IwaraParser", $"Unsupported URL format: {CurrentUrl}");
+            throw new FeatureNotSupportedException("IwaraParser", $"Unsupported URL format: {CurrentUrl}");
         }
 
         return RipInfo.FromUrlList(files, dirName, FilenameScheme);

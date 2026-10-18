@@ -6,7 +6,6 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 using OpenQA.Selenium;
-using FeatureNotSupportedException = NicheImageRipper.Sdk.Exceptions.NotSupportedException;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.PmvHaven;

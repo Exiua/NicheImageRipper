@@ -1,6 +1,10 @@
-namespace NicheImageRipper.Core.Tests;
+namespace SiteModules.Tests;
 
-public class NicheImageRipperTest
+/// <summary>
+///     Core's URL normalization end to end: these cases are handled by site modules' normalizers, so they live here,
+///     where SiteModules is loaded (they always failed in Core.Tests, which doesn't load it).
+/// </summary>
+public class NormalizeUrlTest
 {
     public static TheoryData<string, string> Urls =>
         new()
@@ -41,7 +45,7 @@ public class NicheImageRipperTest
     
     [Theory]
     [MemberData(nameof(Urls))]
-    public void NormalizeUrlTest(string link, string expected)
+    public void NormalizesSiteUrls(string link, string expected)
     {
         var actual = global::NicheImageRipper.Core.NicheImageRipper.NormalizeUrl(link);
         Assert.Equal(expected, actual);

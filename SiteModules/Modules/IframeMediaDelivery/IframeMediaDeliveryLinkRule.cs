@@ -16,6 +16,6 @@ public sealed class IframeMediaDeliveryLinkRule : ISiteLinkRule
         var referer = split[1];
         var filename = url.Split("/")[^1].Split("?")[0] + ".mp4"; // assume mp4
 
-        return new SiteLinkInfo(playlistUrl, LinkInfo.IframeMedia, referer, filename);
+        return new SiteLinkInfo(playlistUrl, IframeMediaDeliveryLinkInfo.IframeMedia, referer, filename);
     }
 }

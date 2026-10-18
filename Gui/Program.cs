@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Gui.Utility;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -37,7 +38,7 @@ sealed class Program
                     .WriteTo.Console(theme: AnsiConsoleTheme.Code, levelSwitch: consoleSwitch,
                          outputTemplate:
                          "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext:lj}] {Message:lj}{NewLine}{Exception}")
-                    .WriteTo.File("Logs/gui.log", rollingInterval: RollingInterval.Day, levelSwitch: fileSwitch)
+                    .WriteTo.File(AppData.GetPath("Logs", "gui.log"), rollingInterval: RollingInterval.Day, levelSwitch: fileSwitch)
                     .WriteTo.Gui()
                     .CreateLogger();
 

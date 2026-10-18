@@ -10,7 +10,8 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.Newgrounds;
 
-public partial class NewgroundsParser : HtmlParser, IHtmlParser
+// Art and audio live on per-user subdomains, e.g. someone.newgrounds.com
+public partial class NewgroundsParser : HtmlParser, IHtmlParser, IWildcardSubdomainHtmlParser
 {
     public static string ParserName => "newgrounds";
     public static string[] SupportedUrls { get; } = ["https://newgrounds.com/"];

@@ -1,4 +1,4 @@
-﻿using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.Core.FileDownloading;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -155,7 +155,7 @@ public class HtmlParserOrchestrator : IDisposable
         Driver.SwitchTo().DefaultContent();
         Logger.Error(e, "Failed to parse {CurrentUrl}", CurrentUrl);
         #if DEBUG
-        await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
+        await File.WriteAllTextAsync(AppData.GetPath("test.html"), Driver.PageSource, cancellationToken);
         Driver.TakeDebugScreenshot();
         #endif
     }
@@ -184,12 +184,6 @@ public class HtmlParserOrchestrator : IDisposable
     }
 
     #region Parser Testing
-
-    private static readonly Dictionary<string, string> TestSiteNameOverrides = new()
-    {
-        ["x-x-x"] = "xxxtube",
-        ["twitter"] = "x",
-    };
 
     /// <summary>
     /// Dev/test-only entry point: parses a URL by resolving and running a single parser directly, bypassing
@@ -234,13 +228,13 @@ public class HtmlParserOrchestrator : IDisposable
 
             Logger.Debug("Time Elapsed: {TimeElapsed}", end - start);
             var outData = data.Urls.Select(d => d.Url).ToList();
-            JsonUtility.Serialize("test.json", outData);
+            JsonUtility.Serialize(AppData.GetPath("test.json"), outData);
             return data;
         }
         catch (Exception e)
         {
             Logger.Error(e, "Error occurred while testing {SiteName}Parser", SiteName);
-            await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
+            await File.WriteAllTextAsync(AppData.GetPath("test.html"), Driver.PageSource, cancellationToken);
             Driver.TakeDebugScreenshot();
             Driver.DumpCookies();
             throw;
@@ -249,18 +243,14 @@ public class HtmlParserOrchestrator : IDisposable
         {
             if (printSite)
             {
-                await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken);
+                await File.WriteAllTextAsync(AppData.GetPath("test.html"), Driver.PageSource, cancellationToken);
             }
         }
     }
 
     private Task<RipInfo> EvaluateParser(string siteName, CancellationToken cancellationToken = default)
     {
-        if (TestSiteNameOverrides.TryGetValue(siteName, out var overrideName))
-        {
-            siteName = overrideName;
-        }
-
+        // Parsers declare every name they answer to (ParserName plus AdditionalParserNames), so no aliasing here
         Logger.Debug("Resolving parser for site: {SiteName}", siteName);
         var parser = HtmlParserFactory.Create(siteName, WebDriver, RequestHeaders, FilenameScheme);
         parser.GivenUrl = CurrentUrl;

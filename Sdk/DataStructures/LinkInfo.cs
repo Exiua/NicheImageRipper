@@ -1,4 +1,4 @@
-﻿namespace NicheImageRipper.Sdk.DataStructures;
+namespace NicheImageRipper.Sdk.DataStructures;
 
 /// <summary>
 ///     Identifies which download mechanism a FileLink requires. Core defines the generic, non-site-specific
@@ -15,24 +15,20 @@ public readonly record struct LinkInfo
     private const string NoneValue = "none";
     private const string TextValue = "text";
     private const string Base64Value = "base64";
-    private const string ResolveImageValue = "resolve-image";
     private const string SeleniumImageValue = "selenium-image";
     private const string M3U8FfmpegValue = "m3u8-ffmpeg";
     private const string M3U8YtDlpValue = "m3u8-ytdlp";
     private const string ObfuscatedM3U8Value = "obfuscated-m3u8";
     private const string MpegDashValue = "mpeg-dash";
-    private const string IframeMediaValue = "iframe-media";
 
     public static readonly LinkInfo None = LinkInfoRegistry.Register(NoneValue);
     public static readonly LinkInfo Text = LinkInfoRegistry.Register(TextValue);
     public static readonly LinkInfo Base64 = LinkInfoRegistry.Register(Base64Value);
-    public static readonly LinkInfo ResolveImage = LinkInfoRegistry.Register(ResolveImageValue);
     public static readonly LinkInfo SeleniumImage = LinkInfoRegistry.Register(SeleniumImageValue);
     public static readonly LinkInfo M3U8Ffmpeg = LinkInfoRegistry.Register(M3U8FfmpegValue);
     public static readonly LinkInfo M3U8YtDlp = LinkInfoRegistry.Register(M3U8YtDlpValue);
     public static readonly LinkInfo ObfuscatedM3U8 = LinkInfoRegistry.Register(ObfuscatedM3U8Value);
     public static readonly LinkInfo MpegDash = LinkInfoRegistry.Register(MpegDashValue);
-    public static readonly LinkInfo IframeMedia = LinkInfoRegistry.Register(IframeMediaValue);
 
     public string Name { get; init; }
 

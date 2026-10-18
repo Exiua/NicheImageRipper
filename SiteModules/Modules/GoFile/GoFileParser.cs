@@ -4,6 +4,7 @@ using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
@@ -36,7 +37,7 @@ public class GoFileParser : ParameterizedHtmlParser, IHtmlParser
         if (password is not null)
         {
             Logger.Warning("URL is password protected. Writing url to file...");
-            await File.WriteAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n", cancellationToken);
+            await AppData.AppendAllTextAsync("password_protected_gofile.txt", CurrentUrl + "\n", cancellationToken);
             // TODO: Find a better way to handle password protected files
             return RipInfo.Empty.WithDirectoryName("Password Protected");
         }

@@ -3,16 +3,17 @@ using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.FileDownloading;
 using NicheImageRipper.Sdk.Interaction;
+using NicheImageRipper.Sdk.Managers;
 using Serilog;
 
-namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+namespace NicheImageRipper.SiteModules.Modules.NLegs;
 
 public sealed partial class ResolveImageDownloadStrategy : IFileDownloadStrategy
 {
     private const int RetryCount = 4;
     private readonly GenericHttpDownloadStrategy _genericDownload = new();
 
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.ResolveImage];
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [NLegsLinkInfo.ResolveImage];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                      CancellationToken cancellationToken = default)
@@ -79,7 +80,7 @@ public sealed partial class ResolveImageDownloadStrategy : IFileDownloadStrategy
 
     private static async Task SolveCaptcha(string url, bool humanSolve, CancellationToken cancellationToken)
     {
-        await NicheImageRipper.FlareSolverrManager.GetSiteSolution(url, cancellationToken: cancellationToken);
+        await FlareSolverrManager.Instance.GetSiteSolution(url, cancellationToken: cancellationToken);
         if (humanSolve)
         {
             await UserPrompt.Current.WaitForUserAsync("Solve the captcha in the browser window, then continue.",

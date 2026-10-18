@@ -29,7 +29,6 @@ public class QuatvnParser : HtmlParser, IHtmlParser
         HtmlNode soup = null!;
         for (var i = 0; i < 4; i++)
         {
-            await File.WriteAllTextAsync("test.html", Driver.PageSource, cancellationToken: cancellationToken);
             var startTime = DateTime.Now;
             soup = await Soupify(xpath: "//div[@class='fp-playlist']|//div[@class='fp-player']|//ul[@role='tablist']", xpathTimeout: 120, cancellationToken: cancellationToken);
             var endTime = DateTime.Now;

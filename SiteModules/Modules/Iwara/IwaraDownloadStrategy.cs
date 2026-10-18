@@ -1,5 +1,4 @@
 using IwaraApiClient.Models;
-using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.FileDownloading;
 using NicheImageRipper.Sdk.SiteParsing;
@@ -16,15 +15,8 @@ public sealed class IwaraDownloadStrategy : IFileDownloadStrategy
         var client = IwaraParser.Client;
         context.Logger.Debug("Downloading {Url} as {Filename}", link.Url, link.Filename);
         var videoId = link.Url.Split('/')[^1];
-        RequestResult result;
-        try
-        {
-            result = await client.DownloadVideo(videoId, imagePath, cancellationToken);
-        }
-        catch (IOException e) when (e.Message.StartsWith("There is not enough space on the disk"))
-        {
-            throw new NotEnoughDiskSpaceException(e);
-        }
+        // A full disk propagates as an IOException; the ripper recognises it and stops the queue
+        var result = await client.DownloadVideo(videoId, imagePath, cancellationToken);
 
         await HtmlParser.JitterSleep(min: 250, max: 500, cancellationToken: cancellationToken);
 

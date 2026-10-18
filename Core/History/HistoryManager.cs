@@ -1,8 +1,9 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.SQLite;
 using System.Diagnostics.CodeAnalysis;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.ExtensionMethods;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 
 namespace NicheImageRipper.Core.History;
@@ -14,7 +15,7 @@ namespace NicheImageRipper.Core.History;
 /// </summary>
 public class HistoryManager : IDisposable
 {
-    private const string ConnectionString = "Data Source=NicheImageRipper.db";
+    private static readonly string ConnectionString = $"Data Source={AppData.GetPath("NicheImageRipper.db")}";
 
     private static readonly ILogger Logger = Log.ForContext<HistoryManager>();
 

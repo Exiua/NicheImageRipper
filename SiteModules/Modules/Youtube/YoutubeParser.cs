@@ -143,21 +143,15 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
             return this;
         }
 
-        public string GetArgs()
-        {
-            return Arguments.Count == 0 ? "" : string.Join(" ", Arguments);
-        }
     }
 
     private static async Task<(int, string?, string? )> RunSubprocess(SubprocessArgs args,
                                                                       CancellationToken cancellationToken = default)
     {
-        var arguments = args.GetArgs();
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
             FileName = args.Executable,
-            Arguments = arguments,
             RedirectStandardOutput = args.CaptureOutput,
             StandardOutputEncoding = args.CaptureOutput ? Encoding.UTF8 : null,
             RedirectStandardError = args.CaptureError,
@@ -165,6 +159,11 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        foreach (var argument in args.Arguments)
+        {
+            process.StartInfo.ArgumentList.Add(argument);
+        }
+
         string? output = null;
         if (args.CaptureOutput)
         {

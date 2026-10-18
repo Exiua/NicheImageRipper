@@ -176,21 +176,40 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         }
     }
 
-    private void OnClosing(object? sender, WindowClosingEventArgs windowClosingEventArgs)
+    private static readonly TimeSpan SaveOnCloseTimeout = TimeSpan.FromSeconds(30);
+    private bool _savedForClose;
+
+    /// <summary>
+    ///     Holds the first close back until saving has finished (it can await disk I/O mid-rip, or an HTTP request in
+    ///     thin mode), then disposes the ripper and closes for real. Capped so a stuck save can't keep the app open.
+    /// </summary>
+    private async void OnClosing(object? sender, WindowClosingEventArgs windowClosingEventArgs)
     {
-        _logRefreshTimer.Stop();
-        var task = Dispatcher.UIThread.InvokeAsync(() =>
+        if (_savedForClose)
         {
-            try
-            {
-                ViewModel!.SaveData();
-            }
-            finally
-            {
-                ViewModel!.Cleanup();
-            }
-        });
-        task.Wait();
+            return;
+        }
+
+        windowClosingEventArgs.Cancel = true;
+        _savedForClose = true;
+        _logRefreshTimer.Stop();
+        try
+        {
+            await ViewModel!.SaveDataAsync().WaitAsync(SaveOnCloseTimeout);
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogWarning("Saving took longer than {Timeout}; closing without waiting further", SaveOnCloseTimeout);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to save data while closing");
+        }
+        finally
+        {
+            ViewModel!.Cleanup();
+            Close();
+        }
     }
 
     private bool _paused;

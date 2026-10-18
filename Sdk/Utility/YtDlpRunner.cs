@@ -8,7 +8,7 @@ namespace NicheImageRipper.Sdk.Utility;
 
 public static class YtDlpRunner
 {
-    private const string YoutubeCookiesFile = "yt_cookies.txt";
+    private static string YoutubeCookiesFile => AppData.GetPath("yt_cookies.txt");
 
     private static readonly ILogger Logger = Log.ForContext(typeof(YtDlpRunner));
 
@@ -35,12 +35,12 @@ public static class YtDlpRunner
         string[] cmd = link.Referer != ""
             ?
             [
-                "--force-overwrites", "-P", $"\"{parent}\"", "-o", $"\"{filename}\"",
-                "--add-headers", $"\"Referer:{link.Referer}\"", $"\"{url}\"",
+                "--force-overwrites", "-P", parent, "-o", filename,
+                "--add-headers", $"Referer:{link.Referer}", url,
             ]
             :
             [
-                "--force-overwrites", "-P", $"\"{parent}\"", "-o", $"\"{filename}\"", $"\"{url}\"",
+                "--force-overwrites", "-P", parent, "-o", filename, url,
             ];
 
         Logger.Debug("yt-dlp {cmd}", string.Join(" ", cmd));

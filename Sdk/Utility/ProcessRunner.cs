@@ -25,12 +25,18 @@ public static class ProcessRunner
         process.StartInfo = new ProcessStartInfo
         {
             FileName = executable,
-            Arguments = arguments is null ? "" : " ".Join(arguments),
             RedirectStandardOutput = captureOutput,
             RedirectStandardError = captureError,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        // Each entry is one argument, escaped by .NET, so spaces or quotes in a path or password can't split or
+        // inject arguments. Callers pass raw values; they shouldn't add their own quotes.
+        foreach (var argument in arguments ?? [])
+        {
+            process.StartInfo.ArgumentList.Add(argument);
+        }
 
         StringBuilder? output = null;
         if (captureOutput)

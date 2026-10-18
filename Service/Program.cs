@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.Service.Contexts;
 using NicheImageRipper.Service.Handlers;
 using NicheImageRipper.Service.Serilog;
@@ -23,7 +24,7 @@ Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
             .WriteTo.Console()
             .WriteTo.File(
-                 "logs/service-.log",
+                 AppData.GetPath("Logs", "service-.log"),
                  rollingInterval: RollingInterval.Day,
                  retainedFileCountLimit: 14,
                  shared: true)
@@ -55,7 +56,7 @@ builder.Host.UseSerilog((context, services, configuration) =>
        .Enrich.FromLogContext()
        .WriteTo.Console()
        .WriteTo.File(
-            "logs/service-.log",
+            AppData.GetPath("Logs", "service-.log"),
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 14,
             shared: true)

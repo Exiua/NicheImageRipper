@@ -1,15 +1,13 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.FileDownloading;
 
-namespace NicheImageRipper.Core.FileDownloading.FileDownloadStrategies;
+namespace NicheImageRipper.SiteModules.Modules.IframeMediaDelivery;
 
 public sealed class IframeMediaDownloadStrategy : IFileDownloadStrategy
 {
     private const int RetryCount = 4;
 
-    public IEnumerable<LinkInfo> HandlesLinkInfo => [LinkInfo.IframeMedia];
+    public IEnumerable<LinkInfo> HandlesLinkInfo => [IframeMediaDeliveryLinkInfo.IframeMedia];
 
     public async Task<DownloadResult> DownloadAsync(FileLink link, string imagePath, DownloadContext context,
                                                     CancellationToken cancellationToken = default)

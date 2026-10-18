@@ -3,11 +3,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using Serilog;
 
-namespace NicheImageRipper.Core.FileDownloading;
+namespace NicheImageRipper.SiteModules.Modules.IframeMediaDelivery;
 
 /// <summary>
 ///    Class for downloading videos from BunnyVideo CDN with DRM protection. This is a C# port of the Python script:
@@ -101,7 +100,7 @@ public partial class BunnyVideoDrm
         Headers["playlist"]["referer"] = EmbedUrl;
         var requestMessage = Headers["embed"].ToRequest(HttpMethod.Get, EmbedUrl);
         var embedResponse = Session.Send(requestMessage);
-        var embedPage = embedResponse.Content.ReadAsStringAsync().Result;
+        var embedPage = ReadBody(embedResponse);
         var match = ServerIdRegex().Match(embedPage);
         if (match.Success)
         {
@@ -152,8 +151,8 @@ public partial class BunnyVideoDrm
 
     private void Ping(int time, string paused, string resolution)
     {
-        var md5Hash = MD5.HashData(Encoding.UTF8.GetBytes($"{Secret}_{ContextId}_{time}_{paused}_{resolution}"))
-            .HexDigest();
+        var md5Hash = Convert.ToHexStringLower(
+            MD5.HashData(Encoding.UTF8.GetBytes($"{Secret}_{ContextId}_{time}_{paused}_{resolution}")));
         var parameters = new Dictionary<string, string>
         {
             ["hash"] = md5Hash,
@@ -162,7 +161,7 @@ public partial class BunnyVideoDrm
             ["chosen_res"] = resolution
         };
         var requestUrl =
-            $"https://video-{ServerId}.mediadelivery.net/.drm/{ContextId}/ping".ToQueryString(parameters);
+            WithQuery($"https://video-{ServerId}.mediadelivery.net/.drm/{ContextId}/ping", parameters);
         var requestMessage = Headers["ping|activate"].ToRequest(HttpMethod.Get, requestUrl);
         Session.Send(requestMessage);
     }
@@ -181,10 +180,10 @@ public partial class BunnyVideoDrm
             ["contextId"] = ContextId,
             ["secret"] = Secret
         };
-        var requestUrl = $"https://iframe.mediadelivery.net/{Guid}/playlist.drm".ToQueryString(parameters);
+        var requestUrl = WithQuery($"https://iframe.mediadelivery.net/{Guid}/playlist.drm", parameters);
         var requestMessage = Headers["playlist"].ToRequest(HttpMethod.Get, requestUrl);
         var response = Session.Send(requestMessage);
-        var resolutions = ResolutionRegex().Matches(response.Content.ReadAsStringAsync().Result);
+        var resolutions = ResolutionRegex().Matches(ReadBody(response));
         if (resolutions.Count == 0)
         {
             throw new Exception("No resolutions found");
@@ -200,8 +199,7 @@ public partial class BunnyVideoDrm
         {
             ["contextId"] = ContextId
         };
-        var requestUrl = $"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm"
-            .ToQueryString(parameters);
+        var requestUrl = WithQuery($"https://iframe.mediadelivery.net/{Guid}/{resolution}/video.drm", parameters);
         var requestMessage = Headers["playlist"].ToRequest(HttpMethod.Get, requestUrl);
         Session.Send(requestMessage);
     }
@@ -219,11 +217,15 @@ public partial class BunnyVideoDrm
         var startInfo = new ProcessStartInfo
         {
             FileName = "yt-dlp", // Ensure yt-dlp is accessible in the system's PATH or specify the full path to the executable
-            Arguments = BuildArguments(url),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             CreateNoWindow = true
         };
+
+        foreach (var argument in BuildArguments(url))
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
 
         using var process = new Process();
         process.StartInfo = startInfo;
@@ -242,18 +244,42 @@ public partial class BunnyVideoDrm
         await process.WaitForExitAsync(cancellationToken);
     }
 
-    private string BuildArguments(string url)
-    {
-        // Converts the Python dictionary of options into yt-dlp command-line arguments.
-        return $"--add-headers Referer:\"{EmbedUrl}\" --add-headers User-Agent:\"{UserAgent["user-agent"]}\" " +
-               $"--concurrent-fragments 10 --no-check-certificates --output \"{Filename}\" " +
-               $"--restrict-filenames --windows-filenames --no-part --paths \"{Path}\" --paths temp:\".{Filename}/\" " +
-               $"--retries infinite --extractor-retries infinite --fragment-retries infinite " +
-               $"--no-skip-unavailable-fragments --no-warnings \"{url}\"";
-    }
+    private List<string> BuildArguments(string url) =>
+    [
+        "--add-headers", $"Referer:{EmbedUrl}",
+        "--add-headers", $"User-Agent:{UserAgent["user-agent"]}",
+        "--concurrent-fragments", "10", "--no-check-certificates",
+        "--output", Filename,
+        "--restrict-filenames", "--windows-filenames", "--no-part",
+        "--paths", Path, "--paths", $"temp:.{Filename}/",
+        "--retries", "infinite", "--extractor-retries", "infinite", "--fragment-retries", "infinite",
+        "--no-skip-unavailable-fragments", "--no-warnings",
+        url,
+    ];
 
     [GeneratedRegex(@"https://video-(.*?)\.mediadelivery\.net")]
     private static partial Regex ServerIdRegex();
+
+    /// <summary>Reads a response body without blocking on a task (the requests here are synchronous).</summary>
+    private static string ReadBody(HttpResponseMessage response)
+    {
+        using var reader = new StreamReader(response.Content.ReadAsStream());
+        return reader.ReadToEnd();
+    }
+
+    /// <summary>Returns <paramref name="url"/> with <paramref name="parameters"/> set in its query string.</summary>
+    private static string WithQuery(string url, Dictionary<string, string> parameters)
+    {
+        var uriBuilder = new UriBuilder(url);
+        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+        foreach (var (key, value) in parameters)
+        {
+            query[key] = value;
+        }
+
+        uriBuilder.Query = query.ToString();
+        return uriBuilder.ToString();
+    }
 
     [GeneratedRegex(@"contextId=(.*?)&secret=(.*?)""")]
     private static partial Regex ContextIdAndSecretRegex();

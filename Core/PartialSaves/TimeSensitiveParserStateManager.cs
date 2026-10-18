@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.SQLite;
 using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 
 namespace NicheImageRipper.Core.PartialSaves;
 
@@ -13,7 +14,7 @@ public sealed class TimeSensitiveParserStateManager : ITimeSensitiveParserStateM
 {
     private static readonly string ConnectionString = new SQLiteConnectionStringBuilder
     {
-        DataSource = "NicheImageRipper.db",
+        DataSource = AppData.GetPath("NicheImageRipper.db"),
         ForeignKeys = true,
     }.ToString();
 

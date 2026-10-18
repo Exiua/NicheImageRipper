@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using NicheImageRipper.Common.Exceptions;
 using NicheImageRipper.Core.Cache;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
@@ -394,11 +393,7 @@ public partial class NicheImageRipper : IDisposable
                         retry + 1, MaxRetries);
                     await Task.Delay(10000, cancellationToken);
                 }
-                catch (NotEnoughDiskSpaceException e)
-                {
-                    return StopForDiskSpace(url, e);
-                }
-                // A full disk can also surface as a plain IOException from any code path that writes files
+                // A full disk surfaces as an IOException (possibly wrapped) from whichever code path was writing
                 catch (Exception e) when (DiskSpaceUtility.IsDiskFull(e))
                 {
                     return StopForDiskSpace(url, e);
@@ -468,8 +463,8 @@ public partial class NicheImageRipper : IDisposable
     }
 
     /// <summary>Folder (relative to the working directory) holding one JSON URL list per unfinished rip.</summary>
-    public const string UnfinishedUrlsDirectory = "UnfinishedRips";
-    private const string LegacyUnfinishedUrlsFile = "UnfinishedRips.json";
+    public static string UnfinishedUrlsDirectory => AppData.GetPath("UnfinishedRips");
+    private static string LegacyUnfinishedUrlsFile => AppData.GetPath("UnfinishedRips.json");
 
     private string? _unfinishedUrlsPath;
 
@@ -753,8 +748,9 @@ public partial class NicheImageRipper : IDisposable
         var normalizedUrl = NormalizeUrl(url);
         if (!noCheck)
         {
-            var searchUrl = normalizedUrl.Replace("e-hentai.org", "exhentai.org");
-            if (HistoryDb.GetHistoryByUrl(searchUrl) is not null)
+            // Parsers' URL normalizers (INormalizingHtmlParser) give every variant of a URL one canonical form,
+            // which is also the form history stores, so it can be looked up directly
+            if (HistoryDb.GetHistoryByUrl(normalizedUrl) is not null)
             {
                 return new RejectedUrlInfo(normalizedUrl, QueueFailureReason.PreviouslyProcessed, index);
             }

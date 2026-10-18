@@ -15,7 +15,7 @@ public sealed class MpegDashDownloadStrategy : IFileDownloadStrategy
     {
         var parent = Directory.GetParent(imagePath)!.FullName;
         var filename = Path.GetFileName(imagePath);
-        var cmd = new[] { "-P", $"\"{parent}\"", link.Url, "-o", filename };
+        var cmd = new[] { "-P", parent, link.Url, "-o", filename };
         var (exitCode, _, _) = await ProcessRunner.RunSubprocess("yt-dlp", cmd,
             startMessage: "Starting youtube-dl download", endMessage: "youtube-dl download finished",
             cancellationToken: cancellationToken);

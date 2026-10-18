@@ -1,7 +1,6 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
-using NicheImageRipper.Common.Exceptions;
 using Serilog;
 using SteamKit2;
 using SteamKit2.Authentication;
@@ -370,7 +369,7 @@ public class SteamApiClient : IDisposable
         catch (IOException e) when (e.Message.Contains("There is not enough space on the disk"))
         {
             Logger.Error(e, "Disk full while downloading depot target");
-            throw new NotEnoughDiskSpaceException(e);
+            throw;
         }
         finally
         {

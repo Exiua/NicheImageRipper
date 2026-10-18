@@ -78,10 +78,10 @@ public static class M3U8Downloader
             "-safe",
             "0",
             "-i",
-            $"\"{listPath}\"",
+            listPath,
             "-c",
             "copy",
-            $"\"{outputPath}\""};
+            outputPath};
         await ProcessRunner.RunFfmpeg(cmd, startMessage: "Starting ffmpeg concatenation", endMessage: "Finished ffmpeg concatenation", cancellationToken: cancellationToken);
         Logger.Debug("Output saved to: {OutputPath}", outputPath);
     }

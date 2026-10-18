@@ -5,6 +5,7 @@ using NicheImageRipper.Sdk.Cache;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 
 namespace NicheImageRipper.Core.PartialSaves;
@@ -15,7 +16,7 @@ public class PartialSaveManager : ICacheOwner
 
     private static readonly string ConnectionString = new SQLiteConnectionStringBuilder
     {
-        DataSource = "NicheImageRipper.db",
+        DataSource = AppData.GetPath("NicheImageRipper.db"),
         ForeignKeys = true,
     }.ToString();
 

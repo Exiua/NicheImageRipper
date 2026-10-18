@@ -7,7 +7,7 @@ namespace NicheImageRipper.SiteModules.Modules.Youtube;
 
 public sealed class YoutubeVideoDownloadStrategy : IFileDownloadStrategy
 {
-    private const string YoutubeCookiesFile = "yt_cookies.txt";
+    private static string YoutubeCookiesFile => AppData.GetPath("yt_cookies.txt");
     private static readonly ILogger Logger = Log.ForContext<YoutubeVideoDownloadStrategy>();
 
     public IEnumerable<LinkInfo> HandlesLinkInfo => [YoutubeLinkInfo.YoutubeVideo];
@@ -42,8 +42,8 @@ public sealed class YoutubeVideoDownloadStrategy : IFileDownloadStrategy
         var filename = Path.GetFileName(path);
         return
         [
-            "--force-overwrites", "--cookies", $"\"{YoutubeCookiesFile}\"",
-            "-P", $"\"{parent}\"", "-o", $"\"{filename}\"", $"\"{link.Url}\"",
+            "--force-overwrites", "--cookies", YoutubeCookiesFile,
+            "-P", parent, "-o", filename, link.Url,
         ];
     }
 }

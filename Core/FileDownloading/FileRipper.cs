@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.PartialSaves;
@@ -11,8 +11,8 @@ using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.FileDownloading;
 using NicheImageRipper.Sdk.SiteParsing;
-using NicheImageRipper.Sdk.Utility;
 
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 using UrlUtility = NicheImageRipper.Sdk.Utility.UrlUtility;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
@@ -139,6 +139,7 @@ public class FileRipper : IDisposable
     private FileDownloadStrategyRegistry StrategyRegistry { get; }
     private IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; }
     private IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; }
+    private IReadOnlyList<IDownloadExceptionHandler> ExceptionHandlers { get; }
     private IReadOnlyList<IPostDownloadValidator> PostDownloadValidators { get; }
     private IReadOnlyList<IExternalToolDownloadStrategy> ExternalToolStrategies { get; }
     private IReadOnlyList<IWebDriverPreferenceProvider> WebDriverPreferenceProviders { get; }
@@ -196,6 +197,7 @@ public class FileRipper : IDisposable
         StrategyRegistry = DownloadCompositionRoot.BuildStrategyRegistry();
         HeaderModifiers = DownloadCompositionRoot.BuildHeaderModifiers();
         ErrorHandlers = DownloadCompositionRoot.BuildErrorHandlers();
+        ExceptionHandlers = DownloadCompositionRoot.BuildExceptionHandlers();
         PostDownloadValidators = DownloadCompositionRoot.BuildPostDownloadValidators();
         ExternalToolStrategies = DownloadCompositionRoot.BuildExternalToolStrategies();
         WebDriverPreferenceProviders = DownloadCompositionRoot.BuildWebDriverPreferenceProviders();
@@ -293,6 +295,7 @@ public class FileRipper : IDisposable
         Logger = Logger,
         HeaderModifiers = HeaderModifiers,
         ErrorHandlers = ErrorHandlers,
+        ExceptionHandlers = ExceptionHandlers,
         PostDownloadValidators = PostDownloadValidators,
     };
 
@@ -684,12 +687,8 @@ public class FileRipper : IDisposable
         }
         catch (FileNotFoundException)
         {
-            Logger.Warning("File not found: {Url}", link.Url);
-            if (link.LinkInfo == LinkInfo.IframeMedia)
-            {
-                downloadStats.FailedDownloads.Add(link.Url);
-                await File.AppendAllTextAsync("failed_iframe.txt", $"{link.Url} {link.Referer}\n", cancellationToken);
-            }
+            Logger.Warning("File not found: {Url} (referer: {Referer})", link.Url, link.Referer);
+            downloadStats.FailedDownloads.Add(link.Url);
         }
         catch (UrlExpiredException e)
         {
@@ -779,7 +778,7 @@ public class FileRipper : IDisposable
                     var processStartInfo = new ProcessStartInfo
                     {
                         FileName = scriptPath,
-                        Arguments = $"\"{directoryPath}\"",
+                        ArgumentList = { directoryPath },
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,

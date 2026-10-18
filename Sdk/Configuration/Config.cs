@@ -1,10 +1,10 @@
-﻿using NicheImageRipper.Sdk.Utility;
+using NicheImageRipper.Sdk.Utility;
 
 namespace NicheImageRipper.Sdk.Configuration;
 
 public static class Config
 {
-    internal const string ConfigPath = "config.json";
+    internal static string ConfigPath => AppData.GetPath("config.json");
 
     public static GeneralConfig Instance { get; private set; } = LoadConfig<GeneralConfig>();
 

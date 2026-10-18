@@ -1,9 +1,7 @@
-using NicheImageRipper.Core.DataStructures;
-using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.SiteParsing;
 
-namespace NicheImageRipper.Core.SiteParsing.LinkRules.Rules;
+namespace NicheImageRipper.SiteModules.Modules.Knit;
 
 public sealed class XxMediaKnitBidLinkRule : ISiteLinkRule
 {

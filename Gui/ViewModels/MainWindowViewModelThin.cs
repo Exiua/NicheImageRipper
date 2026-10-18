@@ -50,6 +50,30 @@ public class MainWindowViewModelThin(
         return Task.CompletedTask;
     }
 
+    protected override async Task DisconnectFromRemote(CancellationToken cancellationToken = default)
+    {
+        if (!Active)
+        {
+            return;
+        }
+
+        try
+        {
+            await backendConnector.DisconnectWebSocketAsync(cancellationToken);
+            logger.LogInformation("Disconnected from remote backend at {EndpointUri}", Config.EndpointUri);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error while closing the connection to {EndpointUri}", Config.EndpointUri);
+        }
+        finally
+        {
+            Active = false;
+            ConnectButtonDisplay = "Connect";
+            ClearRemoteQueueDisplay();
+        }
+    }
+
     protected override async Task ConnectToRemote(CancellationToken cancellationToken = default)
     {
         if (Active)

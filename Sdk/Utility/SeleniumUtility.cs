@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using OpenQA.Selenium;
 
 namespace NicheImageRipper.Sdk.Utility;
@@ -21,7 +21,7 @@ public static class SeleniumUtility
             return;
         }
         
-        File.WriteAllText("test.html", html);
+        AppData.WriteAllText("test.html", html);
     }
 
     [Conditional("DEBUG")]

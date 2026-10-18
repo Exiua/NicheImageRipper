@@ -1,18 +1,19 @@
 namespace NicheImageRipper.Sdk.Exceptions;
 
-public class NotSupportedException : RipperException
+/// <summary>A page type or feature a parser doesn't handle (named to avoid clashing with System.NotSupportedException).</summary>
+public class FeatureNotSupportedException : RipperException
 {
     public string FeatureName { get; }
     public string Reason { get; }
     
-    public NotSupportedException(string featureName, string reason)
+    public FeatureNotSupportedException(string featureName, string reason)
         : base($"The feature '{featureName}' is not supported. Reason: {reason}")
     {
         FeatureName = featureName;
         Reason = reason;
     }
 
-    public NotSupportedException(string featureName, string reason, Exception innerException) 
+    public FeatureNotSupportedException(string featureName, string reason, Exception innerException) 
         : base($"The feature '{featureName}' is not supported. Reason: {reason}", innerException)
     {
         FeatureName = featureName;

@@ -8,7 +8,8 @@ internal sealed class ResolvedRequest
     public byte[]? Body { get; init; }
 
     public Browser? Browser { get; init; }
-    public bool PermuteExtensions { get; init; }
+    /// <summary>Null leaves it to the browser preset.</summary>
+    public bool? PermuteExtensions { get; init; }
     public bool DefaultHeaders { get; init; }
     public bool FollowRedirects { get; init; }
     public bool Verify { get; init; }

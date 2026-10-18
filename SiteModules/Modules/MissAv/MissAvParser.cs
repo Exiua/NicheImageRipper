@@ -1,8 +1,8 @@
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
+using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
-using NotSupportedException = NicheImageRipper.Sdk.Exceptions.NotSupportedException;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.MissAv;
@@ -32,7 +32,7 @@ public class MissAvParser : HtmlParser, IHtmlParser
         var images = new List<StringFileLinkWrapper>();
         if (CurrentUrl.Contains("/genres/"))
         {
-            throw new NotSupportedException("GenreParsing", "Parsing genres is not supported for MissAv");
+            throw new FeatureNotSupportedException("GenreParsing", "Parsing genres is not supported for MissAv");
         }
         else
         {

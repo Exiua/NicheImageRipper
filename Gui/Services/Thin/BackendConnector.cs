@@ -25,7 +25,7 @@ using Config = NicheImageRipper.Service.Models.Configs.Config;
 namespace NicheImageRipper.Gui.Services.Thin;
 public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDisposable
 {
-    private const string ConfigFilename = "config.json";
+    private static string ConfigFilename => AppData.GetPath("config.json");
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true

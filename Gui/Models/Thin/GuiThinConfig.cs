@@ -10,7 +10,7 @@ namespace NicheImageRipper.Gui.Models.Thin;
 
 public class GuiThinConfig
 {
-    private const string ConfigPath = "config.json";
+    private static string ConfigPath => AppData.GetPath("config.json");
     
     public static GuiThinConfig Instance { get; } = GetOrLoadConfig();
     

@@ -118,6 +118,7 @@ public sealed class RequestBuilder
         throw new NotSupportedException("Custom Akamai HTTP/2 fingerprints aren't implemented yet; use a Browser preset instead.");
     }
 
+    /// <inheritdoc cref="ImpersonateHttpClientBuilder.WithPermuteExtensions"/>
     public RequestBuilder WithPermuteExtensions(bool enabled = true)
     {
         _permuteExtensionsOverride = enabled;
@@ -326,6 +327,12 @@ public sealed class RequestBuilder
                     browser.ToBrowserString(),
                     request.DefaultHeaders ? 1 : 0),
                 $"curl_easy_impersonate({browser})");
+        }
+
+        // After the preset, so an explicit choice overrides what the preset set
+        if (request.PermuteExtensions is { } permute)
+        {
+            Curl.SetLong(easy, CurlOption.SslPermuteExtensions, permute ? 1 : 0);
         }
     }
 }

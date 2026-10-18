@@ -12,7 +12,8 @@ public class AllBooruParser : BooruParser, IHtmlParser, INormalizingHtmlParser
     public static string[] SupportedUrls => ["https://booru.com/"];
     protected override bool RequiresNavigation => false;
     public static IReadOnlyList<(string Pattern, UrlMatchKind Kind)> NormalizationPatterns { get; } =
-        [("booru.com", UrlMatchKind.Contains)];
+        // Matched as the whole host (or a subdomain of it): "Contains" would also catch gelbooru.com and the like
+        [("booru.com", UrlMatchKind.StartsWith), (".booru.com", UrlMatchKind.EndsWith)];
 
     public AllBooruParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 

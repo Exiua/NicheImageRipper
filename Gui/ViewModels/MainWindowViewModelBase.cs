@@ -552,7 +552,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     private async Task EditSiteConfigs(CancellationToken cancellationToken = default)
     {
-        if (IsThinClient && !RipperClient.Connected)
+        if (IsThinClient && !Active)
         {
             Notify("Connect to the backend before editing site configs", "Site Configs", NotificationType.Warning);
             return;
@@ -599,6 +599,17 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             Logger.LogError(e, "Failed to check for updates");
             Notify("Failed to check for updates", "Check For Updates", NotificationType.Error);
         }
+    }
+
+    /// <summary>Clears what the window shows about a backend's queue, e.g. after disconnecting from it.</summary>
+    protected void ClearRemoteQueueDisplay()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            UrlQueue.Clear();
+            QueueCount = 0;
+            CurrentUrl = null;
+        });
     }
 
     private Task ToggleStateToRemote(CancellationToken cancellationToken = default)
@@ -901,10 +912,17 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
     }
 
-    public void SaveData()
+    /// <summary>Saves the queue, partial-rip state and config (in thin mode, asks the backend to), then GUI settings.</summary>
+    public async Task SaveDataAsync()
     {
-        RipperClient.SaveData();
-        GuiSettings.Save();
+        try
+        {
+            await RipperClient.SaveData();
+        }
+        finally
+        {
+            GuiSettings.Save();
+        }
     }
 
     public void Cleanup()

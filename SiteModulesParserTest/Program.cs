@@ -1,20 +1,21 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using System.Text;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.SiteParsing;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.Utility;
 using Serilog;
 using Serilog.Events;
 
 // Dev tool: runs a single site parser against one URL and reports what it found, without downloading anything.
-// Writes the found URLs to test.json, and on failure test.html plus a screenshot, in the working directory, so run
-// it from a folder with your config.json.
+// Writes the found URLs to test.json, and on failure test.html plus a screenshot, in the app data folder (next to
+// the executable, or NIR_DATA_DIR), which is also where it reads config.json from.
 
 Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .Enrich.FromLogContext()
             .WriteTo.Console()
-            .WriteTo.File("Logs/parser-test.log", rollingInterval: RollingInterval.Day,
+            .WriteTo.File(AppData.GetPath("Logs", "parser-test.log"), rollingInterval: RollingInterval.Day,
                  restrictedToMinimumLevel: LogEventLevel.Debug)
             .CreateLogger();
 
