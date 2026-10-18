@@ -2,6 +2,7 @@ using System.Text.Json;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Service.Models.Responses;
 using NicheImageRipper.Service.Utilities.ExtensionMethods;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 using SettingsOverride = NicheImageRipper.Sdk.Configuration.SettingsOverride;
@@ -198,25 +199,37 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             existingConfig.CSWebDriverUri = config.CSWebDriverUri;
         }
 
+        if (config.SaveUnfinishedUrls is not null)
+        {
+            existingConfig.SaveUnfinishedUrls = config.SaveUnfinishedUrls.Value;
+        }
+
         if (config.Sites is not null)
         {
             foreach (var (key, incoming) in config.Sites)
             {
                 if (incoming is null)
                 {
-                    continue;
+                    existingConfig.Sites.Remove(key);
                 }
-
-                if (!existingConfig.Sites.TryGetValue(key, out var existing))
+                else
                 {
-                    existing = new SiteConfig();
-                    existingConfig.Sites[key] = existing;
+                    existingConfig.Sites[key] = incoming;
                 }
-
-                // TODO: Update the existing SiteConfig with the incoming SiteConfig values
-                //existing.UpdateSiteConfig(incoming);
             }
         }
+    }
+
+    public List<string> GetSiteNames()
+    {
+        return Core.NicheImageRipper.GetParserNames();
+    }
+
+    public async Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default)
+    {
+        var isLatest = await _ripper.IsLatestVersion(cancellationToken);
+        var latestVersion = isLatest is null ? null : await _ripper.GetLatestVersionAsync(cancellationToken);
+        return new UpdateCheckResponse(Core.NicheImageRipper.Version, latestVersion, isLatest);
     }
 
     public Version GetVersion()

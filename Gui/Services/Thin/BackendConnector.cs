@@ -17,6 +17,7 @@ using NicheImageRipper.Gui.Models.Thin;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.Service.Models.Requests;
+using NicheImageRipper.Service.Models.Responses;
 using NicheImageRipper.Service.Models.WebSocket;
 
 using Config = NicheImageRipper.Service.Models.Configs.Config;
@@ -192,10 +193,20 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
         await SendAsync<Config, Unit>(HttpMethod.Patch, "api/settings", config, cancellationToken: cancellationToken);
     }
 
+    public Task<string[]> GetSiteNamesAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<string[]>(HttpMethod.Get, "api/settings/sites", cancellationToken);
+    }
+
     public async Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default)
     {
         var versionString = await SendAsync<string>(HttpMethod.Get, "api/version", cancellationToken);
         return Version.TryParse(versionString, out var version) ? version : throw new InvalidOperationException($"Server returned invalid version string: {versionString}");
+    }
+
+    public Task<UpdateCheckResponse> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<UpdateCheckResponse>(HttpMethod.Get, "api/version/latest", cancellationToken);
     }
 
     public Task ClearCacheAsync(CancellationToken cancellationToken = default)

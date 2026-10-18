@@ -103,28 +103,84 @@
                 </StackPanel>
             </TabItem>
             <TabItem Header="Settings">
-                <Grid ColumnDefinitions="Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="10" Text="Save Location:" />
-                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="10" Text="{Binding SavePath}" />
-                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="10" Text="Select Save Folder:" />
-                    <Button Grid.Row="1" Grid.Column="1" Margin="10" Click="SelectFolder">Browse</Button>
-                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="10" Text="Load Unfinished Urls:" />
-                    <Button Grid.Row="2" Grid.Column="1" Margin="10" Click="SelectUnfinishedUrlFile">Browse</Button>
-                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="10" Text="Check For Updates:" />
-                    <Button Grid.Row="3" Grid.Column="1" Margin="10">Check</Button>
-                    <TextBlock Grid.Row="4" Grid.Column="0" Margin="10" Text="Clear Cache:" />
-                    <Button Grid.Row="4" Grid.Column="1" Margin="10" Command="{Binding ClearCacheCommand}">Clear</Button>
-                    <TextBlock Grid.Row="5" Grid.Column="0" Margin="10" Text="Filename Scheme:" />
-                    <ComboBox Grid.Row="5" Grid.Column="1" Margin="10" x:Name="FilenameSchemeComboBox" SelectedIndex="{Binding FilenameSchemeIndex}" />
-                    <TextBlock Grid.Row="6" Grid.Column="0" Margin="10" Text="Unzip Protocol:" />
-                    <ComboBox Grid.Row="6" Grid.Column="1" Margin="10" x:Name="UnzipProtocolComboBox" SelectedIndex="{Binding UnzipProtocolIndex}" />
-                    <TextBlock Grid.Row="7" Grid.Column="0" Margin="10" Text="Max Retries:" />
-                    <TextBox Grid.Row="7" Grid.Column="1" Margin="10" x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}" LostFocus="ValidateNumericValue" />
-                    <TextBlock Grid.Row="8" Grid.Column="0" Margin="10" Text="Retry Delay (ms):" />
-                    <TextBox Grid.Row="8" Grid.Column="1" Margin="10" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}" LostFocus="ValidateNumericValue" />
-                    <TextBlock Grid.Row="9" Grid.Column="0" Margin="10" Text="Skip Failed Downloads:" />
-                    <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding SkipFailedDownloads}"/>
-                </Grid>
+                <ScrollViewer>
+                    <Grid ColumnDefinitions="Auto,400,Auto"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <Grid.Styles>
+                            <Style Selector="TextBlock.header">
+                                <Setter Property="FontSize" Value="16" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Margin" Value="10,20,10,5" />
+                            </Style>
+                            <Style Selector="TextBlock.label">
+                                <Setter Property="Margin" Value="10,5" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                            <Style Selector=":is(Control).value">
+                                <Setter Property="Margin" Value="10,5" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                        </Grid.Styles>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="General" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Save Location:" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="value" Text="{Binding SavePath}" TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding SavePath}" />
+                        <Button Grid.Row="1" Grid.Column="2" Classes="value" Click="SelectFolder">Browse</Button>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Filename Scheme:" />
+                        <ComboBox Grid.Row="2" Grid.Column="1" Classes="value" ItemsSource="{Binding FilenameSchemes}"
+                                  SelectedItem="{Binding FilenameScheme}" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Unzip Protocol:" />
+                        <ComboBox Grid.Row="3" Grid.Column="1" Classes="value" ItemsSource="{Binding UnzipProtocols}"
+                                  SelectedItem="{Binding UnzipProtocol}" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="label" Text="User Agent:" />
+                        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Classes="value"
+                                 Text="{Binding UserAgent, UpdateSourceTrigger=LostFocus}" />
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Downloading" />
+                        <TextBlock Grid.Row="6" Grid.Column="0" Classes="label" Text="Max Retries:" />
+                        <TextBox Grid.Row="6" Grid.Column="1" Classes="value" x:Name="MaxRetriesTextBox" Text="{Binding MaxRetriesDisplay}"
+                                 LostFocus="ValidateNumericValue" ToolTip.Tip="Total attempts per URL (minimum 1)" />
+                        <TextBlock Grid.Row="7" Grid.Column="0" Classes="label" Text="Retry Delay (ms):" />
+                        <TextBox Grid.Row="7" Grid.Column="1" Classes="value" x:Name="RetryDelayTextBox" Text="{Binding RetryDelayDisplay}"
+                                 LostFocus="ValidateNumericValue" />
+                        <TextBlock Grid.Row="8" Grid.Column="0" Classes="label" Text="Skip Failed Downloads:" />
+                        <CheckBox Grid.Row="8" Grid.Column="1" Classes="value" IsChecked="{Binding SkipFailedDownloads}" />
+                        <TextBlock Grid.Row="9" Grid.Column="0" Classes="label" Text="Remove Duplicate Files:" />
+                        <CheckBox Grid.Row="9" Grid.Column="1" Classes="value" IsChecked="{Binding RemoveDuplicates}" />
+                        <TextBlock Grid.Row="10" Grid.Column="0" Classes="label" Text="Run Post-Process Script:" />
+                        <CheckBox Grid.Row="10" Grid.Column="1" Classes="value" IsChecked="{Binding RunPostProcessScript}"
+                                  ToolTip.Tip="Runs each site's post-process script (set in Site Configs) after a rip completes" />
+
+                        <TextBlock Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Queue" />
+                        <TextBlock Grid.Row="12" Grid.Column="0" Classes="label" Text="Save Unfinished Urls:" />
+                        <CheckBox Grid.Row="12" Grid.Column="1" Classes="value" IsChecked="{Binding SaveUnfinishedUrls}" />
+                        <TextBlock Grid.Row="13" Grid.Column="0" Classes="label" Text="Load Unfinished Urls:" />
+                        <Button Grid.Row="13" Grid.Column="1" Classes="value" Click="SelectUnfinishedUrlFile">Browse</Button>
+
+                        <TextBlock Grid.Row="14" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="External Services" />
+                        <TextBlock Grid.Row="15" Grid.Column="0" Classes="label" Text="FlareSolverr URI:" />
+                        <TextBox Grid.Row="15" Grid.Column="1" Classes="value"
+                                 Text="{Binding FlareSolverrUri, UpdateSourceTrigger=LostFocus}" PlaceholderText="http://localhost:8191" />
+                        <TextBlock Grid.Row="16" Grid.Column="0" Classes="label" Text="Close FlareSolverr Session:" />
+                        <CheckBox Grid.Row="16" Grid.Column="1" Classes="value" IsChecked="{Binding CloseFlareSolverrSession}" />
+                        <TextBlock Grid.Row="17" Grid.Column="0" Classes="label" Text="CSWebDriver URI:" />
+                        <TextBox Grid.Row="17" Grid.Column="1" Classes="value"
+                                 Text="{Binding CSWebDriverUri, UpdateSourceTrigger=LostFocus}" />
+
+                        <TextBlock Grid.Row="18" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Sites" />
+                        <TextBlock Grid.Row="19" Grid.Column="0" Classes="label" Text="Site Configs:" />
+                        <TextBlock Grid.Row="19" Grid.Column="1" Classes="value"
+                                   Text="{Binding SiteConfigCount, StringFormat='{}{0} site(s) configured'}" />
+                        <Button Grid.Row="19" Grid.Column="2" Classes="value" Command="{Binding EditSiteConfigsCommand}">Edit…</Button>
+
+                        <TextBlock Grid.Row="20" Grid.Column="0" Grid.ColumnSpan="3" Classes="header" Text="Maintenance" />
+                        <TextBlock Grid.Row="21" Grid.Column="0" Classes="label" Text="Clear Cache:" />
+                        <Button Grid.Row="21" Grid.Column="1" Classes="value" Command="{Binding ClearCacheCommand}">Clear</Button>
+                        <TextBlock Grid.Row="22" Grid.Column="0" Classes="label" Text="Check For Updates:" />
+                        <Button Grid.Row="22" Grid.Column="1" Classes="value" Command="{Binding CheckForUpdatesCommand}">Check</Button>
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </Grid>

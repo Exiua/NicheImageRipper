@@ -18,6 +18,12 @@ public class SettingsController(ILogger<SettingsController> logger, INicheImageR
         return Ok(nicheImageRipperSingleton.GetConfig());
     }
 
+    [HttpGet("sites")]
+    public ActionResult<List<string>> GetSiteNames()
+    {
+        return Ok(nicheImageRipperSingleton.GetSiteNames());
+    }
+
     [HttpPatch]
     public IActionResult UpdateConfig(Config config)
     {

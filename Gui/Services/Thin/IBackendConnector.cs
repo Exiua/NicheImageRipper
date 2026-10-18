@@ -6,6 +6,7 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Service.Models.Requests;
+using NicheImageRipper.Service.Models.Responses;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Gui.Services.Thin;
@@ -49,7 +50,9 @@ public interface IBackendConnector : IAsyncInitialization
     public Task DisconnectWebSocketAsync(CancellationToken cancellationToken = default);
     public Task<GeneralConfig> GetConfigAsync(CancellationToken cancellationToken = default);
     public Task UpdateConfigAsync(Config config, CancellationToken cancellationToken = default);
+    public Task<string[]> GetSiteNamesAsync(CancellationToken cancellationToken = default);
     public Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default);
+    public Task<UpdateCheckResponse> CheckForUpdateAsync(CancellationToken cancellationToken = default);
     public Task ClearCacheAsync(CancellationToken cancellationToken = default);
     public Task SaveStateAsync(CancellationToken cancellationToken = default);
 }

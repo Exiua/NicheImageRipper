@@ -1,6 +1,7 @@
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Service.Models.Responses;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
 namespace NicheImageRipper.Service.Singletons;
@@ -23,7 +24,9 @@ public interface INicheImageRipperSingleton
     public int GetHistoryCount();
     public GeneralConfig GetConfig();
     public void UpdateConfig(Config config);
+    public List<string> GetSiteNames();
     public Version GetVersion();
+    public Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default);
     public void ClearCache();
     public Task Save(CancellationToken cancellationToken = default);
     public void LoadUrls(List<string> urls);

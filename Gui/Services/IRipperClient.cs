@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
+using NicheImageRipper.Service.Models.Responses;
 
 namespace NicheImageRipper.Gui.Services;
 
@@ -26,6 +27,7 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public Task LoadUrlFile(string path, CancellationToken cancellationToken = default);
     public Task SaveData(CancellationToken cancellationToken = default);
     public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default);
+    public Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default);
     public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null, CancellationToken cancellationToken = default);
     public Task ClearCache(CancellationToken cancellationToken = default);
     public Task<int> GetHistoryCount(CancellationToken cancellationToken = default);

@@ -77,24 +77,19 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = "";
 
-    public int FilenameSchemeIndex
+    public FilenameScheme[] FilenameSchemes { get; } = Enum.GetValues<FilenameScheme>();
+    public UnzipProtocol[] UnzipProtocols { get; } = Enum.GetValues<UnzipProtocol>();
+
+    public FilenameScheme FilenameScheme
     {
         get;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref field, value);
-            RipperSettings.FilenameScheme = (FilenameScheme)value;
-        }
+        set => SetSetting(ref field, value, v => RipperSettings.FilenameScheme = v);
     }
 
-    public int UnzipProtocolIndex
+    public UnzipProtocol UnzipProtocol
     {
         get;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref field, value);
-            RipperSettings.UnzipProtocol = (UnzipProtocol)value;
-        }
+        set => SetSetting(ref field, value, v => RipperSettings.UnzipProtocol = v);
     }
 
     public string MaxRetriesDisplay
@@ -188,21 +183,61 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public string SavePath
     {
         get;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref field, value);
-            RipperSettings.SavePath = value;
-        }
-    }
+        set => SetSetting(ref field, value, v => RipperSettings.SavePath = v);
+    } = "";
+
+    public string UserAgent
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.UserAgent = v);
+    } = "";
 
     public bool SkipFailedDownloads
     {
         get;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref field, value);
-            RipperSettings.SkipFailedDownloads = value;
-        }
+        set => SetSetting(ref field, value, v => RipperSettings.SkipFailedDownloads = v);
+    }
+
+    public bool SaveUnfinishedUrls
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.SaveUnfinishedUrls = v);
+    }
+
+    public bool RemoveDuplicates
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.RemoveDuplicates = v);
+    }
+
+    public bool RunPostProcessScript
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.RunPostProcessScript = v);
+    }
+
+    public string FlareSolverrUri
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.FlareSolverrUri = v);
+    } = "";
+
+    public bool CloseFlareSolverrSession
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.CloseFlareSolverrSession = v);
+    }
+
+    public string CSWebDriverUri
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.CSWebDriverUri = v);
+    } = "";
+
+    public int SiteConfigCount
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public bool Active { get; set; }
@@ -228,7 +263,10 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> ConnectCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> SkipCurrentEntryCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> EditSiteConfigsCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> CheckForUpdatesCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
+    public Interaction<SiteConfigEditorViewModel, bool> ShowSiteConfigDialog { get; } = new();
 
     public event Action? LogTextChanged;
     public event Action<int, int>? ProgressChanged;
@@ -243,10 +281,9 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         RipperClient = ripperClient;
 
         RipperSettings = ripperSettings;
-        MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
-        RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
-        SavePath = RipperSettings.SavePath;
-        SkipFailedDownloads = RipperSettings.SkipFailedDownloads;
+        MaxRetriesDisplay = "";
+        RetryDelayDisplay = "";
+        RefreshSettings();
 
         GuiSettings = guiSettings;
         NameWidth = GuiSettings.NameWidth;
@@ -264,6 +301,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         ReRipUrlCommand = ReactiveCommand.CreateFromTask<string>(Rerip);
         ConnectCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ToggleStateToRemote);
         SkipCurrentEntryCommand = ReactiveCommand.CreateFromTask<CancellationToken>(RipperClient.SkipCurrentEntry);
+        EditSiteConfigsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(EditSiteConfigs);
+        CheckForUpdatesCommand = ReactiveCommand.CreateFromTask<CancellationToken>(CheckForUpdates);
         UrlQueue = new ObservableCollection<string>([]);
         History = new ObservableCollection<HistoryEntry>([]);
 
@@ -284,8 +323,111 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         await RipperClient.InitializeAsync(cancellationToken);
         await RipperSettings.InitializeAsync(cancellationToken);
         await GuiSettings.InitializeAsync(cancellationToken);
+        // Thin settings are only known once fetched from the backend, so re-sync what the settings tab shows
+        Dispatcher.UIThread.Post(RefreshSettings);
         var history = await GetHistoryPage(CurrentHistoryPage, PageSize, cancellationToken: cancellationToken);
         History.Update(history);
+    }
+
+    /// <summary>
+    ///     Re-reads every setting from <see cref="RipperSettings"/> so the settings tab matches the current config.
+    /// </summary>
+    public void RefreshSettings()
+    {
+        _refreshingSettings = true;
+        try
+        {
+            UserAgent = RipperSettings.UserAgent;
+            SavePath = RipperSettings.SavePath;
+            FilenameScheme = RipperSettings.FilenameScheme;
+            UnzipProtocol = RipperSettings.UnzipProtocol;
+            RemoveDuplicates = RipperSettings.RemoveDuplicates;
+            RunPostProcessScript = RipperSettings.RunPostProcessScript;
+            SkipFailedDownloads = RipperSettings.SkipFailedDownloads;
+            SaveUnfinishedUrls = RipperSettings.SaveUnfinishedUrls;
+            MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
+            RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
+            FlareSolverrUri = RipperSettings.FlareSolverrUri;
+            CloseFlareSolverrSession = RipperSettings.CloseFlareSolverrSession;
+            CSWebDriverUri = RipperSettings.CSWebDriverUri;
+            SiteConfigCount = RipperSettings.Sites.Count;
+        }
+        finally
+        {
+            _refreshingSettings = false;
+        }
+    }
+
+    private bool _refreshingSettings;
+
+    /// <summary>
+    ///     Sets a settings-tab property and pushes the new value to <see cref="RipperSettings"/>, unless the change
+    ///     came from <see cref="RefreshSettings"/> (which is reading those values, not changing them).
+    /// </summary>
+    private void SetSetting<T>(ref T field, T value, Action<T> apply,
+                               [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+        {
+            return;
+        }
+
+        this.RaiseAndSetIfChanged(ref field, value, propertyName);
+        if (!_refreshingSettings)
+        {
+            apply(value);
+        }
+    }
+
+    private async Task EditSiteConfigs(CancellationToken cancellationToken = default)
+    {
+        if (IsThinClient && !RipperClient.Connected)
+        {
+            Notify("Connect to the backend before editing site configs", "Site Configs", NotificationType.Warning);
+            return;
+        }
+
+        var knownSiteNames = await RipperSettings.GetKnownSiteNames(cancellationToken);
+        var editor = new SiteConfigEditorViewModel(RipperSettings.Sites, knownSiteNames);
+        var saved = await ShowSiteConfigDialog.Handle(editor);
+        if (!saved)
+        {
+            return;
+        }
+
+        RipperSettings.SetSites(editor.BuildSiteConfigs());
+        SiteConfigCount = RipperSettings.Sites.Count;
+        Notify("Site configs updated", "Site Configs", NotificationType.Success);
+    }
+
+    private async Task CheckForUpdates(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await RipperClient.CheckForUpdate(cancellationToken);
+            switch (result.IsLatest)
+            {
+                case null:
+                    Notify("Couldn't retrieve the latest version from GitHub", "Check For Updates",
+                        NotificationType.Warning);
+                    break;
+                case true:
+                    Notify($"You're on the latest version (v{result.CurrentVersion})", "Check For Updates",
+                        NotificationType.Success);
+                    break;
+                case false:
+                    Logger.LogInformation("Update available: {LatestVersion} (current {CurrentVersion})",
+                        result.LatestVersion, result.CurrentVersion);
+                    Notify($"Update available: v{result.LatestVersion} (current v{result.CurrentVersion})",
+                        "Check For Updates", NotificationType.Information, 8000);
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to check for updates");
+            Notify("Failed to check for updates", "Check For Updates", NotificationType.Error);
+        }
     }
 
     private Task ToggleStateToRemote(CancellationToken cancellationToken = default)
@@ -656,26 +798,23 @@ public abstract class MainWindowViewModelBase : ViewModelBase
 
     public void SetMaxRetries(int maxRetries)
     {
-        if (maxRetries <= 0)
-        {
-            MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
-        }
-        else
+        // Core treats MaxRetries as the total number of attempts, so 0 would never rip anything
+        if (maxRetries >= 1)
         {
             RipperSettings.MaxRetries = maxRetries;
         }
+
+        MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
     }
 
-    public void SetRetryDelay(int result)
+    public void SetRetryDelay(int retryDelay)
     {
-        if (result <= 0)
+        if (retryDelay >= 0)
         {
-            RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
+            RipperSettings.RetryDelay = retryDelay;
         }
-        else
-        {
-            RipperSettings.RetryDelay = result;
-        }
+
+        RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
     }
 
     public async Task<bool> Resume(CancellationToken cancellationToken = default)

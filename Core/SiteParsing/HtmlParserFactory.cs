@@ -30,6 +30,9 @@ public static class HtmlParserFactory
 
     public static FrozenSet<string> SupportedUrls { get; private set; } = FrozenSet<string>.Empty;
 
+    /// <summary>All registered parser names (primary and additional), i.e. the valid keys for per-site config.</summary>
+    public static IReadOnlyCollection<string> ParserNames => _parserTypesByName.Keys;
+
     public static FrozenDictionary<string, int> SubdomainSignificantSuffixes { get; private set; } =
         FrozenDictionary<string, int>.Empty;
 

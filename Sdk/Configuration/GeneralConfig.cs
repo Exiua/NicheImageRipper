@@ -14,7 +14,7 @@ public class GeneralConfig
     public string Theme { get; set; } = "Dark";
     public FilenameScheme FilenameScheme { get; set; } = FilenameScheme.Original;
     public UnzipProtocol UnzipProtocol { get; set; } = UnzipProtocol.None;
-    public PostDownloadAction PostDownloadAction { get; set; }
+    public PostDownloadAction PostDownloadAction { get; set; } = new();
     public bool AskToReRip { get; set; } = true;
     public bool LiveHistory { get; set; } = false;
     public bool SkipFailedDownloads { get; set; } = true;

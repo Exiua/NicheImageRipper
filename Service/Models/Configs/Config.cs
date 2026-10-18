@@ -22,7 +22,10 @@ public class Config
     public string? FlareSolverrUri { get; set; }
     public bool? CloseFlareSolverrSession { get; set; }
     public string? CSWebDriverUri { get; set; }
-    public Dictionary<string, SiteConfig>? Sites { get; set; }
+    public bool? SaveUnfinishedUrls { get; set; }
+
+    /// <summary>Per-site configs to replace. A null value removes that site's config.</summary>
+    public Dictionary<string, SiteConfig?>? Sites { get; set; }
 
     public static Config FromCoreConfig(GeneralConfig generalConfig)
     {
@@ -43,7 +46,8 @@ public class Config
             FlareSolverrUri = generalConfig.FlareSolverrUri,
             CloseFlareSolverrSession = generalConfig.CloseFlareSolverrSession,
             CSWebDriverUri = generalConfig.CSWebDriverUri,
-            Sites = generalConfig.Sites,
+            SaveUnfinishedUrls = generalConfig.SaveUnfinishedUrls,
+            Sites = generalConfig.Sites.ToDictionary(kv => kv.Key, SiteConfig? (kv) => kv.Value),
         };
         return config;
     }

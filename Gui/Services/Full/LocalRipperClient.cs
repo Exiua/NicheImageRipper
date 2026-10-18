@@ -6,6 +6,7 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.Utility;
+using NicheImageRipper.Service.Models.Responses;
 using Serilog;
 
 namespace NicheImageRipper.Gui.Services.Full;
@@ -98,6 +99,13 @@ public class LocalRipperClient : IRipperClient
     public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(NicheImageRipper.Core.NicheImageRipper.Version);
+    }
+
+    public async Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default)
+    {
+        var isLatest = await _ripper.IsLatestVersion(cancellationToken);
+        var latestVersion = isLatest is null ? null : await _ripper.GetLatestVersionAsync(cancellationToken);
+        return new UpdateCheckResponse(NicheImageRipper.Core.NicheImageRipper.Version, latestVersion, isLatest);
     }
 
     public Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null,

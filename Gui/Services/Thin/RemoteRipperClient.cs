@@ -9,7 +9,7 @@ using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Gui.Utility;
 using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.Service.Models.Requests;
-
+using NicheImageRipper.Service.Models.Responses;
 
 namespace NicheImageRipper.Gui.Services.Thin;
 
@@ -87,6 +87,11 @@ public class RemoteRipperClient : IRipperClient
     public Task<Version> GetCoreVersion(CancellationToken cancellationToken = default)
     {
         return _backendConnector.GetCurrentVersionAsync(cancellationToken);
+    }
+
+    public Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default)
+    {
+        return _backendConnector.CheckForUpdateAsync(cancellationToken);
     }
 
     public async Task<List<HistoryEntry>> GetHistoryPage(int start, int offset, HistoryFilter? filter = null, CancellationToken cancellationToken = default)

@@ -54,10 +54,6 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         InitializeComponent();
         Focusable = true;
         UrlQueue.ItemsSource = ViewModel!.UrlQueue;
-        FilenameSchemeComboBox.ItemsSource = Enum.GetValues<FilenameScheme>();
-        FilenameSchemeComboBox.SelectedIndex = (int)NicheImageRipper.Core.NicheImageRipper.FilenameScheme;
-        UnzipProtocolComboBox.ItemsSource = Enum.GetValues<UnzipProtocol>();
-        UnzipProtocolComboBox.SelectedIndex = (int)NicheImageRipper.Core.NicheImageRipper.UnzipProtocol;
         viewModel.OnNotification += Show;
         viewModel.LogTextChanged += OnLogTextChanged;
         viewModel.ProgressChanged += (current, total) =>
@@ -90,6 +86,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         this.WhenActivated(disposables =>
         {
             ViewModel!.ShowConfirmationDialog.RegisterHandler((vm) => DoShowDialogAsync(vm)).DisposeWith(disposables);
+            ViewModel!.ShowSiteConfigDialog.RegisterHandler(DoShowSiteConfigDialogAsync).DisposeWith(disposables);
         });
     // this.WhenActivated(disposables =>
     // {
@@ -203,7 +200,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
     {
         try
         {
-            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Select Directory", SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(NicheImageRipper.Core.NicheImageRipper.SavePath) });
+            var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Select Directory", SuggestedStartLocation = await StorageProvider.TryGetFolderFromPathAsync(ViewModel!.SavePath) });
             if (folder.Count == 0)
             {
                 return;
@@ -211,7 +208,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
 
             var path = Uri.UnescapeDataString(folder[0].Path.AbsolutePath);
             _logger.LogDebug("Selected folder: {folder}", path);
-            ViewModel!.RipperSettings.SavePath = path;
+            ViewModel!.SavePath = path;
         }
         catch (Exception e)
         {
@@ -349,6 +346,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         };
         var result = await dialog.ShowDialog<ConfirmationViewModel?>(this);
         interaction.SetOutput(result);
+    }
+
+    private async Task DoShowSiteConfigDialogAsync(IInteractionContext<SiteConfigEditorViewModel, bool> interaction)
+    {
+        var dialog = new SiteConfigWindow
+        {
+            DataContext = interaction.Input
+        };
+        var result = await dialog.ShowDialog<bool?>(this);
+        interaction.SetOutput(result ?? false);
     }
 
     private void OnUrlInput(object? sender, TextChangedEventArgs textChangedEventArgs)

@@ -40,8 +40,6 @@ public partial class NicheImageRipper : IDisposable
 
     protected ILogger Logger { get; } = Log.ForContext<NicheImageRipper>();
 
-    public Version LatestVersion => field ??= GetLatestVersion().Result;
-
     public List<string> UrlQueue { get; set; } = [];
     public bool Interrupted { get; set; }
     public FileRipper? Ripper { get; set; }
@@ -292,6 +290,11 @@ public partial class NicheImageRipper : IDisposable
         return supportedUrls;
     }
 
+    public static List<string> GetParserNames()
+    {
+        return HtmlParserFactory.ParserNames.Order(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     private async Task<string?> RipUrl(CancellationToken cancellationToken = default)
     {
         if (UrlQueue.Count == 0)
@@ -469,7 +472,7 @@ public partial class NicheImageRipper : IDisposable
     }
 
     /// <summary>
-    ///     Split a string while keeping the delimiter attached to each part
+    ///     Splits a string while keeping the delimiter attached to each part
     /// </summary>
     /// <param name="baseString">String to split</param>
     /// <param name="delimiter">Delimiter to split the string by</param>
@@ -485,18 +488,46 @@ public partial class NicheImageRipper : IDisposable
         return stringList.Select(s => delimiter + s.Trim());
     }
 
-    private bool IsLatestVersion()
+    private static readonly Version UnknownVersion = new(0, 0, 0);
+    private Version? _latestVersion;
+
+    /// <summary>
+    ///     Gets the latest released version of the NicheImageRipper. Only successful lookups are cached, so a failed check
+    ///     (e.g. no network) is retried next time.
+    /// </summary>
+    /// <returns>Latest version, or null if it couldn't be retrieved</returns>
+    public async Task<Version?> GetLatestVersionAsync(CancellationToken cancellationToken = default)
     {
-        return Version >= LatestVersion;
+        if (_latestVersion is null)
+        {
+            var latestVersion = await GetLatestVersion(cancellationToken);
+            if (latestVersion != UnknownVersion)
+            {
+                _latestVersion = latestVersion;
+            }
+        }
+
+        return _latestVersion;
     }
 
     /// <summary>
-    ///     Retrieve the latest version of the NicheImageRipper from the remote git repo
+    ///     Checks if the current version is the latest version
+    /// </summary>
+    /// <returns>true if up to date, false if a newer release exists, null if the latest version couldn't be retrieved</returns>
+    public async Task<bool?> IsLatestVersion(CancellationToken cancellationToken = default)
+    {
+        var latestVersion = await GetLatestVersionAsync(cancellationToken);
+        return latestVersion is null ? null : Version >= latestVersion;
+    }
+
+    /// <summary>
+    ///     Retrieves the latest version of the NicheImageRipper from the remote git repo
     /// </summary>
     /// <returns>Latest version of the NicheImageRipper or 0.0.0 if unable to connect to the repo</returns>
     private static async Task<Version> GetLatestVersion(CancellationToken cancellationToken = default)
     {
-        var client = new HttpClient();
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(15);
         client.DefaultRequestHeaders.Add("User-Agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
         try
@@ -505,28 +536,20 @@ public partial class NicheImageRipper : IDisposable
                 cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                return new Version(0, 0, 0);
+                return UnknownVersion;
             }
 
             var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
             var json = JsonSerializer.Deserialize<JsonNode>(jsonString);
-            if (json is null)
-            {
-                return new Version(0, 0, 0);
-            }
-
-            var versionString = json["tag_name"]?.Deserialize<string>()?.Remove(0, 1);
-            if (versionString is null)
-            {
-                return new Version(0, 0, 0);
-            }
-
-            var version = Version.Parse(versionString);
-            return version;
+            // Tags are formatted as "v5.0.0"
+            var versionString = json?["tag_name"]?.GetValue<string>().TrimStart('v', 'V');
+            return Version.TryParse(versionString, out var version) ? version : UnknownVersion;
         }
-        catch (HttpRequestException)
+        catch (Exception e) when (e is HttpRequestException or JsonException or InvalidOperationException
+                                      || (e is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            return new Version(0, 0, 0);
+            Log.Warning(e, "Failed to retrieve the latest version");
+            return UnknownVersion;
         }
     }
 
@@ -721,10 +744,4 @@ public partial class NicheImageRipper : IDisposable
     {
         Dispose();
     }
-
-    [GeneratedRegex("viewkey=([0-9a-z]+)")]
-    private static partial Regex PornhubViewKeyRegex();
-
-    [GeneratedRegex(@"(tags=[^&]+)")]
-    private static partial Regex BooruRegex();
 }
