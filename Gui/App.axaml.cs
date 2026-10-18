@@ -1,3 +1,4 @@
+using System;
 using System.Net.Http;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -62,11 +63,16 @@ public partial class App : Application
         
         collection.AddSingleton<ILogTextSource, RollingLogTextSource>();
         
-        #if WINDOWS
-        collection.AddSingleton<ITaskbarProgressService, WindowsTaskbarProgressService>();
-        #else
-        collection.AddSingleton<ITaskbarProgressService, NullTaskbarProgressService>();
-        #endif
+        // Decided at runtime rather than with #if WINDOWS: that symbol reflects the OS doing the build, so a Windows
+        // release cross-compiled on Linux CI would otherwise ship without taskbar progress
+        if (OperatingSystem.IsWindows())
+        {
+            collection.AddSingleton<ITaskbarProgressService, WindowsTaskbarProgressService>();
+        }
+        else
+        {
+            collection.AddSingleton<ITaskbarProgressService, NullTaskbarProgressService>();
+        }
 
         // Creates a ServiceProvider containing services from the provided IServiceCollection
         var services = collection.BuildServiceProvider();

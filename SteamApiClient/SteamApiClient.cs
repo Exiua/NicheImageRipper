@@ -620,6 +620,7 @@ public class SteamApiClient : IDisposable
             return;
         }
 
+        _disposed = true;
         _pumpCts.Cancel();
         try
         {

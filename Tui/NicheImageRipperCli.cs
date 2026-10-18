@@ -232,38 +232,43 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             var actionName = parseResult.GetValue(actionArg);
             if (actionName is null)
             {
-                LogMessageToFile($"Post download action: {PostDownloadAction}");
+                LogMessageToFile($"Post download actions: {DescribePostDownloadActions()}");
                 return;
             }
 
-            // TODO: Fix this
-            /*if (!Enum.TryParse(actionName, true, out PostDownloadAction action))
+            // Each action is its own on/off setting (file level or directory level); "none" turns them all off
+            var fileLevel = PostDownloadAction.FileLevel;
+            var directoryLevel = PostDownloadAction.DirectoryLevel;
+            switch (actionName.ToLowerInvariant())
             {
-                var validActions = string.Join(", ", Enum.GetNames<PostDownloadAction>());
-                LogMessageToFile($"Invalid action. Valid actions: {{{validActions}}}", LogEventLevel.Warning);
-                return;
+                case "none":
+                    fileLevel.RemoveDuplicates = false;
+                    directoryLevel.RunPostProcessScript = false;
+                    break;
+                case "removeduplicates":
+                    fileLevel.RemoveDuplicates = !fileLevel.RemoveDuplicates;
+                    break;
+                case "runpostprocessscript":
+                    directoryLevel.RunPostProcessScript = !directoryLevel.RunPostProcessScript;
+                    break;
+                default:
+                    LogMessageToFile("Invalid action. Valid actions: {None, RemoveDuplicates, RunPostProcessScript}",
+                        LogEventLevel.Warning);
+                    return;
             }
 
-            if (action == PostDownloadAction.None)
-            {
-                PostDownloadAction = action;
-            }
-            else if (PostDownloadAction.HasFlag(action))
-            {
-                PostDownloadAction &= ~action;
-            }
-            else
-            {
-                PostDownloadAction |= action;
-            }*/
-            throw new NotImplementedException();
-
-            LogMessageToFile($"Post download action set to {PostDownloadAction}");
+            LogMessageToFile($"Post download actions set to {DescribePostDownloadActions()}");
         });
 
         cmd.Subcommands.Add(savePathCmd);
         cmd.Subcommands.Add(postDownloadCmd);
         return cmd;
+    }
+
+    private static string DescribePostDownloadActions()
+    {
+        return $"RemoveDuplicates={PostDownloadAction.FileLevel.RemoveDuplicates}, " +
+               $"RunPostProcessScript={PostDownloadAction.DirectoryLevel.RunPostProcessScript}";
     }
 
     private Command BuildDebugCommand()

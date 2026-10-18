@@ -8,6 +8,9 @@
         <TargetFramework>net10.0</TargetFramework>
         <RootNamespace>NicheImageRipper.Gui</RootNamespace>
         <Version>2.1.0</Version>
+        <!-- AVLN3001: MainWindow has no parameterless constructor because it's always created in code with its
+             services (App.axaml.cs), so it never needs to be reachable by Avalonia's runtime XAML loader -->
+        <NoWarn>$(NoWarn);AVLN3001</NoWarn>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
@@ -27,7 +30,7 @@
         <PackageReference Include="Avalonia" Version="12.1.4" />
         <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
         <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.22" />

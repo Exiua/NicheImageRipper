@@ -100,7 +100,7 @@ public static class SiteModuleLoader
         }
 
         var moduleFolders = Directory.GetDirectories(modulesPath)
-                                     .ToDictionary(Path.GetFileName, d => d, StringComparer.OrdinalIgnoreCase)!;
+                                     .ToDictionary(d => Path.GetFileName(d), d => d, StringComparer.OrdinalIgnoreCase);
 
         foreach (var folderName in ResolveLoadOrder(modulesPath, moduleFolders.Keys))
         {

@@ -1,0 +1,111 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:NicheImageRipper.Gui.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+        x:Class="NicheImageRipper.Gui.Views.UnfinishedUrlsWindow"
+        x:DataType="vm:UnfinishedUrlsViewModel"
+        Title="Load unfinished URLs"
+        WindowStartupLocation="CenterOwner"
+        Width="920" Height="580" MinWidth="640" MinHeight="380">
+
+    <Design.DataContext>
+        <vm:UnfinishedUrlsViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="ListBox.preview ListBoxItem">
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="TextBlock.mono">
+            <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,Menlo,monospace" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="300,*" RowDefinitions="*,Auto" Margin="16">
+
+        <!-- Saved files -->
+        <Grid Grid.Row="0" Grid.Column="0" RowDefinitions="Auto,*,Auto" Margin="0,0,16,0">
+            <TextBlock Grid.Row="0" Text="Saved unfinished rips" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <ListBox Grid.Row="1" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}" CornerRadius="6"
+                     BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:UnfinishedUrlFileViewModel">
+                        <StackPanel Spacing="2" ToolTip.Tip="{Binding FullPath}" Margin="0,2">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <Border IsVisible="{Binding IsExternal}" CornerRadius="4" Padding="5,0"
+                                        Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+                                    <TextBlock Text="Other file" FontSize="11" VerticalAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Classes="hint" Text="{Binding Summary}" IsVisible="{Binding IsValid}"
+                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                            <TextBlock Text="{Binding Summary}" IsVisible="{Binding !IsValid}" Foreground="IndianRed"
+                                       FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Grid.Row="1" IsVisible="{Binding !HasFiles}" VerticalAlignment="Center" Margin="16" Spacing="4"
+                        IsHitTestVisible="False">
+                <TextBlock Text="No saved rips" HorizontalAlignment="Center" />
+                <TextBlock Classes="hint" TextAlignment="Center" HorizontalAlignment="Center"
+                           Text="Unfinished rips are saved here automatically while ripping." />
+            </StackPanel>
+            <Button Grid.Row="2" Margin="0,8,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Click="BrowseFile" ToolTip.Tip="Load a URL list saved somewhere else">Browse for a file…</Button>
+        </Grid>
+
+        <!-- Preview -->
+        <Grid Grid.Row="0" Grid.Column="1" RowDefinitions="Auto,Auto,*">
+            <TextBlock Grid.Row="0" IsVisible="{Binding !HasSelectedFile}" Classes="hint" Margin="0,30,0,0"
+                       HorizontalAlignment="Center" Text="Select a file to preview its URLs." />
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4" IsVisible="{Binding HasSelectedFile}">
+                <TextBlock Grid.Column="0" Text="{Binding SelectedFile.FileName, FallbackValue=''}" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SelectedFile.FullPath, FallbackValue=''}" />
+                <TextBlock Grid.Column="1" Classes="hint" Margin="12,0,0,0" VerticalAlignment="Center"
+                           IsVisible="{Binding CanLoad}" Text="{Binding SelectedFile.UrlCountText, FallbackValue=''}" />
+            </Grid>
+            <TextBlock Grid.Row="1" Classes="hint mono" Margin="0,0,0,8" IsVisible="{Binding HasSelectedFile}"
+                       Text="{Binding SelectedFile.FullPath, FallbackValue=''}" TextTrimming="CharacterEllipsis"
+                       TextWrapping="NoWrap" />
+
+            <ListBox Grid.Row="2" Classes="preview" IsVisible="{Binding CanLoad}" ItemsSource="{Binding SelectedFile.Urls, FallbackValue={x:Null}}"
+                     CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Classes="mono" Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Border Grid.Row="2" IsVisible="{Binding SelectedFileIsInvalid}"
+                    VerticalAlignment="Top" Padding="12" CornerRadius="6" BorderThickness="1" BorderBrush="IndianRed">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="This file can't be loaded" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedFile.Error, FallbackValue=''}" TextWrapping="Wrap" />
+                    <TextBlock Classes="hint" Margin="0,4,0,0"
+                               Text="A URL list must be a JSON array of http(s) URLs, for example [&quot;https://example.com/gallery/1&quot;]." />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Footer -->
+        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" Margin="0,16,0,0">
+            <TextBlock Grid.Column="0" Classes="hint" VerticalAlignment="Center" IsVisible="{Binding IsThinClient}"
+                       Text="Connected to a remote backend: this lists rips saved on this computer, not the backend's." />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                <Button Classes="accent" IsDefault="True" IsEnabled="{Binding CanLoad}" Click="Load">Load into queue</Button>
+                <Button IsCancel="True" Click="Cancel">Cancel</Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
