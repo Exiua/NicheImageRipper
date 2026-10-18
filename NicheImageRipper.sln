@@ -46,6 +46,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatreonApiClient", "Patreon
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SiteModulesParserTest", "SiteModulesParserTest\SiteModulesParserTest.csproj", "{D768C8D6-575D-4B14-AD8A-266D79EACA35}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Service.Tests", "Service.Tests\Service.Tests.csproj", "{6E3EF7E3-8AF8-4EFB-BB5A-EAF8028FDD0F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -144,6 +146,10 @@ Global
 		{D768C8D6-575D-4B14-AD8A-266D79EACA35}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D768C8D6-575D-4B14-AD8A-266D79EACA35}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D768C8D6-575D-4B14-AD8A-266D79EACA35}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E3EF7E3-8AF8-4EFB-BB5A-EAF8028FDD0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E3EF7E3-8AF8-4EFB-BB5A-EAF8028FDD0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E3EF7E3-8AF8-4EFB-BB5A-EAF8028FDD0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E3EF7E3-8AF8-4EFB-BB5A-EAF8028FDD0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
