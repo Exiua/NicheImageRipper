@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NicheImageRipper.SiteModules</RootNamespace>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\lib\ImpersonateClient\src\ImpersonateClient\ImpersonateClient.csproj" />
+      <ProjectReference Include="..\..\lib\IwaraApiClient\src\IwaraApiClient\IwaraApiClient.csproj" />
+      <ProjectReference Include="..\..\lib\MangaDexLibrary\src\MangaDexLibrary\MangaDexLibrary.csproj" />
+      <ProjectReference Include="..\..\lib\NHentaiApi\src\NHentaiApi\NHentaiApi.csproj" />
+      <ProjectReference Include="..\..\lib\PatreonApiClient\src\PatreonApiClient\PatreonApiClient.csproj" />
+      <ProjectReference Include="..\..\lib\PixivApi\src\PixivApi\PixivApi.csproj" />
+      <ProjectReference Include="..\..\lib\Sdk\src\Sdk\Sdk.csproj" />
+      <ProjectReference Include="..\..\lib\SteamApiClient\src\SteamApiClient\SteamApiClient.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.77.0.4276" />
+      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="15.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.13" />
+    </ItemGroup>
+
+</Project>
