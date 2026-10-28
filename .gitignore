@@ -428,6 +428,7 @@ TwiApi/
 
 # Custom files
 *.json
+!/global.json
 *.txt
 *.jpg
 *.png
