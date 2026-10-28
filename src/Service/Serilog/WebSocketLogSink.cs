@@ -8,19 +8,22 @@ using Serilog.Events;
 
 namespace NicheImageRipper.Service.Serilog;
 
-public sealed class WebSocketLogSink : ILogEventSink
+/// <summary>Forwards log events to the WebSocket clients subscribed to their level.</summary>
+public sealed class WebSocketLogSink(Func<WebSocketBroadcaster> broadcasterFactory) : ILogEventSink
 {
-    private readonly Func<WebSocketBroadcaster> _broadcasterFactory;
+    // The broadcaster's own events are left out: broadcasting them could feed back into more of them
+    private static readonly ScalarValue BroadcasterSourceContext = new(typeof(WebSocketBroadcaster).FullName);
 
-    public WebSocketLogSink(Func<WebSocketBroadcaster> broadcasterFactory)
-    {
-        _broadcasterFactory = broadcasterFactory;
-    }
+    private WebSocketBroadcaster? _broadcaster;
 
     public void Emit(LogEvent logEvent)
     {
-        var broadcaster = _broadcasterFactory();
-        //Console.WriteLine(logEvent.RenderMessage());
+        var broadcaster = _broadcaster ??= broadcasterFactory();
+        if (!broadcaster.WantsLog(logEvent.Level) || IsFromBroadcaster(logEvent))
+        {
+            return;
+        }
+
         var payload = new
         {
             timestamp = logEvent.Timestamp,
@@ -32,23 +35,17 @@ public sealed class WebSocketLogSink : ILogEventSink
                 kvp => kvp.Value.ToString())
         };
 
-        var envelope = new WsEnvelope
+        broadcaster.BroadcastLog(logEvent.Level, new WsEnvelope
         {
             EventType = WsEventType.Log,
             Payload = JsonSerializer.SerializeToElement(payload),
-        };
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await broadcaster.BroadcastAsync(envelope);
-            }
-            catch(Exception)
-            {
-                //_broadcaster.Logger.LogError(e, "Error broadcasting log event");
-            }
         });
+    }
+
+    private static bool IsFromBroadcaster(LogEvent logEvent)
+    {
+        return logEvent.Properties.TryGetValue(Constants.SourceContextPropertyName, out var sourceContext) &&
+               sourceContext.Equals(BroadcasterSourceContext);
     }
 }
 

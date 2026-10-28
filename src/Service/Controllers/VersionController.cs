@@ -15,7 +15,7 @@ public class VersionController(ILogger<VersionController> logger, INicheImageRip
     public ActionResult<Version> GetCurrentVersion()
     {
         var coreVersion = nicheImageRipperSingleton.GetVersion();
-        logger.LogInformation("Current version: {CoreVersion}", coreVersion);
+        logger.LogDebug("Current version: {CoreVersion}", coreVersion);
         return Ok(coreVersion);
     }
 

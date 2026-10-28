@@ -1,11 +1,14 @@
 using NicheImageRipper.Sdk.Utility;
 using System;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NicheImageRipper.Gui.Models.Thin;
 using NicheImageRipper.Gui.Services;
 using NicheImageRipper.Gui.Services.Thin;
+using NicheImageRipper.Service.Models.WebSocket;
+using ReactiveUI;
 
 namespace NicheImageRipper.Gui.ViewModels;
 
@@ -38,10 +41,27 @@ public class MainWindowViewModelThin(
         
         _initialized = true;
         await base.InitializeAsync(cancellationToken);
+        // Have the service send debug logs only when they're shown, rather than sending and hiding them
+        this.WhenAnyValue(x => x.ShowDebugLogs)
+            .Select(show => show ? WsLogLevel.Debug : WsLogLevel.Information)
+            .DistinctUntilChanged()
+            .Subscribe(level => _ = UpdateRemoteLogLevel(level));
         await backendConnector.InitializeAsync(cancellationToken);
         var coreVersion = await backendConnector.GetCurrentVersionAsync(cancellationToken);
         _title = $"GuiThin v{Version} - Core v{coreVersion}";
         Active = false;
+    }
+
+    private async Task UpdateRemoteLogLevel(WsLogLevel level)
+    {
+        try
+        {
+            await backendConnector.SetLogLevelAsync(level);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to change the remote log level to {LogLevel}", level);
+        }
     }
 
     // Initialization needs the backend, so it happens in ConnectToRemote instead

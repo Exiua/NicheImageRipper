@@ -21,7 +21,8 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
     [HttpPost]
     public ActionResult<RejectedUrlsInfo> QueueUrls([FromBody] QueueRequest urls, [FromQuery] bool force = false)
     {
-        logger.LogInformation("Queueing URLs: {Urls}, Force: {Force}", urls.Urls, force);
+        logger.LogInformation("Queueing URLs (force: {Force})", force);
+        logger.LogDebug("Queued URLs: {Urls}", urls.Urls);
         RejectedUrlsInfo rejected;
         if (force)
         {
@@ -32,7 +33,7 @@ public class QueueController(ILogger<QueueController> logger, INicheImageRipperS
         {
             rejected = nicheImageRipperSingleton.Queue(urls.Urls);
         }
-        
+
         return Ok(rejected);
     }
 

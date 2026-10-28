@@ -1,20 +1,20 @@
-using System.Text.Json;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Service.Models.Responses;
-using NicheImageRipper.Service.Utilities.ExtensionMethods;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
-using SettingsOverride = NicheImageRipper.Sdk.Configuration.SettingsOverride;
 
 namespace NicheImageRipper.Service.Singletons;
-public class NicheImageRipperSingleton : INicheImageRipperSingleton
+public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDisposable
 {
     private readonly NicheImageRipper.Core.NicheImageRipper _ripper;
     private readonly Lock _ripperLock = new();
+    private readonly Lock _configLock = new();
     private readonly ILogger<NicheImageRipperSingleton> _logger;
     private bool _isRipping;
+    private CancellationTokenSource? _ripCancellation;
+    private Task _ripTask = Task.CompletedTask;
     public event Action? QueueUpdated;
     public event Action<int, int>? ProgressChanged;
     public NicheImageRipperSingleton(ILogger<NicheImageRipperSingleton> logger)
@@ -77,16 +77,22 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             return false;
         }
 
-        Task.Run(async () =>
+        var cancellation = new CancellationTokenSource();
+        _ripCancellation = cancellation;
+        _ripTask = Task.Run(async () =>
         {
             try
             {
-                var stopReason = await _ripper.Rip();
+                var stopReason = await _ripper.Rip(cancellation.Token);
                 if (stopReason == RipStopReason.OutOfDiskSpace)
                 {
                     _logger.LogError("Ripping stopped: not enough disk space on the backend. The queue was kept; " +
                                      "free up space and start ripping again.");
                 }
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                _logger.LogInformation("Ripping stopped because the service is shutting down.");
             }
             catch (Exception e)
             {
@@ -100,12 +106,12 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
         return true;
     }
 
-    public bool IsRipping => _isRipping;
+    public bool IsRipping => Volatile.Read(ref _isRipping);
     public bool Paused => _ripper.Paused;
 
     public bool Pause()
     {
-        if (!_isRipping || Paused)
+        if (!IsRipping || Paused)
         {
             return false;
         }
@@ -116,7 +122,7 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public bool Resume()
     {
-        if (!_isRipping || !Paused)
+        if (!IsRipping || !Paused)
         {
             return false;
         }
@@ -142,7 +148,15 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public void UpdateConfig(Config config)
     {
-        var existingConfig = Core.NicheImageRipper.Config;
+        using (_configLock.EnterScope())
+        {
+            ApplyConfig(config, Core.NicheImageRipper.Config);
+            Core.NicheImageRipper.Config.SaveConfig();
+        }
+    }
+
+    private static void ApplyConfig(Config config, GeneralConfig existingConfig)
+    {
         if (config.UserAgent is not null)
         {
             existingConfig.UserAgent = config.UserAgent;
@@ -230,17 +244,21 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
         if (config.Sites is not null)
         {
+            // Edit a copy and swap it in: rips in progress may be reading the current dictionary
+            var sites = new Dictionary<string, SiteConfig>(existingConfig.Sites, StringComparer.OrdinalIgnoreCase);
             foreach (var (key, incoming) in config.Sites)
             {
                 if (incoming is null)
                 {
-                    existingConfig.Sites.Remove(key);
+                    sites.Remove(key);
                 }
                 else
                 {
-                    existingConfig.Sites[key] = incoming;
+                    sites[key] = incoming;
                 }
             }
+
+            existingConfig.Sites = sites;
         }
     }
 
@@ -273,6 +291,34 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
 
     public void LoadUrls(List<string> urls)
     {
-        _ripper.LoadUrls(urls);
+        using (_ripperLock.EnterScope())
+        {
+            _ripper.LoadUrls(urls);
+        }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        if (_ripCancellation is { } ripCancellation)
+        {
+            await ripCancellation.CancelAsync();
+        }
+
+        try
+        {
+            await _ripTask.WaitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("The rip didn't stop in time; saving anyway.");
+        }
+
+        await _ripper.SaveData(CancellationToken.None);
+    }
+
+    public void Dispose()
+    {
+        _ripCancellation?.Dispose();
+        _ripper.Dispose();
     }
 }

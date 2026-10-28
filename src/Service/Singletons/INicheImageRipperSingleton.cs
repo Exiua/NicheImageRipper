@@ -25,6 +25,7 @@ public interface INicheImageRipperSingleton
     public IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null);
     public int GetHistoryCount();
     public GeneralConfig GetConfig();
+    /// <summary>Applies the non-null settings in <paramref name="config"/> and saves them.</summary>
     public void UpdateConfig(Config config);
     public List<string> GetSiteNames();
     public Version GetVersion();
@@ -32,4 +33,7 @@ public interface INicheImageRipperSingleton
     public void ClearCache();
     public Task Save(CancellationToken cancellationToken = default);
     public void LoadUrls(List<string> urls);
+
+    /// <summary>Cancels a rip in progress, waits for it to stop, and saves the queue, rip position and settings.</summary>
+    public Task StopAsync(CancellationToken cancellationToken = default);
 }

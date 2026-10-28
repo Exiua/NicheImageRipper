@@ -33,9 +33,11 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
     private static GuiThinConfig Config { get; }
 
     private ClientWebSocket _webSocket = new();
+    private readonly SemaphoreSlim _webSocketSendLock = new(1, 1);
     private bool _disposed;
     public string ApiKey { get => Config.ApiKey; set => Config.ApiKey = value; }
     public string EndpointUri { get => Config.EndpointUri; set => Config.EndpointUri = value; }
+    public WsLogLevel LogLevel { get; private set; } = WsLogLevel.Information;
 
     public event Action<LogEntryModel>? LogReceived;
     public event Action? QueueUpdated;
@@ -241,12 +243,40 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
         var wsUri = new UriBuilder(baseUri)
         {
             Scheme = baseUri.Scheme == Uri.UriSchemeHttps ? "wss" : "ws",
-            Path = "ws/events"
+            Path = "ws/events",
+            Query = $"logLevel={LogLevel}",
         }.Uri;
         await socket.ConnectAsync(wsUri, cancellationToken);
         _webSocket = socket;
         //_connected = true;
         _ = Task.Run(() => ReceiveLoopAsync(socket, cancellationToken), cancellationToken);
+    }
+
+    public async Task SetLogLevelAsync(WsLogLevel level, CancellationToken cancellationToken = default)
+    {
+        LogLevel = level;
+        var socket = _webSocket;
+        if (socket.State != WebSocketState.Open)
+        {
+            return;
+        }
+
+        var message = JsonSerializer.SerializeToUtf8Bytes(new WsClientMessage
+        {
+            Type = WsClientMessageType.SetLogLevel,
+            LogLevel = level,
+        });
+
+        // A WebSocket allows only one send at a time
+        await _webSocketSendLock.WaitAsync(cancellationToken);
+        try
+        {
+            await socket.SendAsync(message, WebSocketMessageType.Text, endOfMessage: true, cancellationToken);
+        }
+        finally
+        {
+            _webSocketSendLock.Release();
+        }
     }
 
     public async Task DisconnectWebSocketAsync(CancellationToken cancellationToken = default)
@@ -324,6 +354,11 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
                         break;
                     }
 
+                    case WsEventType.LogLevelChanged:
+                    {
+                        break;
+                    }
+
                     case WsEventType.Unknown:
                     default:
                     {
@@ -348,6 +383,7 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
 
         _disposed = true;
         _webSocket.Dispose();
+        _webSocketSendLock.Dispose();
         GC.SuppressFinalize(this);
     }
 }

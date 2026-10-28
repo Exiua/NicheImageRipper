@@ -25,6 +25,28 @@ public class HistoryControllerTest
     }
 
     [Fact]
+    public void PageOverTheLimitIsRejected()
+    {
+        var response = Controller.GetHistory(0, HistoryController.MaxPageSize + 1, null, null);
+
+        Assert.IsType<BadRequestResult>(response.Result);
+    }
+
+    [Theory]
+    [InlineData(HistoryFilterType.DateStart, null)]
+    [InlineData(HistoryFilterType.DateStart, "not a date")]
+    [InlineData(HistoryFilterType.DateEnd, "")]
+    [InlineData(HistoryFilterType.Url, null)]
+    [InlineData((HistoryFilterType)999, "value")]
+    public void BadFilterIsRejected(HistoryFilterType filterType, string? filterValue)
+    {
+        var response = Controller.GetHistory(0, 10, filterType, filterValue);
+
+        Assert.IsType<BadRequestObjectResult>(response.Result);
+        Assert.Null(_ripper.LastRequest);
+    }
+
+    [Fact]
     public void UnfilteredRequestPassesPaging()
     {
         var response = Controller.GetHistory(3, 25, null, null);

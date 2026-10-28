@@ -1,17 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NicheImageRipper.Service.Configuration;
 using NicheImageRipper.Service.Contexts;
 using NicheImageRipper.Service.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
+builder.Logging.SetMinimumLevel(LogLevel.Warning); // EF Core logs every SQL command at Information
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
+builder.Services.AddServiceDatabase(builder.Configuration);
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
 using var host = builder.Build();
@@ -24,10 +22,10 @@ if (string.IsNullOrWhiteSpace(command))
     return;
 }
 
+await host.Services.MigrateServiceDatabaseAsync();
+
 using var scope = host.Services.CreateScope();
 var services = scope.ServiceProvider;
-var logger = services.GetRequiredService<ILoggerFactory>()
-    .CreateLogger("AdminCli");
 var apiKeyService = services.GetRequiredService<IApiKeyService>();
 
 switch (command)
@@ -69,9 +67,7 @@ switch (command)
 
     case "list":
     {
-        var dbFactory = services.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
-        await using var db = await dbFactory.CreateDbContextAsync();
-
+        var db = services.GetRequiredService<ApplicationDbContext>();
         var keys = await db.ApiKeys
             .OrderBy(x => x.Name)
             .Select(x => new

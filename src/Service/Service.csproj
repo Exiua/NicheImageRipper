@@ -23,16 +23,17 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Service.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\Core\Core.csproj" />
+      <ProjectReference Include="..\Service.Contracts\Service.Contracts.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Models\Responses\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <!-- Local runtime config, not a build asset. The Web SDK copies *.json to output by default, which also
-           pushed it into every project referencing Service (e.g. Gui) and shipped a stale config with the GUI. -->
+      <!-- Local runtime config, not a build asset. The Web SDK copies *.json to output by default, which would also
+           push it into every project referencing Service (e.g. ServiceAdminCli). -->
       <Content Update="config.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     </ItemGroup>
 

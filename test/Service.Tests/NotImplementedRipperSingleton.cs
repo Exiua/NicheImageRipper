@@ -40,4 +40,5 @@ public abstract class NotImplementedRipperSingleton : INicheImageRipperSingleton
     public virtual void ClearCache() => throw new NotImplementedException();
     public virtual Task Save(CancellationToken cancellationToken = default) => throw new NotImplementedException();
     public virtual void LoadUrls(List<string> urls) => throw new NotImplementedException();
+    public virtual Task StopAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
 }

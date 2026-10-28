@@ -14,7 +14,7 @@ public class SettingsController(ILogger<SettingsController> logger, INicheImageR
     [HttpGet]
     public ActionResult<GeneralConfig> GetConfig()
     {
-        logger.LogInformation("Getting config");
+        logger.LogDebug("Getting config");
         return Ok(nicheImageRipperSingleton.GetConfig());
     }
 
@@ -24,10 +24,12 @@ public class SettingsController(ILogger<SettingsController> logger, INicheImageR
         return Ok(nicheImageRipperSingleton.GetSiteNames());
     }
 
+    /// <summary>Applies and saves the given settings; omitted (null) settings are left as they are.</summary>
     [HttpPatch]
     public IActionResult UpdateConfig(Config config)
     {
         nicheImageRipperSingleton.UpdateConfig(config);
+        logger.LogInformation("Settings updated");
         return Ok();
     }
 }

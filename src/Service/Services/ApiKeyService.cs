@@ -7,6 +7,9 @@ using NicheImageRipper.Service.Models;
 namespace NicheImageRipper.Service.Services;
 public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
 {
+    /// <summary>How stale <see cref="ApiKey.LastUsedUtc"/> may get, so not every request writes to the database.</summary>
+    internal static readonly TimeSpan LastUsedUpdateInterval = TimeSpan.FromMinutes(1);
+
     public async Task<CreateApiKeyResult> CreateAsync(string name, string? ownerId, DateTime? expiresUtc, CancellationToken cancellationToken = default)
     {
         var(prefix, rawKey) = ApiKeyGenerator.Generate();
@@ -64,8 +67,13 @@ public class ApiKeyService(ApplicationDbContext context) : IApiKeyService
             return null;
         }
 
-        entity.LastUsedUtc = DateTime.UtcNow;
-        await context.SaveChangesAsync(cancellationToken: cancellationToken);
+        var now = DateTime.UtcNow;
+        if (entity.LastUsedUtc is not { } lastUsed || now - lastUsed >= LastUsedUpdateInterval)
+        {
+            entity.LastUsedUtc = now;
+            await context.SaveChangesAsync(cancellationToken: cancellationToken);
+        }
+
         return new ApiKeyValidationResult
         {
             Id = entity.Id,

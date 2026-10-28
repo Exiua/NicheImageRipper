@@ -54,6 +54,7 @@ The [curl-impersonate](https://github.com/lexiforest/curl-impersonate) native li
 | [Gui](src/Gui)                                                  | Avalonia desktop app, the main way to use the ripper        |
 | [Tui](src/Tui)                                                  | Command-line app and interactive REPL                       |
 | [Service](src/Service)                                          | ASP.NET Core web service exposing the ripper over REST      |
+| [Service.Contracts](src/Service.Contracts)                      | Request, response and WebSocket types shared with clients   |
 | [ServiceAdminCli](src/ServiceAdminCli)                          | Manages API keys for the service                            |
 | [Core](src/Core)                                                | The engine: queue, downloading, history, module loading     |
 | [SiteModules](src/SiteModules)                                  | The built-in site parsers (one per supported site)          |

@@ -9,60 +9,40 @@ namespace NicheImageRipper.Service.Controllers;
 public class StateController(ILogger<StateController> logger, INicheImageRipperSingleton nicheImageRipperSingleton) : ControllerBase
 {
     [HttpPost("rip")]
-    public Task<ActionResult<bool>> Rip()
+    public ActionResult<bool> Rip()
     {
-        try
-        {
-            logger.LogInformation("Ripping");
-            return Task.FromResult<ActionResult<bool>>(Ok(nicheImageRipperSingleton.Rip()));
-        }
-        catch (Exception exception)
-        {
-            return Task.FromException<ActionResult<bool>>(exception);
-        }
+        logger.LogInformation("Ripping");
+        return Ok(nicheImageRipperSingleton.Rip());
     }
 
     [HttpPost("save")]
-    public Task<IActionResult> Save(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Save()
     {
         logger.LogInformation("Saving");
-        nicheImageRipperSingleton.Save(cancellationToken: cancellationToken);
-        return Task.FromResult<IActionResult>(Ok());
+        // Not tied to the request: a client disconnecting mustn't leave a half-written save behind
+        await nicheImageRipperSingleton.Save(CancellationToken.None);
+        return Ok();
     }
 
     [HttpPost("pause")]
-    public Task<ActionResult<bool>> Pause()
+    public ActionResult<bool> Pause()
     {
-        try
-        {
-            logger.LogInformation("Pausing");
-            return Task.FromResult<ActionResult<bool>>(Ok(nicheImageRipperSingleton.Pause()));
-        }
-        catch (Exception exception)
-        {
-            return Task.FromException<ActionResult<bool>>(exception);
-        }
+        logger.LogInformation("Pausing");
+        return Ok(nicheImageRipperSingleton.Pause());
     }
 
     [HttpPost("resume")]
-    public Task<ActionResult<bool>> Resume()
+    public ActionResult<bool> Resume()
     {
-        try
-        {
-            logger.LogInformation("Resuming");
-            return Task.FromResult<ActionResult<bool>>(Ok(nicheImageRipperSingleton.Resume()));
-        }
-        catch (Exception exception)
-        {
-            return Task.FromException<ActionResult<bool>>(exception);
-        }
+        logger.LogInformation("Resuming");
+        return Ok(nicheImageRipperSingleton.Resume());
     }
 
     [HttpGet("paused")]
     public ActionResult<bool> GetPausedState()
     {
         var isPaused = nicheImageRipperSingleton.Paused;
-        logger.LogInformation("IsPaused: {isPaused}", isPaused);
+        logger.LogDebug("IsPaused: {isPaused}", isPaused);
         return Ok(isPaused);
     }
 
@@ -70,15 +50,15 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     public ActionResult<bool> GetIsRippingState()
     {
         var isRipping = nicheImageRipperSingleton.IsRipping;
-        logger.LogInformation("IsRipping: {isRipping}", isRipping);
+        logger.LogDebug("IsRipping: {isRipping}", isRipping);
         return Ok(isRipping);
     }
 
     [HttpPost("clear-cache")]
-    public Task<IActionResult> ClearCache(CancellationToken cancellationToken = default)
+    public IActionResult ClearCache()
     {
         logger.LogInformation("Clearing cache");
         nicheImageRipperSingleton.ClearCache();
-        return Task.FromResult<IActionResult>(Ok());
+        return Ok();
     }
 }

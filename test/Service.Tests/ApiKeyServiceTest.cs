@@ -67,6 +67,33 @@ public sealed class ApiKeyServiceTest : IDisposable
     }
 
     [Fact]
+    public async Task RecentLastUseIsNotRewritten()
+    {
+        var created = await _service.CreateAsync("gui", null, null, Ct);
+        await _service.ValidateAsync(created.RawKey, Ct);
+        var stored = await _context.ApiKeys.SingleAsync(key => key.Id == created.Id, Ct);
+        var firstUse = stored.LastUsedUtc;
+
+        await _service.ValidateAsync(created.RawKey, Ct);
+
+        Assert.Equal(firstUse, stored.LastUsedUtc);
+    }
+
+    [Fact]
+    public async Task StaleLastUseIsUpdated()
+    {
+        var created = await _service.CreateAsync("gui", null, null, Ct);
+        var stored = await _context.ApiKeys.SingleAsync(key => key.Id == created.Id, Ct);
+        var stale = DateTime.UtcNow - ApiKeyService.LastUsedUpdateInterval - TimeSpan.FromSeconds(1);
+        stored.LastUsedUtc = stale;
+        await _context.SaveChangesAsync(Ct);
+
+        await _service.ValidateAsync(created.RawKey, Ct);
+
+        Assert.True(stored.LastUsedUtc > stale);
+    }
+
+    [Fact]
     public async Task WrongSecretIsRejected()
     {
         var created = await _service.CreateAsync("gui", null, null, Ct);

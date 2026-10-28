@@ -1,6 +1,80 @@
-@CoreService_HostAddress = http://localhost:5108
+# Requests for the Service. Create a key with ServiceAdminCli and put it in @ApiKey (don't commit it).
+@HostAddress = http://localhost:5108
+@ApiKey = ak_REPLACE.ME
 
-GET {{CoreService_HostAddress}}/weatherforecast/
-Accept: application/json
+### Queue
+GET {{HostAddress}}/api/queue
+X-API-Key: {{ApiKey}}
 
 ###
+GET {{HostAddress}}/api/queue/current
+X-API-Key: {{ApiKey}}
+
+###
+POST {{HostAddress}}/api/queue
+X-API-Key: {{ApiKey}}
+Content-Type: application/json
+
+{ "urls": "https://example.com/gallery/1" }
+
+###
+DELETE {{HostAddress}}/api/queue
+X-API-Key: {{ApiKey}}
+Content-Type: application/json
+
+["https://example.com/gallery/1"]
+
+### State
+POST {{HostAddress}}/api/state/rip
+X-API-Key: {{ApiKey}}
+
+###
+POST {{HostAddress}}/api/state/pause
+X-API-Key: {{ApiKey}}
+
+###
+POST {{HostAddress}}/api/state/resume
+X-API-Key: {{ApiKey}}
+
+###
+GET {{HostAddress}}/api/state/is-ripping
+X-API-Key: {{ApiKey}}
+
+###
+POST {{HostAddress}}/api/state/save
+X-API-Key: {{ApiKey}}
+
+### History: first page of 50, optionally filtered (filterType: DateStart, DateEnd, Url, DirectoryName)
+GET {{HostAddress}}/api/history?start=0&offset=50
+X-API-Key: {{ApiKey}}
+
+###
+GET {{HostAddress}}/api/history?start=0&offset=50&filterType=Url&filterValue=example.com
+X-API-Key: {{ApiKey}}
+
+###
+GET {{HostAddress}}/api/history/count
+X-API-Key: {{ApiKey}}
+
+### Settings
+GET {{HostAddress}}/api/settings
+X-API-Key: {{ApiKey}}
+
+###
+PATCH {{HostAddress}}/api/settings
+X-API-Key: {{ApiKey}}
+Content-Type: application/json
+
+{ "numThreads": 2 }
+
+###
+GET {{HostAddress}}/api/settings/sites
+X-API-Key: {{ApiKey}}
+
+### Version
+GET {{HostAddress}}/api/version
+X-API-Key: {{ApiKey}}
+
+###
+GET {{HostAddress}}/api/version/latest
+X-API-Key: {{ApiKey}}

@@ -4,7 +4,9 @@ A small command-line tool for managing the API keys that [Service](../Service) a
 
 ## How To Use
 
-It reads the same `ConnectionStrings:DefaultConnection` setting as the Service, so point both at the same database.
+Like the Service, it uses `NicheImageRipper.db` in the data folder (`NIR_DATA_DIR`, by default the executable's
+folder) unless `ConnectionStrings:DefaultConnection` is set. Point both at the same database: run them with the same
+`NIR_DATA_DIR`, or set the same connection string for both. The database is created or migrated on start.
 
 ```bash
 ServiceAdminCli gen <name>       # create a key; it's shown once, so store it
