@@ -1,4 +1,5 @@
 using NicheImageRipper.Core.FileDownloading;
+using NicheImageRipper.Core.GalleryUpdates;
 using NicheImageRipper.Core.PartialSaves;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -26,6 +27,14 @@ public class HtmlParserOrchestrator : IDisposable
     private static GeneralConfig Config => Sdk.Configuration.Config.Instance;
 
     private static PartialSaveManager PartialSaveManager => PartialSaveManager.Instance;
+
+    private static GalleryStateManager GalleryStateManager => GalleryStateManager.Instance;
+
+    /// <summary>
+    ///     Set by <see cref="ParseSite"/> when the site's parser is an <see cref="IUpdatableHtmlParser"/>: how this rip
+    ///     merges into what earlier rips downloaded. The returned <see cref="RipInfo.Urls"/> are its downloads.
+    /// </summary>
+    public GalleryUpdatePlan? UpdatePlan { get; private set; }
 
     private WebDriver WebDriver { get; }
     public bool Interrupted { get; set; }
@@ -88,7 +97,14 @@ public class HtmlParserOrchestrator : IDisposable
         htmlParser.SiteName = SiteName;
         Logger.Debug("Constructed HtmlParser");
 
-        if (htmlParser.SupportsPartialSaveValue)
+        UpdatePlan = null;
+        var updatableParser = htmlParser as IUpdatableHtmlParser;
+        var galleryState = updatableParser is null ? null : GalleryStateManager.GetState(url);
+
+        // An updatable gallery's partial save is only used to resume an unfinished update. Otherwise it's the link
+        // list from the last rip, which would hide everything added since
+        var canResume = updatableParser is null || galleryState?.PendingUpdate is not null;
+        if (htmlParser.SupportsPartialSaveValue && canResume)
         {
             var saveData = PartialSaveManager.GetPartialSave(url);
             if (saveData is not null)
@@ -97,12 +113,24 @@ public class HtmlParserOrchestrator : IDisposable
                 RequestHeaders[RequestHeaderKeys.Cookie] = saveData.Cookies;
                 RequestHeaders[RequestHeaderKeys.Referer] = saveData.Referer;
                 Interrupted = true;
+                UpdatePlan = galleryState?.PendingUpdate;
                 return saveData.RipInfo;
             }
         }
-        else
+
+        if (!htmlParser.SupportsPartialSaveValue || updatableParser is not null)
         {
-            File.Delete(FileRipper.RipIndexPath); // Not valid when no partial save
+            File.Delete(FileRipper.RipIndexPath); // Not valid when no partial save, or for a freshly planned update
+        }
+
+        var updateMode = updatableParser is null
+            ? GalleryUpdateMode.Full
+            : Config.GetGalleryUpdateMode(GetParserName(htmlParser));
+        if (updatableParser is not null)
+        {
+            updatableParser.UpdateContext = galleryState is { Items.Count: > 0 } && updateMode == GalleryUpdateMode.UpdatesOnly
+                ? new GalleryUpdateContext(galleryState.Cursor, galleryState.Items.Select(i => i.Key).ToHashSet())
+                : null;
         }
 
         Logger.Debug("No partial save found for site; Parsing site");
@@ -124,6 +152,11 @@ public class HtmlParserOrchestrator : IDisposable
                 var siteInfo = await htmlParser.Parse(cancellationToken);
                 Logger.Debug("Saving partial save for {Url}", url);
                 siteInfo.DirectoryName += $" ({SiteName})";
+                if (updatableParser is not null)
+                {
+                    siteInfo = PlanUpdate(updatableParser, galleryState, updateMode, siteInfo, url);
+                }
+
                 WritePartialSave(siteInfo, url);
                 return siteInfo;
             }
@@ -149,6 +182,46 @@ public class HtmlParserOrchestrator : IDisposable
         // Can only reach here if RetryCount is less than 1 as the loop would have returned or thrown
         throw new RipperException("Retry count cannot be less than 1");
     }
+
+    /// <summary>
+    ///     Merges a parsed updatable gallery with what earlier rips stored and records the plan as pending. Returns the
+    ///     <see cref="RipInfo"/> to download: only what changed, unless <paramref name="mode"/> is full.
+    /// </summary>
+    private RipInfo PlanUpdate(IUpdatableHtmlParser parser, GalleryState? state, GalleryUpdateMode mode,
+                               RipInfo siteInfo, string url)
+    {
+        if (siteInfo.DownloadMode != DownloadMode.List)
+        {
+            Logger.Debug("Not tracking updates for {Url}: download mode {Mode} has no item list", url,
+                siteInfo.DownloadMode);
+            return siteInfo;
+        }
+
+        // Keep updates in the folder earlier rips used, even if the site renamed the gallery
+        if (state is not null && state.DirectoryName != siteInfo.DirectoryName)
+        {
+            Logger.Warning("The gallery at {Url} is now named \"{NewName}\"; still saving to \"{DirectoryName}\"",
+                url, siteInfo.DirectoryName, state.DirectoryName);
+            siteInfo.DirectoryName = state.DirectoryName;
+        }
+
+        var parsed = siteInfo.Urls
+                             .Select(link => new ParsedGalleryItem(parser.GetItemKey(link), parser.GetItemVersion(link), link))
+                             .ToList();
+        var plan = GalleryUpdatePlanner.Plan(state?.Items ?? [], parsed, parser.UpdateStrategy,
+            parser.NewItemPlacement, mode, siteInfo.FilenameScheme, siteInfo.DirectoryName, siteInfo.UpdateCursor);
+        GalleryStateManager.SavePendingUpdate(url, plan);
+        UpdatePlan = plan;
+        Logger.Debug("Update plan for {Url}: {Downloads} to download, {Renames} to rename", url,
+            plan.PendingItems.Count, plan.Renames.Count);
+
+        siteInfo.Urls = plan.Downloads;
+        siteInfo.NumUrls = plan.Downloads.Count;
+        return siteInfo;
+    }
+
+    private static string GetParserName(HtmlParser parser) =>
+        parser.GetType().GetProperty(nameof(IHtmlParser.ParserName))?.GetValue(null) as string ?? parser.SiteName;
 
     private async Task CleanupWhenFailed(Exception e, CancellationToken cancellationToken = default)
     {

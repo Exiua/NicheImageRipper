@@ -16,6 +16,7 @@ public class GeneralConfig
     public UnzipProtocol UnzipProtocol { get; set; } = UnzipProtocol.None;
     public PostDownloadAction PostDownloadAction { get; set; } = new();
     public ReRipBehavior ReRipBehavior { get; set; } = ReRipBehavior.Ask;
+    public GalleryUpdateMode GalleryUpdateMode { get; set; } = GalleryUpdateMode.UpdatesOnly;
     public bool LiveHistory { get; set; } = false;
     public bool SkipFailedDownloads { get; set; } = true;
     public int NumThreads { get; set; } = 1;
@@ -113,6 +114,10 @@ public class GeneralConfig
     }
 
     public SiteConfig? GetSiteConfig(string parserName) => Sites.GetValueOrDefault(parserName);
+
+    /// <summary>The site's <see cref="SettingsOverride.GalleryUpdateMode"/> if set, otherwise <see cref="GalleryUpdateMode"/>.</summary>
+    public GalleryUpdateMode GetGalleryUpdateMode(string parserName) =>
+        GetSiteConfig(parserName)?.Overrides?.GalleryUpdateMode ?? GalleryUpdateMode;
 
     public SiteConfig GetOrAddSiteConfig(string parserName)
     {

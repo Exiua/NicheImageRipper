@@ -301,7 +301,11 @@ public partial class NicheImageRipper : IDisposable
                     return RipStopReason.OutOfDiskSpace;
                 case RipUrlOutcome.Ripped:
                     Logger.Debug("Ripped URL: {Url:l}", result.Url);
-                    UpdateHistory(Ripper.FolderInfo, result.Url);
+                    if (!Ripper.NoNewItems)
+                    {
+                        UpdateHistory(Ripper.FolderInfo, result.Url);
+                    }
+
                     break;
                 case RipUrlOutcome.QueueEmpty:
                     break;

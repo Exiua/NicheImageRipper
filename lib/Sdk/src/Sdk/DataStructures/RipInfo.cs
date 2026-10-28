@@ -29,6 +29,12 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
     public int NumUrls { get; set; }
     public int? MaxConcurrentDownloads { get; set; } // null = sequential; set by a parser that knows its downloads are slow/independent
 
+    /// <summary>
+    ///     Set by an <see cref="IUpdatableHtmlParser"/> to remember where this rip got to (e.g. the newest post id),
+    ///     handed back as <see cref="GalleryUpdateContext.PreviousCursor"/> on the next update rip. Opaque to Core.
+    /// </summary>
+    public string? UpdateCursor { get; set; }
+
     public string DirectoryName
     {
         get;

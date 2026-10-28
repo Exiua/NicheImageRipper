@@ -218,6 +218,9 @@ public class SiteConfigEntryViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    // Not editable here yet; carried over so saving the editor doesn't drop it
+    private readonly GalleryUpdateMode? _overrideGalleryUpdateMode;
+
     public SiteConfigEntryViewModel(string name, SiteConfig config, bool isKnownSite)
     {
         Name = name;
@@ -229,6 +232,7 @@ public class SiteConfigEntryViewModel : ViewModelBase
         CookiesText = string.Join(Environment.NewLine, config.Cookies ?? []);
         HasOverrides = config.Overrides is not null;
         OverrideFilenameScheme = config.Overrides?.FilenameScheme ?? FilenameScheme.Original;
+        _overrideGalleryUpdateMode = config.Overrides?.GalleryUpdateMode;
         PostProcessScript = config.PostProcessScript ?? "";
         CustomJson = config.Custom is { } custom ? JsonSerializer.Serialize(custom, IndentedJson) : "";
     }
@@ -259,7 +263,11 @@ public class SiteConfigEntryViewModel : ViewModelBase
 
         if (HasOverrides)
         {
-            config.Overrides = new SettingsOverride { FilenameScheme = OverrideFilenameScheme };
+            config.Overrides = new SettingsOverride
+            {
+                FilenameScheme = OverrideFilenameScheme,
+                GalleryUpdateMode = _overrideGalleryUpdateMode,
+            };
         }
 
         config.Key = NullIfBlank(Key);

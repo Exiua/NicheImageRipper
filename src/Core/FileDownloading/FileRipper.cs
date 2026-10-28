@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using NicheImageRipper.Core.GalleryUpdates;
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Driver;
 using NicheImageRipper.Core.PartialSaves;
@@ -110,6 +111,11 @@ public class FileRipper : IDisposable
     public RipInfo FolderInfo { get; private set; } = null!;
 
     /// <summary>
+    /// Whether the most recent <see cref="Rip"/> was an update of a tracked gallery that had nothing new to download.
+    /// </summary>
+    public bool NoNewItems { get; private set; }
+
+    /// <summary>
     /// Post-download behaviors to apply per file (currently: duplicate removal).
     /// </summary>
     public PostDownloadAction PostDownloadAction { get; set; }
@@ -145,6 +151,11 @@ public class FileRipper : IDisposable
     private IReadOnlyList<IWebDriverPreferenceProvider> WebDriverPreferenceProviders { get; }
     private DownloadContext DownloadContext { get; set; } = null!;
     private readonly GenericHttpDownloadStrategy _genericHttpStrategy = new();
+
+    // Indices into FolderInfo.Urls that finished downloading this rip (or before the point it resumed from), so a
+    // gallery update only records items that actually made it to disk
+    private readonly HashSet<int> _finishedDownloads = [];
+    private readonly Lock _finishedDownloadsLock = new();
 
     /// <summary>
     /// Whether exceeding <see cref="FailureThreshold"/> should also clear this URL's cached
@@ -313,11 +324,27 @@ public class FileRipper : IDisposable
         //Logger.Debug("Constructed HtmlParser");
         var htmlParser = new HtmlParserOrchestrator(WebDriver, RequestHeaders, FilenameScheme);
         FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
+        var updatePlan = htmlParser.UpdatePlan;
+        NoNewItems = false;
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
         Logger.Debug("Dir Length: {DirLength}", fullPath.Length);
         Directory.CreateDirectory(fullPath);
 
+        if (updatePlan is not null && PrepareGalleryUpdate(updatePlan, fullPath))
+        {
+            return;
+        }
+
         var start = await GetStartIndex(cancellationToken);
+        lock (_finishedDownloadsLock)
+        {
+            _finishedDownloads.Clear();
+            if (FolderInfo.DownloadMode == DownloadMode.List)
+            {
+                _finishedDownloads.UnionWith(Enumerable.Range(0, start));
+            }
+        }
+
         var (downloadStats, filesHashes) = await LoadOrCreateRipState(start, cancellationToken);
 
         try
@@ -344,6 +371,79 @@ public class FileRipper : IDisposable
         }
 
         await FinalizeRip(fullPath, downloadStats, cancellationToken);
+        if (updatePlan is not null)
+        {
+            CompleteGalleryUpdate(updatePlan, fullPath);
+        }
+    }
+
+    /// <summary>
+    ///     Moves existing files to their new positions (once per plan, even if the rip is resumed) and, when there's
+    ///     nothing to download, finishes the update straight away.
+    /// </summary>
+    /// <returns>Whether the update is already complete.</returns>
+    private bool PrepareGalleryUpdate(GalleryUpdatePlan plan, string fullPath)
+    {
+        if (!plan.RenamesApplied)
+        {
+            GalleryFileRenamer.Apply(fullPath, plan.Renames);
+            GalleryStateManager.Instance.SaveRenamedItems(GivenUrl, plan);
+        }
+
+        if (!plan.HasNothingToDownload)
+        {
+            return false;
+        }
+
+        GalleryStateManager.Instance.CompleteUpdate(GivenUrl, plan.Cursor, []);
+        PartialSaveManager.Instance.RemovePartialSave(GivenUrl);
+        NoNewItems = true;
+        Logger.Information("No new items for {Url}", GivenUrl);
+        OnProgressChanged?.Invoke(1, 1);
+        return true;
+    }
+
+    /// <summary>
+    ///     Records the items that downloaded (failed ones are retried by the next update), removes files that
+    ///     re-downloaded items replaced, and drops the partial save so the next rip parses the gallery again.
+    /// </summary>
+    private void CompleteGalleryUpdate(GalleryUpdatePlan plan, string fullPath)
+    {
+        List<PendingGalleryItem> finished;
+        lock (_finishedDownloadsLock)
+        {
+            finished = plan.PendingItems.Where(p => _finishedDownloads.Contains(p.DownloadIndex)).ToList();
+        }
+
+        var downloaded = finished
+                         .Select(p => new GalleryItem(p.Key, p.Version, p.Position, FolderInfo.Urls[p.DownloadIndex].Filename))
+                         .ToList();
+        foreach (var item in finished)
+        {
+            // Only remove the old file if no other item ended up with that name
+            if (item.ReplacedFilename is { } replaced &&
+                !plan.ExistingItems.Any(i => i.Key != item.Key && i.Filename == replaced) &&
+                !downloaded.Any(i => i.Filename == replaced))
+            {
+                var path = Path.Combine(fullPath, replaced);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+                else if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, recursive: true);
+                }
+            }
+        }
+
+        GalleryStateManager.Instance.CompleteUpdate(GivenUrl, plan.Cursor, downloaded);
+        PartialSaveManager.Instance.RemovePartialSave(GivenUrl);
+        var notFinished = plan.PendingItems.Count - downloaded.Count;
+        if (notFinished > 0)
+        {
+            Logger.Information("{Count} items didn't download and will be retried by the next update", notFinished);
+        }
     }
 
     /// <summary>
@@ -678,6 +778,14 @@ public class FileRipper : IDisposable
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
             var result = await DownloadFromList(link, imagePath, index, downloadStats, cancellationToken);
+            if (result.Outcome is DownloadOutcome.Success or DownloadOutcome.SkipNotAFailure)
+            {
+                lock (_finishedDownloadsLock)
+                {
+                    _finishedDownloads.Add(index);
+                }
+            }
+
             if (result.Outcome == DownloadOutcome.Success)
             {
                 // DownloadFromList may modify filename (if it was missing extension)
