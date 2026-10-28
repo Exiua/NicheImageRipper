@@ -435,5 +435,6 @@ TwiApi/
 *.mp4
 *.html
 *.md
+!README.md
 NicheImageRipper.sln.DotSettings.user
 riderModule.iml
