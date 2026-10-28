@@ -69,6 +69,13 @@ public partial class NicheImageRipper : IDisposable
         set => Config.ReRipBehavior = value;
     }
 
+    /// <summary>What re-ripping an updatable gallery downloads, unless the site overrides it.</summary>
+    public static GalleryUpdateMode GalleryUpdateMode
+    {
+        get => Config.GalleryUpdateMode;
+        set => Config.GalleryUpdateMode = value;
+    }
+
     public static bool SkipFailedDownloads
     {
         get => Config.SkipFailedDownloads;

@@ -334,6 +334,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => SetSetting(ref field, value, v => RipperSettings.ReRipBehavior = v);
     }
 
+    public GalleryUpdateMode[] GalleryUpdateModes { get; } = Enum.GetValues<GalleryUpdateMode>();
+
+    public GalleryUpdateMode GalleryUpdateMode
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.GalleryUpdateMode = v);
+    }
+
     public bool RemoveDuplicates
     {
         get;
@@ -516,6 +524,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             SkipFailedDownloads = RipperSettings.SkipFailedDownloads;
             SaveUnfinishedUrls = RipperSettings.SaveUnfinishedUrls;
             ReRipBehavior = RipperSettings.ReRipBehavior;
+            GalleryUpdateMode = RipperSettings.GalleryUpdateMode;
             MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
             RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
             FlareSolverrUri = RipperSettings.FlareSolverrUri;

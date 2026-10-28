@@ -22,6 +22,7 @@ public class SiteConfigEditorViewModel : ViewModelBase
     public ObservableCollection<SiteConfigEntryViewModel> Sites { get; }
     public IReadOnlyList<string> KnownSiteNames { get; }
     public FilenameScheme[] FilenameSchemes { get; } = Enum.GetValues<FilenameScheme>();
+    public IReadOnlyList<GalleryUpdateModeOption> GalleryUpdateModeOptions => GalleryUpdateModeOption.All;
 
     public SiteConfigEntryViewModel? SelectedSite
     {
@@ -218,8 +219,11 @@ public class SiteConfigEntryViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
-    // Not editable here yet; carried over so saving the editor doesn't drop it
-    private readonly GalleryUpdateMode? _overrideGalleryUpdateMode;
+    public GalleryUpdateModeOption OverrideGalleryUpdateMode
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
 
     public SiteConfigEntryViewModel(string name, SiteConfig config, bool isKnownSite)
     {
@@ -232,7 +236,7 @@ public class SiteConfigEntryViewModel : ViewModelBase
         CookiesText = string.Join(Environment.NewLine, config.Cookies ?? []);
         HasOverrides = config.Overrides is not null;
         OverrideFilenameScheme = config.Overrides?.FilenameScheme ?? FilenameScheme.Original;
-        _overrideGalleryUpdateMode = config.Overrides?.GalleryUpdateMode;
+        OverrideGalleryUpdateMode = GalleryUpdateModeOption.For(config.Overrides?.GalleryUpdateMode);
         PostProcessScript = config.PostProcessScript ?? "";
         CustomJson = config.Custom is { } custom ? JsonSerializer.Serialize(custom, IndentedJson) : "";
     }
@@ -266,7 +270,7 @@ public class SiteConfigEntryViewModel : ViewModelBase
             config.Overrides = new SettingsOverride
             {
                 FilenameScheme = OverrideFilenameScheme,
-                GalleryUpdateMode = _overrideGalleryUpdateMode,
+                GalleryUpdateMode = OverrideGalleryUpdateMode.Mode,
             };
         }
 
@@ -280,4 +284,15 @@ public class SiteConfigEntryViewModel : ViewModelBase
     }
 
     private static string? NullIfBlank(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+/// <summary>A per-site gallery update mode choice; a null <see cref="Mode"/> inherits the global setting.</summary>
+public sealed record GalleryUpdateModeOption(GalleryUpdateMode? Mode)
+{
+    public static IReadOnlyList<GalleryUpdateModeOption> All { get; } =
+        [new((GalleryUpdateMode?)null), ..Enum.GetValues<GalleryUpdateMode>().Select(mode => new GalleryUpdateModeOption(mode))];
+
+    public static GalleryUpdateModeOption For(GalleryUpdateMode? mode) => All.FirstOrDefault(o => o.Mode == mode) ?? All[0];
+
+    public override string ToString() => Mode?.ToString() ?? "Use global setting";
 }

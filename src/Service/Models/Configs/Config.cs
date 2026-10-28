@@ -14,6 +14,7 @@ public class Config
     public UnzipProtocol? UnzipProtocol { get; set; }
     public PostDownloadAction? PostDownloadAction { get; set; }
     public ReRipBehavior? ReRipBehavior { get; set; }
+    public GalleryUpdateMode? GalleryUpdateMode { get; set; }
     public bool? LiveHistory { get; set; }
     public bool? SkipFailedDownloads { get; set; }
     public int? NumThreads { get; set; }
@@ -38,6 +39,7 @@ public class Config
             UnzipProtocol = generalConfig.UnzipProtocol,
             PostDownloadAction = generalConfig.PostDownloadAction,
             ReRipBehavior = generalConfig.ReRipBehavior,
+            GalleryUpdateMode = generalConfig.GalleryUpdateMode,
             LiveHistory = generalConfig.LiveHistory,
             SkipFailedDownloads = generalConfig.SkipFailedDownloads,
             NumThreads = generalConfig.NumThreads,

@@ -79,6 +79,12 @@ public class FullRipperSettings : IRipperSettings
         set => Config.ReRipBehavior = value;
     }
 
+    public GalleryUpdateMode GalleryUpdateMode
+    {
+        get => Config.GalleryUpdateMode;
+        set => Config.GalleryUpdateMode = value;
+    }
+
     public string FlareSolverrUri
     {
         get => Config.FlareSolverrUri;

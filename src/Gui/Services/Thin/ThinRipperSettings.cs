@@ -97,6 +97,13 @@ public class ThinRipperSettings : IRipperSettings
         set => Set(_config.ReRipBehavior, value, v => _config.ReRipBehavior = v, v => new Config { ReRipBehavior = v });
     }
 
+    public GalleryUpdateMode GalleryUpdateMode
+    {
+        get => _config.GalleryUpdateMode;
+        set => Set(_config.GalleryUpdateMode, value, v => _config.GalleryUpdateMode = v,
+            v => new Config { GalleryUpdateMode = v });
+    }
+
     public string FlareSolverrUri
     {
         get => _config.FlareSolverrUri;

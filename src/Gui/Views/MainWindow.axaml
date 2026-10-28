@@ -330,11 +330,15 @@
                         <ScrollViewer>
                             <StackPanel MaxWidth="640" HorizontalAlignment="Left">
                                 <TextBlock Classes="section" Text="Queue" />
-                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
                                     <TextBlock Grid.Row="2" Grid.Column="0" Classes="label" Text="Re-rip already ripped URLs" />
                                     <ComboBox Grid.Row="2" Grid.Column="1" Classes="value" MinWidth="200"
                                               ItemsSource="{Binding ReRipBehaviors}" SelectedItem="{Binding ReRipBehavior}"
                                               ToolTip.Tip="Ask each time, always re-rip, or never re-rip a URL that's already in history" />
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Classes="label" Text="Re-ripping updatable galleries" />
+                                    <ComboBox Grid.Row="3" Grid.Column="1" Classes="value" MinWidth="200"
+                                              ItemsSource="{Binding GalleryUpdateModes}" SelectedItem="{Binding GalleryUpdateMode}"
+                                              ToolTip.Tip="Download only what changed since the last rip, or the whole gallery again. Sites can override this under Sites" />
                                     <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Save unfinished URLs" />
                                     <ToggleSwitch Grid.Row="0" Grid.Column="1" Classes="value" IsChecked="{Binding SaveUnfinishedUrls}" />
                                     <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Load unfinished URLs" />

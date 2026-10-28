@@ -178,6 +178,11 @@ public class NicheImageRipperSingleton : INicheImageRipperSingleton
             existingConfig.ReRipBehavior = config.ReRipBehavior.Value;
         }
 
+        if (config.GalleryUpdateMode is not null)
+        {
+            existingConfig.GalleryUpdateMode = config.GalleryUpdateMode.Value;
+        }
+
         if (config.LiveHistory is not null)
         {
             existingConfig.LiveHistory = config.LiveHistory.Value;
