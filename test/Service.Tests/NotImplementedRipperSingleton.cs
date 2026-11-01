@@ -1,6 +1,7 @@
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Service.Models.Responses;
 using NicheImageRipper.Service.Singletons;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
@@ -32,6 +33,7 @@ public abstract class NotImplementedRipperSingleton : INicheImageRipperSingleton
     public virtual GeneralConfig GetConfig() => throw new NotImplementedException();
     public virtual void UpdateConfig(Config config) => throw new NotImplementedException();
     public virtual List<string> GetSiteNames() => throw new NotImplementedException();
+    public virtual Dictionary<string, GalleryUpdateSupport> GetGalleryUpdateSupport() => throw new NotImplementedException();
     public virtual Version GetVersion() => throw new NotImplementedException();
 
     public virtual Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default) =>

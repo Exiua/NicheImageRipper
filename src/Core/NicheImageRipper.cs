@@ -16,6 +16,7 @@ using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.Features;
+using NicheImageRipper.Sdk.FileDownloading;
 using NicheImageRipper.Sdk.Managers;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
@@ -362,6 +363,21 @@ public partial class NicheImageRipper : IDisposable
         return HtmlParserFactory.ParserNames.Order(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>The update strategies of every updatable parser, keyed by parser name.</summary>
+    public static Dictionary<string, GalleryUpdateSupport> GetGalleryUpdateSupport()
+    {
+        var supportByName = new Dictionary<string, GalleryUpdateSupport>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in HtmlParserFactory.ParserNames)
+        {
+            if (GalleryUpdateSupport.For(HtmlParserFactory.ResolveType(name)) is { } support)
+            {
+                supportByName[name] = support;
+            }
+        }
+
+        return supportByName;
+    }
+
     private async Task<RipUrlResult> RipUrl(CancellationToken cancellationToken = default)
     {
         string url;
@@ -393,6 +409,7 @@ public partial class NicheImageRipper : IDisposable
                     var elapsedFormatted =
                         $"{elapsed.Hours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}.{elapsed.Milliseconds:D3}";
                     Logger.Information("Ripped {Url:l} in {Elapsed:l}", url, elapsedFormatted);
+                    FailedUrlLog.RecordAll(Ripper.Failures);
                     //OnUrlRipComplete?.Invoke();
                     _lastException = null;
                     break;
@@ -415,6 +432,11 @@ public partial class NicheImageRipper : IDisposable
                     {
                         _lastException = e;
                         Logger.Error("Failed to rip {Url} after {MaxRetries} attempts.", url, MaxRetries);
+                        if (e is not OperationCanceledException)
+                        {
+                            RecordRipFailures(url, e);
+                        }
+
                         SaveUnfinishedUrlsToDisk();
                         throw;
                     }
@@ -446,6 +468,21 @@ public partial class NicheImageRipper : IDisposable
                 CurrentUrl = null;
                 OnUrlQueueUpdated?.Invoke();
             }
+        }
+    }
+
+    /// <summary>
+    ///     Writes what the last attempt at <paramref name="url"/> couldn't parse or download, plus an entry for the
+    ///     gallery itself unless its parse failure already is one.
+    /// </summary>
+    private void RecordRipFailures(string url, Exception exception)
+    {
+        var failures = Ripper!.Failures;
+        FailedUrlLog.RecordAll(failures);
+        if (failures.All(f => f.Stage != FailureStage.Parse))
+        {
+            FailedUrlLog.Record(FailedUrlEntry.Create(FailureStage.Rip, FailedUrlLog.Classify(exception),
+                nameof(FileRipper), url, reason: exception.Message));
         }
     }
 

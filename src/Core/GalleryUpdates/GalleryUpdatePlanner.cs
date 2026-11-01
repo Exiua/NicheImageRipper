@@ -20,7 +20,7 @@ public static class GalleryUpdatePlanner
 
     /// <param name="stored">Items from earlier rips, in gallery order.</param>
     /// <param name="parsed">Items from this parse, in the parser's order.</param>
-    /// <param name="strategy">The parser's <see cref="Sdk.SiteParsing.IUpdatableHtmlParser.UpdateStrategy"/>.</param>
+    /// <param name="strategy">The strategy resolved for the parser (see <see cref="GalleryUpdateSupport"/>).</param>
     /// <param name="placement">The parser's <see cref="Sdk.SiteParsing.IUpdatableHtmlParser.NewItemPlacement"/>.</param>
     /// <param name="mode"><see cref="GalleryUpdateMode.Full"/> downloads every parsed item and forgets earlier ones.</param>
     /// <param name="filenameScheme">With <see cref="FilenameScheme.Chronological"/>, filenames follow positions, so

@@ -38,7 +38,6 @@ public sealed class IframeMediaDownloadStrategy : IFileDownloadStrategy
             {
                 if (i == RetryCount - 1)
                 {
-                    DownloadLogging.LogFailedUrl(link.Url);
                     return DownloadResult.Failed("Unauthorized after retries");
                 }
             }

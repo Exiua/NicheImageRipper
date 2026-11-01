@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
@@ -153,6 +154,18 @@ public class ThinRipperSettings : IRipperSettings
         }
 
         return await _backendConnector.GetSiteNamesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupport(
+        CancellationToken cancellationToken = default)
+    {
+        if (!_initialized)
+        {
+            return new Dictionary<string, GalleryUpdateSupport>();
+        }
+
+        var supportByName = await _backendConnector.GetGalleryUpdateSupportAsync(cancellationToken);
+        return new Dictionary<string, GalleryUpdateSupport>(supportByName, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

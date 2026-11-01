@@ -27,13 +27,8 @@ public sealed class IwaraDownloadStrategy : IFileDownloadStrategy
                     "Video is private. Please use the credentials of an account that has access to this video");
                 return DownloadResult.SkipNotAFailure("Video is private");
             case RequestResult.VideoNotFound:
-            {
                 context.Logger.Warning("Video not found. Please check the URL");
-                var parentPath = Directory.GetParent(imagePath)!.FullName;
-                await File.AppendAllTextAsync(Path.Combine(parentPath, "failed.txt"), link.Url + "\n",
-                    cancellationToken);
-                return DownloadResult.SkipNotAFailure("Video not found");
-            }
+                return DownloadResult.SkipNotAFailure("Video not found", FailureKind.NotFound);
             case RequestResult.Success:
             case RequestResult.LoginFailure:
             case RequestResult.JsonNull:

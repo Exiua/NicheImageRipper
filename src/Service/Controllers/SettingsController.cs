@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Service.Singletons;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
@@ -22,6 +23,13 @@ public class SettingsController(ILogger<SettingsController> logger, INicheImageR
     public ActionResult<List<string>> GetSiteNames()
     {
         return Ok(nicheImageRipperSingleton.GetSiteNames());
+    }
+
+    /// <summary>The update strategies each updatable site supports, keyed by site name.</summary>
+    [HttpGet("sites/update-support")]
+    public ActionResult<Dictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupport()
+    {
+        return Ok(nicheImageRipperSingleton.GetGalleryUpdateSupport());
     }
 
     /// <summary>Applies and saves the given settings; omitted (null) settings are left as they are.</summary>

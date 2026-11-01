@@ -1,6 +1,7 @@
 using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Service.Models.Responses;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
@@ -28,6 +29,8 @@ public interface INicheImageRipperSingleton
     /// <summary>Applies the non-null settings in <paramref name="config"/> and saves them.</summary>
     public void UpdateConfig(Config config);
     public List<string> GetSiteNames();
+    /// <summary>The update strategies of every updatable parser, keyed by parser name.</summary>
+    public Dictionary<string, GalleryUpdateSupport> GetGalleryUpdateSupport();
     public Version GetVersion();
     public Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default);
     public void ClearCache();

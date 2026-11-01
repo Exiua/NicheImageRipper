@@ -15,6 +15,7 @@ using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Gui.Models.Thin;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.Service.Models.Requests;
 using NicheImageRipper.Service.Models.Responses;
@@ -210,6 +211,13 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
     public Task<string[]> GetSiteNamesAsync(CancellationToken cancellationToken = default)
     {
         return SendAsync<string[]>(HttpMethod.Get, "api/settings/sites", cancellationToken);
+    }
+
+    public Task<Dictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupportAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<Dictionary<string, GalleryUpdateSupport>>(HttpMethod.Get, "api/settings/sites/update-support",
+            cancellationToken);
     }
 
     public async Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default)

@@ -2,6 +2,7 @@ using NicheImageRipper.Core.DataStructures;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Core.History;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Service.Models.Responses;
 using Config = NicheImageRipper.Service.Models.Configs.Config;
 
@@ -265,6 +266,11 @@ public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDis
     public List<string> GetSiteNames()
     {
         return Core.NicheImageRipper.GetParserNames();
+    }
+
+    public Dictionary<string, GalleryUpdateSupport> GetGalleryUpdateSupport()
+    {
+        return Core.NicheImageRipper.GetGalleryUpdateSupport();
     }
 
     public async Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default)

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 
 namespace NicheImageRipper.Gui.Services;
@@ -33,4 +34,8 @@ public interface IRipperSettings : IAsyncInitialization
 
     /// <summary>Parser names that can be given a site config.</summary>
     public Task<IReadOnlyList<string>> GetKnownSiteNames(CancellationToken cancellationToken = default);
+
+    /// <summary>The update strategies of every updatable site, keyed by parser name.</summary>
+    public Task<IReadOnlyDictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupport(
+        CancellationToken cancellationToken = default);
 }

@@ -198,7 +198,8 @@ public class TwitterParser : HtmlParser, IHtmlParser, IMultiSiteHtmlParser
                         Logger.Warning("Failed to get media: {PostLink}", postLink);
                         if (logFailure)
                         {
-                            DownloadLogging.LogFailedUrl(postLink);
+                            FailedUrlLog.Record(FailedUrlEntry.Create(FailureStage.Parse, FailureKind.Other,
+                                nameof(TwitterParser), postLink, GivenUrl, "Failed to get media from post"));
                         }
 
                         failedUrls.Add((found, postLink));

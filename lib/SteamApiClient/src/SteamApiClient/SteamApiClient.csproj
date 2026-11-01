@@ -9,7 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Serilog" Version="4.4.0" />
-      <PackageReference Include="SteamKit2" Version="3.4.0" />
+      <PackageReference Include="SteamKit2" Version="3.5.0" />
     </ItemGroup>
 
 

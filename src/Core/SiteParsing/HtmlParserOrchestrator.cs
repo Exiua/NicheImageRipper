@@ -36,6 +36,9 @@ public class HtmlParserOrchestrator : IDisposable
     /// </summary>
     public GalleryUpdatePlan? UpdatePlan { get; private set; }
 
+    /// <summary>Type name of the parser <see cref="ParseSite"/> chose; null until one has been constructed.</summary>
+    public string? ParserTypeName { get; private set; }
+
     private WebDriver WebDriver { get; }
     public bool Interrupted { get; set; }
     private string SiteName { get; set; }
@@ -92,7 +95,9 @@ public class HtmlParserOrchestrator : IDisposable
 
         // Site must be known before the parser is constructed — HtmlParserFactory.Create resolves the
         // concrete type from SiteName, so building the parser has to happen after SiteCheck, not before.
+        ParserTypeName = null;
         var htmlParser = GetParser(SiteName, WebDriver, RequestHeaders, FilenameScheme);
+        ParserTypeName = htmlParser.GetType().Name;
         htmlParser.GivenUrl = GivenUrl;
         htmlParser.SiteName = SiteName;
         Logger.Debug("Constructed HtmlParser");
@@ -126,10 +131,12 @@ public class HtmlParserOrchestrator : IDisposable
         var updateMode = updatableParser is null
             ? GalleryUpdateMode.Full
             : Config.GetGalleryUpdateMode(GetParserName(htmlParser));
+        var updateStrategy = updatableParser is null ? default : ResolveUpdateStrategy(htmlParser);
         if (updatableParser is not null)
         {
             updatableParser.UpdateContext = galleryState is { Items.Count: > 0 } && updateMode == GalleryUpdateMode.UpdatesOnly
-                ? new GalleryUpdateContext(galleryState.Cursor, galleryState.Items.Select(i => i.Key).ToHashSet())
+                ? new GalleryUpdateContext(updateStrategy, galleryState.Cursor,
+                    galleryState.Items.Select(i => i.Key).ToHashSet())
                 : null;
         }
 
@@ -154,7 +161,7 @@ public class HtmlParserOrchestrator : IDisposable
                 siteInfo.DirectoryName += $" ({SiteName})";
                 if (updatableParser is not null)
                 {
-                    siteInfo = PlanUpdate(updatableParser, galleryState, updateMode, siteInfo, url);
+                    siteInfo = PlanUpdate(updatableParser, updateStrategy, galleryState, updateMode, siteInfo, url);
                 }
 
                 WritePartialSave(siteInfo, url);
@@ -187,8 +194,8 @@ public class HtmlParserOrchestrator : IDisposable
     ///     Merges a parsed updatable gallery with what earlier rips stored and records the plan as pending. Returns the
     ///     <see cref="RipInfo"/> to download: only what changed, unless <paramref name="mode"/> is full.
     /// </summary>
-    private RipInfo PlanUpdate(IUpdatableHtmlParser parser, GalleryState? state, GalleryUpdateMode mode,
-                               RipInfo siteInfo, string url)
+    private RipInfo PlanUpdate(IUpdatableHtmlParser parser, GalleryUpdateStrategy strategy, GalleryState? state,
+                               GalleryUpdateMode mode, RipInfo siteInfo, string url)
     {
         if (siteInfo.DownloadMode != DownloadMode.List)
         {
@@ -208,7 +215,7 @@ public class HtmlParserOrchestrator : IDisposable
         var parsed = siteInfo.Urls
                              .Select(link => new ParsedGalleryItem(parser.GetItemKey(link), parser.GetItemVersion(link), link))
                              .ToList();
-        var plan = GalleryUpdatePlanner.Plan(state?.Items ?? [], parsed, parser.UpdateStrategy,
+        var plan = GalleryUpdatePlanner.Plan(state?.Items ?? [], parsed, strategy,
             parser.NewItemPlacement, mode, siteInfo.FilenameScheme, siteInfo.DirectoryName, siteInfo.UpdateCursor);
         GalleryStateManager.SavePendingUpdate(url, plan);
         UpdatePlan = plan;
@@ -218,6 +225,20 @@ public class HtmlParserOrchestrator : IDisposable
         siteInfo.Urls = plan.Downloads;
         siteInfo.NumUrls = plan.Downloads.Count;
         return siteInfo;
+    }
+
+    /// <summary>The site config's update strategy if the parser supports it, otherwise the parser's default.</summary>
+    private GalleryUpdateStrategy ResolveUpdateStrategy(HtmlParser parser)
+    {
+        var support = GalleryUpdateSupport.For(parser.GetType())!;
+        var requested = Config.GetGalleryUpdateStrategy(GetParserName(parser));
+        if (requested is { } strategy && !support.IsSupported(strategy))
+        {
+            Logger.Warning("{Parser} doesn't support the {Strategy} update strategy; using {Default}",
+                parser.GetType().Name, strategy, support.Default);
+        }
+
+        return support.Resolve(requested);
     }
 
     private static string GetParserName(HtmlParser parser) =>

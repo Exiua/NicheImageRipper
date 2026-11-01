@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using NicheImageRipper.Core.Enums;
 using NicheImageRipper.Gui.Models;
 using NicheImageRipper.Sdk.Configuration;
+using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 
 namespace NicheImageRipper.Gui.Services.Full;
@@ -114,5 +115,12 @@ public class FullRipperSettings : IRipperSettings
     public Task<IReadOnlyList<string>> GetKnownSiteNames(CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IReadOnlyList<string>>(Core.NicheImageRipper.GetParserNames());
+    }
+
+    public Task<IReadOnlyDictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupport(
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyDictionary<string, GalleryUpdateSupport>>(
+            Core.NicheImageRipper.GetGalleryUpdateSupport());
     }
 }

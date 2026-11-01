@@ -13,7 +13,7 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 
-public abstract class DotPartyParser : ParameterizedHtmlParser
+public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlParser
 {
     private const int PageSize = 50;
 
@@ -24,6 +24,27 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
     protected abstract string[] OwnHosts { get; }
     protected abstract string CachePath { get; }
+
+    // New posts are usually just appended, so only fetching posts newer than the last rip is the default. A full diff
+    // refetches every post to also catch posts imported with an older publish date and posts that were removed.
+    // Native files are content-addressed (see GetItemKey), so a changed file is a new item and needs no version.
+    public static GalleryUpdateStrategy DefaultUpdateStrategy => GalleryUpdateStrategy.NewItemsOnly;
+
+    public static GalleryUpdateStrategy[] SupportedUpdateStrategies =>
+        [GalleryUpdateStrategy.NewItemsOnly, GalleryUpdateStrategy.FullDiff];
+
+    public NewItemPlacement NewItemPlacement => NewItemPlacement.End;
+    public GalleryUpdateContext? UpdateContext { get; set; }
+
+    /// <summary>The newest post from the last rip, where fetching posts can stop; null when every post is needed.</summary>
+    private string? StopAtPostId =>
+        UpdateContext is { Strategy: GalleryUpdateStrategy.NewItemsOnly } context ? context.PreviousCursor : null;
+
+    /// <summary>
+    ///     Native files are keyed by path, as the same file can be served from a different <c>nX</c> server subdomain
+    ///     between rips.
+    /// </summary>
+    public string GetItemKey(FileLink link) => IsNativeLink(link.Url) ? new Uri(link.Url).AbsolutePath : link.Url;
 
     protected DotPartyParser(WebDriver driver,
                              Dictionary<string, string> requestHeaders,
@@ -51,8 +72,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
 
         var cached = TryLoadCachedPosts();
         var (dirName, posts) = cached ?? await GetAndCachePosts(domainUrl, cancellationToken);
+        // The API returns posts newest first (the newest post's id is the update cursor)
+        var newestPostId = posts.Count > 0 ? posts[0].Post.Id : UpdateContext?.PreviousCursor;
+        var chronologicalPosts = posts.AsEnumerable().Reverse().ToList();
 
-        var (files, externalLinks) = await ParseAllPosts(domainUrl, posts, cancellationToken);
+        var (files, externalLinks) = await ParseAllPosts(domainUrl, chronologicalPosts, cancellationToken);
 
         var dedupExternalLinks = DeduplicateExternalLinks(externalLinks);
         ExternalLinkExtractor.SaveExternalLinks(dedupExternalLinks);
@@ -60,7 +84,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var unique = DeduplicateFileLinks(resolvedLinks);
 
         File.Delete(CachePath);
-        return await RipInfo.FromUrlListAsync(unique, dirName, FilenameScheme);
+        var ripInfo = await RipInfo.FromUrlListAsync(unique, dirName, FilenameScheme);
+        ripInfo.UpdateCursor = newestPostId;
+        return ripInfo;
     }
 
     private bool IsNativeLink(string link)
@@ -314,6 +340,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             return null;
         }
 
+        // A cache from an update rip only holds the posts after its cursor, so it's only valid for the same update
+        if (siteCache.UpdateCursor != StopAtPostId)
+        {
+            Logger.Debug("Ignoring cached data for {Url}: fetched for a different update", CurrentUrl);
+            return null;
+        }
+
         Logger.Information("Using cached data for {Url}", CurrentUrl);
         return (siteCache.DirName, siteCache.Posts);
     }
@@ -325,7 +358,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         var siteCache = new DotPartyCache
         {
             DirName = dirName,
-            Posts = posts
+            Posts = posts,
+            UpdateCursor = StopAtPostId
         };
         var cache = new Dictionary<string, DotPartyCache>
         {
@@ -358,8 +392,10 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
         dirName = $"{dirName} - ({sourceSite})";
         Logger.Information("Parsed profile page: {DirName}", dirName);
         var posts = new List<DotPartyPostResponse>();
+        var stopAtPostId = StopAtPostId;
+        var reachedKnownPost = false;
         var page = 0;
-        while (true)
+        while (!reachedKnownPost)
         {
             response = await RetryUntil(async () =>
                 {
@@ -380,6 +416,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
             var ids = jsonPosts.Select(post => post.Id);
             foreach (var (i, id)in ids.Enumerate())
             {
+                if (id == stopAtPostId)
+                {
+                    Logger.Information("Reached post {PostId} from the last rip; {NewPosts} new posts", id,
+                        posts.Count);
+                    reachedKnownPost = true;
+                    break;
+                }
+
                 Logger.Debug("Retrieving post {PostId}", id);
                 response = await RetryUntil(async () =>
                     {
@@ -397,6 +441,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser
                 {
                     await Sleep(1000, cancellationToken);
                 }
+            }
+
+            if (reachedKnownPost)
+            {
+                break;
             }
 
             if (jsonPosts.Count < PageSize)

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using NicheImageRipper.Core.GalleryUpdates;
 using NicheImageRipper.Core.DataStructures;
@@ -116,6 +117,15 @@ public class FileRipper : IDisposable
     public bool NoNewItems { get; private set; }
 
     /// <summary>
+    ///     URLs the most recent <see cref="Rip"/> call couldn't parse or download, one entry per URL. A file that
+    ///     fails and then succeeds on a later attempt is dropped, so this is only what was still failing at the end.
+    ///     Not written to <see cref="FailedUrlLog"/> here: the caller does that once it stops retrying the gallery.
+    /// </summary>
+    public IReadOnlyCollection<FailedUrlEntry> Failures => _failures.Values.ToList();
+
+    private readonly ConcurrentDictionary<string, FailedUrlEntry> _failures = new();
+
+    /// <summary>
     /// Post-download behaviors to apply per file (currently: duplicate removal).
     /// </summary>
     public PostDownloadAction PostDownloadAction { get; set; }
@@ -232,6 +242,7 @@ public class FileRipper : IDisposable
 
         OnProgressChanged?.Invoke(0, 0); // Indeterminate progress at the start
 
+        _failures.Clear();
         GivenUrl = UrlUtility.NormalizeUrl(url);
         (SiteName, SleepTime) = Core.Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         Logger.Debug("Site Name: {SiteName}", SiteName);
@@ -310,6 +321,39 @@ public class FileRipper : IDisposable
         PostDownloadValidators = PostDownloadValidators,
     };
 
+    /// <summary>Adds to <see cref="Failures"/>, replacing any earlier failure of the same URL.</summary>
+    private void RecordFailure(FailureStage stage, string source, string url, FailureKind kind, string? reason)
+    {
+        var galleryUrl = url == GivenUrl ? null : GivenUrl;
+        _failures[url] = FailedUrlEntry.Create(stage, kind, source, url, galleryUrl, reason);
+    }
+
+    /// <summary>
+    ///     Records a failed (or a skipped-but-missing) download in <see cref="Failures"/>, or clears an earlier failure
+    ///     of the URL once it downloads.
+    /// </summary>
+    private void RecordDownloadResult(IFileDownloadStrategy strategy, string url, DownloadResult result)
+    {
+        if (result.Outcome == DownloadOutcome.Failed ||
+            result is { Outcome: DownloadOutcome.SkipNotAFailure, FailureKind: not null })
+        {
+            RecordFailure(FailureStage.Download, strategy.GetType().Name, url, result.FailureKind ?? FailureKind.Other,
+                result.Reason);
+        }
+        else
+        {
+            _failures.TryRemove(url, out _);
+        }
+    }
+
+    /// <summary>
+    ///     Whether an exception means the URL couldn't be handled, as opposed to the rip being stopped (cancellation,
+    ///     full disk) or an exception used for control flow (expired links, extension guessing).
+    /// </summary>
+    private static bool IsFailureToRecord(Exception e) =>
+        e is not (OperationCanceledException or UrlExpiredException or WrongExtensionException) &&
+        !DiskSpaceUtility.IsDiskFull(e);
+
     /// <summary>
     ///     Top-level rip pipeline: selects the driver, parses the site, loads any resumable state, dispatches
     ///     to the download mode described by <see cref="FolderInfo"/>, and finalizes the rip (archive
@@ -323,7 +367,17 @@ public class FileRipper : IDisposable
         //var htmlParser = HtmlParserOrchestrator.GetParser(SiteName, );
         //Logger.Debug("Constructed HtmlParser");
         var htmlParser = new HtmlParserOrchestrator(WebDriver, RequestHeaders, FilenameScheme);
-        FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
+        try
+        {
+            FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
+        }
+        catch (Exception e) when (IsFailureToRecord(e))
+        {
+            RecordFailure(FailureStage.Parse, htmlParser.ParserTypeName ?? nameof(HtmlParserOrchestrator), GivenUrl,
+                FailedUrlLog.Classify(e), e.Message);
+            throw;
+        }
+
         var updatePlan = htmlParser.UpdatePlan;
         NoNewItems = false;
         var fullPath = Path.Combine(SavePath, FolderInfo.DirectoryName);
@@ -574,6 +628,7 @@ public class FileRipper : IDisposable
                     var imagePath = Path.Combine(fullPath, fullFilename);
                     var result = await DownloadFromUrl(imageLink, index.ToString(), imagePath, ext,
                         cancellationToken: cancellationToken);
+                    RecordDownloadResult(_genericHttpStrategy, $"{imageLink.Url}{fullFilename}", result);
                     if (result.Outcome == DownloadOutcome.Success)
                     {
                         await PostProcessFileLevel(imageLink, imagePath, filesHashes, downloadStats, index, cancellationToken);
@@ -592,6 +647,8 @@ public class FileRipper : IDisposable
                     if (i == extensions.Length - 1)
                     {
                         downloadStats.FailedDownloads.Add($"{imageLink.Url}{index}");
+                        RecordFailure(FailureStage.Download, _genericHttpStrategy.GetType().Name,
+                            $"{imageLink.Url}{index}", FailureKind.NotFound, "Not found under any known extension");
                         Logger.Warning("Image not found under any known extension: {Url}{Index}", imageLink.Url, index);
                     }
                 }
@@ -617,6 +674,8 @@ public class FileRipper : IDisposable
         if (result.Outcome == DownloadOutcome.Failed)
         {
             var url = FolderInfo.Urls[0].Url;
+            RecordFailure(FailureStage.Download, strategy.GetType().Name, url, result.FailureKind ?? FailureKind.Other,
+                result.Reason);
             Logger.Error("External tool download failed for {Url}: {Reason}", url,
                 result.Reason ?? "no details reported");
             downloadStats.FailedDownloads.Add(url);
@@ -967,6 +1026,12 @@ public class FileRipper : IDisposable
         {
             result = await _genericHttpStrategy.DownloadAsync(fileLink, imagePath, DownloadContext, cancellationToken);
         }
+        catch (Exception e) when (IsFailureToRecord(e))
+        {
+            RecordFailure(FailureStage.Download, _genericHttpStrategy.GetType().Name, ripUrl, FailedUrlLog.Classify(e),
+                e.Message);
+            throw;
+        }
         finally
         {
             fileLink.Url = url;
@@ -1007,8 +1072,18 @@ public class FileRipper : IDisposable
         }
 
         var strategy = StrategyRegistry.Resolve(link.LinkInfo);
-        var result = await strategy.DownloadAsync(link, imagePath, DownloadContext, cancellationToken);
+        DownloadResult result;
+        try
+        {
+            result = await strategy.DownloadAsync(link, imagePath, DownloadContext, cancellationToken);
+        }
+        catch (Exception e) when (IsFailureToRecord(e))
+        {
+            RecordFailure(FailureStage.Download, strategy.GetType().Name, ripUrl, FailedUrlLog.Classify(e), e.Message);
+            throw;
+        }
 
+        RecordDownloadResult(strategy, ripUrl, result);
         if (result.Outcome == DownloadOutcome.Failed)
         {
             if (Config.SkipFailedDownloads)

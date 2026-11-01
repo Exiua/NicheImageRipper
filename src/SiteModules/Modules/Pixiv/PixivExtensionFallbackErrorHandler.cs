@@ -32,6 +32,7 @@ public sealed class PixivExtensionFallbackErrorHandler : IDownloadErrorHandler
         // Some images may not exist, so we just log and move on
         // e.g., https://www.pixiv.net/en/artworks/14742347 — not sure if other extensions exist
         context.Logger.Warning("Unable to download Pixiv image: {URL}", link.Url);
-        return Task.FromResult(DownloadResult.SkipNotAFailure("Pixiv image not available in any known extension"));
+        return Task.FromResult(DownloadResult.SkipNotAFailure("Pixiv image not available in any known extension",
+            FailureKind.NotFound));
     }
 }

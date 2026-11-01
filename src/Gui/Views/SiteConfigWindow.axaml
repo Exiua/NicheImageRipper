@@ -67,7 +67,7 @@
                          MinHeight="60" MaxHeight="150" />
 
                 <CheckBox IsChecked="{Binding HasOverrides}">Override Settings</CheckBox>
-                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" IsEnabled="{Binding HasOverrides}"
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" IsEnabled="{Binding HasOverrides}"
                       Margin="25,0,0,0">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Filename scheme:" VerticalAlignment="Center" Margin="0,0,10,5" />
                     <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,5"
@@ -78,6 +78,13 @@
                               ItemsSource="{Binding $parent[Window].((vm:SiteConfigEditorViewModel)DataContext).GalleryUpdateModeOptions}"
                               SelectedItem="{Binding OverrideGalleryUpdateMode}"
                               ToolTip.Tip="What re-ripping an updatable gallery from this site downloads" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Update strategy:" VerticalAlignment="Center"
+                               Margin="0,5,10,0" />
+                    <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,5,0,0"
+                              ItemsSource="{Binding GalleryUpdateStrategyOptions}"
+                              SelectedItem="{Binding OverrideGalleryUpdateStrategy}"
+                              IsEnabled="{Binding CanChooseUpdateStrategy}"
+                              ToolTip.Tip="How an update is worked out: only fetching new items, or diffing the whole gallery. Only sites supporting more than one can be changed" />
                 </Grid>
 
                 <TextBlock Text="Post-Process Script:" />

@@ -1,13 +1,9 @@
-using System.Text;
-using NicheImageRipper.Sdk.Utility;
-
 namespace NicheImageRipper.Sdk.FileDownloading;
 
 public static class DownloadLogging
 {
-    public static void LogFailedUrl(string url)
-    {
-        using var writer = new StreamWriter(AppData.GetPath("failed.txt"), true, Encoding.Unicode);
-        writer.WriteLine(url);
-    }
+    [Obsolete("Download failures are recorded by the ripper. For other failures use FailedUrlLog.Record, " +
+              "which also records the source and reason.")]
+    public static void LogFailedUrl(string url) =>
+        FailedUrlLog.Record(FailedUrlEntry.Create(FailureStage.Download, FailureKind.Other, "Unknown", url));
 }

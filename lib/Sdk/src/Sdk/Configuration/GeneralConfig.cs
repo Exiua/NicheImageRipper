@@ -119,6 +119,10 @@ public class GeneralConfig
     public GalleryUpdateMode GetGalleryUpdateMode(string parserName) =>
         GetSiteConfig(parserName)?.Overrides?.GalleryUpdateMode ?? GalleryUpdateMode;
 
+    /// <summary>The site's <see cref="SettingsOverride.GalleryUpdateStrategy"/>; null when it uses the parser's default.</summary>
+    public GalleryUpdateStrategy? GetGalleryUpdateStrategy(string parserName) =>
+        GetSiteConfig(parserName)?.Overrides?.GalleryUpdateStrategy;
+
     public SiteConfig GetOrAddSiteConfig(string parserName)
     {
         if (!Sites.TryGetValue(parserName, out var site))

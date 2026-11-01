@@ -8,8 +8,6 @@ using NicheImageRipper.Sdk.Utility;
 
 namespace NicheImageRipper.Sdk.FileDownloading;
 
-using static DownloadLogging;
-
 public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
 {
     private const int RetryCount = 4;
@@ -178,7 +176,6 @@ public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
                 case DownloadStatus.ConnectionReset:
                     return DownloadResult.Failed("Connection reset");
                 case DownloadStatus.Failed:
-                    LogFailedUrl(url);
                     return DownloadResult.Failed("Write failed");
                 default:
                     throw new ArgumentOutOfRangeException($"Enum value not handled: {writeStatus}");
@@ -317,7 +314,6 @@ public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            LogFailedUrl(url);
             if (generatingManually)
             {
                 throw new WrongExtensionException();
@@ -335,6 +331,9 @@ public sealed class GenericHttpDownloadStrategy : IFileDownloadStrategy
             context.Logger.Warning("Unhandled status code: {ResponseStatusCode}", response.StatusCode);
         }
 
-        return DownloadResult.Failed($"Status code: {response.StatusCode}");
+        var reason = $"Status code: {response.StatusCode}";
+        return response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone
+            ? DownloadResult.NotFound(reason)
+            : DownloadResult.Failed(reason);
     }
 }

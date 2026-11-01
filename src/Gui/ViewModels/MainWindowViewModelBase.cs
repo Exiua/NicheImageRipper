@@ -568,7 +568,8 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         }
 
         var knownSiteNames = await RipperSettings.GetKnownSiteNames(cancellationToken);
-        var editor = new SiteConfigEditorViewModel(RipperSettings.Sites, knownSiteNames);
+        var updateSupport = await RipperSettings.GetGalleryUpdateSupport(cancellationToken);
+        var editor = new SiteConfigEditorViewModel(RipperSettings.Sites, knownSiteNames, updateSupport);
         var saved = await ShowSiteConfigDialog.Handle(editor);
         if (!saved)
         {
