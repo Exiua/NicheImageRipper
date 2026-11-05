@@ -49,7 +49,7 @@ public class DotPartyPostFull
     public JsonElement? Captions { get; set; }
 
     [JsonPropertyName("tags")]
-    public JsonArray Tags { get; set; } = null!;
+    public JsonElement? Tags { get; set; } // Array on Kemono/Coomer, string on Pawchive
 
     [JsonPropertyName("incomplete_rewards")]
     public JsonObject? IncompleteRewards { get; set; }
