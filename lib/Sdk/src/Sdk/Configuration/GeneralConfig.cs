@@ -17,6 +17,7 @@ public class GeneralConfig
     public PostDownloadAction PostDownloadAction { get; set; } = new();
     public ReRipBehavior ReRipBehavior { get; set; } = ReRipBehavior.Ask;
     public GalleryUpdateMode GalleryUpdateMode { get; set; } = GalleryUpdateMode.UpdatesOnly;
+    public SubParserOverrideMode SubParserOverrides { get; set; } = SubParserOverrideMode.Own;
     public bool LiveHistory { get; set; } = false;
     public bool SkipFailedDownloads { get; set; } = true;
     public int NumThreads { get; set; } = 1;
@@ -122,6 +123,37 @@ public class GeneralConfig
     /// <summary>The site's <see cref="SettingsOverride.GalleryUpdateStrategy"/>; null when it uses the parser's default.</summary>
     public GalleryUpdateStrategy? GetGalleryUpdateStrategy(string parserName) =>
         GetSiteConfig(parserName)?.Overrides?.GalleryUpdateStrategy;
+
+    /// <summary>The filename scheme for a parser another parser delegated to, per <see cref="SubParserOverrides"/>.</summary>
+    /// <param name="parserName">The callee's parser name.</param>
+    /// <param name="callerScheme">The filename scheme the caller is using.</param>
+    public FilenameScheme GetSubParserFilenameScheme(string parserName, FilenameScheme callerScheme) =>
+        SubParserOverrides switch
+        {
+            SubParserOverrideMode.Inherit => callerScheme,
+            SubParserOverrideMode.None => FilenameScheme,
+            _ => GetSiteConfig(parserName)?.Overrides is { } overrides && Enum.IsDefined(overrides.FilenameScheme)
+                ? overrides.FilenameScheme
+                : callerScheme,
+        };
+
+    /// <summary>The gallery update mode for a parser another parser delegated to, per <see cref="SubParserOverrides"/>.</summary>
+    /// <param name="parserName">The callee's parser name.</param>
+    /// <param name="callerMode">The gallery update mode the caller is using.</param>
+    public GalleryUpdateMode GetSubParserGalleryUpdateMode(string parserName, GalleryUpdateMode callerMode) =>
+        SubParserOverrides switch
+        {
+            SubParserOverrideMode.Inherit => callerMode,
+            SubParserOverrideMode.None => GalleryUpdateMode,
+            _ => GetSiteConfig(parserName)?.Overrides?.GalleryUpdateMode ?? callerMode,
+        };
+
+    /// <summary>
+    ///     The update strategy for a parser another parser delegated to. Strategies are parser-specific, so this is
+    ///     never inherited: it's the callee's own unless <see cref="SubParserOverrides"/> ignores overrides.
+    /// </summary>
+    public GalleryUpdateStrategy? GetSubParserGalleryUpdateStrategy(string parserName) =>
+        SubParserOverrides == SubParserOverrideMode.None ? null : GetGalleryUpdateStrategy(parserName);
 
     public SiteConfig GetOrAddSiteConfig(string parserName)
     {

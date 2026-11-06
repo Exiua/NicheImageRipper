@@ -17,6 +17,7 @@ public class Config : IValidatableObject
     public PostDownloadAction? PostDownloadAction { get; set; }
     public ReRipBehavior? ReRipBehavior { get; set; }
     public GalleryUpdateMode? GalleryUpdateMode { get; set; }
+    public SubParserOverrideMode? SubParserOverrides { get; set; }
     public bool? LiveHistory { get; set; }
     public bool? SkipFailedDownloads { get; set; }
     [Range(1, int.MaxValue)]

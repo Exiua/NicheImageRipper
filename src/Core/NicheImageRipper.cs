@@ -77,6 +77,13 @@ public partial class NicheImageRipper : IDisposable
         set => Config.GalleryUpdateMode = value;
     }
 
+    /// <summary>Which site overrides a parser uses when another parser delegates to it.</summary>
+    public static SubParserOverrideMode SubParserOverrides
+    {
+        get => Config.SubParserOverrides;
+        set => Config.SubParserOverrides = value;
+    }
+
     public static bool SkipFailedDownloads
     {
         get => Config.SkipFailedDownloads;

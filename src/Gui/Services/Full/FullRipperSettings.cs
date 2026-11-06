@@ -86,6 +86,12 @@ public class FullRipperSettings : IRipperSettings
         set => Config.GalleryUpdateMode = value;
     }
 
+    public SubParserOverrideMode SubParserOverrides
+    {
+        get => Config.SubParserOverrides;
+        set => Config.SubParserOverrides = value;
+    }
+
     public string FlareSolverrUri
     {
         get => Config.FlareSolverrUri;

@@ -198,6 +198,11 @@ public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDis
             existingConfig.GalleryUpdateMode = config.GalleryUpdateMode.Value;
         }
 
+        if (config.SubParserOverrides is not null)
+        {
+            existingConfig.SubParserOverrides = config.SubParserOverrides.Value;
+        }
+
         if (config.LiveHistory is not null)
         {
             existingConfig.LiveHistory = config.LiveHistory.Value;

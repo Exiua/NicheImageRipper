@@ -44,7 +44,17 @@ public abstract class HtmlParser : IDisposable
     public float SleepTime { get; set; }
     public float Jitter { get; set; }
     public int RetryCount { get; set; } = 4;
-    protected FilenameScheme FilenameScheme { get; }
+    /// <summary>
+    /// Set from the constructor, then replaced by the host when another parser delegated here and
+    /// <see cref="GeneralConfig.SubParserOverrides"/> says the callee's own override doesn't apply.
+    /// </summary>
+    protected internal FilenameScheme FilenameScheme { get; internal set; }
+
+    /// <summary>
+    /// The gallery update mode this parser runs with (the global mode, its site's override, or the mode resolved
+    /// from its caller's). Set by the host; read when this parser delegates via <see cref="ParseWith"/>.
+    /// </summary>
+    internal GalleryUpdateMode GalleryUpdateMode { get; set; }
     protected Dictionary<string, string> RequestHeaders { get; }
     protected ILogger Logger { get; init; }
     protected HttpClient HttpClient { get; set; }
@@ -121,7 +131,7 @@ public abstract class HtmlParser : IDisposable
     /// link inside another site's post) and returns it for delegated (non-top-level) parsing.
     /// </summary>
     protected ParameterizedHtmlParser CreateParser(string url) =>
-        Resolver.CreateParameterized(url, WebDriver, RequestHeaders, FilenameScheme);
+        Resolver.CreateParameterized(url, this, WebDriver, RequestHeaders);
 
     /// <summary>
     /// Delegates this parse entirely to another site's registered parser, running its full top-level
@@ -130,7 +140,7 @@ public abstract class HtmlParser : IDisposable
     /// site) — not for resolving a single embedded link, which is <see cref="CreateParser"/>'s job.
     /// </summary>
     protected Task<RipInfo> ParseWith(string url, CancellationToken cancellationToken = default) =>
-        Resolver.ParseSite(url, WebDriver, RequestHeaders, FilenameScheme, cancellationToken);
+        Resolver.ParseSite(url, this, WebDriver, RequestHeaders, cancellationToken);
 
     /// <summary>
     /// Ensures the current site is logged in, running <see cref="SiteLoginHelper"/> if not already.

@@ -47,6 +47,9 @@ public class HtmlParserOrchestrator : IDisposable
     private int RetryCount { get; set; } = 4;
     private string GivenUrl { get; set; }
     private FilenameScheme FilenameScheme { get; }
+
+    /// <summary>The parser that delegated this parse via <see cref="HtmlParser.ParseWith"/>; null for a top-level rip.</summary>
+    private HtmlParser? Caller { get; }
     private Dictionary<string, string> RequestHeaders { get; }
     private ILogger Logger { get; init; }
     private HttpClient HttpClient { get; set; }
@@ -62,12 +65,14 @@ public class HtmlParserOrchestrator : IDisposable
     private static FlareSolverrManager FlareSolverrManager => NicheImageRipper.FlareSolverrManager;
 
     public HtmlParserOrchestrator(WebDriver driver, Dictionary<string, string> requestHeaders,
-                                  FilenameScheme filenameScheme = FilenameScheme.Original)
+                                  FilenameScheme filenameScheme = FilenameScheme.Original,
+                                  HtmlParser? caller = null)
     {
         HttpClient = new HttpClient();
         WebDriver = driver;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
+        Caller = caller;
         Interrupted = false;
         SiteName = "";
         SleepTime = 0.2f;
@@ -100,6 +105,15 @@ public class HtmlParserOrchestrator : IDisposable
         ParserTypeName = htmlParser.GetType().Name;
         htmlParser.GivenUrl = GivenUrl;
         htmlParser.SiteName = SiteName;
+        if (Caller is null)
+        {
+            htmlParser.GalleryUpdateMode = Config.GetGalleryUpdateMode(GetParserName(htmlParser));
+        }
+        else
+        {
+            ApplySubParserOverrides(htmlParser, Caller);
+        }
+
         Logger.Debug("Constructed HtmlParser");
 
         UpdatePlan = null;
@@ -128,9 +142,7 @@ public class HtmlParserOrchestrator : IDisposable
             File.Delete(FileRipper.RipIndexPath); // Not valid when no partial save, or for a freshly planned update
         }
 
-        var updateMode = updatableParser is null
-            ? GalleryUpdateMode.Full
-            : Config.GetGalleryUpdateMode(GetParserName(htmlParser));
+        var updateMode = updatableParser is null ? GalleryUpdateMode.Full : htmlParser.GalleryUpdateMode;
         var updateStrategy = updatableParser is null ? default : ResolveUpdateStrategy(htmlParser);
         if (updatableParser is not null)
         {
@@ -231,7 +243,10 @@ public class HtmlParserOrchestrator : IDisposable
     private GalleryUpdateStrategy ResolveUpdateStrategy(HtmlParser parser)
     {
         var support = GalleryUpdateSupport.For(parser.GetType())!;
-        var requested = Config.GetGalleryUpdateStrategy(GetParserName(parser));
+        var parserName = GetParserName(parser);
+        var requested = Caller is null
+            ? Config.GetGalleryUpdateStrategy(parserName)
+            : Config.GetSubParserGalleryUpdateStrategy(parserName);
         if (requested is { } strategy && !support.IsSupported(strategy))
         {
             Logger.Warning("{Parser} doesn't support the {Strategy} update strategy; using {Default}",
@@ -243,6 +258,17 @@ public class HtmlParserOrchestrator : IDisposable
 
     private static string GetParserName(HtmlParser parser) =>
         parser.GetType().GetProperty(nameof(IHtmlParser.ParserName))?.GetValue(null) as string ?? parser.SiteName;
+
+    /// <summary>
+    ///     Replaces the overridable settings <paramref name="parser"/> took from its own site config with those
+    ///     <see cref="GeneralConfig.SubParserOverrides"/> resolves for a parser <paramref name="caller"/> delegated to.
+    /// </summary>
+    internal static void ApplySubParserOverrides(HtmlParser parser, HtmlParser caller)
+    {
+        var parserName = GetParserName(parser);
+        parser.FilenameScheme = Config.GetSubParserFilenameScheme(parserName, caller.FilenameScheme);
+        parser.GalleryUpdateMode = Config.GetSubParserGalleryUpdateMode(parserName, caller.GalleryUpdateMode);
+    }
 
     private async Task CleanupWhenFailed(Exception e, CancellationToken cancellationToken = default)
     {
@@ -349,6 +375,7 @@ public class HtmlParserOrchestrator : IDisposable
         var parser = HtmlParserFactory.Create(siteName, WebDriver, RequestHeaders, FilenameScheme);
         parser.GivenUrl = CurrentUrl;
         parser.SiteName = siteName;
+        parser.GalleryUpdateMode = Config.GetGalleryUpdateMode(GetParserName(parser));
         return parser.Parse(cancellationToken);
     }
 

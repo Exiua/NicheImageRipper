@@ -22,6 +22,7 @@ public interface IRipperSettings : IAsyncInitialization
     public bool SaveUnfinishedUrls { get; set; }
     public ReRipBehavior ReRipBehavior { get; set; }
     public GalleryUpdateMode GalleryUpdateMode { get; set; }
+    public SubParserOverrideMode SubParserOverrides { get; set; }
     public string FlareSolverrUri { get; set; }
     public bool CloseFlareSolverrSession { get; set; }
     public string CSWebDriverUri { get; set; }

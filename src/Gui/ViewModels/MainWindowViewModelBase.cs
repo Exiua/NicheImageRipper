@@ -342,6 +342,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         set => SetSetting(ref field, value, v => RipperSettings.GalleryUpdateMode = v);
     }
 
+    public SubParserOverrideMode[] SubParserOverrideModes { get; } = Enum.GetValues<SubParserOverrideMode>();
+
+    public SubParserOverrideMode SubParserOverrides
+    {
+        get;
+        set => SetSetting(ref field, value, v => RipperSettings.SubParserOverrides = v);
+    }
+
     public bool RemoveDuplicates
     {
         get;
@@ -525,6 +533,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             SaveUnfinishedUrls = RipperSettings.SaveUnfinishedUrls;
             ReRipBehavior = RipperSettings.ReRipBehavior;
             GalleryUpdateMode = RipperSettings.GalleryUpdateMode;
+            SubParserOverrides = RipperSettings.SubParserOverrides;
             MaxRetriesDisplay = RipperSettings.MaxRetries.ToString();
             RetryDelayDisplay = RipperSettings.RetryDelay.ToString();
             FlareSolverrUri = RipperSettings.FlareSolverrUri;

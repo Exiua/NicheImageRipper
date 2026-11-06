@@ -372,11 +372,15 @@
                     <TabItem Header="Sites">
                         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
                             <TextBlock Classes="section" Text="Sites" />
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <TextBlock Grid.Column="0" Classes="label" Text="Site configs" />
-                                <TextBlock Grid.Column="1" Classes="value"
+                            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="label" Text="Site configs" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Classes="value"
                                            Text="{Binding SiteConfigCount, StringFormat='{}{0} site(s) configured'}" />
-                                <Button Grid.Column="2" Classes="value" Margin="12,6,0,6" Command="{Binding EditSiteConfigsCommand}">Edit…</Button>
+                                <Button Grid.Row="0" Grid.Column="2" Classes="value" Margin="12,6,0,6" Command="{Binding EditSiteConfigsCommand}">Edit…</Button>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="label" Text="Overrides for delegated sites" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" Classes="value" MinWidth="200"
+                                          ItemsSource="{Binding SubParserOverrideModes}" SelectedItem="{Binding SubParserOverrides}"
+                                          ToolTip.Tip="When one site hands a link to another (e.g. a Mega link in a forum post): Own uses the linked site's overrides where set, otherwise the original site's; Inherit always uses the original site's; None ignores overrides. Update strategies always come from the linked site" />
                             </Grid>
                             <TextBlock Classes="hint" Margin="0,8,0,0"
                                        Text="Logins, API keys, cookies, filename overrides, and post-process scripts for individual sites." />

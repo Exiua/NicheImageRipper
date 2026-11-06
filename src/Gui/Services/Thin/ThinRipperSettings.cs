@@ -105,6 +105,13 @@ public class ThinRipperSettings : IRipperSettings
             v => new Config { GalleryUpdateMode = v });
     }
 
+    public SubParserOverrideMode SubParserOverrides
+    {
+        get => _config.SubParserOverrides;
+        set => Set(_config.SubParserOverrides, value, v => _config.SubParserOverrides = v,
+            v => new Config { SubParserOverrides = v });
+    }
+
     public string FlareSolverrUri
     {
         get => _config.FlareSolverrUri;
