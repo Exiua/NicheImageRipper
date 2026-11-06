@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Version>1.0.0</Version>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <EffectiveRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</EffectiveRuntimeIdentifier>
+        <EffectiveRuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">win-x64</EffectiveRuntimeIdentifier>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="runtimes\$(EffectiveRuntimeIdentifier)\native\*.dll;runtimes\$(EffectiveRuntimeIdentifier)\native\*.so;runtimes\$(EffectiveRuntimeIdentifier)\native\*.dylib"
+              Pack="true"
+              CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>

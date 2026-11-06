@@ -1,0 +1,48 @@
+namespace MegaSdk;
+
+/// <summary>
+///     Mirrors <c>MegaError</c>'s error codes.
+/// </summary>
+public enum MegaErrorCode
+{
+    Ok = 0,
+    Internal = -1,
+    BadArguments = -2,
+    TryAgain = -3,
+    RateLimit = -4,
+    Failed = -5,
+    TooMany = -6,
+    OutOfRange = -7,
+    Expired = -8,
+    NotFound = -9,
+    Circular = -10,
+    AccessDenied = -11,
+    AlreadyExists = -12,
+    Incomplete = -13,
+    Key = -14,
+    BadSession = -15,
+    Blocked = -16,
+    OverQuota = -17,
+    TemporarilyUnavailable = -18,
+    TooManyConnections = -19,
+    Write = -20,
+    Read = -21,
+    AppKey = -22,
+    Ssl = -23,
+    GoingOverQuota = -24,
+    RolledBack = -25,
+    MfaRequired = -26,
+    MasterOnly = -27,
+    BusinessPastDue = -28,
+    Paywall = -29,
+    SubUserKeyMissing = -30,
+    PaymentCard = -101,
+    PaymentBilling = -102,
+    PaymentFraud = -103,
+    PaymentTooMany = -104,
+    PaymentBalance = -105,
+    PaymentGeneric = -106,
+    LocalNoSpace = -1000,
+    LocalTimeout = -1001,
+    LocalNetwork = -1003,
+}

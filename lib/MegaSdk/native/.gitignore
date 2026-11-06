@@ -1,0 +1,2 @@
+# The root .gitignore ignores *.txt.
+!/CMakeLists.txt
