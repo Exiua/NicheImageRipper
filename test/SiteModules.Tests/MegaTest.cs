@@ -1,4 +1,3 @@
-using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.FileDownloading;
 using NicheImageRipper.Sdk.Utility;
@@ -10,7 +9,6 @@ namespace SiteModules.Tests;
 /// <summary>
 ///     Integration tests against MEGA through the native SDK. They're opt-in and skip unless set up:
 ///     <list type="bullet">
-///         <item><c>NIR_MEGA_APP_KEY</c>: a MEGA app key (https://mega.nz/sdk).</item>
 ///         <item><c>NIR_MEGA_TEST_FILE_URL</c> and/or <c>NIR_MEGA_TEST_FOLDER_URL</c>: public links to test with.</item>
 ///         <item>megasdk.dll built into lib/MegaSdk (see its README).</item>
 ///     </list>
@@ -19,7 +17,6 @@ namespace SiteModules.Tests;
 [Trait("Category", "Integration")]
 public class MegaTest
 {
-    private const string AppKeyVariable = "NIR_MEGA_APP_KEY";
     private const string FileUrlVariable = "NIR_MEGA_TEST_FILE_URL";
     private const string FolderUrlVariable = "NIR_MEGA_TEST_FOLDER_URL";
 
@@ -77,18 +74,11 @@ public class MegaTest
         Assert.True(new FileInfo(path).Length > 0, $"Downloaded file is empty: {path}");
     }
 
-    /// <summary>Skips the test unless it's configured, and puts the app key in the mega site config.</summary>
+    /// <summary>Skips the test unless the link it needs is set.</summary>
     private static string RequireSetup(string urlVariable)
     {
-        var appKey = Environment.GetEnvironmentVariable(AppKeyVariable);
         var url = Environment.GetEnvironmentVariable(urlVariable);
-        Assert.SkipWhen(string.IsNullOrWhiteSpace(appKey), $"Set {AppKeyVariable} to run MEGA tests");
         Assert.SkipWhen(string.IsNullOrWhiteSpace(url), $"Set {urlVariable} to run this MEGA test");
-
-        var sites = Config.Instance.Sites;
-        var siteConfig = sites.GetValueOrDefault(MegaParser.ParserName) ?? new SiteConfig();
-        siteConfig.Key = appKey;
-        sites[MegaParser.ParserName] = siteConfig;
         return url!;
     }
 

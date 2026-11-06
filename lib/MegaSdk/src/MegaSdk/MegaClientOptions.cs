@@ -3,9 +3,9 @@ namespace MegaSdk;
 public sealed class MegaClientOptions
 {
     /// <summary>
-    ///     MEGA app key (generate one at https://mega.nz/sdk).
+    ///     MEGA app key. Not needed: the SDK (v10.22.0, see native/sdk) ignores it, and MEGA no longer issues them.
     /// </summary>
-    public required string AppKey { get; init; }
+    public string? AppKey { get; init; }
 
     /// <summary>
     ///     Directory for the SDK's local cache. The current working directory is used if null.

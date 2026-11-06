@@ -14,9 +14,13 @@ public sealed class MegaClient : IDisposable
     private readonly Lock _lock = new();
     private nint _api;
 
+    public MegaClient() : this(new MegaClientOptions())
+    {
+    }
+
     public MegaClient(MegaClientOptions options)
     {
-        _api = NativeMethods.ApiCreate(options.AppKey, options.BasePath, options.UserAgent,
+        _api = NativeMethods.ApiCreate(options.AppKey ?? "", options.BasePath, options.UserAgent,
             options.WorkerThreadCount);
 
         if (_api == 0)

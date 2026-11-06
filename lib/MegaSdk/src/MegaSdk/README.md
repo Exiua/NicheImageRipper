@@ -9,7 +9,7 @@ built into a single `megasdk` library, and this project calls it with `[LibraryI
 ## Usage
 
 ```csharp
-using var client = new MegaClient(new MegaClientOptions { AppKey = "<app key>" });
+using var client = new MegaClient();
 
 // Public file link
 using var file = await client.GetPublicNodeAsync("https://mega.nz/file/<id>#<key>");
@@ -17,7 +17,7 @@ await client.DownloadAsync(file, @"C:\Downloads\", new Progress<MegaTransferProg
     Console.WriteLine($"{p.TransferredBytes}/{p.TotalBytes}")));
 
 // Folder link (a client logged in to a folder link only sees that folder)
-using var folderClient = new MegaClient(new MegaClientOptions { AppKey = "<app key>" });
+using var folderClient = new MegaClient();
 using var root = await folderClient.OpenFolderLinkAsync("https://mega.nz/folder/<id>#<key>");
 foreach (var (path, node) in folderClient.EnumerateDescendants(root))
 {
@@ -27,7 +27,8 @@ foreach (var (path, node) in folderClient.EnumerateDescendants(root))
 await folderClient.DownloadAsync(root, @"C:\Downloads\"); // downloads the whole folder
 ```
 
-An app key is required; generate one at https://mega.nz/sdk. `MegaLogging` forwards the SDK's log output.
+No app key is needed (the SDK ignores it). `MegaClientOptions` sets the cache folder and user agent, and
+`MegaLogging` forwards the SDK's log output.
 
 Callbacks from the SDK run on its threads. Tasks complete asynchronously, so continuations don't run on them.
 Requests (login, fetch nodes, public links) can't be cancelled in the SDK: cancelling only stops the wait. Downloads

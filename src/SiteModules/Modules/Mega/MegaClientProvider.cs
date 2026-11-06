@@ -132,16 +132,8 @@ internal static class MegaClientProvider
 
     private static MegaClient CreateClient(params string[] cacheDirectory)
     {
-        var appKey = Config.GetSiteConfig(MegaParser.ParserName)?.Key;
-        if (appKey.IsNullOrWhiteSpace())
-        {
-            throw new RipperException(
-                "A MEGA app key is required: set \"key\" in the \"mega\" site config (generate one at https://mega.nz/sdk)");
-        }
-
         return new MegaClient(new MegaClientOptions
         {
-            AppKey = appKey,
             BasePath = AppData.EnsureDirectory(["MegaSdk", ..cacheDirectory]),
         });
     }

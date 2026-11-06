@@ -33,9 +33,8 @@ The program requires [Firefox](https://www.mozilla.org/firefox/), [ffmpeg](https
 The program also (optionally) uses [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) and
 [CSWebDriver](https://github.com/Exiua/CSWebDriver) for the sites that need them. Without them, only those sites are affected.
 
-Mega links are downloaded with the [MEGA SDK](https://github.com/meganz/sdk), which needs an app key (generate one at
-https://mega.nz/sdk) set as `key` in the `mega` site config. A `login` there is optional and uses that account's
-transfer quota.
+Mega links are downloaded with the [MEGA SDK](https://github.com/meganz/sdk). A `login` in the `mega` site config is
+optional and uses that account's transfer quota.
 
 ## Building
 
