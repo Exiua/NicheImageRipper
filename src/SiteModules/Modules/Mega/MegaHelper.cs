@@ -77,6 +77,19 @@ public static class MegaHelper
         }, cancellationToken);
     }
 
+    /// <summary>
+    ///     Whether the error means the link's file or folder is gone: deleted (<see cref="MegaErrorCode.NotFound" />),
+    ///     past its expiry date (<see cref="MegaErrorCode.Expired" />), or taken down for breaching MEGA's terms
+    ///     (<see cref="MegaErrorCode.Blocked" />).
+    /// </summary>
+    public static bool IsUnavailable(MegaErrorCode errorCode)
+    {
+        // TODO: MEGA also reports taken-down files/accounts as TooMany ("Terms of Service breached" for downloads),
+        // but outside downloads TooMany can mean too many concurrent connections, so a working link could be treated
+        // as gone. Left out until it's confirmed which one a dead link's lookup (getPublicNode/loginToFolder) returns.
+        return errorCode is MegaErrorCode.NotFound or MegaErrorCode.Expired or MegaErrorCode.Blocked;
+    }
+
     public static MegaLink Parse(string url)
     {
         return MegaLink.TryParse(url, out var link)
