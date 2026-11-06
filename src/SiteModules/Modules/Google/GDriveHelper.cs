@@ -47,7 +47,9 @@ public static class GDriveHelper
         var counter = index;
         foreach (var file in files.Where(f => !f.IsFolder))
         {
-            var fileLink = FileLink.WithFilename(file.Id, file.GetPath(), filenameScheme, index: counter, linkInfo: GDriveLinkInfo.GDrive);
+            // Drive names are user-controlled: clean them, keeping the folder structure inside the gallery
+            var fileLink = FileLink.WithFilename(file.Id, file.GetPath(), filenameScheme, index: counter,
+                linkInfo: GDriveLinkInfo.GDrive, filenameCleaning: FilenameCleaning.PreserveSubdirectories);
             fileLinks.Add(fileLink);
             counter++;
         }

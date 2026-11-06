@@ -53,15 +53,16 @@ public partial class FileLink
     /// <param name="filename">Optional filename to use instead of generating one</param>
     /// <param name="linkInfo">Optional LinkInfo to set instead of auto-detecting</param>
     /// <param name="referer">Optional referer to set for the link</param>
-    /// <param name="cleanFilename">
-    ///     Whether to clean the provided filename or not (default: false).
+    /// <param name="filenameCleaning">
+    ///     How to clean the provided filename (default: <see cref="FilenameCleaning.None" />).
     ///     Does nothing if <paramref name="filename"/> was not provided.
     /// </param>
     /// <param name="resolveFilenameDuringDownload">
     ///     Whether to resolve the filename during download (default: false).
     /// </param>
     private FileLink(string url, FilenameScheme filenameScheme, int index, string filename = "",
-                     LinkInfo? linkInfo = null, string? referer = "", bool cleanFilename = false,
+                     LinkInfo? linkInfo = null, string? referer = "",
+                     FilenameCleaning filenameCleaning = FilenameCleaning.None,
                      bool resolveFilenameDuringDownload = false)
     {
         linkInfo ??= LinkInfo.None;
@@ -83,7 +84,7 @@ public partial class FileLink
         Referer = siteResult?.Referer ?? (referer == "" ? null : referer);
         LinkInfo = siteResult?.LinkInfo ?? linkInfo.Value;
 
-        Filename = GenerateFilename(Url, filenameScheme, index, filename, cleanFilename, siteResult?.Filename,
+        Filename = GenerateFilename(Url, filenameScheme, index, filename, filenameCleaning, siteResult?.Filename,
             resolveFilenameDuringDownload);
     }
 
@@ -102,7 +103,7 @@ public partial class FileLink
             resolveFilenameDuringDownload: false,
             linkInfo,
             referer,
-            cleanFilename: false);
+            filenameCleaning: FilenameCleaning.None);
     }
 
     public static FileLink WithFilename(
@@ -112,7 +113,7 @@ public partial class FileLink
         int index = 0,
         LinkInfo? linkInfo = null,
         string? referer = null,
-        bool cleanFilename = false)
+        FilenameCleaning filenameCleaning = FilenameCleaning.None)
     {
         return CreateCore(
             url,
@@ -122,7 +123,7 @@ public partial class FileLink
             resolveFilenameDuringDownload: false,
             linkInfo,
             referer,
-            cleanFilename);
+            filenameCleaning);
     }
 
     public static FileLink WithDownloadResolvedFilename(
@@ -139,7 +140,7 @@ public partial class FileLink
             resolveFilenameDuringDownload: true,
             linkInfo,
             referer,
-            cleanFilename: false);
+            filenameCleaning: FilenameCleaning.None);
     }
 
     private static FileLink CreateCore(
@@ -150,11 +151,11 @@ public partial class FileLink
         bool resolveFilenameDuringDownload,
         LinkInfo? linkInfo,
         string? referer,
-        bool cleanFilename)
+        FilenameCleaning filenameCleaning)
     {
         // Useful shape for later refactoring
         return new FileLink(url, filenameScheme, index, filename: suppliedFilename ?? "", linkInfo: linkInfo,
-            referer: referer ?? "", cleanFilename: cleanFilename,
+            referer: referer ?? "", filenameCleaning: filenameCleaning,
             resolveFilenameDuringDownload: resolveFilenameDuringDownload);
     }
 
@@ -177,11 +178,11 @@ public partial class FileLink
 
     public void RegenerateFilename(FilenameScheme filenameScheme, int index)
     {
-        Filename = GenerateFilename(Url, filenameScheme, index, "", false, null);
+        Filename = GenerateFilename(Url, filenameScheme, index, "", FilenameCleaning.None, null);
     }
 
     private string GenerateFilename(string url, FilenameScheme filenameScheme, int index, string filename,
-                                    bool cleanFilename, string? siteFilename,
+                                    FilenameCleaning filenameCleaning, string? siteFilename,
                                     bool resolveFilenameDuringDownload = false)
     {
         var filenameProvided = filename != "";
@@ -210,9 +211,10 @@ public partial class FileLink
                 filename = Uri.UnescapeDataString(filename);
             }
 
-            if (cleanFilename && filenameProvided)
+            if (filenameCleaning != FilenameCleaning.None && filenameProvided)
             {
-                var cleaned = FilesystemUtility.CleanPathStem(filename);
+                var cleaned = FilesystemUtility.CleanPathStem(filename,
+                    preserveSeparators: filenameCleaning == FilenameCleaning.PreserveSubdirectories);
                 filename = cleaned == "" ? FinalizeFilename(url, "", wasCleanedToEmpty: true) : cleaned;
             }
 

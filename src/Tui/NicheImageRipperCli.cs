@@ -65,9 +65,9 @@ public class NicheImageRipperCli : NicheImageRipper.Core.NicheImageRipper
             Logger.Warning("yt-dlp not found. Some functionality may be limited.");
         }
 
-        if (!AvailableFeatures.HasFeature(FeatureKeys.MegaCmd))
+        if (!AvailableFeatures.HasFeature(FeatureKeys.MegaSdk))
         {
-            Logger.Warning("MEGAcmd not found. Some functionality may be limited.");
+            Logger.Warning("MEGA SDK native library (megasdk) not found. Mega links can't be downloaded.");
         }
 
         if (!AvailableFeatures.HasFeature(FeatureKeys.FlareSolverr))

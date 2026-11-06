@@ -9,7 +9,7 @@ public static class FeatureKeys
 {
     public const string Ffmpeg = "ffmpeg";
     public const string YtDlp = "yt-dlp";
-    public const string MegaCmd = "mega-cmd";
+    public const string MegaSdk = "mega-sdk";
     public const string FlareSolverr = "flaresolverr";
     public const string CSWebDriver = "cs-webdriver";
     public const string SteamCmd = "steamcmd";

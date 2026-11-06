@@ -17,11 +17,15 @@ public class MegaParser : ParameterizedHtmlParser, IHtmlParser
     {
     }
 
-    protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
+    /// <summary>
+    ///     Names the gallery after the shared folder (or file) in MEGA. The link itself is expanded into one link per
+    ///     file by <see cref="MegaLinkRule" />, keeping the folder structure.
+    /// </summary>
+    protected override async Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
-        var fileLink = FileLink.Create(GivenUrl, FilenameScheme, linkInfo: MegaLinkInfo.Mega);
-        var parts = GivenUrl.Split('/');
-        var dirName = parts.Length > 4 ? parts[4] : parts[3];
-        return RipInfo.FromUrlListAsync([fileLink], dirName, FilenameScheme);
+        var link = MegaHelper.Parse(GivenUrl);
+        var name = await MegaHelper.GetNameAsync(GivenUrl, cancellationToken);
+        var dirName = link.Kind == MegaLinkKind.Folder ? name : Path.GetFileNameWithoutExtension(name);
+        return await RipInfo.FromUrlListAsync([GivenUrl], dirName, FilenameScheme);
     }
 }

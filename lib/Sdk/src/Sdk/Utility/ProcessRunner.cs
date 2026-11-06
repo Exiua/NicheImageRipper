@@ -86,7 +86,7 @@ public static class ProcessRunner
     /// <summary>
     /// Probes whether <paramref name="executable"/> can be launched at all, by starting it with
     /// <paramref name="arguments"/> and waiting for it to exit. Used as the detector for
-    /// subprocess-backed <see cref="IAvailableFeatures"/> keys (ffmpeg, yt-dlp, mega-cmd, steamcmd).
+    /// subprocess-backed <see cref="IAvailableFeatures"/> keys (ffmpeg, yt-dlp, steamcmd).
     /// </summary>
     public static bool CheckForProcess(string filename, string arguments)
     {

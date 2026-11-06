@@ -231,7 +231,8 @@ public partial class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser, INorm
             }
 
             var fileLink = FileLink.WithFilename(highestQualityUrl, $"{dirName}.mp4", FilenameScheme,
-                cleanFilename: true, linkInfo: LinkInfo.ObfuscatedM3U8, referer: "https://pornhub.com/");
+                filenameCleaning: FilenameCleaning.Full, linkInfo: LinkInfo.ObfuscatedM3U8,
+                referer: "https://pornhub.com/");
             files = [fileLink];
         }
         else if (CurrentUrl.Contains("/album/"))

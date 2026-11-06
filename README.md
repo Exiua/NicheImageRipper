@@ -30,8 +30,12 @@ Some sites need a login, API key or cookies. Add them in **Settings → Sites**,
 The program requires [Firefox](https://www.mozilla.org/firefox/), [ffmpeg](https://www.ffmpeg.org/) and
 [yt-dlp](https://github.com/yt-dlp/yt-dlp) to be installed and on your `PATH`.
 
-The program also (optionally) uses [MegaCMD](https://mega.io/cmd), [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr),
-and [CSWebDriver](https://github.com/Exiua/CSWebDriver) for the sites that need them. Without them, only those sites are affected.
+The program also (optionally) uses [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) and
+[CSWebDriver](https://github.com/Exiua/CSWebDriver) for the sites that need them. Without them, only those sites are affected.
+
+Mega links are downloaded with the [MEGA SDK](https://github.com/meganz/sdk), which needs an app key (generate one at
+https://mega.nz/sdk) set as `key` in the `mega` site config. A `login` there is optional and uses that account's
+transfer quota.
 
 ## Building
 
@@ -45,7 +49,8 @@ dotnet test                       # run tests
 ```
 
 The [curl-impersonate](https://github.com/lexiforest/curl-impersonate) native library is not in the repo; see
-[ImpersonateClient](lib/ImpersonateClient/src/ImpersonateClient/README.md).
+[ImpersonateClient](lib/ImpersonateClient/src/ImpersonateClient/README.md). Neither is the MEGA SDK native library; see
+[MegaSdk](lib/MegaSdk/src/MegaSdk/README.md).
 
 ## Project Layout
 

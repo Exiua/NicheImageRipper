@@ -67,7 +67,7 @@ public class IwaraParser : HtmlParser, IHtmlParser
                     {
                         var videoLink = $"https://api.iwara.tv/video/{video.Id}";
                         var fileLink = FileLink.WithFilename(videoLink, $"{video.Title}.mp4", FilenameScheme,
-                            linkInfo: IwaraLinkInfo.Iwara, cleanFilename: true);
+                            linkInfo: IwaraLinkInfo.Iwara, filenameCleaning: FilenameCleaning.Full);
                         files.Add(fileLink);
                     }
                 }

@@ -427,6 +427,23 @@ public sealed class MegaClient : IDisposable
     public static string HandleToBase64(ulong handle) =>
         NativeMethods.TakeString(NativeMethods.HandleToBase64(handle)) ?? "";
 
+    /// <summary>
+    ///     Whether the native <c>megasdk</c> library can be loaded (see the README for building it).
+    /// </summary>
+    public static bool IsNativeLibraryAvailable()
+    {
+        try
+        {
+            NativeMethods.ErrorToString((int)MegaErrorCode.Ok);
+            return true;
+        }
+        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException
+                                      or TypeInitializationException)
+        {
+            return false;
+        }
+    }
+
     public static string GetErrorString(MegaErrorCode errorCode) =>
         NativeMethods.ReadString(NativeMethods.ErrorToString((int)errorCode)) ?? errorCode.ToString();
 

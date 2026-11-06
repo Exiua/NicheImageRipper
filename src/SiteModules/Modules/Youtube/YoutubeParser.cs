@@ -83,7 +83,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
             var title = entry!["title"]!.GetValue<string>();
             var id = entry["id"]!.GetValue<string>();
             var videoUrl = $"https://www.youtube.com/watch?v={id}";
-            return FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
+            return FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme,
+                filenameCleaning: FilenameCleaning.Full);
         }).ToStringFileLinkWrapperList();
 
         return RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
@@ -95,7 +96,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
         var id = json["id"]!.GetValue<string>();
         var videoUrl = $"https://www.youtube.com/watch?v={id}";
 
-        var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme, cleanFilename: true);
+        var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme,
+            filenameCleaning: FilenameCleaning.Full);
         List<StringFileLinkWrapper> images = [fileLink];
 
         return RipInfo.FromUrlListAsync(images, title, FilenameScheme);

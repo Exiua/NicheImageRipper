@@ -12,6 +12,7 @@
       <ProjectReference Include="..\..\lib\ImpersonateClient\src\ImpersonateClient\ImpersonateClient.csproj" />
       <ProjectReference Include="..\..\lib\IwaraApiClient\src\IwaraApiClient\IwaraApiClient.csproj" />
       <ProjectReference Include="..\..\lib\MangaDexLibrary\src\MangaDexLibrary\MangaDexLibrary.csproj" />
+      <ProjectReference Include="..\..\lib\MegaSdk\src\MegaSdk\MegaSdk.csproj" />
       <ProjectReference Include="..\..\lib\NHentaiApi\src\NHentaiApi\NHentaiApi.csproj" />
       <ProjectReference Include="..\..\lib\PatreonApiClient\src\PatreonApiClient\PatreonApiClient.csproj" />
       <ProjectReference Include="..\..\lib\PixivApi\src\PixivApi\PixivApi.csproj" />

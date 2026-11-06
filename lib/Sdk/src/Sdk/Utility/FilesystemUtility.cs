@@ -16,12 +16,25 @@ public static class FilesystemUtility
     ///     valid enclosing characters such as parentheses, brackets, or braces.
     /// </summary>
     /// <param name="pathName">The path name to clean</param>
+    /// <param name="preserveSeparators">
+    ///     Keep <c>/</c> and <c>\</c> as separators of a relative path instead of removing them. Each segment is cleaned
+    ///     on its own and empty segments are dropped, so the result is always relative and can't contain <c>.</c> or
+    ///     <c>..</c> segments (they're all punctuation). Segments are joined with <c>/</c>.
+    /// </param>
     /// <returns>>The cleaned path name</returns>
-    public static string CleanPathStem(string pathName)
+    public static string CleanPathStem(string pathName, bool preserveSeparators = false)
     {
         if (pathName == "")
         {
             return "";
+        }
+
+        if (preserveSeparators)
+        {
+            var segments = pathName.Split(['/', '\\'])
+                                   .Select(segment => CleanPathStem(segment))
+                                   .Where(segment => segment != "");
+            return string.Join('/', segments);
         }
 
         Logger.Debug("Cleaning path stem for \"{PathName}\"", pathName);

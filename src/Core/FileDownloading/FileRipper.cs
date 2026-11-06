@@ -909,8 +909,7 @@ public class FileRipper : IDisposable
         var fileLevelActions = PostDownloadAction.FileLevel;
         if (fileLevelActions.RemoveDuplicates)
         {
-            // Maybe handle directory downloads (e.g., Mega) in the future?
-            // Unable to determine filename before downloading files/directories from Mega.nz
+            // Directory downloads (e.g. a Mega folder link that couldn't be expanded into its files) aren't checked.
             // Could probably guess file ext for YouTube videos though (as we have filestem already)
             if (Directory.Exists(imagePath))
             {
