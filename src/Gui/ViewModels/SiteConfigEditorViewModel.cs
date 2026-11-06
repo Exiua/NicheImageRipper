@@ -23,8 +23,6 @@ public class SiteConfigEditorViewModel : ViewModelBase
 
     public ObservableCollection<SiteConfigEntryViewModel> Sites { get; }
     public IReadOnlyList<string> KnownSiteNames { get; }
-    public FilenameScheme[] FilenameSchemes { get; } = Enum.GetValues<FilenameScheme>();
-    public IReadOnlyList<GalleryUpdateModeOption> GalleryUpdateModeOptions => GalleryUpdateModeOption.All;
 
     public SiteConfigEntryViewModel? SelectedSite
     {
@@ -209,6 +207,11 @@ public class SiteConfigEntryViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    private static readonly FilenameScheme[] AllFilenameSchemes = Enum.GetValues<FilenameScheme>();
+
+    public IReadOnlyList<FilenameScheme> FilenameSchemes => AllFilenameSchemes;
+    public IReadOnlyList<GalleryUpdateModeOption> GalleryUpdateModeOptions => GalleryUpdateModeOption.All;
+
     public FilenameScheme OverrideFilenameScheme
     {
         get;
@@ -227,10 +230,12 @@ public class SiteConfigEntryViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    // ComboBoxes push a null SelectedItem back while their items are being (re)bound; ignore it rather than
+    // losing the selection.
     public GalleryUpdateModeOption OverrideGalleryUpdateMode
     {
         get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
+        set => this.RaiseAndSetIfChanged(ref field, value ?? field ?? GalleryUpdateModeOption.All[0]);
     }
 
     /// <summary>The parser's default followed by every strategy it supports.</summary>
@@ -243,7 +248,7 @@ public class SiteConfigEntryViewModel : ViewModelBase
     public GalleryUpdateStrategyOption OverrideGalleryUpdateStrategy
     {
         get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
+        set => this.RaiseAndSetIfChanged(ref field, value ?? field ?? GalleryUpdateStrategyOptions[0]);
     }
 
     /// <param name="updateSupport">Null when the site isn't updatable (or unknown).</param>

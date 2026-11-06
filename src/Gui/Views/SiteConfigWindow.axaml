@@ -71,11 +71,11 @@
                       Margin="25,0,0,0">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Filename scheme:" VerticalAlignment="Center" Margin="0,0,10,5" />
                     <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,5"
-                              ItemsSource="{Binding $parent[Window].((vm:SiteConfigEditorViewModel)DataContext).FilenameSchemes}"
+                              ItemsSource="{Binding FilenameSchemes}"
                               SelectedItem="{Binding OverrideFilenameScheme}" />
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Gallery updates:" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <ComboBox Grid.Row="1" Grid.Column="1"
-                              ItemsSource="{Binding $parent[Window].((vm:SiteConfigEditorViewModel)DataContext).GalleryUpdateModeOptions}"
+                              ItemsSource="{Binding GalleryUpdateModeOptions}"
                               SelectedItem="{Binding OverrideGalleryUpdateMode}"
                               ToolTip.Tip="What re-ripping an updatable gallery from this site downloads" />
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Update strategy:" VerticalAlignment="Center"
