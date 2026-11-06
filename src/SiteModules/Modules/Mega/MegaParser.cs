@@ -20,7 +20,8 @@ public class MegaParser : ParameterizedHtmlParser, IHtmlParser
     protected override Task<RipInfo> ParseCore(CancellationToken cancellationToken = default)
     {
         var fileLink = FileLink.Create(GivenUrl, FilenameScheme, linkInfo: MegaLinkInfo.Mega);
-        var dirName = GivenUrl.Split('/')[4];
+        var parts = GivenUrl.Split('/');
+        var dirName = parts.Length > 4 ? parts[4] : parts[3];
         return RipInfo.FromUrlListAsync([fileLink], dirName, FilenameScheme);
     }
 }

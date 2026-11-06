@@ -1,0 +1,4 @@
+[submodule "lib/MegaSdk/native/sdk"]
+	path = lib/MegaSdk/native/sdk
+	url = https://github.com/meganz/sdk
+	shallow = true

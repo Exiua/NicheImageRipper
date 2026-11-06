@@ -39,7 +39,6 @@ public class LusciousParser : HtmlParser, IHtmlParser
                      .InnerText;
         const string endpoint = "https://members.luscious.net/graphqli/?";
         var albumId = CurrentUrl.Split("/")[4].Split("_")[^1];
-        var session = new HttpClient();
         List<StringFileLinkWrapper> images = [];
         Dictionary<string, object> variables;
         string query;
@@ -60,9 +59,9 @@ public class LusciousParser : HtmlParser, IHtmlParser
                     }
                     fragment VideoStandard on Video{id title tags content genres description audiences url poster_url subtitle_url v240p v360p v720p v1080p}
                     """;
-            var response = await session.PostAsync(endpoint,
+            var response = await HttpClient.PostAsync(endpoint,
                 new StringContent(JsonSerializer.Serialize(new { operationName = "getVideoInfo", query, variables }),
-                    Encoding.UTF8, "application/json"));
+                    Encoding.UTF8, "application/json"), cancellationToken);
             var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
             var jsonData = json!["data"]!["video"]!["get"]!;
             string videoUrl;
@@ -127,10 +126,10 @@ public class LusciousParser : HtmlParser, IHtmlParser
             var nextPage = true;
             while (nextPage)
             {
-                var response = await session.PostAsync(endpoint,
+                var response = await HttpClient.PostAsync(endpoint,
                     new StringContent(
                         JsonSerializer.Serialize(new { operationName = "PictureQuery", query, variables }),
-                        Encoding.UTF8, "application/json"));
+                        Encoding.UTF8, "application/json"), cancellationToken);
                 var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
                 var jsonData = json!["data"]!["picture"]!["list"]!;
                 nextPage = jsonData["info"]!["has_next_page"]!.Deserialize<bool>();
