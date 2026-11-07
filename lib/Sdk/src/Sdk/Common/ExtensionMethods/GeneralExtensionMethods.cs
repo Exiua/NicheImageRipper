@@ -2,6 +2,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.SiteParsing;
+using NicheImageRipper.Sdk.Utility;
 
 namespace NicheImageRipper.Sdk.Common.ExtensionMethods;
 
@@ -79,7 +80,11 @@ public static class GeneralExtensionMethods
 
         foreach (var (key, value) in headers)
         {
-            request.Headers.TryAddWithoutValidation(key, value);
+            // Resolved per request from the final URL's host, so the shared headers never hold a site-specific UA
+            var headerValue = key.Equals(RequestHeaderKeys.UserAgent, StringComparison.OrdinalIgnoreCase)
+                ? UserAgentRuleRegistry.Resolve(url, value)
+                : value;
+            request.Headers.TryAddWithoutValidation(key, headerValue);
         }
 
         return request;

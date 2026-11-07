@@ -882,8 +882,9 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             ProgressCurrent = (ulong)Math.Max(current, 0);
             ProgressTotal = (ulong)Math.Max(total, 0);
             UpdateProgressDisplay();
+            // Raised on the UI thread: the taskbar COM object is apartment-threaded and was created there
+            ProgressChanged?.Invoke(current, total);
         });
-        ProgressChanged?.Invoke(current, total);
     }
 
     private void OnRipStopped(RipStopReason reason)
@@ -1077,13 +1078,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
             ProgressHasError = false;
             ProgressIsPaused = false;
             UpdateProgressDisplay();
+            ProgressChanged?.Invoke(0, 0);
         });
     }
 
     private void SetProgressError()
     {
         //ProgressHasError = true;
-        ProgressErrored?.Invoke();
+        Dispatcher.UIThread.Post(() => ProgressErrored?.Invoke());
     }
 
     private void Notify(string message, string title = "Snackbar", NotificationType type = NotificationType.Information,

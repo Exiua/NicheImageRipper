@@ -12,8 +12,9 @@ internal sealed class CoreParserResolver : IParserResolver
     public ParameterizedHtmlParser CreateParameterized(string url, HtmlParser caller, WebDriver driver,
                                                        Dictionary<string, string> requestHeaders)
     {
-        var (siteName, _) = UrlUtility.SiteCheck(url, requestHeaders);
-        var parser = HtmlParserFactory.CreateParameterized(siteName, driver, requestHeaders, caller.FilenameScheme);
+        var calleeHeaders = CopyHeaders(requestHeaders);
+        var (siteName, _) = UrlUtility.SiteCheck(url, calleeHeaders);
+        var parser = HtmlParserFactory.CreateParameterized(siteName, driver, calleeHeaders, caller.FilenameScheme);
         HtmlParserOrchestrator.ApplySubParserOverrides(parser, caller);
         return parser;
     }
@@ -22,7 +23,15 @@ internal sealed class CoreParserResolver : IParserResolver
                                    Dictionary<string, string> requestHeaders,
                                    CancellationToken cancellationToken = default)
     {
-        var orchestrator = new HtmlParserOrchestrator(driver, requestHeaders, caller.FilenameScheme, caller);
+        var orchestrator = new HtmlParserOrchestrator(driver, CopyHeaders(requestHeaders), caller.FilenameScheme,
+            caller);
         return orchestrator.ParseSite(url, cancellationToken);
     }
+
+    /// <summary>
+    ///     Gives a delegated parser its own headers, seeded from the caller's, so the referer its site check sets (and
+    ///     any cookie/auth it adds) doesn't leak back into the caller's remaining requests or partial save.
+    /// </summary>
+    private static Dictionary<string, string> CopyHeaders(Dictionary<string, string> requestHeaders) =>
+        new(requestHeaders, requestHeaders.Comparer);
 }

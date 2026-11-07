@@ -20,6 +20,7 @@ internal static class CoreBootstrap
         SiteModuleLoader.LoadModules();
         LinkInfoDiscovery.EnsureAllRegistered();
         SiteLinkRuleRegistry.Refresh(); // pick up the rules in the modules just loaded
+        UserAgentRuleRegistry.Refresh();
         HtmlParser.ParserResolver = new CoreParserResolver();
         return true;
     }

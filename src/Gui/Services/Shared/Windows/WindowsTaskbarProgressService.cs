@@ -4,57 +4,69 @@ using System.Runtime.Versioning;
 
 namespace NicheImageRipper.Gui.Services.Shared.Windows;
 
+/// <summary>
+/// Taskbar progress via ITaskbarList3. TaskbarList is an apartment-threaded COM object, so <see cref="Initialize"/>
+/// and every other call must happen on the UI (STA) thread.
+/// </summary>
 [SupportedOSPlatform("windows")]
 public class WindowsTaskbarProgressService : ITaskbarProgressService
 {
-    //private ITaskbarList3 _taskbar;
-    
+    private ITaskbarList3? _taskbar;
+
     public void Initialize()
     {
-        // Windows.Win32.P
-        // _taskbar = (ITaskbarList3)new CLSID_TaskbarList();
-        // _taskbar.HrInit();
+        if (_taskbar is not null || Environment.OSVersion.Version < new Version(6, 1))
+        {
+            return;
+        }
+
+        var taskbar = (ITaskbarList3)new TaskbarInstance();
+        // Must succeed before any other ITaskbarList method is called
+        if (taskbar.HrInit() >= 0)
+        {
+            _taskbar = taskbar;
+        }
     }
-    
+
     public void SetProgress(IntPtr windowHandle, ulong current, ulong total)
     {
-        // _taskbar.SetProgressState(hwnd, TBPFLAG.TBPF_NORMAL);
-        // _taskbar.SetProgressValue(hwnd, 50, 100);
-        TaskbarProgress.SetValue(windowHandle, current, total);
         if (current == 0 && total == 0)
         {
-            TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Indeterminate);
+            SetState(windowHandle, TaskbarStates.Indeterminate);
         }
         else if (current < total)
         {
-            TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Normal);
+            // Setting the value also switches a NoProgress/Indeterminate bar back to Normal
+            _taskbar?.SetProgressValue(windowHandle, current, total);
+            SetState(windowHandle, TaskbarStates.Normal);
         }
         else
         {
-            TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.NoProgress);
+            SetState(windowHandle, TaskbarStates.NoProgress);
         }
     }
 
     public void SetError(IntPtr windowHandle)
     {
-        TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Error);
+        SetState(windowHandle, TaskbarStates.Error);
     }
-    
+
     public void SetPaused(IntPtr windowHandle)
     {
-        TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.Paused);
+        SetState(windowHandle, TaskbarStates.Paused);
     }
-    
+
     public void ClearProgress(IntPtr windowHandle)
     {
-        TaskbarProgress.SetState(windowHandle, TaskbarProgress.TaskbarStates.NoProgress);
+        SetState(windowHandle, TaskbarStates.NoProgress);
     }
-}
 
-[SupportedOSPlatform("windows")]
-public static partial class TaskbarProgress
-{
-    public enum TaskbarStates
+    private void SetState(IntPtr windowHandle, TaskbarStates state)
+    {
+        _taskbar?.SetProgressState(windowHandle, state);
+    }
+
+    private enum TaskbarStates
     {
         NoProgress = 0,
         Indeterminate = 0x1,
@@ -70,53 +82,34 @@ public static partial class TaskbarProgress
     {
         // ITaskbarList
         [PreserveSig]
-        void HrInit();
+        int HrInit();
 
         [PreserveSig]
-        void AddTab(IntPtr hwnd);
+        int AddTab(IntPtr hwnd);
 
         [PreserveSig]
-        void DeleteTab(IntPtr hwnd);
+        int DeleteTab(IntPtr hwnd);
 
         [PreserveSig]
-        void ActivateTab(IntPtr hwnd);
+        int ActivateTab(IntPtr hwnd);
 
         [PreserveSig]
-        void SetActiveAlt(IntPtr hwnd);
+        int SetActiveAlt(IntPtr hwnd);
 
         // ITaskbarList2
         [PreserveSig]
-        void MarkFullscreenWindow(IntPtr hwnd, [MarshalAs(UnmanagedType.Bool)] bool fFullscreen);
+        int MarkFullscreenWindow(IntPtr hwnd, [MarshalAs(UnmanagedType.Bool)] bool fFullscreen);
 
         // ITaskbarList3
         [PreserveSig]
-        void SetProgressValue(IntPtr hwnd, UInt64 ullCompleted, UInt64 ullTotal);
+        int SetProgressValue(IntPtr hwnd, ulong ullCompleted, ulong ullTotal);
 
         [PreserveSig]
-        void SetProgressState(IntPtr hwnd, TaskbarStates state);
+        int SetProgressState(IntPtr hwnd, TaskbarStates state);
     }
 
     [ComImport]
     [Guid("56fdf344-fd6d-11d0-958a-006097c9a090")]
     [ClassInterface(ClassInterfaceType.None)]
-    internal class TaskbarInstance;
-
-    private static readonly ITaskbarList3 _taskbarInstance = (ITaskbarList3)new TaskbarInstance();
-    private static readonly bool TaskbarSupported = Environment.OSVersion.Version >= new Version(6, 1);
-
-    public static void SetState(IntPtr windowHandle, TaskbarStates taskbarState)
-    {
-        if (TaskbarSupported)
-        {
-            _taskbarInstance.SetProgressState(windowHandle, taskbarState);
-        }
-    }
-
-    public static void SetValue(IntPtr windowHandle, ulong progressValue, ulong progressMax)
-    {
-        if (TaskbarSupported)
-        {
-            _taskbarInstance.SetProgressValue(windowHandle, progressValue, progressMax);
-        }
-    }
+    private class TaskbarInstance;
 }
