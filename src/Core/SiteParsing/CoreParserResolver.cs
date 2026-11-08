@@ -1,6 +1,7 @@
 using NicheImageRipper.Core.Utility;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Driver;
+using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 
 namespace NicheImageRipper.Core.SiteParsing;
@@ -12,6 +13,12 @@ internal sealed class CoreParserResolver : IParserResolver
     public ParameterizedHtmlParser CreateParameterized(string url, HtmlParser caller, WebDriver driver,
                                                        Dictionary<string, string> requestHeaders)
     {
+        // An unsupported host has no parser either, so callers can fall back to the raw link
+        if (!UrlUtility.UrlCheck(url))
+        {
+            throw new ParameterizedParserNotFound(new Uri(url).Host);
+        }
+
         var calleeHeaders = CopyHeaders(requestHeaders);
         var (siteName, _) = UrlUtility.SiteCheck(url, calleeHeaders);
         var parser = HtmlParserFactory.CreateParameterized(siteName, driver, calleeHeaders, caller.FilenameScheme);

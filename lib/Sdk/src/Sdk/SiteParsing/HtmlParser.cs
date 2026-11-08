@@ -123,7 +123,7 @@ public abstract class HtmlParser : IDisposable
         Interrupted = false;
         SleepTime = 0.2f;
         Jitter = 0.5f;
-        Logger = Log.ForContext<HtmlParser>();
+        Logger = Log.ForContext(GetType());
     }
 
     /// <summary>
