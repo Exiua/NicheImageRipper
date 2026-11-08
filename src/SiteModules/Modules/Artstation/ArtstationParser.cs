@@ -50,7 +50,7 @@ public class ArtstationParser : HtmlParser
         var pageCount = 1;
         var firstIter = true;
         var posts = new List<string>();
-        var client = new HttpClient();
+        var client = RateLimitingHandler.CreateClient();
         while (total > 0)
         {
             Logger.Information("Page {PageCount} of {Total}", pageCount, total);

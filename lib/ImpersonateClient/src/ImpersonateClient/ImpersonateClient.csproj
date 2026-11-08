@@ -14,7 +14,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="runtimes\$(EffectiveRuntimeIdentifier)\native\*.dll"
+        <None Include="runtimes\$(EffectiveRuntimeIdentifier)\native\*.dll;runtimes\$(EffectiveRuntimeIdentifier)\native\*.so;runtimes\$(EffectiveRuntimeIdentifier)\native\*.dylib"
               Pack="true"
               CopyToOutputDirectory="PreserveNewest" />
         <EmbeddedResource Include="Resources\cacert.pem" />

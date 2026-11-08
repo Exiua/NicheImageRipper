@@ -2,3 +2,7 @@
 	path = lib/MegaSdk/native/sdk
 	url = https://github.com/meganz/sdk
 	shallow = true
+[submodule "lib/ImpersonateClient/native/curl-impersonate"]
+	path = lib/ImpersonateClient/native/curl-impersonate
+	url = https://github.com/lexiforest/curl-impersonate
+	shallow = true

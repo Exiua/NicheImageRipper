@@ -68,7 +68,7 @@ public class HtmlParserOrchestrator : IDisposable
                                   FilenameScheme filenameScheme = FilenameScheme.Original,
                                   HtmlParser? caller = null)
     {
-        HttpClient = new HttpClient();
+        HttpClient = RateLimitingHandler.CreateClient();
         WebDriver = driver;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
@@ -155,6 +155,7 @@ public class HtmlParserOrchestrator : IDisposable
         Logger.Debug("No partial save found for site; Parsing site");
         if (htmlParser.RequiresNavigationValue)
         {
+            await DomainRateLimiter.WaitAsync(url, cancellationToken);
             CurrentUrl = url;
         }
 

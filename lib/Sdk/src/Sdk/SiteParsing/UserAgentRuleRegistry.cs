@@ -20,26 +20,11 @@ public static class UserAgentRuleRegistry
 
     private static List<(string, string)> DiscoverRules()
     {
-        var ruleInterface = typeof(IUserAgentRule);
-        var rules = AppDomain.CurrentDomain
-                             .GetAssemblies()
-                             .SelectMany(assembly =>
-                              {
-                                  try
-                                  {
-                                      return assembly.GetTypes();
-                                  }
-                                  catch
-                                  {
-                                      return [];
-                                  }
-                              })
-                             .Where(t => ruleInterface.IsAssignableFrom(t) && t is { IsInterface: false, IsAbstract: false })
-                             .Select(t => (IUserAgentRule)Activator.CreateInstance(t)!)
-                             .SelectMany(rule => rule.Domains.Select(domain => (Domain: domain.ToLowerInvariant(),
-                                 rule.UserAgent)))
-                             .OrderByDescending(r => r.Domain.Length)
-                             .ToList();
+        var rules = DomainRules.Discover<IUserAgentRule>()
+                               .SelectMany(rule => rule.Domains.Select(domain => (Domain: domain.ToLowerInvariant(),
+                                   rule.UserAgent)))
+                               .OrderByDescending(r => r.Domain.Length)
+                               .ToList();
 
         foreach (var duplicate in rules.GroupBy(r => r.Domain).Where(g => g.Count() > 1))
         {
@@ -66,8 +51,7 @@ public static class UserAgentRuleRegistry
         var host = uri.Host;
         foreach (var (domain, ruleUserAgent) in _rules)
         {
-            if (host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase))
+            if (DomainRules.HostMatches(host, domain))
             {
                 return ruleUserAgent;
             }

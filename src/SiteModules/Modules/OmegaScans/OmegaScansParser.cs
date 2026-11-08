@@ -56,7 +56,7 @@ public class OmegaScansParser : HtmlParser, IHtmlParser
         Logger.Debug("Captured API URL: {apiUrl}", apiUrl);
         var seriesId = apiUrl.Split("series_id=")[1].Split("&")[0];
         Logger.Debug("Extracted series ID: {seriesId}", seriesId);
-        using var client = new HttpClient();
+        using var client = RateLimitingHandler.CreateClient();
         List<string> chapters = [];
         var page = 1;
         while (true)

@@ -21,8 +21,179 @@ jobs:
   version-check:
     uses: ./.github/workflows/version-check.yml
 
-  release:
+  # The MEGA SDK is C++, so its native library is built on each target OS (it can't be cross-built with dotnet
+  # publish). See lib/MegaSdk/src/MegaSdk/README.md.
+  megasdk:
     needs: version-check
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-latest
+            cmake-args: -G "Visual Studio 17 2022" -A x64
+          - rid: linux-x64
+            os: ubuntu-latest
+            cmake-args: -DCMAKE_BUILD_TYPE=Release
+          - rid: osx-arm64
+            os: macos-latest
+            cmake-args: -DCMAKE_BUILD_TYPE=Release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      BUILD_DIR: ${{ github.workspace }}/../build-megasdk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the MEGA SDK submodule
+        run: git submodule update --init --depth 1 lib/MegaSdk/native/sdk
+
+      # vcpkg builds ICU with autotools (on Windows it brings its own MSYS2)
+      - name: Install autotools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool pkg-config
+
+      - name: Install autotools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install autoconf autoconf-archive automake libtool pkg-config
+
+      # The SDK's overlay ports are written against its builtin-baseline, so vcpkg is checked out there
+      - name: Set up vcpkg at the SDK's baseline
+        id: vcpkg
+        run: |
+          set -euo pipefail
+          baseline=$(jq -r '."builtin-baseline"' lib/MegaSdk/native/sdk/vcpkg.json)
+          git clone --quiet https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout --quiet "$baseline"
+          mkdir -p "$VCPKG_CACHE"
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
+
+      # Built dependencies (ICU alone takes ~30 minutes) are reused until the SDK's manifest, its ports or our
+      # triplets change
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_CACHE }}
+          key: vcpkg-${{ matrix.rid }}-${{ steps.vcpkg.outputs.baseline }}-${{ hashFiles('lib/MegaSdk/native/sdk/vcpkg.json', 'lib/MegaSdk/native/sdk/cmake/vcpkg_overlay_ports/**', 'lib/MegaSdk/native/sdk/cmake/vcpkg_overlay_triplets/**', 'lib/MegaSdk/native/cmake/**') }}
+          restore-keys: vcpkg-${{ matrix.rid }}-${{ steps.vcpkg.outputs.baseline }}-
+
+      - name: Build megasdk
+        env:
+          VCPKG_BINARY_SOURCES: clear;files,${{ env.VCPKG_CACHE }},readwrite
+        run: |
+          set -euo pipefail
+          cmake -S lib/MegaSdk/native -B "$BUILD_DIR" ${{ matrix.cmake-args }} \
+            -DVCPKG_ROOT="$VCPKG_ROOT" -DMEGASDK_RID=${{ matrix.rid }}
+          cmake --build "$BUILD_DIR" --config Release --target megasdk --parallel
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: megasdk-${{ matrix.rid }}
+          path: lib/MegaSdk/src/MegaSdk/runtimes/${{ matrix.rid }}/native/megasdk.*
+          if-no-files-found: error
+
+  # libcurl-impersonate for ImpersonateClient, built with curl-impersonate's own scripts from the pinned submodule.
+  # Its dependencies (BoringSSL, nghttp2, ...) are linked statically, so it's a single library per platform.
+  curl-impersonate:
+    needs: version-check
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-2022
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: osx-arm64
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      SOURCE_DIR: lib/ImpersonateClient/native/curl-impersonate
+      NATIVE_DIR: lib/ImpersonateClient/src/ImpersonateClient/runtimes/${{ matrix.rid }}/native
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the curl-impersonate submodule
+        run: git submodule update --init --depth 1 "$SOURCE_DIR"
+
+      # Same setup as curl-impersonate's own Windows CI: BoringSSL needs NASM, and the build needs lots of memory
+      - name: Configure pagefile (Windows)
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.3
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
+
+      - name: Install build tools (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: choco install nasm -y
+
+      - name: Install build tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config cmake ninja-build
+
+      - name: Install build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install pkg-config make cmake ninja
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          set "PATH=C:\Program Files\NASM;%PATH%"
+          call win\build.bat vcvars64
+
+      # IDN is left out (no libidn2 to build): curl uses the OS's support on macOS, and none on Linux
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        working-directory: ${{ env.SOURCE_DIR }}
+        run: |
+          set -euo pipefail
+          make=make
+          if [ "$RUNNER_OS" = "macOS" ]; then make=gmake; fi
+          cmake_args="-G Ninja -DCMAKE_INSTALL_PREFIX=$PWD/packages -DUSE_LIBIDN2=OFF"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            cmake_args="$cmake_args -DCURL_CA_PATH=/etc/ssl/certs -DCURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt"
+          fi
+          $make configure BUILD_DIR=build CMAKE_CONFIGURE_ARGS="$cmake_args"
+          $make build BUILD_DIR=build CMAKE_CONFIGURE_ARGS="$cmake_args"
+          $make install-strip BUILD_DIR=build CMAKE_CONFIGURE_ARGS="$cmake_args"
+
+      # ImpersonateClient loads libcurl-impersonate.{dll,so,dylib}; versioned names and symlinks are flattened
+      - name: Collect the library
+        run: |
+          set -euo pipefail
+          lib_dir="$SOURCE_DIR/packages/lib"
+          ls -la "$lib_dir"
+          mkdir -p "$NATIVE_DIR"
+          case "$RUNNER_OS" in
+            Windows) src=$(ls "$lib_dir"/libcurl-impersonate*.dll | head -1); dest=libcurl-impersonate.dll ;;
+            Linux)   src="$lib_dir/libcurl-impersonate.so"; dest=libcurl-impersonate.so ;;
+            macOS)   src="$lib_dir/libcurl-impersonate.dylib"; dest=libcurl-impersonate.dylib ;;
+          esac
+          cp -L "$src" "$NATIVE_DIR/$dest"
+          ls -la "$NATIVE_DIR"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: curl-impersonate-${{ matrix.rid }}
+          path: ${{ env.NATIVE_DIR }}/libcurl-impersonate.*
+          if-no-files-found: error
+
+  release:
+    needs: [version-check, megasdk, curl-impersonate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +230,31 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: megasdk-*
+          path: native-artifacts
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: curl-impersonate-*
+          path: native-artifacts
+
+      # The projects copy runtimes/<rid>/native into the publish output (kept out of the single-file bundle)
+      - name: Add native libraries
+        run: |
+          set -euo pipefail
+          place() { # <artifact prefix> <project dir>
+            for dir in native-artifacts/"$1"-*; do
+              rid=${dir#native-artifacts/"$1"-}
+              mkdir -p "$2/runtimes/$rid/native"
+              cp "$dir"/* "$2/runtimes/$rid/native/"
+            done
+          }
+          place megasdk lib/MegaSdk/src/MegaSdk
+          place curl-impersonate lib/ImpersonateClient/src/ImpersonateClient
+          find lib/MegaSdk/src/MegaSdk/runtimes lib/ImpersonateClient/src/ImpersonateClient/runtimes -type f ! -name .gitkeep
 
       - name: Build and package all platforms
         run: |
@@ -101,6 +297,13 @@ jobs:
               echo "$loose"
               exit 1
             fi
+            for native in megasdk libcurl-impersonate; do
+              if ! compgen -G "out/$rid/app/runtimes/$rid/native/$native.*" >/dev/null; then
+                echo "::error::$rid publish is missing the native library runtimes/$rid/native/$native.*"
+                exit 1
+              fi
+            done
+
             echo "Published files:"
             (cd "out/$rid/app" && find . -type f | sort)
 

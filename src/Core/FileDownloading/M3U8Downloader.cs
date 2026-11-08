@@ -1,3 +1,4 @@
+using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Core.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.Exceptions;
@@ -22,7 +23,7 @@ public static class M3U8Downloader
             var path = Path.GetFullPath(savePath);
             tempPath = Path.Combine(path, "temp");
             Directory.CreateDirectory(tempPath);
-            using var client = new HttpClient();
+            using var client = RateLimitingHandler.CreateClient();
             client.DefaultRequestHeaders.Add("User-Agent", Config.UserAgent);
             Logger.Debug("HttpClient initialized with User-Agent: {UserAgent}", Config.UserAgent);
             if (referer is not null)

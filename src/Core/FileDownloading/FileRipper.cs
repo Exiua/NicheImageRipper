@@ -207,7 +207,7 @@ public class FileRipper : IDisposable
         PersistentLogins = new Dictionary<string, bool>();
         // Create copy of save path, so that config can be changed without affecting current ripper instance
         SavePath = Config.SavePath;
-        Session = new HttpClient();
+        Session = RateLimitingHandler.CreateClient();
         SiteName = "";
         SleepTime = 0.2f;
         CurrentIndex = 0;

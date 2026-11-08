@@ -58,7 +58,7 @@ public class RedGifsParser : HtmlParser, IHtmlParser
     
     private static HttpClient GenerateHttpClient()
     {
-        var client = new HttpClient();
+        var client = RateLimitingHandler.CreateClient();
         client.DefaultRequestHeaders.Add("User-Agent", Sdk.Configuration.Config.Instance.UserAgent);
         return client;
     }

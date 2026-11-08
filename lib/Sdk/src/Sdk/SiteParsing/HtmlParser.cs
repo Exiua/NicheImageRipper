@@ -116,7 +116,7 @@ public abstract class HtmlParser : IDisposable
     protected HtmlParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                          FilenameScheme filenameScheme = FilenameScheme.Original)
     {
-        HttpClient = new HttpClient();
+        HttpClient = RateLimitingHandler.CreateClient();
         WebDriver = driver;
         RequestHeaders = requestHeaders;
         FilenameScheme = filenameScheme;
@@ -231,6 +231,7 @@ public abstract class HtmlParser : IDisposable
             return doc.DocumentNode;
         }
 
+        await DomainRateLimiter.WaitAsync(url, cancellationToken);
         CurrentUrl = url;
 
         if (cookies is not null)

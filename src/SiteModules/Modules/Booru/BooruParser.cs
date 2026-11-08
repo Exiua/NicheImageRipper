@@ -49,7 +49,7 @@ public abstract partial class BooruParser : HtmlParser
         tags ??= ExtractTagsFromUrl(CurrentUrl);
         tags = Uri.UnescapeDataString(tags);
         var dirName = $"[{siteName}] " + tags.Remove("+").Remove("tags=");
-        var session = new HttpClient();
+        var session = RateLimitingHandler.CreateClient();
         if (headers is not null)
         {
             foreach (var (key, value) in headers)

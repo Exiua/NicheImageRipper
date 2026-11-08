@@ -21,6 +21,7 @@ internal static class CoreBootstrap
         LinkInfoDiscovery.EnsureAllRegistered();
         SiteLinkRuleRegistry.Refresh(); // pick up the rules in the modules just loaded
         UserAgentRuleRegistry.Refresh();
+        DomainRateLimiter.Refresh();
         HtmlParser.ParserResolver = new CoreParserResolver();
         return true;
     }

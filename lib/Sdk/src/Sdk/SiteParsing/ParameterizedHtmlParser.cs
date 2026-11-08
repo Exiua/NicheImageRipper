@@ -41,6 +41,7 @@ public abstract class ParameterizedHtmlParser : HtmlParser
         GivenUrl = url;
         if (RequiresNavigation)
         {
+            await DomainRateLimiter.WaitAsync(url, cancellationToken);
             CurrentUrl = url;
         }
 

@@ -1,3 +1,4 @@
+using NicheImageRipper.Sdk.SiteParsing;
 using System.Text;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -23,7 +24,7 @@ public sealed class PixelDrainDownloadStrategy : IFileDownloadStrategy
         }
         
         var base64Auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($":{apiKey}"));
-        using var client = new HttpClient();
+        using var client = RateLimitingHandler.CreateClient();
         client.DefaultRequestHeaders.Add(RequestHeaderKeys.UserAgent, Config.UserAgent);
         client.DefaultRequestHeaders.Add(RequestHeaderKeys.Authorization, $"Basic {base64Auth}");
 

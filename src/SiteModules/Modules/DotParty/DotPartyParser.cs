@@ -55,7 +55,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
         };
-        HttpClient = new HttpClient(handler);
+        HttpClient = RateLimitingHandler.CreateClient(handler);
         // Needed due to DDG issues according to kemono themselves
         HttpClient.DefaultRequestHeaders.Add("Accept", "text/css");
     }
@@ -200,6 +200,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
         Logger.Debug("Post ID: {PostId}", post.Id);
         var soup = await Soupify(post.Content, urlString: false, cancellationToken: cancellationToken);
         DotPartyLinkFixer.FixLinks(soup);
+        Logger.Debug("Fixed links in post content for post {PostId}", post.Id);
 
         var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
         var possibleLinks = ExtractPossibleLinkText(soup);
