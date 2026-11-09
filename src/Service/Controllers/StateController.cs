@@ -39,10 +39,10 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
     }
 
     [HttpPost("skip-file")]
-    public ActionResult<bool> SkipCurrentFile()
+    public async Task<ActionResult<bool>> SkipCurrentFile()
     {
         logger.LogInformation("Skipping current file");
-        return Ok(nicheImageRipperSingleton.SkipCurrentFile());
+        return Ok(await nicheImageRipperSingleton.SkipCurrentFile(CancellationToken.None));
     }
 
     [HttpGet("paused")]

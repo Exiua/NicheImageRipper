@@ -132,9 +132,10 @@ public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDis
         return true;
     }
 
-    public bool SkipCurrentFile()
+    // Not gated on IsRipping: a rip stopped by a failed download can still have that file skipped
+    public Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default)
     {
-        return IsRipping && _ripper.SkipCurrentFile();
+        return _ripper.SkipCurrentFile(cancellationToken);
     }
 
     public IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null)

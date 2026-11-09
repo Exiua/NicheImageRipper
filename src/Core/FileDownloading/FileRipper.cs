@@ -155,6 +155,9 @@ public class FileRipper : IDisposable
     // One source per in-flight item (keyed by its index into FolderInfo.Urls), cancelled by SkipCurrentFile
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _fileSkipSources = new();
 
+    // URL that FolderInfo was parsed from, so a failed rip's saved position is only skipped against its own links
+    private string? _parsedUrl;
+
     private FileDownloadStrategyRegistry StrategyRegistry { get; }
     private IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; }
     private IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; }
@@ -370,9 +373,11 @@ public class FileRipper : IDisposable
         //var htmlParser = HtmlParserOrchestrator.GetParser(SiteName, );
         //Logger.Debug("Constructed HtmlParser");
         var htmlParser = new HtmlParserOrchestrator(WebDriver, RequestHeaders, FilenameScheme);
+        _parsedUrl = null;
         try
         {
             FolderInfo = await htmlParser.ParseSite(GivenUrl, cancellationToken);
+            _parsedUrl = GivenUrl;
         }
         catch (Exception e) when (IsFailureToRecord(e))
         {
@@ -901,9 +906,16 @@ public class FileRipper : IDisposable
 
     /// <summary>
     ///     Skips the file(s) currently downloading, leaving an empty <c>&lt;filename&gt;.skip</c> marker in place of each.
+    ///     With nothing downloading, skips the file a failed download stopped the rip at instead, so the rip resumes
+    ///     (or retries) from the file after it.
     /// </summary>
-    /// <returns>True if there was a download in progress to skip.</returns>
-    public bool SkipCurrentFile()
+    /// <returns>True if there was a file to skip.</returns>
+    public async Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default)
+    {
+        return CancelInFlightDownloads() || await SkipFailedFile(cancellationToken);
+    }
+
+    private bool CancelInFlightDownloads()
     {
         var skipped = false;
         foreach (var source in _fileSkipSources.Values)
@@ -920,6 +932,47 @@ public class FileRipper : IDisposable
         }
 
         return skipped;
+    }
+
+    /// <summary>
+    ///     Marks the file at the saved <see cref="RipIndexPath"/> position as skipped and advances the position past it.
+    /// </summary>
+    /// <returns>False if no rip of the currently-parsed URL stopped part way through.</returns>
+    private async Task<bool> SkipFailedFile(CancellationToken cancellationToken = default)
+    {
+        var parsedUrl = _parsedUrl;
+        if (parsedUrl is null || !File.Exists(RipIndexPath))
+        {
+            return false;
+        }
+
+        string savedUrl;
+        int index;
+        try
+        {
+            (savedUrl, index) = await CacheUtility.ReadRipIndex(RipIndexPath, cancellationToken);
+        }
+        catch (FileNotFoundException)
+        {
+            return false; // A retry resumed from it in the meantime
+        }
+
+        if (savedUrl != parsedUrl)
+        {
+            return false;
+        }
+
+        // Generated filenames aren't known until a candidate extension downloads, so those only advance the position
+        if (FolderInfo.DownloadMode == DownloadMode.List && index < FolderInfo.Urls.Count)
+        {
+            // The failed attempt may have left a truncated file, but it can't be told apart from one that was already
+            // there, so it's left alone
+            MarkFileSkipped(FolderInfo.Urls[index], Path.Combine(SavePath, FolderInfo.DirectoryName),
+                fileExistedBefore: true);
+        }
+
+        await CacheUtility.SaveRipIndex(RipIndexPath, savedUrl, index + 1, cancellationToken);
+        return true;
     }
 
     /// <summary>

@@ -226,11 +226,14 @@ public partial class NicheImageRipper : IDisposable
         return true;
     }
 
-    /// <summary>Skips the file currently downloading, leaving an empty <c>&lt;filename&gt;.skip</c> marker.</summary>
-    /// <returns>True if there was a download in progress to skip.</returns>
-    public bool SkipCurrentFile()
+    /// <summary>
+    ///     Skips the file currently downloading, or the one a failed download stopped the rip at, leaving an empty
+    ///     <c>&lt;filename&gt;.skip</c> marker.
+    /// </summary>
+    /// <returns>True if there was a file to skip.</returns>
+    public async Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default)
     {
-        return Ripper?.SkipCurrentFile() ?? false;
+        return Ripper is not null && await Ripper.SkipCurrentFile(cancellationToken);
     }
 
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)

@@ -25,7 +25,8 @@ public abstract class NotImplementedRipperSingleton : INicheImageRipperSingleton
     public virtual bool Paused => throw new NotImplementedException();
     public virtual bool Pause() => throw new NotImplementedException();
     public virtual bool Resume() => throw new NotImplementedException();
-    public virtual bool SkipCurrentFile() => throw new NotImplementedException();
+    public virtual Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
 
     public virtual IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null) =>
         throw new NotImplementedException();

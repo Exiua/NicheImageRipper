@@ -1074,7 +1074,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     {
         if (!await RipperClient.SkipCurrentFile(cancellationToken))
         {
-            Notify("No file is downloading", "Skip File");
+            Notify("No file to skip", "Skip File");
         }
     }
 

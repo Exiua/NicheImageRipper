@@ -113,7 +113,7 @@
                 <PathIcon x:Name="PlayPauseButtonIcon" Width="14" Height="14" Data="{StaticResource PauseButtonIcon}" />
             </Button>
             <Button Grid.Column="4" Margin="8,0,0,0" Height="34" Command="{Binding SkipCurrentFileCommand}"
-                    ToolTip.Tip="Skip the file currently downloading (leaves an empty &lt;filename&gt;.skip in its place)">
+                    ToolTip.Tip="Skip the file currently downloading, or the one a failed download stopped at (leaves an empty &lt;filename&gt;.skip in its place)">
                 <PathIcon Width="14" Height="14" Data="{StaticResource SkipFileButtonIcon}" />
             </Button>
             <Button Grid.Column="5" Margin="8,0,0,0" Height="34" Content="{Binding ConnectButtonDisplay}"
