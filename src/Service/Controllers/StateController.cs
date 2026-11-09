@@ -38,6 +38,13 @@ public class StateController(ILogger<StateController> logger, INicheImageRipperS
         return Ok(nicheImageRipperSingleton.Resume());
     }
 
+    [HttpPost("skip-file")]
+    public ActionResult<bool> SkipCurrentFile()
+    {
+        logger.LogInformation("Skipping current file");
+        return Ok(nicheImageRipperSingleton.SkipCurrentFile());
+    }
+
     [HttpGet("paused")]
     public ActionResult<bool> GetPausedState()
     {

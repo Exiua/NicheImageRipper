@@ -152,6 +152,9 @@ public class FileRipper : IDisposable
     /// </summary>
     public bool Paused { get; set; }
 
+    // One source per in-flight item (keyed by its index into FolderInfo.Urls), cancelled by SkipCurrentFile
+    private readonly ConcurrentDictionary<int, CancellationTokenSource> _fileSkipSources = new();
+
     private FileDownloadStrategyRegistry StrategyRegistry { get; }
     private IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; }
     private IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; }
@@ -826,17 +829,20 @@ public class FileRipper : IDisposable
         }
 
         CurrentIndex = index;
-        while (Paused)
-        {
-            await Sleep(1000, cancellationToken);
-        }
-
-        await Sleep((int)SleepTime * MillisecondsInSecond, cancellationToken);
+        using var skipSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _fileSkipSources[index] = skipSource;
+        var fileExistedBefore = File.Exists(Path.Combine(fullPath, link.Filename));
         try
         {
+            while (Paused)
+            {
+                await Sleep(1000, skipSource.Token);
+            }
+
+            await Sleep((int)SleepTime * MillisecondsInSecond, skipSource.Token);
             var filename = link.Filename;
             var imagePath = Path.Combine(fullPath, filename);
-            var result = await DownloadFromList(link, imagePath, index, downloadStats, cancellationToken);
+            var result = await DownloadFromList(link, imagePath, index, downloadStats, skipSource.Token);
             if (result.Outcome is DownloadOutcome.Success or DownloadOutcome.SkipNotAFailure)
             {
                 lock (_finishedDownloadsLock)
@@ -850,6 +856,15 @@ public class FileRipper : IDisposable
                 // DownloadFromList may modify filename (if it was missing extension)
                 imagePath = Path.Combine(fullPath, link.Filename);
                 await PostProcessFileLevel(link, imagePath, filesHashes, downloadStats, index, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (skipSource.IsCancellationRequested &&
+                                                 !cancellationToken.IsCancellationRequested)
+        {
+            MarkFileSkipped(link, fullPath, fileExistedBefore);
+            lock (_finishedDownloadsLock)
+            {
+                _finishedDownloads.Add(index);
             }
         }
         catch (FileNotFoundException)
@@ -877,6 +892,58 @@ public class FileRipper : IDisposable
 
             await SaveCurrentRipPosition(cancellationToken);
             throw;
+        }
+        finally
+        {
+            _fileSkipSources.TryRemove(index, out _);
+        }
+    }
+
+    /// <summary>
+    ///     Skips the file(s) currently downloading, leaving an empty <c>&lt;filename&gt;.skip</c> marker in place of each.
+    /// </summary>
+    /// <returns>True if there was a download in progress to skip.</returns>
+    public bool SkipCurrentFile()
+    {
+        var skipped = false;
+        foreach (var source in _fileSkipSources.Values)
+        {
+            try
+            {
+                source.Cancel();
+                skipped = true;
+            }
+            catch (ObjectDisposedException)
+            {
+                // Finished between the snapshot and the cancel
+            }
+        }
+
+        return skipped;
+    }
+
+    /// <summary>
+    ///     Removes any partial download left by a skipped file and writes an empty <c>&lt;filename&gt;.skip</c> marker.
+    /// </summary>
+    /// <param name="fileExistedBefore">Whether the file was already on disk before this attempt, so isn't a partial download.</param>
+    private void MarkFileSkipped(FileLink link, string fullPath, bool fileExistedBefore)
+    {
+        // DownloadFromList may have modified the filename (if it was missing an extension)
+        var imagePath = Path.Combine(fullPath, link.Filename);
+        Logger.Information("Skipped {Url}", link.Url);
+        try
+        {
+            if (!fileExistedBefore && File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
+
+            Directory.CreateDirectory(fullPath);
+            File.Create($"{imagePath}.skip").Dispose();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Logger.Warning(e, "Failed to write skip marker for {ImagePath}", imagePath);
         }
     }
 

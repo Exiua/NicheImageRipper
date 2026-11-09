@@ -25,6 +25,9 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public Task<bool> Rip(CancellationToken cancellationToken = default);
     public Task<bool> Resume(CancellationToken cancellationToken = default);
     public Task<bool> Pause(CancellationToken cancellationToken = default);
+    /// <summary>Skips the file currently downloading, leaving an empty <c>&lt;filename&gt;.skip</c> marker.</summary>
+    /// <returns>True if there was a download in progress to skip.</returns>
+    public Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default);
     public Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default);
     public Task<int> GetUrlQueueCount(CancellationToken cancellationToken = default);
     /// <returns>URL currently being ripped, or null when idle</returns>

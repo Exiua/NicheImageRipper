@@ -64,6 +64,11 @@ public class LocalRipperClient : IRipperClient
         return Task.FromResult(_ripper.Pause());
     }
 
+    public Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_ripper.SkipCurrentFile());
+    }
+
     public Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IEnumerable<string>>(_ripper.GetUrlQueueSnapshot());

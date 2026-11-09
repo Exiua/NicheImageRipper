@@ -177,6 +177,11 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
         return SendAsync<bool>(HttpMethod.Post, "api/state/resume", cancellationToken);
     }
 
+    public Task<bool> SkipCurrentFileAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<bool>(HttpMethod.Post, "api/state/skip-file", cancellationToken);
+    }
+
     public Task<bool> GetPausedStateAsync(CancellationToken cancellationToken = default)
     {
         return SendAsync<bool>(HttpMethod.Get, "api/state/paused", cancellationToken);

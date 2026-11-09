@@ -226,6 +226,13 @@ public partial class NicheImageRipper : IDisposable
         return true;
     }
 
+    /// <summary>Skips the file currently downloading, leaving an empty <c>&lt;filename&gt;.skip</c> marker.</summary>
+    /// <returns>True if there was a download in progress to skip.</returns>
+    public bool SkipCurrentFile()
+    {
+        return Ripper?.SkipCurrentFile() ?? false;
+    }
+
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
     {
         return HistoryDb.GetHistory(start, offset, filter);

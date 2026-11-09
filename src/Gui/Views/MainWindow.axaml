@@ -13,6 +13,7 @@
 
     <Window.Resources>
         <StreamGeometry x:Key="PauseButtonIcon">M520-200v-560h240v560H520Zm-320 0v-560h240v560H200Zm400-80h80v-400h-80v400Zm-320 0h80v-400h-80v400Zm0-400v400-400Zm320 0v400-400Z</StreamGeometry>
+        <StreamGeometry x:Key="SkipFileButtonIcon">M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Zm80-240Zm0 90 136-90-136-90v180Z</StreamGeometry>
         <StreamGeometry x:Key="PlayButtonIcon">M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z</StreamGeometry>
     </Window.Resources>
 
@@ -99,7 +100,7 @@
     <Grid x:Name="GridBackground" RowDefinitions="Auto,Auto,*,Auto" Focusable="True">
 
         <!-- Command bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="16,12,16,10">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" Margin="16,12,16,10">
             <PathIcon Grid.Column="0" Margin="0,0,10,0" Width="16" Height="16" Opacity="0.6"
                       Data="M440-280H280q-83 0-141.5-58.5T80-480q0-83 58.5-141.5T280-680h160v80H280q-50 0-85 35t-35 85q0 50 35 85t85 35h160v80ZM320-440v-80h320v80H320Zm200 160v-80h160q50 0 85-35t35-85q0-50-35-85t-85-35H520v-80h160q83 0 141.5 58.5T880-480q0 83-58.5 141.5T680-280H520Z" />
             <TextBox Grid.Column="1" Text="{Binding UrlInput}" Height="34" AcceptsReturn="True" TextChanged="OnUrlInput"
@@ -111,7 +112,11 @@
             <Button Grid.Column="3" Margin="8,0,0,0" Height="34" Click="PlayPauseButton_OnClick" ToolTip.Tip="Pause or resume">
                 <PathIcon x:Name="PlayPauseButtonIcon" Width="14" Height="14" Data="{StaticResource PauseButtonIcon}" />
             </Button>
-            <Button Grid.Column="4" Margin="8,0,0,0" Height="34" Content="{Binding ConnectButtonDisplay}"
+            <Button Grid.Column="4" Margin="8,0,0,0" Height="34" Command="{Binding SkipCurrentFileCommand}"
+                    ToolTip.Tip="Skip the file currently downloading (leaves an empty &lt;filename&gt;.skip in its place)">
+                <PathIcon Width="14" Height="14" Data="{StaticResource SkipFileButtonIcon}" />
+            </Button>
+            <Button Grid.Column="5" Margin="8,0,0,0" Height="34" Content="{Binding ConnectButtonDisplay}"
                     Command="{Binding ConnectCommand}" IsVisible="{Binding IsThinClient}" />
         </Grid>
 

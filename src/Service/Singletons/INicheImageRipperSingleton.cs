@@ -23,6 +23,7 @@ public interface INicheImageRipperSingleton
     public bool Paused { get; }
     public bool Pause();
     public bool Resume();
+    public bool SkipCurrentFile();
     public IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null);
     public int GetHistoryCount();
     public GeneralConfig GetConfig();

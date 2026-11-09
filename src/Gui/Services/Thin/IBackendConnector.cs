@@ -41,6 +41,7 @@ public interface IBackendConnector : IAsyncInitialization
     public Task<bool> RipAsync(CancellationToken cancellationToken = default);
     public Task<bool> PauseAsync(CancellationToken cancellationToken = default);
     public Task<bool> ResumeAsync(CancellationToken cancellationToken = default);
+    public Task<bool> SkipCurrentFileAsync(CancellationToken cancellationToken = default);
     public Task<bool> GetPausedStateAsync(CancellationToken cancellationToken = default);
     public Task<bool> GetIsRippingStateAsync(CancellationToken cancellationToken = default);
 

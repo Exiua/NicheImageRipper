@@ -132,6 +132,11 @@ public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDis
         return true;
     }
 
+    public bool SkipCurrentFile()
+    {
+        return IsRipping && _ripper.SkipCurrentFile();
+    }
+
     public IEnumerable<HistoryEntry> GetHistory(int start, int offset, HistoryFilter? filter = null)
     {
         return NicheImageRipper.Core.NicheImageRipper.GetHistoryPage(start, offset, filter);

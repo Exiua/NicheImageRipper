@@ -423,6 +423,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<string, Unit> ReRipUrlCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> ConnectCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> SkipCurrentEntryCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> SkipCurrentFileCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> EditSiteConfigsCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> CheckForUpdatesCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
@@ -475,6 +476,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         ReRipUrlCommand = ReactiveCommand.CreateFromTask<string>(Rerip);
         ConnectCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ToggleStateToRemote);
         SkipCurrentEntryCommand = ReactiveCommand.CreateFromTask<CancellationToken>(RipperClient.SkipCurrentEntry);
+        SkipCurrentFileCommand = ReactiveCommand.CreateFromTask<CancellationToken>(SkipCurrentFile);
         EditSiteConfigsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(EditSiteConfigs);
         CheckForUpdatesCommand = ReactiveCommand.CreateFromTask<CancellationToken>(CheckForUpdates);
         UrlQueue = new ObservableCollection<string>([]);
@@ -1066,6 +1068,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         var stateChanged = await RipperClient.Pause(cancellationToken);
         ProgressIsPaused = true;
         return stateChanged;
+    }
+
+    private async Task SkipCurrentFile(CancellationToken cancellationToken = default)
+    {
+        if (!await RipperClient.SkipCurrentFile(cancellationToken))
+        {
+            Notify("No file is downloading", "Skip File");
+        }
     }
 
     private void ClearProgressState()

@@ -50,6 +50,11 @@ public class RemoteRipperClient : IRipperClient
         return _backendConnector.PauseAsync(cancellationToken);
     }
 
+    public Task<bool> SkipCurrentFile(CancellationToken cancellationToken = default)
+    {
+        return _backendConnector.SkipCurrentFileAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<string>> GetUrlQueue(CancellationToken cancellationToken = default)
     {
         var queue = await _backendConnector.GetQueueSnapshotAsync(cancellationToken);
