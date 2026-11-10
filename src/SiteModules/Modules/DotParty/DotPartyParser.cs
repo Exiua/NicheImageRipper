@@ -10,6 +10,7 @@ using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.SiteModules.Modules.DotParty.Models;
+using Serilog;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
@@ -301,6 +302,12 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
 
         foreach (var attachment in attachments)
         {
+            if (attachment.Path is null)
+            {
+                Logger.Warning("Attachment {AttachmentName} has no path, skipping", attachment.Name);
+                continue;
+            }
+            
             var attachmentUrl = ResolveUrl(attachment.Path, domainUrl, serverMap, response.Post);
             var specialCaseLinks = await CheckForSpecialCase(attachment.Name, attachmentUrl, cancellationToken);
 
@@ -353,10 +360,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
                              .ToDictionary(g => g.Key, g => g.First().Server!);
 
     private string ResolveUrl(string path, string domainUrl, IReadOnlyDictionary<string, string> serverMap,
-                              DotPartyPostFull post) =>
-        path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                              DotPartyPostFull post)
+    {
+        Logger.Debug("Resolving URL for path {Path}", path);
+        return path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? path
             : BuildFileUrl(path, serverMap.GetValueOrDefault(path), domainUrl, post);
+    }
 
     private (string DirName, List<DotPartyPostResponse> Posts)? TryLoadCachedPosts()
     {

@@ -12,5 +12,17 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+        <!-- Fade the auto-hide scrollbars out entirely instead of leaving a thin line;
+             they expand back while hovered or scrolling -->
+        <Style Selector="ScrollBar">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="ScrollBar:not(:expanded)">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
     </Application.Styles>
 </Application>

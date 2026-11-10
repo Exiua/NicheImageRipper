@@ -8,7 +8,7 @@ public class DotPartyAttachmentShort
     public string? Name { get; set; }
 
     [JsonPropertyName("path")]
-    public string Path { get; set; } = null!;
+    public string? Path { get; set; } = null!;
 
     [JsonPropertyName("node")]
     public int? Node { get; set; }
