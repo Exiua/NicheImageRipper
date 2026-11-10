@@ -36,6 +36,7 @@ public abstract class NotImplementedRipperSingleton : INicheImageRipperSingleton
     public virtual void UpdateConfig(Config config) => throw new NotImplementedException();
     public virtual List<string> GetSiteNames() => throw new NotImplementedException();
     public virtual Dictionary<string, GalleryUpdateSupport> GetGalleryUpdateSupport() => throw new NotImplementedException();
+    public virtual Dictionary<string, SiteSettingsSchema> GetSiteSettingsSchemas() => throw new NotImplementedException();
     public virtual Version GetVersion() => throw new NotImplementedException();
 
     public virtual Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default) =>

@@ -175,6 +175,18 @@ public class ThinRipperSettings : IRipperSettings
         return new Dictionary<string, GalleryUpdateSupport>(supportByName, StringComparer.OrdinalIgnoreCase);
     }
 
+    public async Task<IReadOnlyDictionary<string, SiteSettingsSchema>> GetSiteSettingsSchemas(
+        CancellationToken cancellationToken = default)
+    {
+        if (!_initialized)
+        {
+            return new Dictionary<string, SiteSettingsSchema>();
+        }
+
+        var schemaByName = await _backendConnector.GetSiteSettingsSchemasAsync(cancellationToken);
+        return new Dictionary<string, SiteSettingsSchema>(schemaByName, StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_initialized)

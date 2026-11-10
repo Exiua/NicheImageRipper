@@ -66,6 +66,7 @@ public interface IBackendConnector : IAsyncInitialization
     public Task UpdateConfigAsync(Config config, CancellationToken cancellationToken = default);
     public Task<string[]> GetSiteNamesAsync(CancellationToken cancellationToken = default);
     public Task<Dictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupportAsync(CancellationToken cancellationToken = default);
+    public Task<Dictionary<string, SiteSettingsSchema>> GetSiteSettingsSchemasAsync(CancellationToken cancellationToken = default);
     public Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default);
     public Task<UpdateCheckResponse> CheckForUpdateAsync(CancellationToken cancellationToken = default);
     public Task ClearCacheAsync(CancellationToken cancellationToken = default);

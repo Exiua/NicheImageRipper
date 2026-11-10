@@ -14,6 +14,95 @@
         <vm:SiteConfigEditorViewModel />
     </Design.DataContext>
 
+    <!-- Site settings forms, built from the schema the site module declares. These take precedence over the
+         app's ViewLocator, which would otherwise look for a View per view model. -->
+    <Window.DataTemplates>
+        <DataTemplate DataType="vm:SiteSettingsFormViewModel">
+            <ItemsControl ItemsSource="{Binding Fields}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="8" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:TextSettingViewModel">
+            <StackPanel Spacing="3">
+                <TextBlock Text="{Binding Label}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" Text="{Binding Text}" PasswordChar="{Binding MaskChar}" />
+                    <ToggleButton Grid.Column="1" Margin="5,0,0,0" IsVisible="{Binding IsSecret}"
+                                  IsChecked="{Binding RevealSecret}">Show</ToggleButton>
+                </Grid>
+                <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                           Foreground="Gray" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:ToggleSettingViewModel">
+            <StackPanel Spacing="3">
+                <CheckBox IsChecked="{Binding IsChecked}" Content="{Binding Label}" />
+                <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                           Foreground="Gray" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:NumberSettingViewModel">
+            <StackPanel Spacing="3">
+                <TextBlock Text="{Binding Label}" />
+                <TextBox Text="{Binding Text}" PlaceholderText="{Binding Placeholder}" />
+                <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                           Foreground="Gray" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:ChoiceSettingViewModel">
+            <StackPanel Spacing="3">
+                <TextBlock Text="{Binding Label}" />
+                <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" MinWidth="150" />
+                <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                           Foreground="Gray" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:TextListSettingViewModel">
+            <StackPanel Spacing="3">
+                <TextBlock Text="{Binding Label, StringFormat='{}{0} (one per line):'}" />
+                <TextBox Text="{Binding Text}" AcceptsReturn="True" TextWrapping="NoWrap"
+                         MinHeight="60" MaxHeight="150" />
+                <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                           Foreground="Gray" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:ObjectListSettingViewModel">
+            <StackPanel Spacing="5">
+                <TextBlock Text="{Binding Label}" />
+                <TextBlock Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                           Foreground="Gray" FontSize="12" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="5" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <Button Command="{Binding AddItemCommand}" Content="{Binding AddItemText}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:SiteSettingsListItemViewModel">
+            <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4" Padding="10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <ContentControl Grid.Column="0" Content="{Binding Form}" />
+                    <Button Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Top"
+                            Command="{Binding RemoveCommand}">Remove</Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.DataTemplates>
+
     <Grid ColumnDefinitions="240,*" RowDefinitions="*,Auto" Margin="15">
         <!-- Site list -->
         <DockPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,0">
@@ -95,9 +184,18 @@
                 <TextBlock Foreground="Gray" FontSize="12" TextWrapping="Wrap"
                            Text="Only runs when 'Run Post-Process Script' is enabled in Settings." />
 
-                <TextBlock Text="Custom (JSON):" />
-                <TextBox Text="{Binding CustomJson}" AcceptsReturn="True" FontFamily="Consolas,Menlo,monospace"
+                <Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding CustomHeader}" />
+                    <Button Grid.Column="1" IsVisible="{Binding HasSettingsSchema}"
+                            Command="{Binding ToggleCustomJsonCommand}" Content="{Binding CustomModeButtonText}" />
+                </Grid>
+                <ContentControl Content="{Binding SettingsForm}" IsVisible="{Binding ShowSettingsForm}"
+                                Margin="25,0,0,0" />
+                <TextBox IsVisible="{Binding IsEditingCustomJson}"
+                         Text="{Binding CustomJson}" AcceptsReturn="True" FontFamily="Consolas,Menlo,monospace"
                          MinHeight="80" MaxHeight="200" PlaceholderText="Site-specific settings object, if the site uses one" />
+                <TextBlock Text="{Binding CustomError}" Foreground="IndianRed" TextWrapping="Wrap"
+                           IsVisible="{Binding CustomError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </StackPanel>
         </ScrollViewer>
 

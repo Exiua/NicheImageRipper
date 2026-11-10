@@ -39,4 +39,8 @@ public interface IRipperSettings : IAsyncInitialization
     /// <summary>The update strategies of every updatable site, keyed by parser name.</summary>
     public Task<IReadOnlyDictionary<string, GalleryUpdateSupport>> GetGalleryUpdateSupport(
         CancellationToken cancellationToken = default);
+
+    /// <summary>The custom settings schema of every site that declares one, keyed by parser name.</summary>
+    public Task<IReadOnlyDictionary<string, SiteSettingsSchema>> GetSiteSettingsSchemas(
+        CancellationToken cancellationToken = default);
 }

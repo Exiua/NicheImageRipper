@@ -225,6 +225,13 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
             cancellationToken);
     }
 
+    public Task<Dictionary<string, SiteSettingsSchema>> GetSiteSettingsSchemasAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return SendAsync<Dictionary<string, SiteSettingsSchema>>(HttpMethod.Get, "api/settings/sites/settings-schema",
+            cancellationToken);
+    }
+
     public async Task<Version> GetCurrentVersionAsync(CancellationToken cancellationToken = default)
     {
         var versionString = await SendAsync<string>(HttpMethod.Get, "api/version", cancellationToken);

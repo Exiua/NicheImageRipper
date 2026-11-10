@@ -32,6 +32,13 @@ public class SettingsController(ILogger<SettingsController> logger, INicheImageR
         return Ok(nicheImageRipperSingleton.GetGalleryUpdateSupport());
     }
 
+    /// <summary>The custom settings schema of each site that declares one, keyed by site name.</summary>
+    [HttpGet("sites/settings-schema")]
+    public ActionResult<Dictionary<string, SiteSettingsSchema>> GetSiteSettingsSchemas()
+    {
+        return Ok(nicheImageRipperSingleton.GetSiteSettingsSchemas());
+    }
+
     /// <summary>Applies and saves the given settings; omitted (null) settings are left as they are.</summary>
     [HttpPatch]
     public IActionResult UpdateConfig(Config config)

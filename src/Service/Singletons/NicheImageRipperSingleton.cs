@@ -284,6 +284,11 @@ public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDis
         return Core.NicheImageRipper.GetGalleryUpdateSupport();
     }
 
+    public Dictionary<string, SiteSettingsSchema> GetSiteSettingsSchemas()
+    {
+        return Core.NicheImageRipper.GetSiteSettingsSchemas();
+    }
+
     public async Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default)
     {
         var isLatest = await _ripper.IsLatestVersion(cancellationToken);

@@ -129,4 +129,11 @@ public class FullRipperSettings : IRipperSettings
         return Task.FromResult<IReadOnlyDictionary<string, GalleryUpdateSupport>>(
             Core.NicheImageRipper.GetGalleryUpdateSupport());
     }
+
+    public Task<IReadOnlyDictionary<string, SiteSettingsSchema>> GetSiteSettingsSchemas(
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyDictionary<string, SiteSettingsSchema>>(
+            Core.NicheImageRipper.GetSiteSettingsSchemas());
+    }
 }

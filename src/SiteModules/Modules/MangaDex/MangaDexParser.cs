@@ -10,9 +10,10 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.MangaDex;
 
-public partial class MangaDexParser : HtmlParser, IHtmlParser
+public partial class MangaDexParser : HtmlParser, IHtmlParser, ICustomSettingsHtmlParser
 {
     public static string ParserName => "mangadex";
+    public static Type CustomSettingsType => typeof(MangaDexConfig);
     public static string[] SupportedUrls => ["https://mangadex.org/"];
 
     public MangaDexParser(WebDriver driver, Dictionary<string, string> requestHeaders,

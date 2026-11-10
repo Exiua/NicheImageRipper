@@ -32,6 +32,8 @@ public interface INicheImageRipperSingleton
     public List<string> GetSiteNames();
     /// <summary>The update strategies of every updatable parser, keyed by parser name.</summary>
     public Dictionary<string, GalleryUpdateSupport> GetGalleryUpdateSupport();
+    /// <summary>The custom settings schema of every parser that declares one, keyed by parser name.</summary>
+    public Dictionary<string, SiteSettingsSchema> GetSiteSettingsSchemas();
     public Version GetVersion();
     public Task<UpdateCheckResponse> CheckForUpdate(CancellationToken cancellationToken = default);
     public void ClearCache();

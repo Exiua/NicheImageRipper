@@ -20,6 +20,7 @@ public class KemonoParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlPar
 
     protected override string[] OwnHosts { get; } = SupportedUrls.Select(u => new Uri(u).Host).ToArray();
     protected override string CachePath => ConstCachePath;
+    protected override string SettingsName => ParserName;
 
     public KemonoParser(WebDriver driver,  Dictionary<string, string> requestHeaders,
                         FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, 

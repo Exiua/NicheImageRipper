@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -20,6 +21,7 @@ public class SiteConfigEditorViewModel : ViewModelBase
 {
     private readonly HashSet<string> _knownSiteNames;
     private readonly IReadOnlyDictionary<string, GalleryUpdateSupport> _updateSupport;
+    private readonly IReadOnlyDictionary<string, SiteSettingsSchema> _settingsSchemas;
 
     public ObservableCollection<SiteConfigEntryViewModel> Sites { get; }
     public IReadOnlyList<string> KnownSiteNames { get; }
@@ -52,16 +54,20 @@ public class SiteConfigEditorViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> RemoveSiteCommand { get; }
 
     public SiteConfigEditorViewModel()
-        : this(new Dictionary<string, SiteConfig>(), [], new Dictionary<string, GalleryUpdateSupport>())
+        : this(new Dictionary<string, SiteConfig>(), [], new Dictionary<string, GalleryUpdateSupport>(),
+            new Dictionary<string, SiteSettingsSchema>())
     {
     }
 
     /// <param name="updateSupport">The update strategies of each updatable site, keyed by parser name.</param>
+    /// <param name="settingsSchemas">The custom settings of each site that declares them, keyed by parser name.</param>
     public SiteConfigEditorViewModel(IReadOnlyDictionary<string, SiteConfig> sites, IReadOnlyList<string> knownSiteNames,
-                                     IReadOnlyDictionary<string, GalleryUpdateSupport> updateSupport)
+                                     IReadOnlyDictionary<string, GalleryUpdateSupport> updateSupport,
+                                     IReadOnlyDictionary<string, SiteSettingsSchema> settingsSchemas)
     {
         _knownSiteNames = new HashSet<string>(knownSiteNames, StringComparer.OrdinalIgnoreCase);
         _updateSupport = new Dictionary<string, GalleryUpdateSupport>(updateSupport, StringComparer.OrdinalIgnoreCase);
+        _settingsSchemas = new Dictionary<string, SiteSettingsSchema>(settingsSchemas, StringComparer.OrdinalIgnoreCase);
         KnownSiteNames = knownSiteNames;
         Sites = new ObservableCollection<SiteConfigEntryViewModel>(
             sites.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
@@ -77,7 +83,8 @@ public class SiteConfigEditorViewModel : ViewModelBase
     private bool IsKnown(string name) => _knownSiteNames.Count == 0 || _knownSiteNames.Contains(name);
 
     private SiteConfigEntryViewModel CreateEntry(string name, SiteConfig config) =>
-        new(name, config, IsKnown(name), _updateSupport.GetValueOrDefault(name));
+        new(name, config, IsKnown(name), _updateSupport.GetValueOrDefault(name),
+            _settingsSchemas.GetValueOrDefault(name));
 
     private void AddSite()
     {
@@ -230,6 +237,47 @@ public class SiteConfigEntryViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    private readonly SiteSettingsSchema? _settingsSchema;
+
+    /// <summary>The settings an untouched form produces; only saved for a new config when changed from these.</summary>
+    private readonly JsonObject? _defaultSettings;
+
+    private readonly bool _hadCustom;
+
+    /// <summary>True when the site declares its custom settings, so they can be edited with a form.</summary>
+    public bool HasSettingsSchema => _settingsSchema is not null;
+
+    /// <summary>The form for the custom settings; null without a schema.</summary>
+    public SiteSettingsFormViewModel? SettingsForm
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    /// <summary>Whether the custom settings are edited as raw JSON rather than with <see cref="SettingsForm"/>.</summary>
+    public bool IsEditingCustomJson
+    {
+        get;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(ShowSettingsForm));
+            this.RaisePropertyChanged(nameof(CustomModeButtonText));
+        }
+    }
+
+    public bool ShowSettingsForm => HasSettingsSchema && !IsEditingCustomJson;
+    public string CustomHeader => HasSettingsSchema ? "Site Settings:" : "Custom (JSON):";
+    public string CustomModeButtonText => IsEditingCustomJson ? "Edit as Form" : "Edit as JSON";
+
+    public string CustomError
+    {
+        get;
+        private set => this.RaiseAndSetIfChanged(ref field, value);
+    } = "";
+
+    public ReactiveCommand<Unit, Unit> ToggleCustomJsonCommand { get; }
+
     // ComboBoxes push a null SelectedItem back while their items are being (re)bound; ignore it rather than
     // losing the selection.
     public GalleryUpdateModeOption OverrideGalleryUpdateMode
@@ -252,8 +300,10 @@ public class SiteConfigEntryViewModel : ViewModelBase
     }
 
     /// <param name="updateSupport">Null when the site isn't updatable (or unknown).</param>
+    /// <param name="settingsSchema">Null when the site doesn't declare its custom settings (or is unknown).</param>
     public SiteConfigEntryViewModel(string name, SiteConfig config, bool isKnownSite,
-                                    GalleryUpdateSupport? updateSupport = null)
+                                    GalleryUpdateSupport? updateSupport = null,
+                                    SiteSettingsSchema? settingsSchema = null)
     {
         Name = name;
         IsKnownSite = isKnownSite;
@@ -271,19 +321,108 @@ public class SiteConfigEntryViewModel : ViewModelBase
             o.Strategy == config.Overrides?.GalleryUpdateStrategy);
         PostProcessScript = config.PostProcessScript ?? "";
         CustomJson = config.Custom is { } custom ? JsonSerializer.Serialize(custom, IndentedJson) : "";
+        _hadCustom = config.Custom is not null;
+        ToggleCustomJsonCommand = ReactiveCommand.Create(ToggleCustomJson);
+
+        if (settingsSchema is null)
+        {
+            IsEditingCustomJson = true;
+            return;
+        }
+
+        _settingsSchema = settingsSchema;
+        new SiteSettingsFormViewModel(settingsSchema.Fields, null).TryBuild(out var defaults, out _);
+        _defaultSettings = defaults;
+        // Custom JSON that isn't an object can't be shown as a form, so it's left as JSON for the user to fix
+        if (TryParseCustomJson(out var settings, out var error))
+        {
+            SettingsForm = new SiteSettingsFormViewModel(settingsSchema.Fields, settings);
+        }
+        else
+        {
+            CustomError = error!;
+            IsEditingCustomJson = true;
+        }
     }
 
-    public bool TryBuild(out SiteConfig config, out string? error)
+    private void ToggleCustomJson()
     {
-        config = new SiteConfig();
-        error = null;
-
-        if (!string.IsNullOrWhiteSpace(CustomJson))
+        if (_settingsSchema is null)
         {
+            return;
+        }
+
+        string? error = null;
+        if (IsEditingCustomJson)
+        {
+            if (!TryParseCustomJson(out var settings, out error))
+            {
+                CustomError = error!;
+                return;
+            }
+
+            SettingsForm = new SiteSettingsFormViewModel(_settingsSchema.Fields, settings);
+            IsEditingCustomJson = false;
+        }
+        else
+        {
+            if (SettingsForm is null || !SettingsForm.TryBuild(out var settings, out error))
+            {
+                CustomError = error ?? "";
+                return;
+            }
+
+            CustomJson = settings.ToJsonString(IndentedJson);
+            IsEditingCustomJson = true;
+        }
+
+        CustomError = "";
+    }
+
+    /// <summary>Parses <see cref="CustomJson"/> as an object; blank gives a null <paramref name="settings"/>.</summary>
+    private bool TryParseCustomJson(out JsonObject? settings, out string? error)
+    {
+        settings = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(CustomJson))
+        {
+            return true;
+        }
+
+        try
+        {
+            settings = JsonNode.Parse(CustomJson) as JsonObject;
+            if (settings is null)
+            {
+                error = "Custom JSON must be an object to edit it as a form";
+                return false;
+            }
+
+            return true;
+        }
+        catch (JsonException e)
+        {
+            error = $"Custom JSON is invalid: {e.Message}";
+            return false;
+        }
+    }
+
+    private bool TryBuildCustom(out JsonElement? custom, out string? error)
+    {
+        custom = null;
+        if (IsEditingCustomJson || SettingsForm is null)
+        {
+            error = null;
+            if (string.IsNullOrWhiteSpace(CustomJson))
+            {
+                return true;
+            }
+
             try
             {
                 using var document = JsonDocument.Parse(CustomJson);
-                config.Custom = document.RootElement.Clone();
+                custom = document.RootElement.Clone();
+                return true;
             }
             catch (JsonException e)
             {
@@ -291,6 +430,32 @@ public class SiteConfigEntryViewModel : ViewModelBase
                 return false;
             }
         }
+
+        if (!SettingsForm.TryBuild(out var settings, out error))
+        {
+            return false;
+        }
+
+        // Don't add untouched defaults to a config that had no custom settings
+        if (!_hadCustom && JsonNode.DeepEquals(settings, _defaultSettings))
+        {
+            return true;
+        }
+
+        custom = JsonSerializer.SerializeToElement(settings);
+        return true;
+    }
+
+    public bool TryBuild(out SiteConfig config, out string? error)
+    {
+        config = new SiteConfig();
+
+        if (!TryBuildCustom(out var custom, out error))
+        {
+            return false;
+        }
+
+        config.Custom = custom;
 
         if (HasLogin)
         {

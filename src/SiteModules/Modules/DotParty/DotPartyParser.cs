@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
+using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
@@ -13,7 +14,7 @@ using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
 namespace NicheImageRipper.SiteModules.Modules.DotParty;
 
-public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlParser
+public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlParser, ICustomSettingsHtmlParser
 {
     private const int PageSize = 50;
 
@@ -24,6 +25,14 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
 
     protected abstract string[] OwnHosts { get; }
     protected abstract string CachePath { get; }
+
+    /// <summary>The parser name, whose site config holds the <see cref="DotPartySettings"/>.</summary>
+    protected abstract string SettingsName { get; }
+
+    public static Type CustomSettingsType => typeof(DotPartySettings);
+
+    /// <summary><see cref="HtmlParser.FilenameScheme"/>, or the creator's own scheme from the site settings.</summary>
+    private FilenameScheme _filenameScheme;
 
     // New posts are usually just appended, so only fetching posts newer than the last rip is the default. A full diff
     // refetches every post to also catch posts imported with an older publish date and posts that were removed.
@@ -69,6 +78,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
     {
         var domainUrl =
             new Uri(CurrentUrl).GetLeftPart(UriPartial.Authority); // e.g. "https://kemono.cr", "https://coomer.st"
+        _filenameScheme = ResolveFilenameScheme();
 
         var cached = TryLoadCachedPosts();
         var (dirName, posts) = cached ?? await GetAndCachePosts(domainUrl, cancellationToken);
@@ -84,9 +94,29 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
         var unique = DeduplicateFileLinks(resolvedLinks);
 
         File.Delete(CachePath);
-        var ripInfo = await RipInfo.FromUrlListAsync(unique, dirName, FilenameScheme);
+        var ripInfo = await RipInfo.FromUrlListAsync(unique, dirName, _filenameScheme);
         ripInfo.UpdateCursor = newestPostId;
         return ripInfo;
+    }
+
+    /// <summary>The creator's scheme when the site settings have one for the <c>/{service}/user/{id}</c> URL.</summary>
+    private FilenameScheme ResolveFilenameScheme()
+    {
+        var segments = new Uri(CurrentUrl).AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 3 || !segments[1].Equals("user", StringComparison.OrdinalIgnoreCase))
+        {
+            return FilenameScheme;
+        }
+
+        var (service, userId) = (segments[0], segments[2]);
+        if (SiteSettings.Read<DotPartySettings>(SettingsName).GetFilenameScheme(service, userId) is not { } scheme)
+        {
+            return FilenameScheme;
+        }
+
+        Logger.Information("Using filename scheme {FilenameScheme} set for creator {Service}/{UserId}", scheme,
+            service, userId);
+        return scheme;
     }
 
     private bool IsNativeLink(string link)
@@ -260,7 +290,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
 
         var url = ResolveUrl(file.Path, domainUrl, serverMap, post);
         // if path is not null, name should also not be null
-        files.Add(FileLink.WithFilename(url, file.Name!, FilenameScheme));
+        files.Add(FileLink.WithFilename(url, file.Name!, _filenameScheme));
     }
 
     private async Task AddAttachments(DotPartyPostResponse response, string domainUrl,
@@ -279,7 +309,7 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
                 var filename = attachment.Name is not null
                     ? DotPartyExternalLinkExtractor.ReplacePlusWithSpaceInFilename(attachment.Name)
                     : "";
-                files.Add(FileLink.WithFilename(attachmentUrl, filename, FilenameScheme));
+                files.Add(FileLink.WithFilename(attachmentUrl, filename, _filenameScheme));
             }
             else
             {

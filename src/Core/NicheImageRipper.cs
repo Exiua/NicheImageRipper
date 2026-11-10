@@ -395,6 +395,21 @@ public partial class NicheImageRipper : IDisposable
         return supportByName;
     }
 
+    /// <summary>The custom settings schema of every parser that declares one, keyed by parser name.</summary>
+    public static Dictionary<string, SiteSettingsSchema> GetSiteSettingsSchemas()
+    {
+        var schemaByName = new Dictionary<string, SiteSettingsSchema>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in HtmlParserFactory.ParserNames)
+        {
+            if (SiteSettingsSchema.For(HtmlParserFactory.ResolveType(name)) is { } schema)
+            {
+                schemaByName[name] = schema;
+            }
+        }
+
+        return schemaByName;
+    }
+
     private async Task<RipUrlResult> RipUrl(CancellationToken cancellationToken = default)
     {
         string url;

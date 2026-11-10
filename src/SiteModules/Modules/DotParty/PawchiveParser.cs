@@ -20,6 +20,7 @@ public class PawchiveParser : DotPartyParser, IHtmlParser, IRefererOverrideHtmlP
 
     protected override string[] OwnHosts { get; } = SupportedUrls.Select(u => new Uri(u).Host).ToArray();
     protected override string CachePath => ConstCachePath;
+    protected override string SettingsName => ParserName;
 
     public PawchiveParser(WebDriver driver, Dictionary<string, string> requestHeaders,
                           FilenameScheme filenameScheme = FilenameScheme.Original) : base(driver, requestHeaders,
