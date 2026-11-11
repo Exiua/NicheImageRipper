@@ -236,6 +236,27 @@ public partial class NicheImageRipper : IDisposable
         return Ripper is not null && await Ripper.SkipCurrentFile(cancellationToken);
     }
 
+    /// <summary>
+    ///     The files the URL being ripped will download, or those of the last rip if it errored or was interrupted.
+    ///     Empty when idle after a finished rip, or while the URL is still being parsed.
+    /// </summary>
+    public CurrentRipFiles GetCurrentRipFiles()
+    {
+        var currentUrl = CurrentUrl;
+        if (Ripper is null)
+        {
+            return CurrentRipFiles.Empty;
+        }
+
+        if (currentUrl is not null)
+        {
+            // Report the URL even before it's parsed, so the window can tell parsing apart from idle
+            return Ripper.GetCurrentRipFiles() with { Url = currentUrl, Stopped = false };
+        }
+
+        return Ripper.LastRipFinished ? CurrentRipFiles.Empty : Ripper.GetCurrentRipFiles();
+    }
+
     public static List<HistoryEntry> GetHistoryPage(int start, int offset, HistoryFilter? filter = null)
     {
         return HistoryDb.GetHistory(start, offset, filter);

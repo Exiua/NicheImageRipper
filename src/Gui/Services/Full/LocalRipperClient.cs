@@ -84,6 +84,11 @@ public class LocalRipperClient : IRipperClient
         return Task.FromResult(_ripper.CurrentUrl);
     }
 
+    public Task<CurrentRipFiles> GetCurrentRipFiles(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_ripper.GetCurrentRipFiles());
+    }
+
     public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_ripper.QueueUrls(url));

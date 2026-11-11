@@ -1,4 +1,5 @@
 using System.Text;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using NicheImageRipper.Sdk.DataStructures;
@@ -38,11 +39,45 @@ public static class GDriveHelper
         }
     }
     
+    /// <summary>
+    ///     Drops the cached Drive client so the next <see cref="AuthenticateGDrive"/> call authorizes from scratch.
+    /// </summary>
+    private static async Task ResetService(DriveService staleService)
+    {
+        await ServiceLock.WaitAsync();
+        try
+        {
+            // Another caller may have already replaced it
+            if (ReferenceEquals(_service, staleService))
+            {
+                _service = null;
+                staleService.Dispose();
+            }
+        }
+        finally
+        {
+            ServiceLock.Release();
+        }
+    }
+
     public static async Task<(List<FileLink>, int)> QueryGDriveLinks(string gDriveUrl, int index, FilenameScheme filenameScheme)
     {
         var service = await AuthenticateGDrive();
         var (id, singleFile) = ExtractId(gDriveUrl);
-        var files = await service.GetFiles(id);
+        List<GDriveItem> files;
+        try
+        {
+            files = await service.GetFiles(id);
+        }
+        catch (TokenResponseException e) when (e.Error?.Error == "invalid_grant")
+        {
+            // The refresh token was expired or revoked. The auth library has already deleted it from the token
+            // store, so re-authorizing prompts the user to sign in again instead of reusing the dead credential.
+            await ResetService(service);
+            service = await AuthenticateGDrive();
+            files = await service.GetFiles(id);
+        }
+
         var fileLinks = new List<FileLink>();
         var counter = index;
         foreach (var file in files.Where(f => !f.IsFolder))
@@ -59,6 +94,8 @@ public static class GDriveHelper
     
     private static (string, bool) ExtractId(string url)
     {
+        // Links scraped from post bodies can carry trailing newlines/whitespace
+        url = url.Trim();
         var parts = url.Split("/");
         if (url.Contains("/d/"))
         {
@@ -101,7 +138,9 @@ public class GDriveItem
     {
         if (Parent is null)
         {
-            return "";
+            // A root file is a single-file link: it still needs its own name, or FileLink falls back to parsing
+            // the bare Drive ID as a URL
+            return IsFolder ? "" : Name;
         }
         
         var path = new StringBuilder();

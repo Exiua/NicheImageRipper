@@ -39,6 +39,11 @@ public sealed class NicheImageRipperSingleton : INicheImageRipperSingleton, IDis
         return _ripper.CurrentUrl;
     }
 
+    public CurrentRipFiles GetCurrentRipFiles()
+    {
+        return _ripper.GetCurrentRipFiles();
+    }
+
     public string? SaveQueueToFileAndClear()
     {
         using (_ripperLock.EnterScope())

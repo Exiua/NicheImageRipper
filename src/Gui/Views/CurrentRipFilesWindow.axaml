@@ -1,0 +1,84 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:NicheImageRipper.Gui.ViewModels"
+        xmlns:ds="clr-namespace:NicheImageRipper.Core.DataStructures;assembly=Core"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+        x:Class="NicheImageRipper.Gui.Views.CurrentRipFilesWindow"
+        x:DataType="vm:CurrentRipFilesViewModel"
+        Title="Files in the current rip"
+        WindowStartupLocation="CenterOwner"
+        Width="920" Height="580" MinWidth="560" MinHeight="360">
+
+    <Design.DataContext>
+        <vm:CurrentRipFilesViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="ListBox.files ListBoxItem">
+            <Setter Property="Padding" Value="10,3" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="TextBlock.mono">
+            <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,Menlo,monospace" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <TextBlock Grid.Column="0" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                       Text="{Binding DirectoryName, FallbackValue='Current rip', TargetNullValue='Current rip'}"
+                       ToolTip.Tip="{Binding DirectoryName}" />
+            <TextBlock Grid.Column="1" Classes="hint" Margin="12,0,0,0" VerticalAlignment="Center"
+                       IsVisible="{Binding HasFiles}" Text="{Binding Summary}" />
+        </Grid>
+        <TextBlock Grid.Row="1" Classes="hint mono" Margin="0,0,0,8" Text="{Binding RipUrl}"
+                   IsVisible="{Binding RipUrl, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   ToolTip.Tip="{Binding RipUrl}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+
+        <Border Grid.Row="2" IsVisible="{Binding Stopped}" Margin="0,0,0,8" Padding="12,8" CornerRadius="6"
+                BorderThickness="1" BorderBrush="IndianRed">
+            <TextBlock TextWrapping="Wrap"
+                       Text="This rip errored or was interrupted before finishing. Files without a ✓ are still to be downloaded when it's ripped again." />
+        </Border>
+
+        <!-- Files -->
+        <ListBox Grid.Row="3" x:Name="FileList" Classes="files" SelectionMode="Multiple" IsVisible="{Binding HasFiles}"
+                 ItemsSource="{Binding Files}" CornerRadius="6" BorderThickness="1"
+                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="ds:RipFileEntry">
+                    <Grid ColumnDefinitions="20,Auto,*" ToolTip.Tip="{Binding Url}">
+                        <TextBlock Grid.Column="0" Text="✓" Foreground="MediumSeaGreen" IsVisible="{Binding Downloaded}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Filename}" MinWidth="180" MaxWidth="320"
+                                   Margin="0,0,16,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Classes="mono" Text="{Binding Url}" Opacity="0.8"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Grid.Row="3" IsVisible="{Binding !HasFiles}" Classes="hint" Margin="0,30,0,0"
+                   HorizontalAlignment="Center" Text="{Binding EmptyText}" />
+
+        <!-- Footer -->
+        <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                <Button Command="{Binding RefreshCommand}" ToolTip.Tip="Reload the list and download progress">Refresh</Button>
+                <Button Click="CopyUrls" IsEnabled="{Binding HasFiles}"
+                        ToolTip.Tip="Copy the selected URLs, or all of them if none are selected">Copy URLs</Button>
+            </StackPanel>
+            <Button Grid.Column="2" IsCancel="True" IsDefault="True" Click="Close">Close</Button>
+        </Grid>
+    </Grid>
+</Window>

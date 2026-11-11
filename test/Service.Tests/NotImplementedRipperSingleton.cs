@@ -16,6 +16,7 @@ public abstract class NotImplementedRipperSingleton : INicheImageRipperSingleton
 
     public virtual string[] GetQueueSnapshot() => throw new NotImplementedException();
     public virtual string? GetCurrentUrl() => throw new NotImplementedException();
+    public virtual CurrentRipFiles GetCurrentRipFiles() => throw new NotImplementedException();
     public virtual string? SaveQueueToFileAndClear() => throw new NotImplementedException();
     public virtual RejectedUrlsInfo Queue(string urls) => throw new NotImplementedException();
     public virtual void ForceQueue(string urls) => throw new NotImplementedException();

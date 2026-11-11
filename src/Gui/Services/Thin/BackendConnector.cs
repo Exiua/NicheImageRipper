@@ -142,6 +142,11 @@ public class BackendConnector(HttpClient httpClient) : IBackendConnector, IDispo
         return response.Url;
     }
 
+    public Task<CurrentRipFiles> GetCurrentRipFilesAsync(CancellationToken cancellationToken = default)
+    {
+        return SendAsync<CurrentRipFiles>(HttpMethod.Get, "api/queue/current/files", cancellationToken);
+    }
+
     public async Task DequeueUrlsAsync(string[] urls, CancellationToken cancellationToken = default)
     {
         if (urls.Length == 0)

@@ -173,14 +173,13 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
         return externalLinks;
     }
 
-    private static List<StringFileLinkWrapper> DeduplicateFileLinks(List<StringFileLinkWrapper> stringLinks)
+    private List<StringFileLinkWrapper> DeduplicateFileLinks(List<StringFileLinkWrapper> stringLinks)
     {
         // This may be able to be removed as RipInfo.FromUrlList also removes duplicates
         var seen = new HashSet<string>();
         var unique = new List<StringFileLinkWrapper>();
         foreach (var link in stringLinks)
         {
-            var domainName = new Uri(link).Host.Split('.')[0];
             var linkStr = link.ToString();
             if (linkStr.Contains("puu.sh"))
             {
@@ -188,7 +187,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
                 continue;
             }
 
-            if (!linkStr.Contains(domainName)) // Only native links get duplicated
+            // Only native links get duplicated. External links (and resolved links carrying a non-URL identifier,
+            // e.g. a GDrive file ID) can share a last path segment without being the same file
+            if (!IsNativeLink(link))
             {
                 unique.Add(link);
                 continue;

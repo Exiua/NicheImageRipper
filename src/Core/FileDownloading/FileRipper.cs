@@ -158,6 +158,12 @@ public class FileRipper : IDisposable
     // URL that FolderInfo was parsed from, so a failed rip's saved position is only skipped against its own links
     private string? _parsedUrl;
 
+    /// <summary>
+    ///     Whether the most recent <see cref="Rip"/> ran to completion; false while it runs and after it errors or is
+    ///     cancelled.
+    /// </summary>
+    public bool LastRipFinished { get; private set; } = true;
+
     private FileDownloadStrategyRegistry StrategyRegistry { get; }
     private IReadOnlyList<IRequestHeaderModifier> HeaderModifiers { get; }
     private IReadOnlyList<IDownloadErrorHandler> ErrorHandlers { get; }
@@ -253,7 +259,9 @@ public class FileRipper : IDisposable
         (SiteName, SleepTime) = Core.Utility.UrlUtility.SiteCheck(GivenUrl, RequestHeaders);
         Logger.Debug("Site Name: {SiteName}", SiteName);
 
+        LastRipFinished = false;
         await FileGetter(cancellationToken);
+        LastRipFinished = true;
     }
 
     /// <summary>
@@ -901,6 +909,27 @@ public class FileRipper : IDisposable
         finally
         {
             _fileSkipSources.TryRemove(index, out _);
+        }
+    }
+
+    /// <summary>
+    ///     Snapshot of the files the current (or most recent) rip will download. Empty until the URL has been parsed.
+    /// </summary>
+    public CurrentRipFiles GetCurrentRipFiles()
+    {
+        var parsedUrl = _parsedUrl;
+        if (parsedUrl is null)
+        {
+            return CurrentRipFiles.Empty;
+        }
+
+        var folderInfo = FolderInfo;
+        var links = folderInfo.Urls.ToList();
+        lock (_finishedDownloadsLock)
+        {
+            var files = links.Select((link, i) => new RipFileEntry(link.Url, link.Filename, _finishedDownloads.Contains(i)))
+                             .ToList();
+            return new CurrentRipFiles(parsedUrl, folderInfo.DirectoryName, !LastRipFinished, files);
         }
     }
 

@@ -14,6 +14,8 @@ public interface INicheImageRipperSingleton
     
     public string[] GetQueueSnapshot();
     public string? GetCurrentUrl();
+    /// <summary>The files the URL being ripped will download, or those of the last rip if it errored or was interrupted.</summary>
+    public CurrentRipFiles GetCurrentRipFiles();
     public string? SaveQueueToFileAndClear();
     public RejectedUrlsInfo Queue(string urls);
     public void ForceQueue(string urls);

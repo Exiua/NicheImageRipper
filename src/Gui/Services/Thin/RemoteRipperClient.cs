@@ -71,6 +71,11 @@ public class RemoteRipperClient : IRipperClient
         return _backendConnector.GetCurrentUrlAsync(cancellationToken);
     }
 
+    public Task<CurrentRipFiles> GetCurrentRipFiles(CancellationToken cancellationToken = default)
+    {
+        return _backendConnector.GetCurrentRipFilesAsync(cancellationToken);
+    }
+
     public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default)
     {
         return _backendConnector.QueueUrlsAsync(url, cancellationToken: cancellationToken);

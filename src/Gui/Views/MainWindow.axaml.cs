@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,6 +84,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
             ViewModel!.ShowConfirmationDialog.RegisterHandler((vm) => DoShowDialogAsync(vm)).DisposeWith(disposables);
             ViewModel!.ShowSiteConfigDialog.RegisterHandler(DoShowSiteConfigDialogAsync).DisposeWith(disposables);
             ViewModel!.ShowUnfinishedUrlsDialog.RegisterHandler(DoShowUnfinishedUrlsDialogAsync).DisposeWith(disposables);
+            ViewModel!.ShowCurrentRipFilesDialog.RegisterHandler(DoShowCurrentRipFilesDialogAsync).DisposeWith(disposables);
         });
     // this.WhenActivated(disposables =>
     // {
@@ -378,6 +380,16 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModelBase>
         };
         var result = await dialog.ShowDialog<string?>(this);
         interaction.SetOutput(result);
+    }
+
+    private async Task DoShowCurrentRipFilesDialogAsync(IInteractionContext<CurrentRipFilesViewModel, Unit> interaction)
+    {
+        var dialog = new CurrentRipFilesWindow
+        {
+            DataContext = interaction.Input
+        };
+        await dialog.ShowDialog(this);
+        interaction.SetOutput(Unit.Default);
     }
 
     private void OnUrlInput(object? sender, TextChangedEventArgs textChangedEventArgs)

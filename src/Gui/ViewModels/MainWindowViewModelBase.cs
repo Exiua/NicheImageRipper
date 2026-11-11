@@ -424,12 +424,14 @@ public abstract class MainWindowViewModelBase : ViewModelBase
     public ReactiveCommand<CancellationToken, Unit> ConnectCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> SkipCurrentEntryCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> SkipCurrentFileCommand { get; }
+    public ReactiveCommand<CancellationToken, Unit> ViewCurrentRipFilesCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> EditSiteConfigsCommand { get; }
     public ReactiveCommand<CancellationToken, Unit> CheckForUpdatesCommand { get; }
     public Interaction<ConfirmationViewModel, ConfirmationViewModel?> ShowConfirmationDialog { get; } = new();
     public Interaction<SiteConfigEditorViewModel, bool> ShowSiteConfigDialog { get; } = new();
     /// <summary>Returns the full path of the URL list to load, or null if cancelled.</summary>
     public Interaction<UnfinishedUrlsViewModel, string?> ShowUnfinishedUrlsDialog { get; } = new();
+    public Interaction<CurrentRipFilesViewModel, Unit> ShowCurrentRipFilesDialog { get; } = new();
 
     public event Action<int, int>? ProgressChanged;
     public event Action? ProgressErrored;
@@ -477,6 +479,7 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         ConnectCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ToggleStateToRemote);
         SkipCurrentEntryCommand = ReactiveCommand.CreateFromTask<CancellationToken>(RipperClient.SkipCurrentEntry);
         SkipCurrentFileCommand = ReactiveCommand.CreateFromTask<CancellationToken>(SkipCurrentFile);
+        ViewCurrentRipFilesCommand = ReactiveCommand.CreateFromTask<CancellationToken>(ViewCurrentRipFiles);
         EditSiteConfigsCommand = ReactiveCommand.CreateFromTask<CancellationToken>(EditSiteConfigs);
         CheckForUpdatesCommand = ReactiveCommand.CreateFromTask<CancellationToken>(CheckForUpdates);
         UrlQueue = new ObservableCollection<string>([]);
@@ -1077,6 +1080,23 @@ public abstract class MainWindowViewModelBase : ViewModelBase
         {
             Notify("No file to skip", "Skip File");
         }
+    }
+
+    private async Task ViewCurrentRipFiles(CancellationToken cancellationToken = default)
+    {
+        CurrentRipFiles files;
+        try
+        {
+            files = await RipperClient.GetCurrentRipFiles(cancellationToken);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to get the files in the current rip");
+            Notify("Couldn't get the files in the current rip", "Current rip", NotificationType.Error);
+            return;
+        }
+
+        await ShowCurrentRipFilesDialog.Handle(new CurrentRipFilesViewModel(files, RipperClient.GetCurrentRipFiles));
     }
 
     private void ClearProgressState()

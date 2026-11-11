@@ -35,6 +35,8 @@ public interface IRipperClient : IAsyncInitialization, IDisposable
     public Task<int> GetUrlQueueCount(CancellationToken cancellationToken = default);
     /// <returns>URL currently being ripped, or null when idle</returns>
     public Task<string?> GetCurrentUrl(CancellationToken cancellationToken = default);
+    /// <returns>The files the URL being ripped will download, or those of the last rip if it errored or was interrupted</returns>
+    public Task<CurrentRipFiles> GetCurrentRipFiles(CancellationToken cancellationToken = default);
     public Task<RejectedUrlsInfo> QueueUrls(string url, CancellationToken cancellationToken = default);
     public Task DequeueUrls(IEnumerable<string> url, CancellationToken cancellationToken = default);
     public Task ForceQueueUrl(string url, CancellationToken cancellationToken = default);

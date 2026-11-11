@@ -144,7 +144,11 @@
                             Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
                         <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Now ripping" FontWeight="SemiBold" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Classes="status" Text="{Binding ProgressText}" />
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                                <TextBlock Classes="status" Text="{Binding ProgressText}" VerticalAlignment="Center" />
+                                <Button Command="{Binding ViewCurrentRipFilesCommand}" Padding="8,2" FontSize="12"
+                                        ToolTip.Tip="View every file this rip will download">View files…</Button>
+                            </StackPanel>
                             <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,4,0,8"
                                        Text="{Binding CurrentUrl}" ToolTip.Tip="{Binding CurrentUrl}"
                                        FontFamily="Cascadia Mono,Consolas,Menlo,monospace" FontSize="13"
@@ -241,7 +245,11 @@
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
                         <TextBlock Grid.Column="0" x:Name="LogPausedText" Classes="status" IsVisible="False"
                                    Text="Scrolled up: new lines appear when you scroll to the bottom" />
-                        <Button Grid.Column="1" Command="{Binding ClearLogCommand}">Clear</Button>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Command="{Binding ViewCurrentRipFilesCommand}"
+                                    ToolTip.Tip="View every file the current rip will download">View files…</Button>
+                            <Button Command="{Binding ClearLogCommand}">Clear</Button>
+                        </StackPanel>
                     </Grid>
                     <TextBox Grid.Row="1" x:Name="LogTextBox" Margin="0,0,0,8" IsReadOnly="True" AcceptsReturn="True"
                              FontFamily="Cascadia Mono,Consolas,Menlo,monospace" FontSize="13"
