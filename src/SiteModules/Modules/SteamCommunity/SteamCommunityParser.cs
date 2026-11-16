@@ -7,6 +7,7 @@ using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.Features;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
+using SteamKit2.Internal;
 using SteamApiClientType = SteamApiClient.SteamApiClient;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
@@ -50,6 +51,11 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
         }
 
         await SteamApiClient.LoginAsync(username, password ?? "", cancellationToken);
+        if (CurrentUrl.Contains("/filedetails"))
+        {
+            return await ParseWorkshopItem(cancellationToken);
+        }
+
         ulong steamId;
         string dirName;
         if (CurrentUrl.Contains("/profiles/"))
@@ -80,8 +86,31 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
 
         var appId = uint.Parse(appIdString!);
         var files = await SteamApiClient.GetUserWorkshopItemsAsync(steamId, appId, cancellationToken);
-        var images = files.Select(file => file.publishedfileid)
-                          .Select(fileId => FormatSteamWorkshopDownloadUrl(appId.ToString(), fileId.ToString()))
+        return await CreateRipInfo(files, dirName);
+    }
+
+    /// <summary>
+    ///     Parses a single workshop item or a collection (sharedfiles/filedetails/?id=...). Unlike profile pages,
+    ///     these are accessible even when the creator's profile is private, as long as the items themselves are
+    ///     public or unlisted.
+    /// </summary>
+    private async Task<RipInfo> ParseWorkshopItem(CancellationToken cancellationToken)
+    {
+        var query = UrlUtility.ParseUrlQueryParameters(CurrentUrl);
+        if (query is null || !query.TryGetValue("id", out var idString) || !ulong.TryParse(idString, out var fileId))
+        {
+            throw new RipperException($"No workshop item id found in url: {CurrentUrl}");
+        }
+
+        var (root, items) = await SteamApiClient.ResolveWorkshopItemAsync(fileId, cancellationToken);
+        var dirName = string.IsNullOrWhiteSpace(root.title) ? fileId.ToString() : root.title;
+        return await CreateRipInfo(items, dirName);
+    }
+
+    private async Task<RipInfo> CreateRipInfo(IEnumerable<PublishedFileDetails> files, string dirName)
+    {
+        var images = files.Select(file => FormatSteamWorkshopDownloadUrl(file.consumer_appid.ToString(),
+                                      file.publishedfileid.ToString()))
                           .Select(url =>
                                FileLink.WithDownloadResolvedFilename(url, FilenameScheme,
                                    linkInfo: SteamCommunityLinkInfo.SteamCommunity))
@@ -103,6 +132,17 @@ public class SteamCommunityParser : HtmlParser, IHtmlParser, INormalizingHtmlPar
         if (parameters.Length < 1)
         {
             throw new RipperException("Unexpected Steam Community URL format: " + url);
+        }
+
+        if (parts[0].Contains("/filedetails"))
+        {
+            var id = parameters.FirstOrDefault(p => p.StartsWith("id="));
+            if (id is null)
+            {
+                throw new RipperException("Unexpected Steam Community URL format: " + url);
+            }
+
+            return $"https://steamcommunity.com/sharedfiles/filedetails/?{id}";
         }
 
         var appId = parameters.FirstOrDefault(p => p.StartsWith("appid"));

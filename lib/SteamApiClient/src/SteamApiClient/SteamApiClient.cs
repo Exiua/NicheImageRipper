@@ -114,6 +114,78 @@ public sealed class SteamApiClient : IDisposable
             return results;
         }, cancellationToken);
 
+    public Task<IReadOnlyList<PublishedFileDetails>> GetWorkshopItemDetailsAsync(
+        IReadOnlyCollection<ulong> publishedFileIds, CancellationToken cancellationToken = default) =>
+        RunLoggedOnAsync(() => FetchWorkshopItemDetailsAsync(publishedFileIds, cancellationToken), cancellationToken);
+
+    private async Task<IReadOnlyList<PublishedFileDetails>> FetchWorkshopItemDetailsAsync(
+        IReadOnlyCollection<ulong> publishedFileIds, CancellationToken cancellationToken)
+    {
+        Logger.Information("Getting details for {Count} workshop items", publishedFileIds.Count);
+        var service = _session.UnifiedMessages.CreateService<PublishedFile>();
+        const int batchSize = 100;
+        var results = new List<PublishedFileDetails>();
+        foreach (var batch in publishedFileIds.Chunk(batchSize))
+        {
+            var request = new CPublishedFile_GetDetails_Request { includechildren = true, short_description = true };
+            request.publishedfileids.AddRange(batch);
+            var response = await service.GetDetails(request).ToTask().WaitAsync(cancellationToken);
+            EnsureOk(response.Result, "get workshop item details");
+            results.AddRange(response.Body.publishedfiledetails);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    ///     Resolves a workshop item or collection into the items it contains. Nested collections are expanded
+    ///     recursively. Items that are not visible to the logged-in account are skipped.
+    /// </summary>
+    public Task<(PublishedFileDetails Root, IReadOnlyList<PublishedFileDetails> Items)> ResolveWorkshopItemAsync(
+        ulong publishedFileId, CancellationToken cancellationToken = default) =>
+        RunLoggedOnAsync<(PublishedFileDetails, IReadOnlyList<PublishedFileDetails>)>(async () =>
+        {
+            var root = (await FetchWorkshopItemDetailsAsync([publishedFileId], cancellationToken)).SingleOrDefault() ??
+                       throw new SteamApiException($"Workshop item {publishedFileId} was not found.");
+            EnsureOk((EResult)root.result, $"access workshop item {publishedFileId}");
+
+            var items = new List<PublishedFileDetails>();
+            var seen = new HashSet<ulong> { root.publishedfileid };
+            IReadOnlyList<PublishedFileDetails> pending = [root];
+            while (pending.Count > 0)
+            {
+                var collections = new List<PublishedFileDetails>();
+                foreach (var details in pending)
+                {
+                    if ((EResult)details.result != EResult.OK)
+                    {
+                        Logger.Warning("Skipping workshop item {PublishedFileId}: {Result}", details.publishedfileid,
+                            (EResult)details.result);
+                        continue;
+                    }
+
+                    if ((EWorkshopFileType)details.file_type == EWorkshopFileType.Collection)
+                    {
+                        collections.Add(details);
+                    }
+                    else
+                    {
+                        items.Add(details);
+                    }
+                }
+
+                var childIds = collections.SelectMany(c => c.children)
+                                          .Select(child => child.publishedfileid)
+                                          .Where(seen.Add)
+                                          .ToList();
+                pending = childIds.Count == 0 ? [] : await FetchWorkshopItemDetailsAsync(childIds, cancellationToken);
+            }
+
+            Logger.Information("Resolved workshop item {PublishedFileId} ({Title}) to {Count} items", publishedFileId,
+                root.title, items.Count);
+            return (root, items);
+        }, cancellationToken);
+
     public Task<string> GetPersonaNameAsync(ulong steamId, CancellationToken cancellationToken = default) =>
         RunLoggedOnAsync(async () =>
         {
