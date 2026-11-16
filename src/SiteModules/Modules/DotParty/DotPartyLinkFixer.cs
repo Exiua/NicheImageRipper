@@ -22,7 +22,7 @@ internal static class DotPartyLinkFixer
         HtmlNode? anchorToFix = null;
         foreach (var anchor in anchors)
         {
-            var parent = anchor.ParentNode;
+            var parent = anchor.ParentNode!;
             foreach (var node in parent.ChildNodes)
             {
                 switch (node.NodeType)

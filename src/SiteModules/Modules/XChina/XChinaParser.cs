@@ -25,9 +25,9 @@ public class XChinaParser : HtmlParser, IHtmlParser
         var soup = await Soupify(cancellationToken: cancellationToken);
         var tabContents = soup.SelectSingleNodeOrThrow("//div[@class='tab-content video-info']");
         var publisherNode = tabContents.SelectSingleNode(".//i[@class='fa fa-video-camera']") ?? tabContents.SelectSingleNodeOrThrow(".//i[@class='fa fa-user-circle']");
-        var publisher = publisherNode.ParentNode.SelectSingleNodeOrThrow(".//a").InnerText;
+        var publisher = publisherNode.ParentNode!.SelectSingleNodeOrThrow(".//a").InnerText;
         var series = tabContents.SelectSingleNode(".//i[@class='fa fa-file-o']");
-        var id = series is not null ? series.ParentNode.InnerText : CurrentUrl.Split("id-")[^1].Split(".")[0];
+        var id = series is not null ? series.ParentNode!.InnerText : CurrentUrl.Split("id-")[^1].Split(".")[0];
         var title = tabContents.SelectNodesOrThrow(".//div")[0].InnerText;
         var dirName = $"[{publisher}] {id} - {title}";
         var images = new List<StringFileLinkWrapper>();
@@ -104,7 +104,7 @@ public class XChinaParser : HtmlParser, IHtmlParser
             return videoSrc;
         }
 
-        var script = video.ParentNode.SelectNodesOrThrow(".//script")[1].InnerText;
+        var script = video.ParentNode!.SelectNodesOrThrow(".//script")[1].InnerText;
         var url = script.Split("hls.loadSource(\"")[1];
         url = url.Split("\");")[0];
         return url;

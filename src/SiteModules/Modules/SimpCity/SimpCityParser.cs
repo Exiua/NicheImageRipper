@@ -303,7 +303,7 @@ public class SimpCityParser : HtmlParser, IHtmlParser, ICacheOwner
             return src;
         }
 
-        var grandParent = video.ParentNode.ParentNode;
+        var grandParent = video.ParentNode!.ParentNode!;
         var downloadLink = grandParent.SelectSingleNodeOrThrow(".//a[@class='plyr__controls__item plyr__control']")
                                       .GetHref();
         var id = downloadLink.Split("/d/")[^1];

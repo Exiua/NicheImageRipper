@@ -375,10 +375,10 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
     }
 
     private static Dictionary<string, string> BuildServerMap(DotPartyPostResponse r) =>
-        (r.Attachments ?? []).Select(a => (a.Path, a.Server))
-                             .Concat((r.Videos ?? []).Select(v => (v.Path, v.Server))!)
+        (r.Attachments ?? []).Select(a => (a.Path, Server: (string?)a.Server))
+                             .Concat((r.Videos ?? []).Select(v => (v.Path, v.Server)))
                              .Concat((r.Previews ?? []).Select(p =>
-                                  (p.Path, p.Server))) // last: previews may be thumbnail servers
+                                  (Path: (string?)p.Path, Server: (string?)p.Server))) // last: previews may be thumbnail servers
                              .Where(t => t.Path is not null && t.Server is not null)
                              .GroupBy(t => t.Path!)
                              .ToDictionary(g => g.Key, g => g.First().Server!);

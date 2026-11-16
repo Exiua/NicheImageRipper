@@ -60,7 +60,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
             Logger.Debug("Parsing tabbed content");
             var tabs = tablist.SelectNodesOrThrow("./li");
             var numTabs = tabs.Count;
-            var baseTabId = tablist.ParentNode.GetAttributeValue("id");
+            var baseTabId = tablist.ParentNode!.GetAttributeValue("id");
             Logger.Debug("Found {NumTabs} tabs", numTabs);
             for (var i = 0; i < numTabs; i++)
             {
@@ -108,7 +108,7 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                 var player = container.SelectSingleNode("//div[@class='fp-player']");
                 if (player is not null)
                 {
-                    var playerContainer = player.ParentNode;
+                    var playerContainer = player.ParentNode!;
                     var dataItem = playerContainer.GetAttributeValue("data-item");
                     dataItem = WebUtility.HtmlDecode(dataItem);
                     var videoData = JsonSerializer.Deserialize<PlayerItem>(dataItem)!.Sources;

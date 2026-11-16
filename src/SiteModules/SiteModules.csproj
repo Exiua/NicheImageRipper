@@ -21,9 +21,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Google.Apis.Drive.v3" Version="1.77.0.4301" />
-      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="15.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.14" />
+      <PackageReference Include="Google.Apis.Drive.v3" Version="1.78.0.4327" />
+      <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="15.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Primitives" Version="11.0.0" />
     </ItemGroup>
 
 </Project>
