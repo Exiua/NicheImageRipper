@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -453,8 +452,8 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
                 return r;
             }, (response) => response.IsSuccessStatusCode, "Failed to get profile page", delay: 5000,
             cancellationToken: cancellationToken);
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-        var dirName = json!.AsObject()["name"]!.Deserialize<string>()!;
+        var profile = await response.Content.ReadFromJsonAsync<DotPartyProfile>(cancellationToken: cancellationToken);
+        var dirName = profile!.Name;
         dirName = $"{dirName} - ({sourceSite})";
         Logger.Information("Parsed profile page: {DirName}", dirName);
         var posts = new List<DotPartyPostResponse>();

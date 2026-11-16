@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -47,10 +46,31 @@ public class ImgurParser : HtmlParser, IHtmlParser
             throw new RipperCredentialException("Client Id Incorrect");
         }
 
-        var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-        var jsonData = json!["data"]!.AsObject();
-        var dirName = jsonData["title"]!.Deserialize<string>()!;
-        var images = jsonData["images"]!.AsArray().Select(img => img!["link"]!.Deserialize<string>()!).ToList();
+        var json = await response.Content.ReadFromJsonAsync<AlbumResponse>(cancellationToken: cancellationToken);
+        var jsonData = json!.Data;
+        var dirName = jsonData.Title;
+        var images = jsonData.Images.Select(img => img.Link).ToList();
         return await RipInfo.FromUrlListAsync(images.ToStringFileLinkWrapperList(), dirName, FilenameScheme);
+    }
+
+    private class AlbumResponse
+    {
+        [JsonPropertyName("data")]
+        public Album Data { get; set; } = null!;
+    }
+
+    private class Album
+    {
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = null!;
+
+        [JsonPropertyName("images")]
+        public List<AlbumImage> Images { get; set; } = null!;
+    }
+
+    private class AlbumImage
+    {
+        [JsonPropertyName("link")]
+        public string Link { get; set; } = null!;
     }
 }

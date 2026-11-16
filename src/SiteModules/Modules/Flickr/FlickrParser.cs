@@ -1,5 +1,5 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -82,13 +82,29 @@ public class FlickrParser : HtmlParser, IHtmlParser
             }
 
             paramValues = JsonUtility.ExtractJsonObject(paramValues);
-            var paramsJson = JsonSerializer.Deserialize<JsonNode>(paramValues);
-            var imgUrl =
-                paramsJson?.AsObject()["photoModel"]!.AsObject()["descendingSizes"]!.AsArray()[0]!.AsObject()["url"]
-                           .Deserialize<string>()!;
+            var paramsJson = JsonSerializer.Deserialize<ModelExport>(paramValues)!;
+            var imgUrl = paramsJson.PhotoModel.DescendingSizes[0].Url;
             images.Add(Protocol + imgUrl);
         }
 
         return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
+    }
+
+    private class ModelExport
+    {
+        [JsonPropertyName("photoModel")]
+        public PhotoModel PhotoModel { get; set; } = null!;
+    }
+
+    private class PhotoModel
+    {
+        [JsonPropertyName("descendingSizes")]
+        public List<PhotoSize> DescendingSizes { get; set; } = null!;
+    }
+
+    private class PhotoSize
+    {
+        [JsonPropertyName("url")]
+        public string Url { get; set; } = null!;
     }
 }

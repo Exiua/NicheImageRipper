@@ -1,5 +1,5 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
@@ -210,23 +210,22 @@ public partial class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser, INorm
             js = js.Split("var ")[1];
             var start = js.IndexOf('{');
             var rawJson = JsonUtility.ExtractJsonObject(js[start..]);
-            var jsonData = JsonSerializer.Deserialize<JsonNode>(rawJson);
-            var mediaDefinitions = jsonData!["mediaDefinitions"]!.AsArray();
+            var jsonData = JsonSerializer.Deserialize<PlayerConfig>(rawJson);
             var highestQuality = 0;
             var highestQualityUrl = "";
-            foreach (var definition in mediaDefinitions)
+            foreach (var definition in jsonData!.MediaDefinitions)
             {
-                var qualityJson = definition!["quality"]!;
-                if (qualityJson.IsArray())
+                // Adaptive (HLS) definitions list several qualities and are skipped
+                if (definition.Quality is null)
                 {
                     continue;
                 }
 
-                var quality = qualityJson.Deserialize<string>()!.ParseInt();
+                var quality = definition.Quality.ParseInt();
                 if (quality > highestQuality)
                 {
                     highestQuality = quality;
-                    highestQualityUrl = definition["videoUrl"]!.Deserialize<string>()!;
+                    highestQualityUrl = definition.VideoUrl;
                 }
             }
 
@@ -303,6 +302,42 @@ public partial class PornhubParser : TimeSensitiveHtmlParser, IHtmlParser, INorm
         return url;
     }
     
+    private class PlayerConfig
+    {
+        [JsonPropertyName("mediaDefinitions")]
+        public List<MediaDefinition> MediaDefinitions { get; set; } = null!;
+    }
+
+    private class MediaDefinition
+    {
+        /// <summary>A single quality, or null when the definition lists several (an array).</summary>
+        [JsonPropertyName("quality")]
+        [JsonConverter(typeof(SingleQualityConverter))]
+        public string? Quality { get; set; }
+
+        [JsonPropertyName("videoUrl")]
+        public string VideoUrl { get; set; } = null!;
+    }
+
+    private class SingleQualityConverter : JsonConverter<string?>
+    {
+        public override bool HandleNull => true;
+
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                reader.Skip();
+                return null;
+            }
+
+            return reader.GetString();
+        }
+
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options) =>
+            writer.WriteStringValue(value);
+    }
+
     // SiteModules.Modules.Pornhub.PornhubParser
     public static string NormalizeUrl(string url)
     {

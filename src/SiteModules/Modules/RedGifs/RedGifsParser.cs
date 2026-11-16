@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -47,10 +46,8 @@ public class RedGifsParser : HtmlParser, IHtmlParser
             var request = RequestHeaders.ToRequest(HttpMethod.Get, $"{baseRequest}{idParam}");
             var response = await Client.SendAsync(request, cancellationToken);
             var responseJson =
-                (await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken))!;
-            var gifs = responseJson["gifs"]!.AsArray();
-            images.AddRange(gifs.Select(gif => gif!["urls"]!["hd"]!.Deserialize<string>()).Select(gifUrl => gifUrl!)
-                                .Select(dummy => (StringFileLinkWrapper)dummy));
+                (await response.Content.ReadFromJsonAsync<GifsResponse>(cancellationToken: cancellationToken))!;
+            images.AddRange(responseJson.Gifs.Select(gif => (StringFileLinkWrapper)gif.Urls.Hd));
         }
 
         return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
@@ -71,9 +68,32 @@ public class RedGifsParser : HtmlParser, IHtmlParser
             throw new InvalidOperationException("Failed to get Redgifs token");
         }
 
-        var json = (await response.Content.ReadFromJsonAsync<JsonNode>(ct))!;
-        var value = json["token"].Deserialize<string>()
-                    ?? throw new InvalidOperationException("Failed to get Redgifs token");
+        var json = (await response.Content.ReadFromJsonAsync<TokenResponse>(ct))!;
+        var value = json.Token ?? throw new InvalidOperationException("Failed to get Redgifs token");
         return new Token(value, DateTime.Now + TimeSpan.FromHours(24));
+    }
+
+    private class TokenResponse
+    {
+        [JsonPropertyName("token")]
+        public string? Token { get; set; }
+    }
+
+    private class GifsResponse
+    {
+        [JsonPropertyName("gifs")]
+        public List<Gif> Gifs { get; set; } = null!;
+    }
+
+    private class Gif
+    {
+        [JsonPropertyName("urls")]
+        public GifUrls Urls { get; set; } = null!;
+    }
+
+    private class GifUrls
+    {
+        [JsonPropertyName("hd")]
+        public string Hd { get; set; } = null!;
     }
 }

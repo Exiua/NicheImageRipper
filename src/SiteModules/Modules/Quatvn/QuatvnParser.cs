@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using HtmlAgilityPack;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
@@ -68,8 +68,8 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                 var videoTab = soup.SelectSingleNodeOrThrow($"//div[@id='{baseTabId}-{i}']/div");
                 var videoData = videoTab.GetAttributeValue("data-item");
                 videoData = WebUtility.HtmlDecode(videoData);
-                var videoList = JsonSerializer.Deserialize<JsonNode>(videoData)!.AsObject()["sources"]!.AsArray();
-                var videos = videoList.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!);
+                var videoList = JsonSerializer.Deserialize<PlayerItem>(videoData)!.Sources;
+                var videos = videoList.Select(entry => entry.Src);
                 images.AddRange(videos.Select(vid => (StringFileLinkWrapper)vid));
                 if (i != numTabs - 1)
                 {
@@ -91,8 +91,8 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                 Logger.Debug("Parsing gallery");
                 var imageData = gallery.GetAttributeValue("data-g1-gallery");
                 imageData = WebUtility.HtmlDecode(imageData);
-                var imageList = JsonSerializer.Deserialize<JsonNode>(imageData)!.AsArray();
-                var imgs = imageList.Select(entry => entry!.AsObject()["full"]!.Deserialize<string>()!);
+                var imageList = JsonSerializer.Deserialize<List<GalleryImage>>(imageData)!;
+                var imgs = imageList.Select(entry => entry.Full);
                 images.AddRange(imgs.Select(img => (StringFileLinkWrapper)img));
             }
 
@@ -111,8 +111,8 @@ public class QuatvnParser : HtmlParser, IHtmlParser
                     var playerContainer = player.ParentNode;
                     var dataItem = playerContainer.GetAttributeValue("data-item");
                     dataItem = WebUtility.HtmlDecode(dataItem);
-                    var videoData = JsonSerializer.Deserialize<JsonNode>(dataItem)!.AsObject()["sources"]!.AsArray();
-                    var videos = videoData.Select(entry => entry!.AsObject()["src"]!.Deserialize<string>()!).ToStringFileLinks();
+                    var videoData = JsonSerializer.Deserialize<PlayerItem>(dataItem)!.Sources;
+                    var videos = videoData.Select(entry => entry.Src).ToStringFileLinks();
                     images.AddRange(videos);
                 }
             }
@@ -120,5 +120,23 @@ public class QuatvnParser : HtmlParser, IHtmlParser
 
         CleanTabs("quatvn.love");
         return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
+    }
+
+    private class PlayerItem
+    {
+        [JsonPropertyName("sources")]
+        public List<VideoSource> Sources { get; set; } = null!;
+    }
+
+    private class VideoSource
+    {
+        [JsonPropertyName("src")]
+        public string Src { get; set; } = null!;
+    }
+
+    private class GalleryImage
+    {
+        [JsonPropertyName("full")]
+        public string Full { get; set; } = null!;
     }
 }

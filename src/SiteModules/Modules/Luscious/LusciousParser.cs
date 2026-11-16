@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -62,26 +62,10 @@ public class LusciousParser : HtmlParser, IHtmlParser
             var response = await HttpClient.PostAsync(endpoint,
                 new StringContent(JsonSerializer.Serialize(new { operationName = "getVideoInfo", query, variables }),
                     Encoding.UTF8, "application/json"), cancellationToken);
-            var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            var jsonData = json!["data"]!["video"]!["get"]!;
-            string videoUrl;
-            if (!jsonData["v1080p"].IsNull())
-            {
-                videoUrl = jsonData["v1080p"]!.Deserialize<string>()!;
-            }
-            else if (!jsonData["v720p"].IsNull())
-            {
-                videoUrl = jsonData["v720p"]!.Deserialize<string>()!;
-            }
-            else if (!jsonData["v360p"].IsNull())
-            {
-                videoUrl = jsonData["v360p"]!.Deserialize<string>()!;
-            }
-            else
-            {
-                videoUrl = jsonData["v240p"]!.Deserialize<string>()!;
-            }
-
+            var json = await response.Content.ReadFromJsonAsync<GraphQlResponse<VideoData>>(
+                cancellationToken: cancellationToken);
+            var jsonData = json!.Data.Video.Get;
+            var videoUrl = jsonData.V1080p ?? jsonData.V720p ?? jsonData.V360p ?? jsonData.V240p!;
             images.Add(videoUrl);
         }
         else
@@ -130,17 +114,82 @@ public class LusciousParser : HtmlParser, IHtmlParser
                     new StringContent(
                         JsonSerializer.Serialize(new { operationName = "PictureQuery", query, variables }),
                         Encoding.UTF8, "application/json"), cancellationToken);
-                var json = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-                var jsonData = json!["data"]!["picture"]!["list"]!;
-                nextPage = jsonData["info"]!["has_next_page"]!.Deserialize<bool>();
+                var json = await response.Content.ReadFromJsonAsync<GraphQlResponse<PictureData>>(
+                    cancellationToken: cancellationToken);
+                var jsonData = json!.Data.Picture.List;
+                nextPage = jsonData.Info.HasNextPage;
                 var inputDict = (Dictionary<string, object>)variables["input"];
                 inputDict["page"] = (int)inputDict["page"] + 1;
-                var items = jsonData["items"]!.AsArray();
-                images.AddRange(items.Select(item =>
-                    (StringFileLinkWrapper)item!["url_to_original"]!.Deserialize<string>()!));
+                images.AddRange(jsonData.Items.Select(item => (StringFileLinkWrapper)item.UrlToOriginal));
             }
         }
 
         return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
+    }
+
+    private class GraphQlResponse<T>
+    {
+        [JsonPropertyName("data")]
+        public T Data { get; set; } = default!;
+    }
+
+    private class VideoData
+    {
+        [JsonPropertyName("video")]
+        public VideoQuery Video { get; set; } = null!;
+    }
+
+    private class VideoQuery
+    {
+        [JsonPropertyName("get")]
+        public Video Get { get; set; } = null!;
+    }
+
+    private class Video
+    {
+        [JsonPropertyName("v240p")]
+        public string? V240p { get; set; }
+
+        [JsonPropertyName("v360p")]
+        public string? V360p { get; set; }
+
+        [JsonPropertyName("v720p")]
+        public string? V720p { get; set; }
+
+        [JsonPropertyName("v1080p")]
+        public string? V1080p { get; set; }
+    }
+
+    private class PictureData
+    {
+        [JsonPropertyName("picture")]
+        public PictureQuery Picture { get; set; } = null!;
+    }
+
+    private class PictureQuery
+    {
+        [JsonPropertyName("list")]
+        public PictureList List { get; set; } = null!;
+    }
+
+    private class PictureList
+    {
+        [JsonPropertyName("info")]
+        public PageInfo Info { get; set; } = null!;
+
+        [JsonPropertyName("items")]
+        public List<Picture> Items { get; set; } = null!;
+    }
+
+    private class PageInfo
+    {
+        [JsonPropertyName("has_next_page")]
+        public bool HasNextPage { get; set; }
+    }
+
+    private class Picture
+    {
+        [JsonPropertyName("url_to_original")]
+        public string UrlToOriginal { get; set; } = null!;
     }
 }

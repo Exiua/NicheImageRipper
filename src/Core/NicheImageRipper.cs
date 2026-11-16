@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using NicheImageRipper.Core.Cache;
 using NicheImageRipper.Core.DataStructures;
@@ -784,9 +784,9 @@ public partial class NicheImageRipper : IDisposable
             }
 
             var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
-            var json = JsonSerializer.Deserialize<JsonNode>(jsonString);
+            var release = JsonSerializer.Deserialize<GitHubRelease>(jsonString);
             // Tags are formatted as "v5.0.0"
-            var versionString = json?["tag_name"]?.GetValue<string>().TrimStart('v', 'V');
+            var versionString = release?.TagName?.TrimStart('v', 'V');
             return Version.TryParse(versionString, out var version) ? version : UnknownVersion;
         }
         catch (Exception e) when (e is HttpRequestException or JsonException or InvalidOperationException
@@ -997,5 +997,11 @@ public partial class NicheImageRipper : IDisposable
     ~NicheImageRipper()
     {
         Dispose();
+    }
+
+    private class GitHubRelease
+    {
+        [JsonPropertyName("tag_name")]
+        public string? TagName { get; set; }
     }
 }

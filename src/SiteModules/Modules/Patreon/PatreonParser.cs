@@ -44,7 +44,7 @@ public class PatreonParser : HtmlParser, IHtmlParser
             if (i == 0)
             {
                 dirName = page.Included.Where(included => included.Type == "campaign")
-                              .Select(included => included.Attributes.GetProperty("name").GetString())
+                              .Select(included => included.GetAttributes<CampaignAttributes>()?.Name)
                               .FirstOrDefault() ?? dirName;
             }
 

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -60,18 +60,17 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
             throw new RipperException("yt-dlp subprocess failed");
         }
 
-        var json = JsonSerializer.Deserialize<JsonNode>(output)!.AsObject();
-        var entries = json["entries"]?.AsArray();
+        var json = JsonSerializer.Deserialize<YtDlpInfo>(output)!;
 
-        return entries is not null
-            ? await ParseChannel(json, entries)
+        return json.Entries is not null
+            ? await ParseChannel(json, json.Entries)
             : await ParseSingleVideo(json);
     }
 
-    private Task<RipInfo> ParseChannel(JsonObject json, JsonArray entries)
+    private Task<RipInfo> ParseChannel(YtDlpInfo json, List<YtDlpInfo> entries)
     {
-        var displayName = json["channel"]?.GetValue<string>() ?? json["uploader"]?.GetValue<string>();
-        var username = json["uploader_id"]?.GetValue<string>() ?? json["channel_id"]?.GetValue<string>();
+        var displayName = json.Channel ?? json.Uploader;
+        var username = json.UploaderId ?? json.ChannelId;
         var dirName = displayName is null
             ? "Unknown Channel"
             : username is null
@@ -80,8 +79,8 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
 
         var images = entries.Select(entry =>
         {
-            var title = entry!["title"]!.GetValue<string>();
-            var id = entry["id"]!.GetValue<string>();
+            var title = entry.Title!;
+            var id = entry.Id!;
             var videoUrl = $"https://www.youtube.com/watch?v={id}";
             return FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme,
                 filenameCleaning: FilenameCleaning.Full);
@@ -90,10 +89,10 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
         return RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
     }
 
-    private Task<RipInfo> ParseSingleVideo(JsonObject json)
+    private Task<RipInfo> ParseSingleVideo(YtDlpInfo json)
     {
-        var title = json["title"]?.GetValue<string>() ?? "Unknown Video";
-        var id = json["id"]!.GetValue<string>();
+        var title = json.Title ?? "Unknown Video";
+        var id = json.Id!;
         var videoUrl = $"https://www.youtube.com/watch?v={id}";
 
         var fileLink = FileLink.WithFilename(videoUrl, $"{title}.webm", FilenameScheme,
@@ -106,6 +105,31 @@ public class YoutubeParser : HtmlParser, IHtmlParser, INormalizingHtmlParser
     public static string NormalizeUrl(string url)
     {
         return UrlUtility.NormalizeUrl(url, strict: false, "v");
+    }
+
+    /// <summary>The subset of yt-dlp's --dump-single-json output that is used. Playlist entries share the shape.</summary>
+    private class YtDlpInfo
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("channel")]
+        public string? Channel { get; set; }
+
+        [JsonPropertyName("channel_id")]
+        public string? ChannelId { get; set; }
+
+        [JsonPropertyName("uploader")]
+        public string? Uploader { get; set; }
+
+        [JsonPropertyName("uploader_id")]
+        public string? UploaderId { get; set; }
+
+        [JsonPropertyName("entries")]
+        public List<YtDlpInfo>? Entries { get; set; }
     }
 
     private class SubprocessArgs

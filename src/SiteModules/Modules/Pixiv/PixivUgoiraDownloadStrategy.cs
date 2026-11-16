@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using ImageMagick;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
@@ -10,6 +9,7 @@ using NicheImageRipper.Sdk.FileDownloading;
 using NicheImageRipper.Sdk.TokenManagement;
 using NicheImageRipper.Sdk.Utility;
 using OpenQA.Selenium;
+using PixivApi.Models;
 
 
 namespace NicheImageRipper.SiteModules.Modules.Pixiv;
@@ -42,32 +42,32 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
         var rawView = driver.FindElement(By.Id("rawdata-tab"));
         rawView.Click();
         var jsonPre = driver.FindElement(By.XPath("//pre[@class='data']"));
-        var json = JsonNode.Parse(jsonPre.Text);
+        // Error responses send "body": [], which can't bind to the body object
+        var rawJson = jsonPre.Text.Replace("\"body\":[]", "\"body\":null");
+        var json = JsonSerializer.Deserialize<UgoiraMetadata>(rawJson);
         if (json is null)
         {
             throw new RipperException("Failed to parse Pixiv Ugoira metadata");
         }
 
-        json = json.AsObject();
-        if (json["error"].Deserialize<bool>())
+        if (json.Error)
         {
             throw new RipperException("Received error while fetching Pixiv Ugoira metadata");
         }
 
         var oldReferer = context.RequestHeaders[RequestHeaderKeys.Referer];
         context.RequestHeaders[RequestHeaderKeys.Referer] = $"https://www.pixiv.net/artworks/{illustId}";
-        var body = json["body"]!.AsObject();
-        var keys = new[] { "originalSrc", "src" };
+        var body = json.Body!;
+        var sources = new[] { ("originalSrc", body.OriginalSrc), ("src", body.Src) };
         HttpResponseMessage response = null!;
         List<(string, int)> framesMetadata = null!;
 
-        foreach (var (i, key) in keys.Enumerate())
+        foreach (var (i, (key, src)) in sources.Enumerate())
         {
-            var src = body[key]?.GetValue<string>();
-            if (src is null)
+            if (string.IsNullOrEmpty(src))
             {
                 context.Logger.Warning("Pixiv Ugoira source not found for key: {Key}", key);
-                if (i == keys.Length - 1)
+                if (i == sources.Length - 1)
                 {
                     context.RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
                     throw new RipperException("Pixiv Ugoira source not found");
@@ -81,7 +81,7 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
             if (!response.IsSuccessStatusCode)
             {
                 context.Logger.Warning("Failed to access Pixiv Ugoira source: {Src}", src);
-                if (i == keys.Length - 1)
+                if (i == sources.Length - 1)
                 {
                     context.RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
                     throw new RipperException("Unable to access Pixiv Ugoira source");
@@ -96,7 +96,7 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
             if (!response.IsSuccessStatusCode)
             {
                 context.Logger.Warning("Failed to download Pixiv Ugoira: {Src}", src);
-                if (i == keys.Length - 1)
+                if (i == sources.Length - 1)
                 {
                     context.RequestHeaders[RequestHeaderKeys.Referer] = oldReferer;
                     throw new RipperException("Unable to download Pixiv Ugoira");
@@ -105,11 +105,10 @@ public sealed class PixivUgoiraDownloadStrategy : IFileDownloadStrategy
                 continue;
             }
 
-            framesMetadata = body["frames"]!
-                            .AsArray()
-                            .Select(f => (f!["file"]!.GetValue<string>(), f["delay"]!.GetValue<int>()))
-                            .OrderBy(f => f.Item1)
-                            .ToList();
+            framesMetadata = body.Frames
+                                 .Select(f => (f.File, f.Delay))
+                                 .OrderBy(f => f.Item1)
+                                 .ToList();
             break;
         }
 

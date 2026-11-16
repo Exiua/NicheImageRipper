@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
 using NicheImageRipper.Sdk.DataStructures;
@@ -217,10 +216,22 @@ public class TitsInTopsParser : HtmlParser, IHtmlParser
             var imageHash = imgurUrl.Split("#")[^1];
             var message = headers.ToRequest(HttpMethod.Get, $"https://api.imgur.com/3/image/{imageHash}");
             response = await HttpClient.SendAsync(message, cancellationToken);
-            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            parsedUrls.Add(responseJson!["data"]!["link"]!.Deserialize<string>()!);
+            var responseJson = await response.Content.ReadFromJsonAsync<ImgurImageResponse>(cancellationToken: cancellationToken);
+            parsedUrls.Add(responseJson!.Data.Link);
         }
 
         return parsedUrls;
+    }
+
+    private class ImgurImageResponse
+    {
+        [JsonPropertyName("data")]
+        public ImgurImage Data { get; set; } = null!;
+    }
+
+    private class ImgurImage
+    {
+        [JsonPropertyName("link")]
+        public string Link { get; set; } = null!;
     }
 }

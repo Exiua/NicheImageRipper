@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
@@ -38,9 +38,9 @@ public class ArtstationParser : HtmlParser
         var start = cacheScript.IndexOf("quick.json", StringComparison.Ordinal);
         var end = cacheScript.LastIndexOf(");", StringComparison.Ordinal);
         var jsonData = cacheScript[(start + 14)..(end - 1)].Replace("\n", "").Replace('\"', '"');
-        var json = JsonSerializer.Deserialize<JsonNode>(jsonData);
-        var userId = json!["id"]!.Deserialize<string>()!;
-        var userName = json["full_name"]!.Deserialize<string>()!;
+        var json = JsonSerializer.Deserialize<UserData>(jsonData)!;
+        var userId = json.Id;
+        var userName = json.FullName;
 
         #endregion
 
@@ -57,17 +57,17 @@ public class ArtstationParser : HtmlParser
             var url = $"https://www.artstation.com/users/{username}/projects.json?page={pageCount}";
             Logger.Debug("Requesting {Url}", url);
             var response = await client.GetAsync(url);
-            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            var data = responseData!["data"]!.AsArray();
+            var responseData = await response.Content.ReadFromJsonAsync<ProjectsPage>(cancellationToken: cancellationToken);
+            var data = responseData!.Data;
             foreach (var d in data)
             {
-                var link = d!["permalink"]!.Deserialize<string>()!.Split("/")[4];
+                var link = d.Permalink.Split("/")[4];
                 posts.Add(link);
             }
 
             if (firstIter)
             {
-                total = responseData["total_count"]!.Deserialize<int>() - data.Count;
+                total = responseData.TotalCount - data.Count;
                 firstIter = false;
             }
             else
@@ -98,14 +98,49 @@ public class ArtstationParser : HtmlParser
                 response = await client.GetAsync(url, cancellationToken);
             }
 
-            var responseData = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            var assets = responseData!["assets"]!.AsArray();
-            var urls = assets.Select(asset => asset!["image_url"]!.Deserialize<string>()!.Replace("/large/", "/4k/"));
+            var responseData = await response.Content.ReadFromJsonAsync<Project>(cancellationToken: cancellationToken);
+            var urls = responseData!.Assets.Select(asset => asset.ImageUrl.Replace("/large/", "/4k/"));
             images.AddRange(urls.ToStringFileLinks());
         }
 
         #endregion
 
         return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
+    }
+
+    private class UserData
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = null!;
+
+        [JsonPropertyName("full_name")]
+        public string FullName { get; set; } = null!;
+    }
+
+    private class ProjectsPage
+    {
+        [JsonPropertyName("data")]
+        public List<ProjectSummary> Data { get; set; } = null!;
+
+        [JsonPropertyName("total_count")]
+        public int TotalCount { get; set; }
+    }
+
+    private class ProjectSummary
+    {
+        [JsonPropertyName("permalink")]
+        public string Permalink { get; set; } = null!;
+    }
+
+    private class Project
+    {
+        [JsonPropertyName("assets")]
+        public List<Asset> Assets { get; set; } = null!;
+    }
+
+    private class Asset
+    {
+        [JsonPropertyName("image_url")]
+        public string ImageUrl { get; set; } = null!;
     }
 }

@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
 using NicheImageRipper.Sdk.Exceptions;
@@ -43,13 +42,11 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
         {
             var id = url.Split("/")[4].Split("#")[0];
             var response = await HttpClient.GetAsync($"https://pixeldrain.com/api/list/{id}", cancellationToken);
-            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            dirName = responseJson!["title"]!.Deserialize<string>()!;
-            var files = responseJson["files"]!.AsArray();
-            foreach (var file in files)
+            var responseJson = await response.Content.ReadFromJsonAsync<FileList>(cancellationToken: cancellationToken);
+            dirName = responseJson!.Title;
+            foreach (var file in responseJson.Files)
             {
-                var link = FileLink.WithFilename(file!["id"]!.Deserialize<string>()!,
-                    file["name"]!.Deserialize<string>()!, FilenameScheme, counter,
+                var link = FileLink.WithFilename(file.Id, file.Name, FilenameScheme, counter,
                     linkInfo: PixelDrainLinkInfo.PixelDrain);
                 counter++;
                 images.Add(link);
@@ -59,10 +56,9 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
         {
             var id = url.Split("/")[4];
             var response = await HttpClient.GetAsync($"https://pixeldrain.com/api/file/{id}/info", cancellationToken);
-            var responseJson = await response.Content.ReadFromJsonAsync<JsonNode>(cancellationToken: cancellationToken);
-            dirName = responseJson!["id"]!.Deserialize<string>()!;
-            var link = FileLink.WithFilename(responseJson!["id"]!.Deserialize<string>()!,
-                responseJson["name"]!.Deserialize<string>()!, FilenameScheme, counter,
+            var responseJson = await response.Content.ReadFromJsonAsync<PixelDrainFile>(cancellationToken: cancellationToken);
+            dirName = responseJson!.Id;
+            var link = FileLink.WithFilename(responseJson.Id, responseJson.Name, FilenameScheme, counter,
                 linkInfo: PixelDrainLinkInfo.PixelDrain);
             images.Add(link);
         }
@@ -72,5 +68,23 @@ public class PixelDrainParser : ParameterizedHtmlParser, IHtmlParser
         }
 
         return await RipInfo.FromUrlListAsync(images, dirName, FilenameScheme);
+    }
+
+    private class FileList
+    {
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = null!;
+
+        [JsonPropertyName("files")]
+        public List<PixelDrainFile> Files { get; set; } = null!;
+    }
+
+    private class PixelDrainFile
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = null!;
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = null!;
     }
 }
