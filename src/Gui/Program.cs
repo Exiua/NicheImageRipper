@@ -35,10 +35,15 @@ sealed class Program
         Log.Logger = new LoggerConfiguration()
                     .MinimumLevel.Debug()
                     .Enrich.FromLogContext()
-                    .WriteTo.Console(theme: AnsiConsoleTheme.Code, levelSwitch: consoleSwitch,
+                    // Writing to the console (and flushing the file) per event blocks the logging thread, which
+                    // slows down tight loops that log at Debug. Both are written on a background thread instead;
+                    // the console may drop events under a burst, but the file waits so the log stays complete.
+                    .WriteTo.Async(sink => sink.Console(theme: AnsiConsoleTheme.Code, levelSwitch: consoleSwitch,
                          outputTemplate:
-                         "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext:lj}] {Message:lj}{NewLine}{Exception}")
-                    .WriteTo.File(AppData.GetPath("Logs", "gui.log"), rollingInterval: RollingInterval.Day, levelSwitch: fileSwitch)
+                         "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext:lj}] {Message:lj}{NewLine}{Exception}"))
+                    .WriteTo.Async(sink => sink.File(AppData.GetPath("Logs", "gui.log"),
+                         rollingInterval: RollingInterval.Day, levelSwitch: fileSwitch, buffered: true,
+                         flushToDiskInterval: TimeSpan.FromSeconds(1)), blockWhenFull: true)
                     .WriteTo.Gui()
                     .CreateLogger();
 
@@ -46,6 +51,10 @@ sealed class Program
         AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         {
             Log.Fatal(eventArgs.ExceptionObject as Exception, "Unhandled domain exception");
+            if (eventArgs.IsTerminating)
+            {
+                Log.CloseAndFlush();
+            }
         };
 
         // Handle unobserved task exceptions
@@ -56,7 +65,15 @@ sealed class Program
         };
 
         Log.Information("Starting application...");
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        try
+        {
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        finally
+        {
+            // The sinks are async and the file is buffered, so pending events are lost unless flushed
+            Log.CloseAndFlush();
+        }
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

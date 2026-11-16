@@ -20,7 +20,7 @@ internal sealed class CoreParserResolver : IParserResolver
         }
 
         var calleeHeaders = CopyHeaders(requestHeaders);
-        var (siteName, _) = UrlUtility.SiteCheck(url, calleeHeaders);
+        var siteName = UrlUtility.ExtractDomainAndSetReferer(url, calleeHeaders);
         var parser = HtmlParserFactory.CreateParameterized(siteName, driver, calleeHeaders, caller.FilenameScheme);
         HtmlParserOrchestrator.ApplySubParserOverrides(parser, caller);
         return parser;

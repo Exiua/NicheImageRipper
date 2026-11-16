@@ -23,7 +23,7 @@
 <!--    </PropertyGroup>-->
 
     <ItemGroup>
-        <AvaloniaResource Include="Assets\**"/>
+        <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,6 +37,7 @@
         <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
         <PackageReference Include="Serilog" Version="4.4.0" />
         <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.2" />
@@ -45,9 +46,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Core\Core.csproj" />
       <ProjectReference Include="..\Service.Contracts\Service.Contracts.csproj" />
-      <ProjectReference Include="..\SiteModules\SiteModules.csproj"
-                        OutputItemType="Content"
-                        CopyToOutputDirectory="PreserveNewest" />
+      <ProjectReference Include="..\SiteModules\SiteModules.csproj" OutputItemType="Content" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>
@@ -56,18 +55,14 @@
     </ItemGroup>
 
     <!-- Single-file publish: bundle everything except files that must stay on disk next to the executable -->
-    <Target Name="AdjustSingleFilePublish" AfterTargets="ComputeResolvedFilesToPublishList"
-            Condition="'$(PublishSingleFile)' == 'true'">
+    <Target Name="AdjustSingleFilePublish" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(PublishSingleFile)' == 'true'">
         <ItemGroup>
             <!-- Selenium launches selenium-manager as a separate process from the app folder, and ImpersonateClient's
                  resolver loads curl-impersonate from runtimes/<rid>/native; neither can see files extracted
                  from the bundle to a temp folder -->
-            <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
-                                   Condition="'%(Filename)' == 'selenium-manager' or $([System.String]::Copy('%(RelativePath)').Replace('\', '/').StartsWith('runtimes/'))"
-                                   ExcludeFromSingleFile="true" />
+            <ResolvedFileToPublish Update="@(ResolvedFileToPublish)" Condition="'%(Filename)' == 'selenium-manager' or $([System.String]::Copy('%(RelativePath)').Replace('\', '/').StartsWith('runtimes/'))" ExcludeFromSingleFile="true" />
             <!-- Service's ASP.NET config files come along with the project reference but aren't used by the GUI -->
-            <_GuiUnusedServiceFile Include="@(ResolvedFileToPublish)"
-                                   Condition="'%(Filename)%(Extension)' == 'Service.runtimeconfig.json' or $([System.String]::Copy('%(Filename)').StartsWith('appsettings'))" />
+            <_GuiUnusedServiceFile Include="@(ResolvedFileToPublish)" Condition="'%(Filename)%(Extension)' == 'Service.runtimeconfig.json' or $([System.String]::Copy('%(Filename)').StartsWith('appsettings'))" />
             <ResolvedFileToPublish Remove="@(_GuiUnusedServiceFile)" />
         </ItemGroup>
     </Target>

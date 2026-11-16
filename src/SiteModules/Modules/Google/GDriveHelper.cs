@@ -1,20 +1,23 @@
 using System.Text;
+using Google;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using NicheImageRipper.Sdk.DataStructures;
 using NicheImageRipper.Sdk.Enums;
+using Serilog;
 using File = Google.Apis.Drive.v3.Data.File;
 
 namespace NicheImageRipper.SiteModules.Modules.Google;
 
 public static class GDriveHelper
 {
+    private static readonly ILogger Log = Serilog.Log.ForContext(typeof(GDriveHelper));
     private static readonly SemaphoreSlim ServiceLock = new(1, 1);
     private static DriveService? _service;
 
     /// <summary>
-    ///     The Drive client, authenticated on first use and reused afterwards: authorizing reads the credentials and
+    ///     The Drive client, authenticated on first use and reused afterward: authorizing reads the credentials and
     ///     token cache from disk (and may prompt), which is far too slow to repeat for every file.
     /// </summary>
     public static async Task<DriveService> AuthenticateGDrive(CancellationToken cancellationToken = default)
@@ -60,6 +63,13 @@ public static class GDriveHelper
         }
     }
 
+    /// <summary>
+    ///    Expands a Google Drive link into one <see cref="FileLink"/> per file, keeping the folder structure inside the gallery.
+    /// </summary>
+    /// <param name="gDriveUrl">The Google Drive URL to expand. Can be a single-file link or a folder link.</param>
+    /// <param name="index">The starting index for numbering the files in the gallery. This is used to generate unique filenames.</param>
+    /// <param name="filenameScheme">The scheme to use for generating filenames for the files in the gallery.</param>
+    /// <returns>Tuple containing a list of <see cref="FileLink"/> objects representing the files in the Google Drive link, and the next index to use for numbering files.</returns>
     public static async Task<(List<FileLink>, int)> QueryGDriveLinks(string gDriveUrl, int index, FilenameScheme filenameScheme)
     {
         var service = await AuthenticateGDrive();
@@ -77,6 +87,11 @@ public static class GDriveHelper
             service = await AuthenticateGDrive();
             files = await service.GetFiles(id);
         }
+        catch (GoogleApiException e) when (e.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            Log.Warning("GDrive link {GDriveUrl} is no longer available: {EMessage}", gDriveUrl, e.Message);
+            return (new List<FileLink>(), index);
+        }
 
         var fileLinks = new List<FileLink>();
         var counter = index;
@@ -92,20 +107,21 @@ public static class GDriveHelper
         return (fileLinks, counter);
     }
     
-    private static (string, bool) ExtractId(string url)
+    internal static (string Id, bool SingleFile) ExtractId(string url)
     {
         // Links scraped from post bodies can carry trailing newlines/whitespace
         url = url.Trim();
         var parts = url.Split("/");
         if (url.Contains("/d/"))
         {
-            return (parts[^2], true);
+            return url.Contains("/file/") ? (parts[5], true) : (parts[^2], true);
         }
 
         var id = parts[^1].Split('?')[0];
         if (id is "open" or "folderview")
         {
-            id = parts[^1].Split("?id=")[^1];
+            // e.g. open?id=<id>&usp=sharing
+            id = parts[^1].Split("?id=")[^1].Split('&')[0];
         }
 
         return (id, false);

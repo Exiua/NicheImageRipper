@@ -10,6 +10,7 @@ using NicheImageRipper.Sdk.Exceptions;
 using NicheImageRipper.Sdk.SiteParsing;
 using NicheImageRipper.Sdk.Utility;
 using NicheImageRipper.SiteModules.Modules.DotParty.Models;
+using NicheImageRipper.SiteModules.Modules.Google;
 using Serilog;
 using WebDriver = NicheImageRipper.Sdk.Driver.WebDriver;
 
@@ -139,11 +140,19 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
                                                                          CancellationToken cancellationToken = default)
     {
         var stringLinks = new List<StringFileLinkWrapper>();
+        // The same external link is often in several posts, or twice in one (as a link and as plain text), and each
+        // resolve is a request (a Drive folder is one per subfolder), so only resolve each once
+        var resolved = new HashSet<string>();
         foreach (var link in files)
         {
             if (IsNativeLink(link))
             {
                 stringLinks.Add(link);
+                continue;
+            }
+
+            if (!resolved.Add(GetResolveKey(link.ToString())))
+            {
                 continue;
             }
 
@@ -160,6 +169,18 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
         }
 
         return stringLinks;
+    }
+
+    /// <summary>
+    ///     What makes an external link the same as another: Drive links to one file differ by their query
+    ///     (<c>?usp=sharing</c>, <c>?usp=share_link</c>) and path form, so they're keyed by the Drive ID.
+    /// </summary>
+    private static string GetResolveKey(string link)
+    {
+        link = link.Trim();
+        return link.Contains("drive.google.com", StringComparison.OrdinalIgnoreCase)
+            ? "gdrive:" + GDriveHelper.ExtractId(link).Id
+            : link;
     }
 
     private static Dictionary<string, List<string>> DeduplicateExternalLinks(
@@ -237,8 +258,9 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
         var links = soup.SelectNodesSafe("//a").GetNullableHrefs().OfType<string>().ToList();
         var possibleLinks = ExtractPossibleLinkText(soup);
 
-        MergeExternalLinks(externalLinks, ExternalLinkExtractor.ExtractExternalUrls(links));
-        MergeExternalLinks(externalLinks, DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks));
+        var postExternalLinks = ExternalLinkExtractor.ExtractExternalUrls(links);
+        MergeExternalLinks(postExternalLinks, DotPartyExternalLinkExtractor.ExtractPossibleExternalUrls(possibleLinks));
+        MergeExternalLinks(externalLinks, postExternalLinks);
 
         AddMainFile(post, domainUrl, serverMap, files);
         await AddAttachments(response, domainUrl, serverMap, files, cancellationToken);
@@ -248,9 +270,11 @@ public abstract class DotPartyParser : ParameterizedHtmlParser, IUpdatableHtmlPa
                                         .ToList();
         files.AddRange(extractedAttachments.ToStringFileLinks());
 
+        // Only this post's links: externalLinks holds every post's so far, and re-adding those for each post queued
+        // each external link once per later post
         foreach (var site in ParsableSites)
         {
-            files.AddRange(externalLinks[site].ToStringFileLinkWrapperList());
+            files.AddRange(postExternalLinks[site].ToStringFileLinkWrapperList());
         }
     }
 

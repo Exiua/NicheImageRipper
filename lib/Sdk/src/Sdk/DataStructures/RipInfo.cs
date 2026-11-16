@@ -211,18 +211,6 @@ public class RipInfo : IEnumerable<FileLink>, IEnumerable<StringFileLinkWrapper>
 
             if (SiteLinkRuleRegistry.FindMatch(url.Url) is IExpandingSiteLinkRule expandingRule)
             {
-                /*try
-                {
-                    var (expandedLinks, newLinkCounter) =
-                        await expandingRule.ExpandAsync(url.Url, linkCounter, FilenameScheme);
-                    fileLinks.AddRange(expandedLinks);
-                    linkCounter = newLinkCounter;
-                }
-                catch (GoogleApiException)
-                {
-                    // pass
-                }*/
-                
                 var (expandedLinks, newLinkCounter) =
                     await expandingRule.ExpandAsync(url.Url, linkCounter, FilenameScheme);
                 fileLinks.AddRange(expandedLinks);
