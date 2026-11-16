@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Sockets;
 using NicheImageRipper.Sdk.Common.ExtensionMethods;
 using NicheImageRipper.Sdk.Configuration;
@@ -36,7 +37,7 @@ public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
             await client.LoginAsync(username, password, cancellationToken);
             await client.DownloadWorkshopFileAsync(ulong.Parse(fileId), destinationFolder, cancellationToken);
         }
-        catch (SteamKitWebRequestException e) when (e.Message.Contains("503"))
+        catch (SteamKitWebRequestException e) when (e.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
             context.Logger.Warning(e, "Steam Community is currently unavailable (503), retrying...");
             await Task.Delay(2500, cancellationToken);
@@ -44,14 +45,13 @@ public sealed class SteamCommunityDownloadStrategy : IFileDownloadStrategy
         }
         catch (AsyncJobFailedException e)
         {
+            // The client has already started reconnecting; the next LoginAsync waits for it
             context.Logger.Warning(e, "Failed to download Steam Community file, retrying...");
-            await client.LogoutAsync(cancellationToken);
             return DownloadResult.Failed("AsyncJobFailedException");
         }
         catch (HttpRequestException e) when (e.InnerException is IOException { InnerException: SocketException } ex)
         {
             context.Logger.Warning(ex, "Network error while trying to download Steam Community: {Url}", link.Url);
-            await client.LogoutAsync(cancellationToken);
             return DownloadResult.Failed("Network error");
         }
         catch (Exception e)

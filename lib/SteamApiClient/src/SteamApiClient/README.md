@@ -9,3 +9,6 @@ A Steam client built on [SteamKit2](https://github.com/SteamRE/SteamKit), used t
 - Downloading Workshop files straight from Steam's CDN
 
 The login refresh token and Steam Guard data are saved to `steamConfig.json`, so you only need to sign in once.
+
+Pass `SteamApiClientOptions` to the constructor to change where the token is stored (`TokenStore`), how Steam Guard
+codes are entered (`Authenticator`, which defaults to the console), and the download concurrency/retry settings.

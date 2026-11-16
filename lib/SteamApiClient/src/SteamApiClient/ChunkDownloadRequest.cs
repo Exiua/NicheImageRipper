@@ -1,10 +1,9 @@
+using Microsoft.Win32.SafeHandles;
 using SteamKit2;
 
 namespace SteamApiClient;
 
 internal sealed record ChunkDownloadRequest(
-    DepotDownloadTarget Target,
     DepotManifest.ChunkData Chunk,
-    FileStream FileStream,
-    SemaphoreSlim FileLock
+    SafeFileHandle File
 );
